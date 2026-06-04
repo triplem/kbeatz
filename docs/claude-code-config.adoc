@@ -1,0 +1,277 @@
+= Claude Code Configuration
+:toc: left
+:toclevels: 3
+:icons: font
+:source-highlighter: rouge
+
+This project ships a complete Claude Code configuration in `.claude/`. It implements a full
+AI-assisted SDLC — from requirements gathering through release — with safety guardrails.
+
+== Directory Layout
+
+----
+.claude/
+├── settings.json          # MCP servers, permissions, hooks wiring
+├── hooks/                 # Shell scripts triggered by Claude Code events
+├── rules/                 # Markdown rule files loaded automatically
+├── skills/                # Invocable slash commands (/skill-name)
+├── templates/             # Markdown templates for PRs, ADRs, epics, stories
+├── scripts/               # Helper scripts (create-branch, quality-check, setup-mcp)
+└── mcp/                   # MCP server documentation and operation reference
+----
+
+== Hooks
+
+Hooks are shell scripts that fire on Claude Code lifecycle events. They enforce project policy
+without requiring Claude to remember the rules.
+
+[cols="2,1,3"]
+|===
+|Script |Event |Purpose
+
+|`session-start.sh`
+|SessionStart
+|Injects project context (stack, branch, active story, SDLC phase) into the system prompt
+
+|`safety-bash.sh`
+|PreToolUse:Bash
+|Blocks force-push to main, `rm -rf /`, and warns on `--no-verify`
+
+|`commit-guard.sh`
+|PreToolUse:Bash(git commit)
+|Enforces Conventional Commits format; blocks direct commits to main
+
+|`pre-push-gates.sh`
+|PreToolUse:Bash(git push) +
+_(release skill only)_
+|Runs quality gates (tests, Kover, Detekt) before push; skips when no source files changed
+
+|`post-edit-secrets.sh`
+|PostToolUse:Write\|Edit
+|Scans edited files for hardcoded secrets (API keys, tokens, connection strings)
+
+|`post-edit-lint.sh`
+|PostToolUse:Write\|Edit
+|Runs Detekt on `.kt`, ESLint on `.ts/.tsx` immediately after edits
+
+|`post-edit-openapi.sh`
+|PostToolUse:Write\|Edit
+|Runs Spectral lint on `openapi.yaml` files immediately after edits
+
+|`post-tool-audit.sh`
+|PostToolUse:Bash\|Write\|Edit
+|Appends a JSONL audit entry to `~/.claude/kbeatz-sessions/<session_id>.jsonl`
+
+|`stop-audit.sh`
+|Stop
+|Writes session summary (branch, action count) to the audit log
+
+|`file-changed-env.sh`
+|FileChanged:.env
+|Warns if a `.env` file is not gitignored; scans for obvious secrets
+|===
+
+=== Making the hooks executable
+
+[source,bash]
+----
+chmod +x .claude/hooks/*.sh .claude/scripts/*.sh
+----
+
+== Rules
+
+Rules in `.claude/rules/` are automatically applied to every conversation. They define how Claude
+should write code, manage branches, structure tests, and handle security.
+
+[cols="2,3"]
+|===
+|Rule file |Covers
+
+|`commit-conventions.md`
+|Conventional Commits format, squash merge policy
+
+|`branching-strategy.md`
+|Branch naming (`<type>/<issue>-<slug>`), merge policy, worktree patterns
+
+|`quality-gates.md`
+|Mandatory gates before any PR (tests, Kover ≥ 80%, Detekt, OpenAPI lint)
+
+|`solid-principles.md`
+|SOLID + Clean Code: SRP, DIP, naming, error handling, magic numbers
+
+|`api-design.md`
+|REST conventions, pagination, versioning, backwards compatibility
+
+|`openapi.md`
+|OpenAPI 3.1 mandatory fields, CI enforcement, SDK generation
+
+|`security.md`
+|OWASP Top 10, secret hygiene, SAST (Semgrep), container security
+
+|`kotlin-style.md`
+|Kotlin idioms, Detekt config, Gradle DSL patterns, null safety
+
+|`typescript-style.md`
+|TypeScript strict mode, ESLint config, imports, async/await
+
+|`test-pyramid.md`
+|Unit / Integration / E2E ratios, Testcontainers, naming
+
+|`logging.md`
+|Structured fields, log levels, correlation ID, what NOT to log
+
+|`agent-context.md`
+|CLAUDE.md hierarchy, hook audit logging pattern
+
+|`github-issue-management.md`
+|Native sub-issues via GraphQL, epic body structure, ADR naming
+
+|`branching-strategy.md`
+|Worktree patterns for parallel agents, post-merge cleanup
+|===
+
+== Skills (Slash Commands)
+
+Skills are invoked with `/skill-name` inside Claude Code. Each skill is a `SKILL.md` file with
+embedded instructions that Claude follows.
+
+=== SDLC Workflow
+
+[plantuml, sdlc, svg]
+....
+@startuml
+(*) --> "/gather-requirements"
+"/gather-requirements" --> "/write-epics"
+"/write-epics" --> "/write-stories"
+"/write-stories" --> "/implement" : per story
+"/implement" --> "/write-tests"
+"/write-tests" --> "/create-pr"
+"/create-pr" --> "/release"
+@enduml
+....
+
+[cols="2,3"]
+|===
+|Skill |When to use
+
+|`/gather-requirements`
+|New project or feature: elicits, challenges, and documents requirements
+
+|`/write-epics`
+|After `docs/requirements.md` is approved: decomposes into epics with acceptance criteria
+
+|`/write-stories`
+|After an epic is approved: decomposes into user stories with Given/When/Then criteria
+
+|`/implement`
+|After a story is approved: creates a feature branch, implements, opens PR
+
+|`/implement-epic`
+|Shortcut: implements all stories under an epic in dependency-order waves
+
+|`/write-tests`
+|After implementation: writes unit, integration, and E2E tests in a parallel worktree
+
+|`/create-pr`
+|After all quality gates pass: opens PR, polls for merge, cleans up branches and issues
+
+|`/pr-reviewer`
+|Review any PR: classifies findings (BLOCKER/MAJOR/MINOR/NIT), posts comment, fixes all findings
+
+|`/release`
+|After PR is merged: bumps version, generates changelog, creates GitHub release
+
+|`/create-adr`
+|Before a significant technology decision: proposes options, debates, documents the choice
+|===
+
+=== Code Pattern Skills
+
+These skills contain reference material and implementation patterns:
+
+`/kotlin-patterns`, `/typescript-patterns`, `/react-patterns`, `/openapi-patterns`,
+`/logging-kotlin`, `/logging-typescript`
+
+=== Specialist Review Skills
+
+Each skill embodies a domain expert who reviews a target with their specific lens:
+
+`/security-review`, `/qa-review`, `/architect-review`, `/devops-review`,
+`/ux-review`, `/performance-review`, `/operations-review`,
+`/technical-writer-review`, `/requirements-review`
+
+Run all nine at once with `/challenge-all <target>`.
+
+== MCP Servers
+
+Two MCP servers are configured in `settings.json`:
+
+[cols="1,2,2"]
+|===
+|Server |Purpose |Required env var
+
+|`@modelcontextprotocol/server-github`
+|Create/close issues, open PRs, create releases, manage labels
+|`GITHUB_TOKEN` (scopes: repo, issues, packages)
+
+|`@modelcontextprotocol/server-filesystem`
+|Read project files without requiring explicit Bash `cat` calls
+|None (uses `PROJECT_ROOT`)
+|===
+
+Install with:
+
+[source,bash]
+----
+./.claude/scripts/setup-mcp.sh github
+----
+
+== Session Audit Log
+
+Every agent action is appended outside the repo to prevent merge conflicts:
+
+----
+~/.claude/kbeatz-sessions/<session_id>.jsonl
+----
+
+Each line is a JSON object:
+
+[source,json]
+----
+{"ts":"2026-06-04T10:00:00Z","agent":"Claude","session_id":"abc123","action":"bash","detail":"git commit -m ..."}
+{"ts":"2026-06-04T10:05:00Z","agent":"System","session_id":"abc123","action":"session_stop","branch":"main","actions_this_session":12}
+----
+
+== Customising for Your Project
+
+=== Add a specialist review skill
+
+Create `.claude/skills/my-expert-review/SKILL.md` following the pattern of the existing review
+skills. The SKILL.md frontmatter `name:` field becomes the slash command.
+
+=== Add a project-specific rule
+
+Create `.claude/rules/my-rule.md`. It will be automatically loaded by Claude Code on every
+session start.
+
+=== Pin additional Bash permissions
+
+Add entries to the `permissions.allow` array in `settings.json`:
+
+[source,json]
+----
+"Bash(my-tool *)",
+"Bash(./scripts/my-script.sh *)"
+----
+
+=== Update repository references
+
+The GraphQL queries in `create-pr` and `implement-epic` skills reference `<OWNER>/<REPO>`.
+Replace these with your actual GitHub repository before running the SDLC workflow:
+
+[source,bash]
+----
+sed -i 's|<OWNER>|your-org|g; s|<REPO>|kbeatz|g' \
+  .claude/skills/create-pr/SKILL.md \
+  .claude/skills/implement-epic/SKILL.md
+----

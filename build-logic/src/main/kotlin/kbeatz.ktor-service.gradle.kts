@@ -1,0 +1,130 @@
+import java.time.LocalDate
+import org.gradle.api.artifacts.VersionCatalog
+import org.gradle.api.artifacts.VersionCatalogsExtension
+import org.gradle.api.attributes.Category
+
+plugins {
+    id("kbeatz.kotlin-base")
+    id("io.ktor.plugin")
+    id("org.openapi.generator")
+    id("org.asciidoctor.jvm.convert")
+    id("org.cyclonedx.bom")
+    id("org.jetbrains.kotlinx.kover")
+    application
+}
+
+private fun catalog(): VersionCatalog = project.extensions.getByType<VersionCatalogsExtension>().named("libs")
+private fun lib(alias: String) = catalog().findLibrary(alias).get()
+private fun bundle(alias: String) = catalog().findBundle(alias).get()
+
+dependencies {
+    "implementation"("org.example.kbeatz:kbeatz-common")
+    "implementation"(bundle("ktor-server"))
+    "implementation"(bundle("logging"))
+    "implementation"(lib("kotlinx-datetime"))
+    "implementation"(lib("kotlinx-coroutines-core"))
+    "implementation"(lib("kotlinx-serialization-json"))
+
+    "testImplementation"(bundle("test-unit"))
+    "testImplementation"(lib("ktor-client-mock"))
+}
+
+kotlin {
+    sourceSets {
+        main {
+            kotlin.srcDir(layout.buildDirectory.dir("generated/api/src/main/kotlin"))
+            kotlin.exclude("**/AppMain.kt")
+        }
+    }
+}
+
+@Suppress("UnstableApiUsage")
+testing {
+    suites {
+        val integrationTest by registering(JvmTestSuite::class) {
+            useJUnitJupiter()
+            dependencies { implementation(project()) }
+            targets { all { testTask.configure { shouldRunAfter("test") } } }
+            sources {
+                kotlin { setSrcDirs(listOf("src/integration-test/kotlin")) }
+                resources { setSrcDirs(listOf("src/integration-test/resources")) }
+            }
+        }
+
+        val e2eTest by registering(JvmTestSuite::class) {
+            useJUnitJupiter()
+            dependencies {
+                implementation(project())
+                implementation(lib("kotest-runner-junit5"))
+                implementation(lib("kotest-assertions-core"))
+                implementation(lib("ktor-client-content-negotiation"))
+                implementation(lib("ktor-server-test-host"))
+            }
+            targets { all { testTask.configure { shouldRunAfter(integrationTest) } } }
+            sources {
+                kotlin { setSrcDirs(listOf("src/e2e-test/kotlin")) }
+                resources { setSrcDirs(listOf("src/e2e-test/resources")) }
+            }
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn(testing.suites.named("integrationTest"))
+    dependsOn(testing.suites.named("e2eTest"))
+}
+
+tasks.named("koverVerify") {
+    dependsOn("test")
+    dependsOn(testing.suites.named("integrationTest"))
+    dependsOn(testing.suites.named("e2eTest"))
+}
+
+configurations.named("integrationTestImplementation") {
+    extendsFrom(configurations.implementation.get())
+    extendsFrom(configurations.testImplementation.get())
+}
+configurations.named("e2eTestImplementation") {
+    extendsFrom(configurations.implementation.get())
+    extendsFrom(configurations.testImplementation.get())
+}
+
+openApiGenerate {
+    generatorName.set("kotlin-server")
+    typeMappings.set(mapOf("UUID" to "kotlin.String", "date-time" to "kotlin.String"))
+    globalProperties.set(mapOf("models" to "", "apis" to "", "supportingFiles" to ""))
+    configOptions.set(mapOf(
+        "library" to "ktor",
+        "dateLibrary" to "java8",
+        "serializationLibrary" to "kotlinx_serialization"
+    ))
+}
+
+tasks.compileKotlin { dependsOn(tasks.named("openApiGenerate")) }
+
+tasks.named<ProcessResources>("processResources") {
+    from(layout.projectDirectory.file("api/openapi.yaml")) { into(".") }
+}
+
+tasks.asciidoctor {
+    baseDirFollowsSourceFile()
+    sourceDir(file("docs"))
+    setOutputDir(file("build/docs/asciidoc"))
+    notCompatibleWithConfigurationCache("Asciidoctor plugin uses deprecated StartParameter API")
+    attributes(mapOf(
+        "toc" to "left",
+        "icons" to "font",
+        "source-highlighter" to "rouge",
+        "revnumber" to project.version.toString(),
+        "revdate" to LocalDate.now().toString()
+    ))
+}
+
+val apiSpec by configurations.creating {
+    isCanBeConsumed = true
+    isCanBeResolved = false
+    attributes {
+        attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category::class, "openapi-spec"))
+    }
+}
+artifacts { add("apiSpec", layout.projectDirectory.file("api/openapi.yaml")) }

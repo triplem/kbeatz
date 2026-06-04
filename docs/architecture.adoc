@@ -1,0 +1,175 @@
+= Architecture
+:toc: left
+:icons: font
+:source-highlighter: rouge
+
+== API-First Design
+
+The OpenAPI specification at `<service>/api/openapi.yaml` is the single source of truth for every
+service. Code on both sides is generated from it — the spec is never derived from the code.
+
+[plantuml, api-first, svg]
+....
+@startuml
+rectangle "openapi.yaml" as spec
+rectangle "Ktor server stubs\n(build/generated/api/)" as backend
+rectangle "TypeScript Axios client\n(src/api/generated/)" as frontend
+
+spec --> backend : ./gradlew openApiGenerate
+spec --> frontend : npm run api:generate
+@enduml
+....
+
+When changing an API:
+
+1. Edit `api/openapi.yaml` first
+2. Run `./gradlew openApiGenerate` (or let the build do it automatically)
+3. Run `cd kbeatz-ui && npm run api:generate`
+4. Implement the new handler; the generated stub is the contract
+
+== Hexagonal Architecture
+
+Every backend service follows the same package layout:
+
+----
+src/main/kotlin/org/example/kbeatz/<service>/
+├── adapters/
+│   └── inbound/
+│       └── web/
+│           ├── <Entity>Routes.kt     # Ktor route handlers
+│           └── <Entity>Mapper.kt     # API models ↔ domain models
+├── application/
+│   └── service/
+│       └── <Entity>Service.kt        # Business logic
+├── domain/
+│   ├── model/
+│   │   └── <Entity>.kt               # Pure domain types
+│   ├── repository/
+│   │   └── <Entity>Repository.kt     # Port interface
+│   └── exception/                    # Domain-specific exceptions
+├── infrastructure/
+│   └── persistence/
+│       ├── Exposed<Entity>Repository.kt  # Adapter: Exposed ORM
+│       └── DatabaseFactory.kt
+└── plugins/
+    ├── Security.kt
+    ├── StatusPages.kt
+    └── Logging.kt
+----
+
+=== Dependency Direction
+
+----
+adapters → application → domain
+infrastructure → domain (via repository interface)
+plugins → ktor (framework only)
+----
+
+The domain layer has no framework dependencies. Infrastructure implements domain interfaces.
+
+== Authentication
+
+JWT-based via Keycloak. The `kbeatz-common` library provides:
+
+* `UserPrincipal` — extracted from JWT claims on every request
+* `configureSecurity()` — Ktor plugin that validates the JWT and populates the principal
+* `configureStatusPages()` — maps `DomainException` subtypes to HTTP status codes
+
+=== JWT Claims
+
+[source,kotlin]
+----
+data class UserPrincipal(
+    val userId: Uuid,
+    val roles: Set<Role>,      // USER, ADMIN
+)
+----
+
+Access control at route level:
+
+[source,kotlin]
+----
+authenticate("jwt") {
+    get("/items") {
+        val principal = call.principal<UserPrincipal>()!!
+        // principal.userId, principal.roles available here
+    }
+}
+----
+
+== Error Handling
+
+Domain exceptions in `kbeatz-common` map automatically to HTTP responses via `StatusPages`:
+
+[cols="2,1,2"]
+|===
+|Exception |HTTP Status |When to throw
+
+|`AuthenticationException`
+|401
+|JWT missing or invalid (usually handled by Ktor auth plugin)
+
+|`AuthorizationException`
+|403
+|Valid user, insufficient permissions
+
+|`ResourceNotFoundException`
+|404
+|Entity not found in repository
+
+|`BusinessValidationException`
+|422
+|Domain rule violation (e.g. duplicate name)
+
+|`ConflictException`
+|409
+|Concurrent modification, unique constraint
+|===
+
+Throw domain exceptions from the service layer. Never throw from routes or repositories.
+
+== Persistence
+
+[source,kotlin]
+----
+// Repository interface (domain layer — no Exposed types)
+interface ItemRepository {
+    suspend fun findById(id: Uuid): Item?
+    suspend fun save(item: Item): Item
+}
+
+// Adapter (infrastructure layer)
+class ExposedItemRepository : ItemRepository {
+    override suspend fun findById(id: Uuid): Item? =
+        suspendTransaction {
+            ItemsTable.selectAll()
+                .where { ItemsTable.id eq id }
+                .map { it.toItem() }
+                .singleOrNull()
+        }
+}
+----
+
+All database access runs on `Dispatchers.IO` via `suspendTransaction` from Exposed.
+
+== Correlation ID Tracing
+
+Every request carries an `X-Correlation-ID` header:
+
+* Frontend Axios interceptor generates it if absent
+* Backend `CallId` plugin reads or generates it and binds it to SLF4J MDC as `Correlation-ID`
+* All downstream HTTP calls forward the same header
+
+Log entries include `correlationId` automatically via the logback JSON appender.
+
+== Multi-Service Setup
+
+Each service is an independent Gradle composite build with its own:
+
+* `settings.gradle.kts` — references `../build-logic` and `../gradle/libs.versions.toml`
+* `build.gradle.kts` — applies the `kbeatz.ktor-service` convention plugin
+* `api/openapi.yaml` — its own contract
+* `config/detekt/` — can override or extend the root detekt config
+
+The root `settings.gradle.kts` glues them together via `includeBuild()`. Adding a new service
+requires one `includeBuild` entry there and one entry in the `serviceBuilds` list in `build.gradle.kts`.

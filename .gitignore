@@ -1,0 +1,31 @@
+# Gradle
+.gradle/
+build/
+*/build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Node / npm
+node_modules/
+*/node_modules/
+dist/
+kbeatz-ui/dist/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code local settings (contains project-specific allow-list entries)
+.claude/settings.local.json
+
+# Session audit logs live outside the repo
+# (see SESSION_LOG_DIR in .claude/settings.json)

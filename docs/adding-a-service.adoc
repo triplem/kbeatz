@@ -1,0 +1,133 @@
+= Adding a New Backend Service
+:toc: left
+:icons: font
+:source-highlighter: rouge
+
+This guide walks through creating a new Ktor/Kotlin microservice in the monorepo.
+Use `kbeatz-service` as your reference — it is a working skeleton of every pattern.
+
+== Step 1 — Choose a name
+
+Pick a short, lowercase, hyphenated service name: `kbeatz-<name>` (e.g. `kbeatz-catalog`).
+
+== Step 2 — Create the directory structure
+
+[source,bash]
+----
+SERVICE=kbeatz-catalog
+GROUP=catalog   # short name used in package paths
+
+mkdir -p ${SERVICE}/{api,docs,config/detekt}
+mkdir -p ${SERVICE}/src/main/kotlin/org/example/kbeatz/${GROUP}/{adapters/inbound/web,application/service,domain/{model,repository,exception},infrastructure/persistence,plugins}
+mkdir -p ${SERVICE}/src/test/kotlin/org/example/kbeatz/${GROUP}
+mkdir -p ${SERVICE}/src/integration-test/kotlin/org/example/kbeatz/${GROUP}
+mkdir -p ${SERVICE}/src/e2e-test/kotlin/org/example/kbeatz/${GROUP}
+mkdir -p ${SERVICE}/src/main/resources
+----
+
+== Step 3 — Copy and adapt build files
+
+[source,bash]
+----
+cp kbeatz-service/settings.gradle.kts ${SERVICE}/settings.gradle.kts
+cp kbeatz-service/build.gradle.kts    ${SERVICE}/build.gradle.kts
+cp -r kbeatz-service/config/detekt/   ${SERVICE}/config/detekt/
+----
+
+In `${SERVICE}/settings.gradle.kts`, the content is identical — it references `../build-logic`
+and `../gradle/libs.versions.toml` which are at the monorepo root.
+
+In `${SERVICE}/build.gradle.kts`, update:
+
+* `group` → `"org.example.kbeatz.${GROUP}"`
+* `mainClass` → `"org.example.kbeatz.${GROUP}.ApplicationKt"`
+* `packageName`, `apiPackage`, `modelPackage` → replace `service` with `${GROUP}`
+* Kover excludes → match your actual package paths
+
+== Step 4 — Write the OpenAPI spec
+
+Copy `kbeatz-service/api/openapi.yaml` as a starting point and replace the `Item` resource
+with your domain entity. The spec is the contract — write it before any code.
+
+Run Spectral to validate immediately:
+
+[source,bash]
+----
+cd ${SERVICE}
+npx @stoplight/spectral-cli lint api/openapi.yaml
+----
+
+== Step 5 — Implement domain, service, and adapter layers
+
+Follow the hexagonal pattern:
+
+1. **Domain model** (`domain/model/`) — pure Kotlin data classes, no framework imports
+2. **Repository interface** (`domain/repository/`) — suspend functions, domain types only
+3. **Service** (`application/service/`) — business logic, throws domain exceptions
+4. **Exposed adapter** (`infrastructure/persistence/`) — implements repository interface
+5. **Routes + mapper** (`adapters/inbound/web/`) — uses generated `Paths`, maps API ↔ domain
+6. **Plugins** — configure via `Application.kt` calling `configureSecurity()`, `configureStatusPages()`, etc.
+
+== Step 6 — Register in the monorepo
+
+=== settings.gradle.kts (root)
+
+[source,kotlin]
+----
+includeBuild("kbeatz-catalog") {
+    dependencySubstitution {
+        substitute(module("org.example.kbeatz:kbeatz-catalog")).using(project(":"))
+        substitute(module("org.example.kbeatz:kbeatz-catalog-spec")).using(project(":"))
+    }
+}
+----
+
+=== build.gradle.kts (root)
+
+[source,kotlin]
+----
+val serviceBuilds = listOf(
+    "kbeatz-service",
+    "kbeatz-catalog",   // ← add here
+)
+----
+
+== Step 7 — Add to docker-compose.yml
+
+[source,yaml]
+----
+catalog-backend:
+  build:
+    context: kbeatz-catalog
+  ports:
+    - "808X:8080"           # choose a unique host port
+  environment:
+    - DB_URL=jdbc:postgresql://postgres:5432/kbeatz-catalog
+    - KEYCLOAK_ISSUER=${KEYCLOAK_ISSUER}
+  depends_on:
+    - postgres
+    - liquibase-catalog
+----
+
+== Step 8 — Add a CLAUDE.md for the service
+
+Create `${SERVICE}/CLAUDE.md` describing:
+
+* Root package and full package structure
+* Domain model / DB schema
+* Service-specific env vars
+* Any behaviours unique to this service
+
+Claude Code loads both the root `CLAUDE.md` and the service's own `CLAUDE.md` when working
+inside the service directory. Keep shared conventions in the root; put service specifics here.
+
+== Step 9 — Quality gate
+
+[source,bash]
+----
+cd ${SERVICE}
+./gradlew check          # tests + Detekt + Kover ≥ 80%
+./gradlew asciidoctor    # docs build
+----
+
+All gates must pass before opening a PR.

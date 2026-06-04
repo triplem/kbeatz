@@ -1,0 +1,126 @@
+= Getting Started
+:toc: left
+:icons: font
+:source-highlighter: rouge
+
+== Prerequisites
+
+[cols="1,2"]
+|===
+|Tool |Version
+
+|JDK
+|21+ (Temurin recommended)
+
+|Node.js
+|22+
+
+|Docker / Podman
+|Latest stable
+
+|GitHub CLI (`gh`)
+|Latest stable
+
+|Claude Code CLI
+|Latest stable (`npm install -g @anthropic-ai/claude-code`)
+|===
+
+== Initial Setup
+
+=== 1. Clone and initialise
+
+[source,bash]
+----
+git clone https://github.com/<owner>/kbeatz.git
+cd kbeatz
+chmod +x gradlew .claude/hooks/*.sh .claude/scripts/*.sh
+----
+
+=== 2. Configure environment
+
+[source,bash]
+----
+cp .env.example .env        # create if not present
+# Edit .env and set:
+#   GITHUB_TOKEN=ghp_...     (repo + issues + packages scopes)
+#   KEYCLOAK_ADMIN_PASSWORD=...
+#   DB_PASSWORD=...
+----
+
+=== 3. Install MCP servers
+
+[source,bash]
+----
+./.claude/scripts/setup-mcp.sh github
+----
+
+This installs `@modelcontextprotocol/server-github` and `@modelcontextprotocol/server-filesystem`
+globally so Claude Code's MCP client can use them.
+
+=== 4. Update repository references
+
+Open `.claude/skills/create-pr/SKILL.md` and `.claude/skills/implement-epic/SKILL.md` and replace
+the two `<OWNER>` / `<REPO>` placeholders with your actual GitHub organisation and repository name.
+
+[source,bash]
+----
+# Quick replace — adjust owner and repo as needed
+sed -i 's|<OWNER>|your-org|g; s|<REPO>|kbeatz|g' \
+  .claude/skills/create-pr/SKILL.md \
+  .claude/skills/implement-epic/SKILL.md
+----
+
+=== 5. Verify the build
+
+[source,bash]
+----
+./gradlew buildBackends      # compiles all Kotlin services
+cd kbeatz-ui && npm install && npm run build
+----
+
+=== 6. Start Claude Code
+
+[source,bash]
+----
+claude
+----
+
+Claude Code will run the `SessionStart` hook which injects project context automatically.
+
+== Starting the SDLC Workflow
+
+Once Claude Code is running, the full AI-assisted development workflow starts with:
+
+[source]
+----
+/gather-requirements
+----
+
+This launches the `RequirementsAgent` which will guide you through eliciting, challenging,
+and documenting requirements before generating epics, stories, and implementation tasks.
+
+See xref:claude-code-config.adoc[Claude Code Configuration] for the full skill reference.
+
+== Running the Stack Locally
+
+[source,bash]
+----
+# All services + Keycloak + PostgreSQL
+docker compose up --build
+
+# Or with Podman
+./podman-up.sh --build
+----
+
+Once running:
+
+* Frontend: http://localhost:3005
+* Backend API: http://localhost:8080/api/v1
+* Swagger UI: http://localhost:8080/swagger
+* Keycloak Admin: http://localhost:8081
+
+== Adding Your First Real Service
+
+See xref:adding-a-service.adoc[Adding a Service] for the step-by-step guide.
+The `kbeatz-service` skeleton in this repo is a working starting point — rename its directories
+and package paths, then register it in `settings.gradle.kts`.
