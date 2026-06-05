@@ -53,10 +53,9 @@ if echo "$COMMAND" | grep -qE 'rm\s+-rf\s+/[^a-zA-Z]'; then
   deny "Blocked: 'rm -rf /' or similar root-level deletion detected."
 fi
 
-# Warn: pushing directly to main without a PR (non-force)
-if echo "$COMMAND" | grep -qE 'git push (origin )?main' && \
-   ! echo "$COMMAND" | grep -q -- '--force'; then
-  warn "Warning: Pushing directly to main bypasses the PR review process. Prefer feature branches + PR workflow unless this is an emergency hotfix."
+# Block: any direct push to main (non-force — force is already blocked above)
+if echo "$COMMAND" | grep -qE 'git push (origin )?main'; then
+  deny "Direct push to main is blocked. Squash-rebase your branch with ./.claude/scripts/squash-rebase.sh, then merge via: gh pr merge <pr-id> --squash --delete-branch"
 fi
 
 # Warn: skipping hooks

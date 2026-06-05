@@ -98,7 +98,7 @@ git checkout main
 git branch -D <branch-name>
 ```
 
-Do this as the last step of every `gh pr merge --rebase` flow — stale branches clutter `git branch` output and confuse future work. Do not rely on GitHub's "Delete branch on merge" auto-delete alone; always delete the local branch too.
+Do this as the last step of every `gh pr merge --squash` flow — stale branches clutter `git branch` output and confuse future work. Do not rely on GitHub's "Delete branch on merge" auto-delete alone; always delete the local branch too.
 
 ## Stale Branches
 

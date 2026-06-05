@@ -24,8 +24,16 @@ hooks:
 
 ### 1 — Squash rebase
 
+If the branch has not already been squash-rebased locally, run the prep script first:
+
 ```bash
-gh pr merge $pr_id --squash --delete-branch     # GitHub (squash onto main, no merge commit)
+./.claude/scripts/squash-rebase.sh $branch "<type>(<scope>): <story title> (#<story-id>)"
+```
+
+Then merge via GitHub/GitLab — this is the **only** path that writes to main:
+
+```bash
+gh pr merge $pr_id --squash --delete-branch     # GitHub
 glab mr merge $pr_id --squash --remove-source-branch  # GitLab
 ```
 
