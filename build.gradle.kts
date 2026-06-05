@@ -11,13 +11,13 @@ repositories {
 // shared library and is included automatically via dependency substitution.
 val libraryBuilds = listOf(
     "kbeatz-common",
-    "kbeatz-flac",
+    "kbeatz-sources",
+    "kbeatz-tagger",
 )
 
 val serviceBuilds = listOf(
     "kbeatz-catalog",
-    "kbeatz-metadata-discogs",
-    "kbeatz-tagger",
+    "kbeatz-cli",
 )
 
 // -- Frontend (kbeatz-ui npm) --------------------------------------------------
