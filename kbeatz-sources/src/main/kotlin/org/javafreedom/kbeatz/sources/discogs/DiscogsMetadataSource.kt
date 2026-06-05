@@ -11,6 +11,7 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.io.bytestring.ByteString
 import kotlinx.serialization.json.Json
 import org.javafreedom.kbeatz.sources.ImageResult
+import org.javafreedom.kbeatz.sources.MetadataCache
 import org.javafreedom.kbeatz.sources.MetadataSource
 import org.javafreedom.kbeatz.sources.Release
 
@@ -26,17 +27,21 @@ private val log = KotlinLogging.logger {}
  * @param token Discogs Personal Access Token (from DISCOGS_TOKEN env var).
  * @param userAgent User-Agent header sent with every request.
  * @param imageQuota Persistent daily image quota tracker.
+ * @param cache Optional metadata cache; when provided, [fetchRelease] checks the cache before
+ *   making an API call and stores the result on a cache miss.
  */
 class DiscogsMetadataSource private constructor(
     private val token: String,
     private val client: HttpClient,
     private val imageQuota: DiscogsImageQuota,
+    private val cache: MetadataCache? = null,
 ) : MetadataSource {
 
     constructor(
         token: String,
         userAgent: String = "kbeatz/1.0",
         imageQuota: DiscogsImageQuota = DiscogsImageQuota(),
+        cache: MetadataCache? = null,
     ) : this(
         token = token,
         client = HttpClient(CIO) {
@@ -53,6 +58,7 @@ class DiscogsMetadataSource private constructor(
             }
         },
         imageQuota = imageQuota,
+        cache = cache,
     )
 
     companion object {
@@ -61,15 +67,19 @@ class DiscogsMetadataSource private constructor(
             token: String,
             httpClient: HttpClient,
             imageQuota: DiscogsImageQuota = DiscogsImageQuota(),
-        ): DiscogsMetadataSource = DiscogsMetadataSource(token, httpClient, imageQuota)
+            cache: MetadataCache? = null,
+        ): DiscogsMetadataSource = DiscogsMetadataSource(token, httpClient, imageQuota, cache)
     }
 
     override val name = "discogs"
 
     override suspend fun fetchRelease(releaseId: String): Release? {
+        cache?.get(name, releaseId)?.let { return it }
         log.info { "Fetching Discogs release $releaseId" }
         val response: DiscogsRelease = client.get("https://api.discogs.com/releases/$releaseId").body()
-        return response.toDomain()
+        val release = response.toDomain()
+        cache?.put(name, releaseId, release)
+        return release
     }
 
     override suspend fun fetchImage(releaseId: String, index: Int): ImageResult? {

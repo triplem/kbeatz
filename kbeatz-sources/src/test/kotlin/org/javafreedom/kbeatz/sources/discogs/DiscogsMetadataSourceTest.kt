@@ -7,7 +7,7 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
-import org.javafreedom.kbeatz.sources.ImageResult
+import org.javafreedom.kbeatz.sources.cache.InMemoryMetadataCache
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -45,9 +45,12 @@ class DiscogsMetadataSourceTest {
         releaseResponse: String = sampleReleaseJson,
         imageBytes: ByteArray = byteArrayOf(0xFF.toByte(), 0xD8.toByte()),
         quota: DiscogsImageQuota = DiscogsImageQuota(),
+        cache: InMemoryMetadataCache? = null,
+        requestCounter: MutableList<String>? = null,
     ): DiscogsMetadataSource {
         val mockEngine = MockEngine { request ->
             val url = request.url.toString()
+            requestCounter?.add(url)
             when {
                 url.contains("/releases/") && !url.contains("img.discogs.com") ->
                     respond(
@@ -71,6 +74,7 @@ class DiscogsMetadataSourceTest {
                 }
             },
             imageQuota = quota,
+            cache = cache,
         )
     }
 
@@ -148,5 +152,53 @@ class DiscogsMetadataSourceTest {
 
         assertNotNull(result)
         assertEquals("image/png", result.mimeType)
+    }
+
+    @Test
+    fun `fetchRelease should store result in cache after API call`() = runBlocking {
+        val cache = InMemoryMetadataCache()
+        val source = buildSource(cache = cache)
+
+        source.fetchRelease("12345")
+
+        val cached = cache.get("discogs", "12345")
+        assertNotNull(cached)
+        assertEquals("Kind of Blue", cached.title)
+    }
+
+    @Test
+    fun `fetchRelease should hit cache on second call and make no second HTTP request`() = runBlocking {
+        val cache = InMemoryMetadataCache()
+        val requests = mutableListOf<String>()
+        val source = buildSource(cache = cache, requestCounter = requests)
+
+        source.fetchRelease("12345")
+        source.fetchRelease("12345")
+
+        // Only one HTTP request should have been made — the second call returns the cached value
+        assertEquals(1, requests.size)
+    }
+
+    @Test
+    fun `fetchImage should use cached release and not make a second API call for the release`() = runBlocking {
+        val cache = InMemoryMetadataCache()
+        val requests = mutableListOf<String>()
+        val source = buildSource(cache = cache, requestCounter = requests)
+
+        // Pre-populate cache with a release so fetchImage doesn't need to call the release endpoint
+        source.fetchRelease("12345")
+        val releaseRequests = requests.count { it.contains("/releases/") && !it.contains("img.discogs.com") }
+        assertEquals(1, releaseRequests)
+
+        requests.clear()
+
+        // Now call fetchImage — it should only hit the image URL, not the release endpoint again
+        val result = source.fetchImage("12345", 0)
+
+        assertNotNull(result)
+        val releaseRequestsAfter = requests.count { it.contains("/releases/") && !it.contains("img.discogs.com") }
+        assertEquals(0, releaseRequestsAfter)
+        val imageRequests = requests.count { it.contains("img.discogs.com") }
+        assertEquals(1, imageRequests)
     }
 }
