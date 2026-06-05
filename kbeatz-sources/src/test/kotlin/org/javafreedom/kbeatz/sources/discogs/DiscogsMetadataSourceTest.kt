@@ -63,7 +63,7 @@ class DiscogsMetadataSourceTest {
                     )
             }
         }
-        return DiscogsMetadataSource.forTesting(
+        return DiscogsMetadataSource.withHttpClient(
             token = "test-token",
             httpClient = HttpClient(mockEngine) {
                 install(ContentNegotiation) {

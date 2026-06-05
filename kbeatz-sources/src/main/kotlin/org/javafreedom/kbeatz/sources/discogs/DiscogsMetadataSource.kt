@@ -55,8 +55,8 @@ class DiscogsMetadataSource private constructor(
     )
 
     companion object {
-        /** Creates an instance with a custom [HttpClient] for testing. */
-        fun forTesting(
+        /** Creates an instance with a pre-configured [HttpClient] (e.g. for testing or proxy use). */
+        fun withHttpClient(
             token: String,
             httpClient: HttpClient,
             imageQuota: DiscogsImageQuota = DiscogsImageQuota(),
