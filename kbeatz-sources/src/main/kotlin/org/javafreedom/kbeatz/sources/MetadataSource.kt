@@ -1,5 +1,7 @@
 package org.javafreedom.kbeatz.sources
 
+import kotlinx.io.bytestring.ByteString
+
 /**
  * Port: a source that can fetch release metadata by ID.
  *
@@ -26,6 +28,6 @@ interface MetadataSource {
 }
 
 data class ImageResult(
-    val bytes: ByteArray,
+    val bytes: ByteString,         // content-based equals/hashCode
     val mimeType: String,          // "image/jpeg" or "image/png"
 )
