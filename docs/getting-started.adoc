@@ -118,6 +118,112 @@ Once running:
 * Swagger UI: http://localhost:8080/swagger
 * Keycloak Admin: http://localhost:8081
 
+== Container Deployment
+
+This section covers running the full kbeatz stack as containers using `podman-compose`
+(or `docker compose`). Both tools consume the same `compose.yml` at the project root.
+
+=== Prerequisites
+
+[cols="1,2"]
+|===
+|Tool |Notes
+
+|Podman + podman-compose
+|`dnf install podman podman-compose` / `brew install podman podman-compose`
+
+|_or_ Docker + Docker Compose plugin
+|Docker Desktop ships the Compose plugin; Linux: `apt install docker-compose-plugin`
+|===
+
+=== 1. Set up environment
+
+Copy the example env file and set the path to your FLAC library:
+
+[source,bash]
+----
+cp .env.example .env
+----
+
+Edit `.env`:
+
+[source,bash]
+----
+# Required — absolute path to your music library on the host
+CATALOG_LIBRARY_ROOT=/home/you/Music
+
+# Optional — get a token at https://www.discogs.com/settings/developers
+DISCOGS_TOKEN=your_token_here
+----
+
+The library directory is mounted read-write at `/library` inside the catalog container.
+The service starts without a `DISCOGS_TOKEN` but Discogs metadata sync will be unavailable.
+
+=== 2. Start the stack
+
+[source,bash]
+----
+podman-compose up -d       # detached
+
+# or with Docker
+docker compose up -d
+----
+
+The first run builds both images. On subsequent runs, pass `--build` only when the source
+has changed.
+
+The catalog service exposes a health check; the UI container will not start until the
+catalog reports healthy (up to 90 s on first boot).
+
+=== 3. Verify
+
+[source,bash]
+----
+curl http://localhost:8080/api/v1/health
+# → {"status":"UP"}
+----
+
+Then open http://localhost:3005 in a browser to reach the UI.
+
+=== 4. Stop the stack
+
+[source,bash]
+----
+podman-compose down
+
+# or with Docker
+docker compose down
+----
+
+=== Environment variable reference
+
+[cols="1,1,3"]
+|===
+|Variable |Required |Description
+
+|`CATALOG_LIBRARY_ROOT`
+|Yes
+|Host path to your FLAC library. Mounted at `/library` (read-write) inside the catalog container.
+
+|`DISCOGS_TOKEN`
+|No
+|Discogs Personal Access Token for metadata sync. The service starts without it, but Discogs
+sync will be unavailable.
+|===
+
+== CI Status Checks
+
+All PRs must pass the GitHub Actions *CI / Build, test, and verify* status check before they can
+be merged. Branch protection is configured on `main` — direct pushes are blocked.
+
+To run the same checks locally before opening a PR:
+
+[source,bash]
+----
+./gradlew check                          # backend: tests + Detekt + Kover
+cd kbeatz-ui && npm run lint && npm test # frontend: ESLint + Vitest
+----
+
 == Adding Your First Real Service
 
 See xref:adding-a-service.adoc[Adding a Service] for the step-by-step guide.
