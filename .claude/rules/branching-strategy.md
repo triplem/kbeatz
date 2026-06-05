@@ -4,7 +4,7 @@
 
 | Branch | Purpose | Protection |
 |---|---|---|
-| `main` | Production-ready code | Protected: require PR, CI green, squash merge only |
+| `main` | Production-ready code | Protected: require PR, CI green, squash rebase only |
 | `develop` | Integration branch (optional, for large teams) | Protected: require PR, CI green |
 
 **Direct commits to `main` are blocked by a git hook — this is enforced, not just a convention.**
@@ -69,11 +69,11 @@ git worktree add ../worktree-42-tests feature/42-user-jwt-auth
 
 Each agent commits to the same branch via its own worktree. Coordinate via the feature branch — rebase frequently.
 
-## Merge Policy
+## Rebase Policy
 
-- **main ← feature**: Squash merge. One commit per story.
-- **develop ← feature**: Merge commit (preserves history during integration).
-- **Never**: merge main into a feature branch. Rebase instead: `git rebase main`.
+- **main ← feature**: Squash rebase. One commit per story.
+- **develop ← feature**: Rebase onto develop (fast-forward, preserves history).
+- **Never**: merge main into a feature branch. Always rebase: `git rebase main`.
 
 ## Release Tags
 
@@ -81,11 +81,11 @@ Each agent commits to the same branch via its own worktree. Coordinate via the f
 v<major>.<minor>.<patch>
 ```
 
-Tags are created on `main` by ReleaseAgent after squash merge. Semver bump is determined automatically from conventional commits.
+Tags are created on `main` by ReleaseAgent after squash rebase. Semver bump is determined automatically from conventional commits.
 
-## Post-Merge Branch Cleanup
+## Post-Rebase Branch Cleanup
 
-After every PR is merged, **always** delete both the remote and local branch immediately:
+After every PR is rebased and closed, **always** delete both the remote and local branch immediately:
 
 ```bash
 # Delete remote branch
@@ -98,11 +98,11 @@ git checkout main
 git branch -D <branch-name>
 ```
 
-Do this as the last step of every `gh pr merge` flow — stale branches clutter `git branch` output and confuse future work. Do not rely on GitHub's "Delete branch on merge" auto-delete alone; always delete the local branch too.
+Do this as the last step of every `gh pr merge --squash` flow — stale branches clutter `git branch` output and confuse future work. Do not rely on GitHub's "Delete branch on merge" auto-delete alone; always delete the local branch too.
 
 ## Stale Branches
 
-Any branch that has been merged and not yet deleted is stale. Clean up proactively:
+Any branch that has been rebased/closed and not yet deleted is stale. Clean up proactively:
 
 ```bash
 git fetch --prune                    # removes stale remote-tracking refs

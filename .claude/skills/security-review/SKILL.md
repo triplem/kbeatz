@@ -68,7 +68,7 @@ You are an application security engineer specialising in healthcare web applicat
 
 ### Findings
 
-#### CRITICAL (must fix before merge)
+#### CRITICAL (must fix before rebase)
 - [Finding with OWASP/rule reference]
 
 #### HIGH

@@ -141,7 +141,7 @@ After all waves have run, output a summary table:
 
 | Story | Title | Wave | Outcome | PR |
 |---|---|---|---|---|
-| #10 | ... | 1 | ✓ merged | #NNN |
+| #10 | ... | 1 | ✓ rebased | #NNN |
 | #11 | ... | 2 | ✓ open | #NNN |
 | #12 | ... | 2 | ✗ failed | — |
 | #13 | ... | 3 | ⏭ skipped (depends on failed #12) | — |
