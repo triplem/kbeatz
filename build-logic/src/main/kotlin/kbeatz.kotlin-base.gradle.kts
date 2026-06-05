@@ -13,7 +13,6 @@ repositories {
     mavenCentral()
 }
 
-
 private fun catalog(): VersionCatalog = project.extensions.getByType<VersionCatalogsExtension>().named("libs")
 private fun lib(alias: String) = catalog().findLibrary(alias).get()
 
