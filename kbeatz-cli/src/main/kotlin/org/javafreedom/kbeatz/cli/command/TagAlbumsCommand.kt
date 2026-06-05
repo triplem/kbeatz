@@ -7,10 +7,9 @@ import com.github.ajalt.clikt.parameters.arguments.multiple
 import com.github.ajalt.clikt.parameters.options.convert
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
-import kotlinx.io.buffered
-import kotlinx.io.files.FileMetadata
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
+import org.javafreedom.kbeatz.cli.util.walkDirectories
 import org.javafreedom.kbeatz.tagger.idfile.IdFileReader
 import org.javafreedom.kbeatz.tagger.idfile.SourceConfig
 
@@ -100,14 +99,3 @@ private fun String.toKtxPath(): Path = Path(this).also {
     require(SystemFileSystem.exists(it)) { "Path does not exist: $this" }
 }
 
-private fun walkDirectories(root: Path, maxDepth: Int): Sequence<Path> = sequence {
-    if (maxDepth <= 0) return@sequence
-    val children = runCatching { SystemFileSystem.list(root) }.getOrElse { emptyList() }
-    for (child in children) {
-        val meta: FileMetadata = SystemFileSystem.metadataOrNull(child) ?: continue
-        if (meta.isDirectory) {
-            yield(child)
-            yieldAll(walkDirectories(child, maxDepth - 1))
-        }
-    }
-}
