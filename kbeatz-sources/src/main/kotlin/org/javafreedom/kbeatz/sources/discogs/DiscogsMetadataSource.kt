@@ -27,27 +27,44 @@ private val log = KotlinLogging.logger {}
  * @param userAgent User-Agent header sent with every request.
  * @param imageQuota Persistent daily image quota tracker.
  */
-class DiscogsMetadataSource(
+class DiscogsMetadataSource private constructor(
     private val token: String,
-    private val userAgent: String = "kbeatz/1.0",
-    private val imageQuota: DiscogsImageQuota = DiscogsImageQuota(),
+    private val client: HttpClient,
+    private val imageQuota: DiscogsImageQuota,
 ) : MetadataSource {
 
-    override val name = "discogs"
+    constructor(
+        token: String,
+        userAgent: String = "kbeatz/1.0",
+        imageQuota: DiscogsImageQuota = DiscogsImageQuota(),
+    ) : this(
+        token = token,
+        client = HttpClient(CIO) {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+            install(HttpRequestRetry) {
+                retryOnServerErrors(maxRetries = 2)
+                exponentialDelay()
+            }
+            defaultRequest {
+                header("Authorization", "Discogs token=$token")
+                header("User-Agent", userAgent)
+            }
+        },
+        imageQuota = imageQuota,
+    )
 
-    private val client = HttpClient(CIO) {
-        install(ContentNegotiation) {
-            json(Json { ignoreUnknownKeys = true })
-        }
-        install(HttpRequestRetry) {
-            retryOnServerErrors(maxRetries = 2)
-            exponentialDelay()
-        }
-        defaultRequest {
-            header("Authorization", "Discogs token=$token")
-            header("User-Agent", userAgent)
-        }
+    companion object {
+        /** Creates an instance with a pre-configured [HttpClient] (e.g. for testing or proxy use). */
+        fun withHttpClient(
+            token: String,
+            httpClient: HttpClient,
+            imageQuota: DiscogsImageQuota = DiscogsImageQuota(),
+        ): DiscogsMetadataSource = DiscogsMetadataSource(token, httpClient, imageQuota)
     }
+
+    override val name = "discogs"
 
     override suspend fun fetchRelease(releaseId: String): Release? {
         log.info { "Fetching Discogs release $releaseId" }
