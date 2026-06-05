@@ -11,7 +11,7 @@ BRANCH="${1:?Usage: $0 <branch> '<commit-message>'}"
 MESSAGE="${2:?Usage: $0 <branch> '<commit-message>'}"
 
 cleanup() {
-  if git rebase --show-current-patch &>/dev/null 2>&1 || [ -d "$(git rev-parse --git-dir)/rebase-merge" ] || [ -d "$(git rev-parse --git-dir)/rebase-apply" ]; then
+  if git rebase --show-current-patch &>/dev/null || [ -d "$(git rev-parse --git-dir)/rebase-merge" ] || [ -d "$(git rev-parse --git-dir)/rebase-apply" ]; then
     echo "Aborting in-progress rebase..." >&2
     git rebase --abort 2>/dev/null || true
   fi

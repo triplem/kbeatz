@@ -1,6 +1,6 @@
 ---
 name: create-pr
-description: Open a pull request with a guided review summary, then on rebase: delete local/remote branches, close linked issues, and close the parent epic if all its stories are done.
+description: Open a pull request with a guided review summary, then after merge: delete local/remote branches, close linked issues, and close the parent epic if all its stories are done.
 argument-hint: <story-id> <branch-name>
 arguments: [story_id, branch]
 disable-model-invocation: true
@@ -125,4 +125,4 @@ If different issues belong to different epics, check each epic independently.
 
 - PR in tracker (labelled `pending-review`)
 - Comment on story issue
-- On rebase: branches deleted, linked issues closed, epic closed if all stories done
+- After merge: branches deleted, linked issues closed, epic closed if all stories done
