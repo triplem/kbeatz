@@ -1,6 +1,6 @@
 ---
 name: challenge-all
-description: Run all specialist reviewer perspectives (doctor, patient, security, QA, architect, DevOps, UX, requirements, performance, operations, technical writer) against a single target and produce a consolidated challenge report. Use before merging a significant feature or finalising an epic.
+description: Run all specialist reviewer perspectives (user, security, QA, architect, DevOps, UX, requirements, performance, operations, technical writer) against a single target and produce a consolidated challenge report. Use before merging a significant feature or finalising an epic.
 argument-hint: <pr-number | issue-number | "inline text to review">
 arguments: [target]
 user-invocable: true
@@ -21,119 +21,111 @@ Work through each persona in order. Findings from one persona may inform another
 
 ---
 
-## Persona 1: T1D Specialist Doctor
-*Clinical correctness, safety, medical workflow*
+## Persona 1: End User (music collector, desktop + LAN)
+*Usability, real-world fit, collection workflow*
 
-Apply the checklist from `/doctor-t1d-review`:
-- Glucose thresholds correct (hypo < 3.9 mmol/L / 70 mg/dL)?
-- Dose recommendations clearly labelled as suggestions?
-- TIR zones and AGP follow consensus standards?
-- Units handled correctly?
-
----
-
-## Persona 2: T1D Patient (pump + CGM)
-*Usability, real-world fit, trust*
-
-Apply the checklist from `/patient-t1d-review`:
-- Understandable in < 30 seconds without a manual?
-- Works on mobile?
-- Graceful failure when backend is slow or down?
-- APS/Nightscout data handled correctly?
+Apply the checklist from `/ux-review` through the user's lens:
+- Can the user browse and find an album within a few seconds?
+- Are tag edits discoverable and forgiving (undo / cancel)?
+- Is the Discogs sync flow clear — does the user know what will change?
+- Does the CLI (`kbeatz-tagger`) produce clear output for both success and skip?
+- Does the feature work from another device on the LAN without extra config?
 
 ---
 
-## Persona 3: Security Specialist
-*OWASP Top 10, auth, secrets, injection*
+## Persona 2: Security Specialist
+*OWASP Top 10, secrets, path traversal, input validation*
 
 Apply the checklist from `/security-review`:
-- Every endpoint authenticated; access control checked?
-- No secrets in source or logs?
-- No injection vectors?
-- CSP / security headers correct?
+- `DISCOGS_TOKEN` never in source, logs, or API responses?
+- All filesystem path parameters validated within the configured library root?
+- No injection vectors in tag values written to FLAC files?
+- No secrets in build args or committed config?
 
 ---
 
-## Persona 4: QA Engineer
+## Persona 3: QA Engineer
 *Test coverage, edge cases, regression risk*
 
 Apply the checklist from `/qa-review`:
 - All acceptance criteria testable and tested?
 - Boundary values, error paths, null inputs covered?
+- Multi-disc albums, VA compilations, missing id files tested?
 - No tests skipped or commented out?
 
 ---
 
-## Persona 5: Software Architect
-*Hexagonal layers, SOLID, coupling, API design*
+## Persona 4: Software Architect
+*Hexagonal layers, SOLID, module boundaries, API design*
 
 Apply the checklist from `/architect-review`:
 - Domain layer free of framework imports?
-- No N+1 or over-fetching?
+- `kbeatz-filecodec`, `kbeatz-sources`, `kbeatz-tagger` dependency graph acyclic?
+- No logic duplicated between CLI and catalog service paths?
 - Breaking changes versioned?
-- No premature abstraction?
 
 ---
 
-## Persona 6: DevSecOps Engineer
+## Persona 5: DevSecOps Engineer
 *Container hygiene, env config, CI/CD, supply chain*
 
 Apply the checklist from `/devops-review`:
 - Base images pinned?
-- OTEL env vars present on all backends?
-- New services in correct depends_on chain?
+- `DISCOGS_TOKEN` and `LIBRARY_ROOT` present in compose file as env vars (not hard-coded)?
+- New services in correct `depends_on` chain?
 - Secrets never in build args?
 
 ---
 
-## Persona 7: UI/UX and Accessibility Specialist
+## Persona 6: UI/UX and Accessibility Specialist
 *WCAG AA, ease of use, interaction design*
 
 Apply the checklist from `/ux-review`:
 - Contrast ratio ≥ 4.5:1?
 - All inputs have labels (not just placeholders)?
-- Touch targets ≥ 44px?
+- Touch targets ≥ 44px (tablet usability)?
 - Keyboard navigation works?
 
 ---
 
-## Persona 8: Requirements Engineer
+## Persona 7: Requirements Engineer
 *Completeness, testability, consistency, NFRs*
 
 Apply the checklist from `/requirements-review`:
 - All criteria SMART and unambiguous?
 - NFRs stated (performance, availability)?
-- No contradictions with existing ADRs?
+- No contradictions with existing ADRs or `docs/requirements.md`?
 
 ---
 
-## Persona 9: Performance Engineer
+## Persona 8: Performance Engineer
 *Query efficiency, bundle size, response times*
 
 Apply the checklist from `/performance-review`:
-- No N+1 queries?
-- Pagination enforced?
-- Parallel upstream calls in kdiab-analyze?
+- No N+1 queries on the album listing?
+- Pagination enforced above the 5 000 album threshold (NFR-12)?
+- Client-side filter stays under 200 ms p95 at 2 000 albums?
 - Bundle size impact assessed?
 
 ---
 
-## Persona 10: Operations / SRE
+## Persona 9: Operations / SRE
 *Observability, graceful degradation, runbook*
 
 Apply the checklist from `/operations-review`:
-- OTEL traces cover new code paths?
-- Upstream failures produce 502, not hang?
+- Structured logs include `albumDir` / `discogsId` context on errors?
+- Discogs rate-limit exhaustion produces a clear WARN, not a silent drop?
 - New env vars have safe defaults?
+- `.kbeatz-write.lock` repair path exercised in tests?
 
 ---
 
-## Persona 11: Technical Writer
+## Persona 10: Technical Writer
 *Documentation, clarity, in-app help text*
 
 Apply the checklist from `/technical-writer-review`:
 - ADRs complete (Context / Decision / Consequences / Alternatives)?
-- User guide written for the correct audience?
+- CLI `--help` text accurate and complete?
 - Error messages explain what to do next?
 
 ---
@@ -154,8 +146,7 @@ Any REVISE from a persona = overall REVISE (at minimum).
 
 | Persona | Verdict | Top finding |
 |---|---|---|
-| T1D Doctor | ACCEPT/REVISE/REJECT | [one-liner] |
-| T1D Patient | ACCEPT/REVISE/REJECT | [one-liner] |
+| User | ACCEPT/REVISE/REJECT | [one-liner] |
 | Security | ACCEPT/REVISE/REJECT | [one-liner] |
 | QA | ACCEPT/REVISE/REJECT | [one-liner] |
 | Architect | ACCEPT/REVISE/REJECT | [one-liner] |
@@ -181,4 +172,3 @@ Any REVISE from a persona = overall REVISE (at minimum).
 ### Positive consensus
 - [What multiple personas agreed is well done]
 ```
-
