@@ -29,7 +29,7 @@ class TagAlbumsCommand : CliktCommand(
 
     private val libraryRoot: Path? by option(
         "--library", "-l",
-        help = "Root of the music library. Scans for album directories.",
+        help = "Root of the music library. Scans up to 3 levels deep (<Genre>/<Artist>/<Album>); use --recursive for unlimited depth.",
     ).convert { it.toKtxPath() }
 
     private val recursive: Boolean by option(
@@ -77,7 +77,7 @@ class TagAlbumsCommand : CliktCommand(
     private fun resolveTargets(): List<Path> {
         val root = libraryRoot
         return if (root != null) {
-            walkDirectories(root, if (recursive) Int.MAX_VALUE else 1)
+            walkDirectories(root, if (recursive) Int.MAX_VALUE else 3)
                 .filter { hasIdFile(it) }
                 .toList()
         } else {

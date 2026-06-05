@@ -44,7 +44,7 @@ class MigrateIdFilesCommand : CliktCommand(
 
     override fun run() {
         val idReader = IdFileReader(SourceConfig())
-        val depth = if (recursive) Int.MAX_VALUE else 1
+        val depth = if (recursive) Int.MAX_VALUE else 3
 
         walkDirectories(rootDir, depth).forEach { dir ->
             val idFile = idReader.read(dir) ?: return@forEach
