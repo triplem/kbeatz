@@ -1,0 +1,80 @@
+= ADR-001: Custom FLAC Metadata Implementation Based on RFC 9639
+:toc: left
+:icons: font
+:revdate: 2026-06-04
+:status: Accepted
+
+== Status
+
+Accepted
+
+== Context
+
+kbeatz must read and write FLAC metadata tags (Vorbis Comments, cover art) to tag a personal music
+collection.
+Several existing options were considered:
+
+|===
+| Option | Notes
+
+| **JAudioTagger**
+| Mature Java library, supports FLAC/MP3/OGG/M4A.
+  Last major update 2023; API is Java-centric with mutable objects.
+  Does not expose raw block structure, making block-level control impossible.
+
+| **SaltAudioTag** (https://github.com/Moriafly/SaltAudioTag)
+| Kotlin Multiplatform library for audio tagging.
+  The FLAC `MetadataBlock` implementation served as a useful reference for how to model
+  the block hierarchy idiomatically in Kotlin.
+  However, the library covers much more than tagging (audio decoding, multiplatform targets)
+  and would pull in substantial transitive dependencies not needed here.
+  As of 2025 the library is in active development with no stable release.
+
+| **Custom implementation from RFC 9639**
+| Implement FLAC metadata block parsing and writing directly from the specification.
+  Full control over binary layout.
+  No transitive dependencies.
+  Testable against spec-defined byte sequences.
+|===
+
+== Decision
+
+Implement a custom `kbeatz-flac` library based on
+https://www.rfc-editor.org/rfc/rfc9639.html[RFC 9639 — The FLAC Audio Codec].
+
+The SaltAudioTag `MetadataBlock` model was studied for idiomatic Kotlin structure (sealed class
+hierarchy, data classes per block type) but is **not used as a dependency**.
+
+== Implementation Notes
+
+* Block type 4 (VORBIS_COMMENT) uses **little-endian** 32-bit lengths per the Vorbis I spec
+  (referenced by RFC 9639 §10). All other block headers use **big-endian**.
+* The write strategy keeps 8 KB of PADDING after metadata blocks to allow future edits
+  without a full file rewrite in many cases.
+* All writes go through a temp-file + atomic move pattern (`Path.moveTo(overwrite = true)`)
+  to prevent corruption if the process is interrupted.
+
+== Consequences
+
+* kbeatz-flac has **one** external library dependency: `org.jetbrains.kotlinx:kotlinx-io-core`
+  (see ADR-002).  Zero other external dependencies.
+* Byte-array fields in `FlacMetadataBlock` data classes use `kotlinx.io.bytestring.ByteString`
+  (immutable, content-based equals) rather than `ByteArray`, which would break `equals()`/
+  `hashCode()` in data classes.  `FlacParseResult` is a plain `class` (not `data class`) for
+  the same reason — its `audioFrames: ByteArray` is large and should not be copied into a
+  `ByteString` on every parse.
+* We own the full byte-level behaviour — bugs in edge cases (e.g. multi-byte UTF-8 in tag
+  values, very large PADDING blocks) are our responsibility to test.
+* **Known limitation — streaming writes**: `FlacFile` currently loads the entire audio payload
+  (`audioFrames: ByteArray`) into heap memory.  For high-res 24-bit/96 kHz tracks this can be
+  200–400 MB.  A streaming write mode (pipe audio directly from source to dest without loading)
+  is the correct solution for bulk operations and should be addressed in a future epic before
+  any mass-tagging feature is built.
+* Adding support for new block types (SEEKTABLE, APPLICATION, CUESHEET) requires extending
+  the sealed class and both reader/writer — low risk, incremental.
+* Other audio formats (MP3 ID3, AAC, OGG) are explicitly out of scope for v1.
+
+== Alternatives Rejected
+
+* **JAudioTagger**: too Java-centric, no block-level access, stale release cadence.
+* **SaltAudioTag as dependency**: no stable release, scope mismatch, unnecessary transitive deps.

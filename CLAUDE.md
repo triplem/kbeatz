@@ -5,16 +5,16 @@ Agent actions are logged to `~/.claude/kbeatz-sessions/<session_id>.jsonl`.
 
 ## Project Overview
 
-**kbeatz** is a [describe your domain here] platform — a monorepo of:
+**kbeatz** is a music collection management platform — a monorepo of:
 
-| Service | Directory | Port | Notes |
+| Module | Directory | Port | Notes |
 |---|---|---|---|
-| kbeatz-common | `kbeatz-common/` | — | Shared Kotlin library: domain types, Ktor plugins, exceptions |
-| kbeatz-service | `kbeatz-service/` | 8080 | Sample service — rename or replace with your first real service |
+| kbeatz-common | `kbeatz-common/` | — | Shared library: domain exceptions, roles, Ktor plugins |
+| kbeatz-flac | `kbeatz-flac/` | — | FLAC tag reader/writer — custom implementation per RFC 9639 |
+| kbeatz-catalog | `kbeatz-catalog/` | 8080 | Music collection catalog — browse albums, tracks, FLAC metadata |
+| kbeatz-metadata-discogs | `kbeatz-metadata-discogs/` | 8081 | Discogs integration — fetch, cache, and expose release metadata |
+| kbeatz-tagger | `kbeatz-tagger/` | CLI | CLI tool: tag albums from Discogs, migrate id files to YAML |
 | kbeatz-ui | `kbeatz-ui/` | 3005 | React SPA |
-
-> Replace this table and the paragraph above once you have defined your services.
-> Run `/gather-requirements` to kick off the SDLC workflow.
 
 ## Common Tech Stack
 
@@ -110,7 +110,7 @@ Types: `feature`, `fix`, `bug`, `chore`, `docs`, `refactor`
 ## Commit Conventions
 
 ```
-<type>(<scope>): <summary>
+<type>(<scope>): <issue-number> <summary>
 ```
 See `.claude/rules/commit-conventions.md` for the full list of types.
 

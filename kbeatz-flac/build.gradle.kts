@@ -1,23 +1,29 @@
+import org.gradle.api.artifacts.VersionCatalog
+import org.gradle.api.artifacts.VersionCatalogsExtension
+
 plugins {
     id("kbeatz.kotlin-base")
     `java-library`
     `maven-publish`
+    id("org.jetbrains.kotlinx.kover")
+}
+
+private fun catalog(): VersionCatalog = project.extensions.getByType<VersionCatalogsExtension>().named("libs")
+private fun lib(alias: String) = catalog().findLibrary(alias).get()
+
+dependencies {
+    api(lib("kotlinx-io-core"))
 }
 
 group = "org.javafreedom.kbeatz"
 version = "0.0.1"
 
-private val catalog get() = the<VersionCatalogsExtension>().named("libs")
-private fun lib(alias: String) = catalog.findLibrary(alias).get()
-
-dependencies {
-    api(lib("ktor-server-auth-jwt"))
-    api(lib("ktor-server-call-id"))
-    api(lib("ktor-server-call-logging"))
-    api(lib("ktor-server-status-pages"))
-    api(lib("kotlin-logging"))
-    api(lib("kotlinx-datetime"))
-    implementation(lib("ktor-server-core"))
+kover {
+    reports {
+        verify {
+            rule { minBound(80) }
+        }
+    }
 }
 
 publishing {

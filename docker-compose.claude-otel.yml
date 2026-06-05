@@ -1,0 +1,151 @@
+# Standalone Claude Code OpenTelemetry stack.
+# Completely separate from the kdiab observability stack — dedicated network and
+# non-overlapping ports. Both stacks can run simultaneously.
+#
+# Usage:
+#   ./claude-otel.sh              # recommended — starts stack and prints service URLs
+#   docker compose -f docker-compose.claude-otel.yml up -d
+#
+# Claude Code runs on the host machine and connects to its collector via localhost,
+# so this stack uses the standard OTEL ports. The kdiab app OTEL stack
+# (docker-compose.otel.yml) uses remapped host ports (14317, 14318, 16690) because
+# kdiab backends connect via internal Docker hostnames — host-side ports don't matter.
+#
+# Signal support (as of Claude Code v2.x):
+#   metrics → Prometheus → Grafana  (cost, tokens, session counts, etc.)
+#   logs    → Loki → Grafana        (api_request, tool_result, hook events, etc.)
+#
+# Port map:
+#   OTLP gRPC   4317:4317  (kdiab app OTEL: 14317)
+#   OTLP HTTP   4318:4318  (kdiab app OTEL: 14318)
+#   Loki        3100:3100  (kdiab app OTEL: n/a)
+#   Prometheus  9090:9090  (kdiab app OTEL: n/a)
+#   Grafana     3000:3000  (kdiab app OTEL: n/a)
+
+services:
+  claude-otel-collector:
+    container_name: claude-otel-collector
+    # Pin to digest when available: otel/opentelemetry-collector-contrib:0.127.0@sha256:<digest>
+    image: otel/opentelemetry-collector-contrib:0.127.0
+    command: ["--config=/etc/otel/otel-collector-config.yaml"]
+    volumes:
+      - ./config/claude-otel/otel-collector-config.yaml:/etc/otel/otel-collector-config.yaml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC (standard)
+      - "4318:4318"   # OTLP HTTP (standard)
+    networks:
+      - claude-otel
+    restart: unless-stopped
+    # No healthcheck: the collector image is distroless (no wget/curl/sh).
+    # claude-otel.sh waits for port 4317 to be reachable from the host instead.
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+
+  claude-loki:
+    container_name: claude-loki
+    image: grafana/loki:3.4
+    command: -config.file=/etc/loki/loki-config.yaml
+    volumes:
+      - ./config/claude-otel/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - loki_claude_data:/loki
+    ports:
+      - "3100:3100"   # Loki API (no web UI — use /ready for health, /metrics for metrics)
+    networks:
+      - claude-otel
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3100/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+
+  claude-prometheus:
+    container_name: claude-prometheus
+    # Pin to digest when available: prom/prometheus:v3.4.0@sha256:<digest>
+    image: prom/prometheus:v3.4.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=7d
+    volumes:
+      - ./config/claude-otel/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_claude_data:/prometheus
+    ports:
+      - "9090:9090"   # Prometheus UI (standard)
+    networks:
+      - claude-otel
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+
+  claude-grafana:
+    container_name: claude-grafana
+    # Pin to digest when available: grafana/grafana:12.0.1@sha256:<digest>
+    image: grafana/grafana:12.0.1
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_claude_data:/var/lib/grafana
+      - ./config/claude-otel/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/claude-otel/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"   # Grafana UI (standard)
+    depends_on:
+      claude-prometheus:
+        condition: service_healthy
+      claude-loki:
+        condition: service_healthy
+    networks:
+      - claude-otel
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+
+networks:
+  claude-otel:
+    name: claude-otel
+    driver: bridge
+
+volumes:
+  prometheus_claude_data:
+  grafana_claude_data:
+  loki_claude_data:

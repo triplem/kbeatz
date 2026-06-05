@@ -18,7 +18,7 @@ private fun lib(alias: String) = catalog().findLibrary(alias).get()
 private fun bundle(alias: String) = catalog().findBundle(alias).get()
 
 dependencies {
-    "implementation"("org.example.kbeatz:kbeatz-common")
+    "implementation"("org.javafreedom.kbeatz:kbeatz-common")
     "implementation"(bundle("ktor-server"))
     "implementation"(bundle("logging"))
     "implementation"(lib("kotlinx-datetime"))

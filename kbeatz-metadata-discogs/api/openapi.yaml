@@ -1,0 +1,274 @@
+openapi: "3.1.0"
+info:
+  title: "kbeatz-metadata-discogs API"
+  version: "0.0.1"
+  description: "Discogs metadata integration — fetch, cache, and expose release metadata."
+  contact:
+    name: "kbeatz team"
+servers:
+  - url: "http://localhost:8081/api/v1"
+    description: Local development
+tags:
+  - name: Health
+    description: Service health
+  - name: Releases
+    description: Discogs release metadata
+  - name: Images
+    description: Discogs release image proxy (quota-enforced)
+
+paths:
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Liveness and readiness probe
+      tags: [Health]
+      security: []
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "503":
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /releases/{releaseId}/images/{index}:
+    get:
+      operationId: getReleaseImage
+      summary: Fetch a Discogs release image (quota-enforced proxy)
+      description: |
+        Downloads and caches the image at position [index] from the Discogs `images` array
+        for the given release. Returns 429 when the daily 1 000-image quota is exhausted.
+        index=0 is the primary (front cover) image.
+      tags: [Images]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: releaseId
+          in: path
+          required: true
+          schema: { type: integer, format: int64, example: 12345678 }
+        - name: index
+          in: path
+          required: true
+          schema: { type: integer, format: int32, minimum: 0, example: 0 }
+      responses:
+        "200":
+          description: Image binary data
+          content:
+            image/jpeg:
+              schema: { type: string, format: binary }
+            image/png:
+              schema: { type: string, format: binary }
+          headers:
+            X-Image-Downloads-Remaining:
+              schema: { type: integer }
+              description: Daily quota remaining (resets at UTC midnight)
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          description: Daily image quota exhausted — retry after UTC midnight
+          headers:
+            Retry-After:
+              schema: { type: string }
+              description: ISO 8601 UTC datetime of quota reset
+        "502":
+          $ref: "#/components/responses/BadGateway"
+
+  /releases/{releaseId}:
+    get:
+      operationId: getRelease
+      summary: Get Discogs release metadata
+      description: Returns metadata for the given Discogs release ID. Serves from cache if available; fetches from Discogs API otherwise.
+      tags: [Releases]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: releaseId
+          in: path
+          required: true
+          description: Discogs release ID
+          schema: { type: integer, format: int64, example: 12345678 }
+      responses:
+        "200":
+          description: Release metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Release"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Release:
+      type: object
+      required: [id, title, artists, year]
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Discogs release ID
+          example: 12345678
+        title:
+          type: string
+          description: Album title
+          example: "Kind of Blue"
+        artists:
+          type: array
+          description: Primary artists
+          items:
+            $ref: "#/components/schemas/ReleaseArtist"
+        extraArtists:
+          type: array
+          description: Additional artists with roles (conductor, composer, orchestra, etc.)
+          items:
+            $ref: "#/components/schemas/ReleaseArtist"
+        year:
+          type: integer
+          format: int32
+          description: Release year
+          example: 1959
+        labels:
+          type: array
+          items:
+            $ref: "#/components/schemas/Label"
+        genres:
+          type: array
+          items:
+            type: string
+          example: ["Jazz"]
+        styles:
+          type: array
+          items:
+            type: string
+          example: ["Modal"]
+        country:
+          type: string
+          example: "US"
+        notes:
+          type: string
+        masterUrl:
+          type: string
+          example: "https://www.discogs.com/master/1234"
+        resourceUrl:
+          type: string
+          example: "https://www.discogs.com/release/12345678"
+        tracklist:
+          type: array
+          items:
+            $ref: "#/components/schemas/Track"
+
+    ReleaseArtist:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 987654
+        name:
+          type: string
+          example: "Miles Davis"
+        role:
+          type: string
+          description: Role for extra artists (e.g. Composed By, Conductor, Orchestra)
+          example: "Composed By"
+        join:
+          type: string
+          description: Join string used between artists
+          example: "&"
+
+    Label:
+      type: object
+      required: [name, catno]
+      properties:
+        name:
+          type: string
+          example: "Columbia"
+        catno:
+          type: string
+          example: "CL 1355"
+
+    Track:
+      type: object
+      required: [position, title]
+      properties:
+        position:
+          type: string
+          description: Track position as given by Discogs (e.g. "1", "A1", "1-01")
+          example: "1"
+        title:
+          type: string
+          example: "So What"
+        duration:
+          type: string
+          example: "9:22"
+        artists:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReleaseArtist"
+        extraArtists:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReleaseArtist"
+
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [UP, DOWN]
+          example: "UP"
+        details:
+          type: object
+          additionalProperties:
+            type: string
+          example: { discogsApi: "UP", imageQuotaRemaining: "842" }
+
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: "RELEASE_NOT_FOUND"
+        message:
+          type: string
+          example: "Discogs release '12345678' not found"
+
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Release not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    BadGateway:
+      description: Discogs API unavailable or rate-limited
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"

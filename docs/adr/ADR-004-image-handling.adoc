@@ -1,0 +1,192 @@
+= ADR-004: Dual Image Storage — Embedded FLAC PICTURE Block and External folder.jpg
+:toc: left
+:icons: font
+:revdate: 2026-06-04
+:status: Accepted
+
+== Status
+
+Accepted
+
+== Context
+
+A music collection includes album cover art and, less frequently, additional images
+(back cover, inner sleeve, media label).
+These images appear in two forms in a typical FLAC library:
+
+* **Embedded** — stored inside the FLAC file as a `METADATA_BLOCK_PICTURE` (RFC 9639 §9.6).
+  Per-track, always travels with the audio file.
+* **External** — stored as `folder.jpg` / `image-NN.jpg` files alongside the FLAC tracks.
+  Directory-level, used by media players and file managers for fast browsing.
+
+Several questions must be answered:
+
+. *Where* should kbeatz store images when syncing from Discogs?
+. *How* should the catalog API serve cover art to the UI?
+. *Which* PICTURE types should be embedded vs. stored externally?
+. *What* are the Discogs image fetch constraints?
+. *How* should images already on disk be treated?
+
+=== FLAC PICTURE Block Types
+
+The FLAC/Vorbis PICTURE block spec defines 21 picture types (0–20).
+The most relevant for a music collection:
+
+|===
+| Type | Label | Typical content
+
+| 0 | Other | Generic image
+| 3 | Cover (front) | Primary album art — what media players display
+| 4 | Cover (back) | Back sleeve
+| 5 | Leaflet page | Booklet / inner sleeve scans
+| 6 | Media | Label side of a disc
+|===
+
+=== Discogs Image API
+
+The Discogs release endpoint returns an `images` array.
+Each element has a `type` (`"primary"` or `"secondary"`) and `uri`.
+Image downloads use the same OAuth credentials as the metadata API but are subject to a
+separate, tighter quota: **1 000 images per day** for authenticated users.
+
+The Python predecessor (discogstagger) had `download_only_cover` (default: true) and
+`embed_coverart` settings, and stored additional images as `image-01.jpg`, `image-02.jpg`.
+
+=== Options Considered
+
+|===
+| Option | Pros | Cons
+
+| **Embed only** (PICTURE block, no external files)
+| Self-contained; no directory clutter.
+| Many media players (DeaDBeeF, Squeezebox, Roon) still prefer `folder.jpg` for browsing.
+  Large embedded images inflate per-track file size.
+
+| **External only** (`folder.jpg`, no embedding)
+| Simple; no per-track size overhead.
+| Image is not portable with the FLAC file;
+  some players (especially portable DAP firmware) require embedded art.
+
+| **Dual storage** (embed front cover + keep `folder.jpg`)
+| Compatible with both browsing (folder.jpg) and portable playback (embedded).
+  Mirrors the behaviour that discogstagger users already expect.
+| Slight redundancy in disk space for the front cover image.
+|===
+
+== Decision
+
+Use **dual storage** for the front cover:
+
+. **Embed** the front cover as `METADATA_BLOCK_PICTURE` type 3 in every FLAC file in the album.
+. **Write** the same image as `folder.jpg` in the album directory.
+
+Additional Discogs images (back cover, leaflet, etc.) are written as external files only
+(`image-01.jpg`, `image-02.jpg`, …) — they are **not** embedded in FLAC files.
+
+Only **one** PICTURE block of each type is kept per FLAC file.
+If an embedded PICTURE type 3 already exists and a re-sync is triggered, the existing
+block is replaced only when the user explicitly requests image refresh.
+
+=== Image Naming Convention
+
+|===
+| Content | Filename
+
+| Front cover (primary Discogs image) | `folder.jpg` + embedded PICTURE type 3
+| First additional image | `image-01.jpg`
+| Second additional image | `image-02.jpg`
+| Further images | `image-NN.jpg` (zero-padded two digits)
+|===
+
+=== Supported Formats
+
+JPEG and PNG are both valid in FLAC PICTURE blocks.
+Discogs provides JPEG exclusively.
+External images from local sources may be PNG; the catalog API passes through whatever
+MIME type is stored.
+
+=== Discogs Authentication
+
+Discogs API access uses **Personal Access Token** authentication
+(`Authorization: Discogs token=<token>`), not OAuth 1.0a.
+The token is configured via the `DISCOGS_TOKEN` environment variable.
+It must never appear in source code, committed config files, or application logs.
+
+=== Discogs Image Fetch Strategy
+
+* Track a running count of images downloaded per UTC day.
+  When the count reaches 950 (50-image safety margin before 1 000), pause image downloads
+  and log a `WARN` with the expected reset time (UTC midnight).
+* `kbeatz-tagger tag --download-images` (default: `true`) controls whether images
+  are fetched on a given run. `--download-images=false` fetches metadata only.
+* `kbeatz-metadata-discogs` exposes a dedicated image proxy endpoint
+  (`GET /api/v1/releases/{id}/images/{index}`) that enforces the quota and caches
+  downloaded images locally so they are not re-fetched on subsequent requests.
+
+=== Image Quota Counter Persistence
+
+The daily download counter **must survive service restarts** — an in-memory counter resets
+to zero on restart, allowing the full 1 000-image quota to be consumed again.
+
+The counter is persisted as a JSON file at a configured path (default: the service's
+working directory, `image-quota.json`):
+
+[source,json]
+----
+{
+  "date": "2026-06-05",
+  "count": 342
+}
+----
+
+On startup, `kbeatz-metadata-discogs` reads this file.
+If the stored `date` matches today's UTC date, the counter resumes from `count`.
+If the date differs (new day), the counter resets to 0 and the file is overwritten.
+The file is written atomically (temp file + `SystemFileSystem.atomicMove()`) after each
+successful image download.
+
+A lightweight embedded database (e.g. SQLite via Exposed) may be substituted
+if the service later needs to store other operational state, but the JSON file
+is sufficient for v1 — it avoids adding a DB dependency for a single integer.
+
+=== Catalog API — Cover Art Serving
+
+`kbeatz-catalog` serves cover art at:
+
+----
+GET /api/v1/albums/{albumId}/cover
+----
+
+Resolution order (first match wins):
+
+. `METADATA_BLOCK_PICTURE` type 3 extracted from the first FLAC file in the album.
+. `folder.jpg` in the album directory.
+. HTTP 404 if neither is present.
+
+Response includes `Content-Type` (image/jpeg or image/png) and `Cache-Control: max-age=86400`.
+No server-side image caching in v1; the OS filesystem buffer cache is sufficient for
+a personal-scale collection.
+
+== Consequences
+
+* Every FLAC file in an album always contains the same embedded front cover — per-track
+  tagging runs must include the PICTURE block update.
+* The `FlacMetadataBlock.Picture` class in `kbeatz-flac` is already in the sealed hierarchy
+  and the reader/writer already handles PICTURE blocks — no library changes needed for v1.
+* Disk usage for a typical album: one 500 KB JPEG × N tracks ≈ N × 500 KB overhead.
+  For a 10-track album this is ~5 MB extra per album — acceptable for a personal collection
+  on modern storage, but worth noting.
+* The 1 000 images/day Discogs quota limits bulk operations.
+  A full re-tag of a large collection (e.g. 2 000 albums) must be spread across multiple days
+  unless `--download-images=false` is used to skip images.
+* `folder.jpg` is written atomically (temp file + `SystemFileSystem.atomicMove()`) to avoid
+  a torn write visible to a running media server.
+
+== Alternatives Rejected
+
+* **Embed only**: incompatible with most media player browsing workflows that rely on `folder.jpg`.
+* **External only**: not portable with the audio file; some DAPs require embedded art.
+* **MusicBrainz Cover Art Archive**: out of scope for v1.
+  The CAA provides high-quality scans but requires a separate HTTP client and introduces
+  a second image source with different licensing terms.
+  Can be added as a future source following the same pattern as `kbeatz-metadata-discogs`.

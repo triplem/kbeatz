@@ -1,0 +1,504 @@
+= kbeatz — Project Vision & Initial Requirements
+:toc: left
+:toclevels: 3
+:icons: font
+:source-highlighter: rouge
+:revdate: 2026-06-04
+
+== Overview
+
+kbeatz is a self-hosted music collection management platform for a personal FLAC library.
+It replaces an ad-hoc Python CLI (discogstagger) with a proper web UI that can browse,
+display, edit, and synchronise metadata for a collection of whole albums stored as FLAC files.
+
+The system is deliberately personal-scale (single household, single library mount) and
+prioritises correctness of music metadata over scalability.
+
+== Goals
+
+* **Browse** the local music library by album, artist, genre, and composer.
+* **Display** all FLAC metadata tags in a readable, editable form.
+* **Edit** FLAC tags directly through the UI or CLI, writing to disk using a custom
+  RFC 9639-compliant implementation (no external tag libraries; see ADR-001).
+* **Synchronise** metadata from external sources — primarily Discogs, optionally MusicBrainz —
+  using release IDs stored alongside the music files.
+* **Migrate** existing per-album identity files (INI-style `id.txt` / `local_ids.txt`) to a
+  clean YAML format (`metadata.yml`).
+* **Cache** downloaded release metadata locally to avoid repeated API calls.
+
+== Non-Goals (initial scope)
+
+* Audio playback (handled by a separate UPnP media server).
+* Multi-user / social features.
+* Streaming or remote storage.
+* Automatic library monitoring (file-system watcher / daemon) — manual rescan is sufficient.
+
+== Versioning
+
+The repository follows **Semantic Versioning** managed by
+https://github.com/semantic-release/semantic-release[semantic-release].
+Every merge to `main` triggers an automated version bump and GitHub release based on
+conventional commit messages (`feat` → minor, `fix`/`perf` → patch, `BREAKING CHANGE` → major).
+
+The `/release` skill handles release tagging and changelog generation.
+
+Commit messages must follow the Conventional Commits format defined in
+`.claude/rules/commit-conventions.md`.
+
+== Library Structure
+
+Albums are stored on the local filesystem.
+The primary layout (from discogstagger conventions) is:
+
+----
+<Genre>/<AlbumArtist>/<AlbumTitle>/
+    01-Track_Title.flac        ← FLAC audio + embedded front cover (PICTURE type 3)
+    02-Track_Title.flac
+    folder.jpg                 ← front cover (external, for media player browsing)
+    image-01.jpg               ← back cover or first additional Discogs image
+    image-02.jpg               ← inner sleeve / further images
+    id.txt                     ← Discogs release ID (INI format, legacy)
+    metadata.yml               ← Discogs/MusicBrainz IDs (YAML format, current)
+----
+
+Multi-disc albums use sub-directories `disc1/`, `disc2/`, …
+
+== Music Domain
+
+=== Pop / Rock / Electronic
+
+Sorting and display is artist-centric.
+Key tags: `ARTIST`, `ALBUMARTIST`, `ALBUMARTISTSORT`, `ALBUM`, `DATE`, `GENRE`,
+`TRACKNUMBER`, `DISCNUMBER`, `LABEL`, `CATALOGNUMBER`.
+
+=== Classical Music
+
+Classical albums need additional role-based attribution:
+
+|===
+| Concept | FLAC Vorbis Comment tag
+
+| Composer(s) | `COMPOSER`
+| Conductor | `CONDUCTOR`
+| Orchestra / Ensemble | `ENSEMBLE`
+| Soloist(s) | `ARTIST` (with role in `PERFORMER`)
+| Work title | `WORK` (optional)
+|===
+
+The default sort for classical is by `COMPOSER`, then `ALBUMARTIST` (conductor / ensemble).
+The full sort key order is: `COMPOSER` (if set) → `ALBUMARTIST` → `ARTIST` → `ALBUM`.
+Albums without `COMPOSER` sort alongside non-classical albums using the `ALBUMARTIST` / `ARTIST` key.
+
+**The sort order is configurable in the UI.** A per-user preference controls which field
+is used as the primary sort key (COMPOSER, ALBUMARTIST, ARTIST, DATE, GENRE).
+This setting persists in the browser (localStorage or backend preference store).
+
+Discogs models these as `extraartists` with roles
+`"Composed By"`, `"Conductor"`, `"Orchestra"`, etc.
+The metadata mapping layer must translate these roles to the correct Vorbis Comment fields.
+
+=== Compilations / Various Artists
+
+`ALBUMARTIST = "Various Artists"`, individual track `ARTIST` tags preserved.
+
+== FLAC Tagging
+
+=== Implementation
+
+A dedicated library (`kbeatz-flac`) implements FLAC metadata block parsing and writing
+directly from https://www.rfc-editor.org/rfc/rfc9639.html[RFC 9639] (The FLAC Audio Codec).
+
+The decision to implement from scratch rather than use an existing library is documented in
+<<adr-001,ADR-001>>.
+The https://github.com/Moriafly/SaltAudioTag[SaltAudioTag] project served as a reference for
+idiomatic Kotlin block modelling but is not used as a dependency.
+
+=== Key RFC 9639 Structures
+
+* `METADATA_BLOCK` header: 1-bit last-block flag + 7-bit block type + 24-bit length.
+* `METADATA_BLOCK_STREAMINFO` (type 0): audio parameters — never modified by kbeatz.
+* `METADATA_BLOCK_VORBIS_COMMENT` (type 4): UTF-8 key=value pairs, little-endian lengths.
+* `METADATA_BLOCK_PICTURE` (type 6): embedded cover art, big-endian.
+* `METADATA_BLOCK_PADDING` (type 1): zero-fill headroom — rewritten on every metadata update
+  to 8 KB to avoid a full file rewrite on the next small edit.
+
+=== Vorbis Comment Field Conventions
+
+Standard field names follow the Vorbis I specification and community practice.
+See `VorbisCommentFields` in `kbeatz-flac` for the full list.
+
+Fields preserved on sync (never overwritten by kbeatz unless explicitly requested):
+`MUSICBRAINZ_*`, `ACOUSTID_*`, `FREEDB_DISC_ID`.
+
+== Image Files
+
+=== On-Disk Layout
+
+Each album directory may contain one or more image files alongside the FLAC tracks:
+
+----
+<Genre>/<AlbumArtist>/<AlbumTitle>/
+    folder.jpg         ← front cover — recognised by virtually all media players
+    image-01.jpg       ← back cover (or first additional image from Discogs)
+    image-02.jpg       ← inner sleeve / label / etc.
+----
+
+The primary file is always named `folder.jpg`.
+Additional images use the `image-NN.jpg` naming convention inherited from discogstagger.
+PNG files are accepted but Discogs provides JPEG exclusively; JPEG is the working default.
+
+=== Embedded Cover Art (FLAC PICTURE Block)
+
+In addition to external files, the **front cover** is embedded directly in every FLAC file
+as a `METADATA_BLOCK_PICTURE` (RFC 9639 type 6, picture type 3 — Cover (front)).
+
+This dual strategy (external `folder.jpg` + embedded PICTURE) is intentional:
+media players use `folder.jpg` for fast browsing; audio software and streaming clients
+(Roon, Audirvana, DLNA renderers) use the embedded block for per-track display.
+The decision is documented in <<adr-004,ADR-004>>.
+
+=== PICTURE Block Types
+
+The FLAC spec defines 21 picture types (0–20).
+kbeatz handles:
+
+|===
+| Type | Meaning | Storage
+
+| 3 | Cover (front) | Embedded in every FLAC file **and** saved as `folder.jpg`
+| 4 | Cover (back) | External only — `image-01.jpg`
+| 5 | Leaflet page | External only — `image-02.jpg`, `image-03.jpg`, …
+| 0 | Other | External only
+|===
+
+Only one PICTURE block of each type is kept per FLAC file.
+Embedding images beyond type 3 is explicitly out of scope for v1.
+
+=== Image Sources
+
+* **Discogs** (`images` array in the release JSON): the first image with `type: "primary"`
+  becomes the front cover; subsequent images become `image-01.jpg`, `image-02.jpg`, …
+* **Local files already present**: never overwritten unless an explicit re-sync is requested.
+* **MusicBrainz Cover Art Archive**: out of scope for v1.
+
+=== Discogs Image Fetch Constraints
+
+Discogs imposes a separate rate limit on image downloads:
+1 000 images per day for authenticated users (significantly tighter than the metadata API).
+`kbeatz-metadata-discogs` must track image download counts and back off when approaching
+the daily quota. The `--download-images` flag in `kbeatz-tagger` defaults to `true` but
+can be disabled to fetch metadata only.
+
+=== Catalog API — Cover Art Serving
+
+`kbeatz-catalog` exposes cover art as a binary endpoint:
+
+----
+GET /api/v1/albums/{albumId}/cover
+----
+
+Resolution order:
+
+. Embedded `METADATA_BLOCK_PICTURE` type 3 from the first FLAC file in the album directory.
+. `folder.jpg` in the album directory.
+. HTTP 404 if neither exists.
+
+The UI uses this endpoint for album grid thumbnails and the album detail view.
+Images are not cached server-side in v1; the OS filesystem cache is sufficient.
+
+== Identity Files
+
+=== Current Format (read)
+
+INI-style `id.txt` / `local_ids.txt` per album directory, compatible with discogstagger:
+
+[source,ini]
+----
+[source]
+discogs_id=12345678
+----
+
+The source name and field name are configurable (default: `discogs → discogs_id`).
+Multiple sources may appear in the same file:
+
+[source,ini]
+----
+[source]
+discogs_id=12345678
+amg_id=r1234
+----
+
+=== Target Format (YAML)
+
+New albums and migrated albums use `metadata.yml`:
+
+[source,yaml]
+----
+sources:
+  discogs_id: "12345678"
+  musicbrainz_albumid: "b90ff71c-6aae-45fa-b897-3b484eb02469"
+----
+
+Migration is performed by the `kbeatz-tagger migrate-ids` command.
+
+=== metadata.yml Schema
+
+The `metadata.yml` format is a flat YAML map under a `sources` key.
+Each key is the FLAC Vorbis Comment field name for the corresponding identifier:
+
+[source,yaml]
+----
+# Album metadata identity file — generated by kbeatz-tagger migrate-ids
+sources:
+  discogs_id: "12345678"
+  musicbrainz_albumid: "b90ff71c-6aae-45fa-b897-3b484eb02469"
+  amg_id: "r1234"
+----
+
+Rules:
+- All keys and values are strings.
+- Any key from the configured `SourceConfig.mappings` is valid.
+- Unknown keys are preserved on read/write (no strict mode).
+- Duplicate keys: last value wins (YAML specification behaviour).
+- An empty or missing `sources` block is valid (no IDs yet assigned).
+
+The file is deserialized using `kaml` with `strictMode = false` so future fields
+(e.g. a `notes` key) are silently ignored rather than causing parse failures.
+
+=== Configurable Source Mapping
+
+The mapping of source names to FLAC tag field names is configurable, mirroring
+discogstagger's `[source]` section.
+This allows adding new sources (e.g. AMG, local) without code changes.
+
+== External Metadata Sources
+
+=== Discogs (primary)
+
+* REST API at `https://api.discogs.com/`.
+* Authentication: Personal Access Token via `Authorization: Discogs token=<token>`.
+  The token is read from the `DISCOGS_TOKEN` environment variable.
+  It must never appear in source code, config files committed to git, or application logs.
+* Rate limiting: 60 requests/minute (unauthenticated: 25/minute).
+  The client must implement backoff and honour `Retry-After` responses.
+* Fetched by: `GET /releases/{id}`.
+* Key data: title, artists, extraartists (roles), year, labels, catno, genres, styles,
+  tracklist, images, master_id, country, notes, identifiers (barcode, SID codes).
+
+=== MusicBrainz (secondary)
+
+* REST API at `https://musicbrainz.org/ws/2/`.
+* No authentication for read-only queries.
+* Rate limiting: 1 request/second.
+* Fetched by: `GET /release/{mbid}?inc=recordings+artists+labels`.
+
+=== Caching
+
+Downloaded release JSON is stored locally (database or filesystem `{id}.json`)
+to avoid re-fetching on every metadata view or edit.
+Cache invalidation is manual (explicit refresh button in UI / `--force-refresh` in CLI).
+
+== Security Considerations
+
+=== Path Traversal Guard
+
+`kbeatz-catalog` accesses the local filesystem based on a configured library root path
+(`catalog.library.root` in `application.conf`).
+All inbound path parameters (album IDs, track paths) **must** be validated to resolve within
+the configured root before any filesystem operation:
+
+[source,kotlin]
+----
+val resolved = libraryRoot.resolve(requestedPath).normalize()
+require(resolved.startsWith(libraryRoot)) { "Path escapes library root" }
+----
+
+Requests that resolve outside the root are rejected with HTTP 400.
+
+=== Authentication (v1 and v2)
+
+v1: No authentication. The application is expected to run on a private local network or
+behind a reverse proxy with IP-based access control.
+The risk is explicitly accepted: anyone with network access can read and modify metadata.
+
+v2: Keycloak JWT/OIDC authentication will be added.
+The `kbeatz-common` library already provides a `UserPrincipal` extraction plugin.
+
+=== Graceful Degradation
+
+If `kbeatz-metadata-discogs` is unavailable, `kbeatz-catalog` behaviour:
+
+* **Browse / tag display**: serves whatever is already on disk (FLAC tags, folder.jpg) — no dependency on the metadata service for reads.
+* **Sync operations** (fetch from Discogs): returns `HTTP 503` with `Retry-After` header.
+* `kbeatz-catalog` never hangs waiting for the metadata service — all outbound calls have
+  a 5-second timeout; failures propagate as 502/503, not as hanging requests.
+
+== System Architecture
+
+=== Modules
+
+|===
+| Module | Type | Responsibility
+
+| `kbeatz-common` | Library | Shared domain exceptions, Ktor plugins, JWT principal
+| `kbeatz-flac` | Library | RFC 9639 FLAC metadata read/write (see ADR-001)
+| `kbeatz-catalog` | Ktor service (8080) | Filesystem scan, album / track browse, FLAC tag read/write via kbeatz-flac
+| `kbeatz-metadata-discogs` | Ktor service (8081) | Discogs API client, release caching, metadata API
+| `kbeatz-tagger` | CLI (Clikt, see ADR-003) | Batch tagging from CLI, id-file migration to YAML
+| `kbeatz-ui` | React SPA (3005) | Album browser, metadata editor, sync trigger
+|===
+
+=== Key Architectural Decisions
+
+|===
+| ADR | Decision | Status
+
+| <<adr-001,ADR-001>>
+| Custom FLAC tag implementation from RFC 9639 (SaltAudioTag as reference only)
+| Accepted
+
+| <<adr-002,ADR-002>>
+| No Java I/O types — kotlinx-io for all binary and file operations
+| Accepted
+
+| <<adr-003,ADR-003>>
+| Use Clikt for CLI argument parsing instead of Picocli
+| Accepted
+
+| <<adr-004,ADR-004>>
+| Dual image storage: embed front cover in FLAC PICTURE block + external folder.jpg
+| Accepted
+
+| TBD
+| Separate `kbeatz-metadata-discogs` service (vs inline in catalog)
+| Proposed
+
+| TBD
+| INI id-file backward compatibility with `metadata.yml` migration path
+| Proposed
+
+| TBD
+| Configurable source-to-tag-field mapping
+| Proposed
+
+| TBD
+| Classical support via role-based `extraartists` mapping
+| Proposed
+|===
+
+[[adr-001]]
+ADR-001 is at `docs/adr/ADR-001-flac-implementation.adoc`.
+
+[[adr-002]]
+ADR-002 is at `docs/adr/ADR-002-kotlin-file-api.adoc`.
+
+[[adr-003]]
+ADR-003 is at `docs/adr/ADR-003-cli-framework.adoc`.
+
+[[adr-004]]
+ADR-004 is at `docs/adr/ADR-004-image-handling.adoc`.
+
+== CLI Tool (`kbeatz-tagger`)
+
+Built with https://github.com/ajalt/clikt[Clikt] (see ADR-003).
+Uses `kotlinx.io.files.Path` and `SystemFileSystem` throughout — no Java I/O types (see ADR-002).
+
+=== Commands
+
+`tag`:: Fetch Discogs metadata and write FLAC tags for one or more album directories.
+Reads `id.txt` / `local_ids.txt` / `metadata.yml` to resolve the Discogs release ID.
+Calls `kbeatz-metadata-discogs` (or directly the Discogs API in standalone mode).
+
+`migrate-ids`:: Converts INI-style id files to `metadata.yml`.
+Supports `--dry-run`, `--recursive`, `--keep-original`.
+
+=== Options (both commands)
+
+`--library / -l`:: Root of the music library; combined with `--recursive` to scan all albums.
+`--dry-run / -n`:: Preview changes without writing files.
+`--config / -c`:: Path to a custom source-mapping config file.
+
+== UI Concepts
+
+The React SPA (`kbeatz-ui`) is album-centric.
+
+=== Technology
+
+* **React 19** with TypeScript (strict mode).
+* **Tailwind CSS** for utility-first styling.
+* **shadcn/ui** as the component library — accessible, unstyled components built on Radix UI
+  primitives, styled with Tailwind.
+* Vite as the build tool.
+* OpenAPI-generated TypeScript/Axios client from `kbeatz-catalog` and `kbeatz-metadata-discogs` specs.
+
+=== Views
+
+* **Library view**: grid/list of albums, filterable by genre, artist, composer, year.
+  Cards show cover art (placeholder shown when absent), album title, year, and primary artist / composer.
+* **Album view**: cover art, all Vorbis Comment tags editable inline, track list with per-track tags.
+* **Sync panel**: show current `metadata.yml` source IDs, trigger fetch from Discogs / MusicBrainz,
+  show a field-by-field diff before applying changes.
+* **Settings panel**: user-configurable sort preferences (primary sort key: COMPOSER / ALBUMARTIST /
+  ARTIST / DATE / GENRE). Persisted in localStorage.
+* **Classical display**: when `COMPOSER` is set, composer is shown prominently;
+  conductor and ensemble appear as secondary attribution.
+  Layout adapts to the user's chosen sort preference.
+
+=== Error States
+
+* **No cover art**: show a generic album-art placeholder (shadcn/ui skeleton or static SVG).
+* **Discogs unavailable**: toast notification "Discogs unreachable — try again later"; sync button disabled with spinner.
+* **FLAC parse error**: album card shows a warning badge; album view shows the error inline.
+* **Write failure**: inline error with the specific file path; no silent data loss.
+* **Rate limit (429)**: toast with "Image quota exhausted — resets at midnight UTC".
+
+=== Responsive Design
+
+The SPA is designed for desktop-first (primary use case: managing a collection from a PC).
+Tablet-friendly layout is a stretch goal for v1; mobile is explicitly out of scope.
+
+== Open Questions (to be resolved per epic)
+
+. *Filesystem access model*: does `kbeatz-catalog` mount the music directory directly via a
+  configured path, or does it read files via a separate file-scanning daemon?
+  Initial assumption: configured root path in `application.conf`, no daemon.
+
+. *Database*: is PostgreSQL required from the start, or can the catalog work read-only from
+  the filesystem with a lightweight SQLite cache?
+  Initial assumption: SQLite for metadata cache; PostgreSQL when user edits need persistence.
+
+. *Authentication*: resolved — no auth in v1 (risk explicitly accepted for private LAN use);
+  Keycloak JWT in v2. See Security Considerations section.
+
+. *Cover art strategy*: resolved — dual storage (embedded PICTURE block + `folder.jpg`);
+  catalog serves `GET /api/v1/albums/{id}/cover` with fallback order PICTURE → folder.jpg → 404.
+  See ADR-004.
+
+. *FLAC write safety*: resolved — atomic write via `.tmp` sibling + `Path.moveTo(overwrite=true)`.
+  See ADR-002.
+
+. *Streaming FLAC writes*: `FlacFile` currently loads full audio payload into heap.
+  A streaming write mode (pipe audio frames from source to destination without loading them)
+  is required before any mass-tagging feature is built.
+  Tracked as a known limitation in ADR-001.
+
+. *MusicBrainz service*: separate `kbeatz-metadata-musicbrainz` service following the same
+  pattern as `kbeatz-metadata-discogs`, or a generic metadata gateway?
+  Initial assumption: separate service per source for clean isolation.
+
+== Acceptance Criteria (top-level)
+
+* [ ] Browse all albums in the configured library root.
+* [ ] View and edit all standard Vorbis Comment tags for a FLAC file.
+* [ ] Fetch and apply Discogs release metadata given a `discogs_id`.
+* [ ] Classical albums display composer, conductor, and ensemble correctly.
+* [ ] CLI `tag` command tags all albums under a library root in batch.
+* [ ] CLI `migrate-ids` converts all `id.txt` / `local_ids.txt` files to `metadata.yml`.
+* [ ] FLAC files are never corrupted by a failed write (atomic write strategy).
+* [ ] No data loss: original tags not in the Discogs response are preserved.
+* [ ] Cover art is embedded in FLAC files as METADATA_BLOCK_PICTURE type 3 (front cover).
+* [ ] `folder.jpg` is written/updated alongside FLAC files on every image sync.
+* [ ] Additional Discogs images are stored as `image-01.jpg`, `image-02.jpg`, …
+* [ ] `GET /api/v1/albums/{id}/cover` returns the front cover image (embedded then external fallback).
+* [ ] Image sync respects Discogs's 1 000 images/day rate limit.
+* [ ] Every merge to `main` produces a new semantic version via semantic-release.

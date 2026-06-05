@@ -1,0 +1,71 @@
+= ADR-003: Use Clikt for CLI Argument Parsing Instead of Picocli
+:toc: left
+:icons: font
+:revdate: 2026-06-04
+:status: Accepted
+
+== Status
+
+Accepted
+
+== Context
+
+`kbeatz-tagger` is a command-line tool that needs structured argument parsing, subcommands,
+help text generation, and type-safe option handling.
+
+Two mature options were considered:
+
+|===
+| Framework | Notes
+
+| **Picocli** (https://picocli.info)
+| Java-first, widely used, annotation-driven (`@Command`, `@Option`, `@Parameters`).
+  Excellent documentation, rich type converters, GraalVM native image support.
+  Kotlin integration works but feels Java-ish: `@Option` on `var` fields,
+  `Callable<Int>` return type, no idiomatic Kotlin delegation.
+
+| **Clikt** (https://github.com/ajalt/clikt)
+| Kotlin-first CLI framework by AJ Alt.
+  Uses Kotlin property delegation (`by option()`, `by argument()`) — no annotations.
+  `echo()` replaces `System.out.println` with testable output capturing.
+  `CliktCommand.run()` is a `Unit` function — no integer exit-code contract leaking into logic.
+  Subcommand composition via `subcommands()` is a single line.
+  Multiplatform (JVM, Native, JS), active development, Kotlin-idiomatic API.
+|===
+
+== Decision
+
+Use **Clikt 4.x** (`com.github.ajalt.clikt:clikt`) for CLI argument parsing in `kbeatz-tagger`.
+
+== Implementation Notes
+
+* Path arguments are declared as `String` with a `.convert { ... }` block that constructs
+  a `kotlinx.io.files.Path` (ADR-002) and validates existence via `SystemFileSystem.exists()`:
+  `private val root by argument().convert { Path(it).also { p -> require(SystemFileSystem.exists(p)) } }`
+  Clikt's built-in `.path()` delegate was not used because it returns `java.nio.file.Path`,
+  which conflicts with the no-Java-I/O-types policy (ADR-002).
+* `override fun run()` contains command logic; the framework handles help, errors, and exit codes.
+* `echo(msg, err = true)` writes to stderr; `echo(msg)` to stdout — both are captured in tests
+  via `CliktCommand.test(args)`.
+* The main entry point is a one-liner:
+  `KbeatzTaggerCli().subcommands(TagAlbumsCommand(), MigrateIdFilesCommand()).main(args)`
+
+== Consequences
+
+* No annotation processing at build time — faster incremental compilation.
+* Property delegation means options are always `val`, not `var` — immutable by default.
+* Path arguments use `String` + manual `convert {}` rather than Clikt's `.path()` delegate;
+  file-existence validation is explicit in the convert block via `SystemFileSystem.exists()`.
+* Testing is cleaner: `command.test("--dry-run /tmp/music")` without mocking stdout/stderr.
+* GraalVM native image is possible via Clikt's native image support if a native binary is
+  needed in future.
+
+== Alternatives Rejected
+
+* **Picocli**: functional but annotation-driven Java API does not fit Kotlin idiomatic style;
+  `@Option` on `var` fields requires `lateinit var` for non-nullable types.
+* **Clikt's `.path()` delegate**: returns `java.nio.file.Path`, violating ADR-002.
+  The `convert {}` approach gives the same ergonomics with `kotlinx.io.files.Path`.
+* **kotlinx-cli**: official JetBrains library, simpler API but fewer features (no built-in
+  subcommand help formatting comparable to Clikt).
+* **Manual args parsing**: non-starter for a tool expected to grow additional subcommands.

@@ -9,9 +9,15 @@ repositories {
 // -- Service list --------------------------------------------------------------
 // Add each backend service name here when creating it. kbeatz-common is a
 // shared library and is included automatically via dependency substitution.
+val libraryBuilds = listOf(
+    "kbeatz-common",
+    "kbeatz-flac",
+)
+
 val serviceBuilds = listOf(
-    "kbeatz-service",
-    // "kbeatz-<next-service>",
+    "kbeatz-catalog",
+    "kbeatz-metadata-discogs",
+    "kbeatz-tagger",
 )
 
 // -- Frontend (kbeatz-ui npm) --------------------------------------------------
@@ -23,17 +29,19 @@ val buildFrontend by tasks.registering(Exec::class) {
 }
 
 // -- Backend aggregate (no frontend) ------------------------------------------
+val allModuleBuilds = libraryBuilds + serviceBuilds
+
 val buildBackends by tasks.registering {
     group = "build"
-    description = "Builds all service backends via Gradle (no frontend)."
-    dependsOn(serviceBuilds.map { gradle.includedBuild(it).task(":build") })
+    description = "Builds all libraries and service backends via Gradle (no frontend)."
+    dependsOn(allModuleBuilds.map { gradle.includedBuild(it).task(":build") })
 }
 
 // -- Compile-only (CodeQL / fast feedback) ------------------------------------
 val compileBackends by tasks.registering {
     group = "build"
-    description = "Compiles all service backends without running tests."
-    dependsOn(serviceBuilds.map { gradle.includedBuild(it).task(":classes") })
+    description = "Compiles all backends without running tests."
+    dependsOn(allModuleBuilds.map { gradle.includedBuild(it).task(":classes") })
 }
 
 // -- Full build ----------------------------------------------------------------
@@ -43,7 +51,7 @@ tasks.named("build") {
 
 // -- Full check ----------------------------------------------------------------
 tasks.named("check") {
-    dependsOn(serviceBuilds.map { gradle.includedBuild(it).task(":check") })
+    dependsOn(allModuleBuilds.map { gradle.includedBuild(it).task(":check") })
 }
 
 // -- Clean ---------------------------------------------------------------------
@@ -54,7 +62,7 @@ val cleanFrontend by tasks.registering(Exec::class) {
 }
 
 tasks.named("clean") {
-    dependsOn(serviceBuilds.map { gradle.includedBuild(it).task(":clean") })
+    dependsOn(allModuleBuilds.map { gradle.includedBuild(it).task(":clean") })
     dependsOn(cleanFrontend)
 }
 

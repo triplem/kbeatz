@@ -1,0 +1,142 @@
+= ADR-002: No Java I/O Types — kotlinx-io for All Binary and File Operations
+:toc: left
+:icons: font
+:revdate: 2026-06-04
+:status: Accepted
+
+== Status
+
+Accepted
+
+== Context
+
+kbeatz must parse and write binary FLAC files and navigate a local music library.
+The goal is zero reliance on `java.io.*` or `java.nio.*` types — not just in public APIs
+but throughout the implementation — using Kotlin-idiomatic abstractions instead.
+
+The Java types originally present and their disposition:
+
+|===
+| Java type | Used for | Decision
+
+| `java.io.File`
+| Legacy file reference
+| **Removed.** Never used.
+
+| `java.io.InputStream` / `OutputStream`
+| Binary streaming in FlacReader / FlacWriter
+| **Removed.** Both classes work on `Buffer` / `ByteArray` only.
+
+| `java.io.ByteArrayOutputStream`
+| Growing byte buffer
+| **Removed.** `Buffer` (kotlinx-io) is the replacement.
+
+| `java.nio.ByteBuffer` / `ByteOrder`
+| Big- and little-endian integer parsing/writing
+| **Removed.** `Buffer` and `Source` (kotlinx-io) replace both read and write paths.
+
+| `java.nio.file.Path`
+| File path representation
+| **Removed.** Replaced by `kotlinx.io.files.Path`.
+
+| `java.nio.file.StandardCopyOption`
+| Atomic move flag
+| **Removed.** `SystemFileSystem.atomicMove()` encapsulates this.
+
+| `java.util.Properties`
+| INI file parsing in the tagger
+| **Removed.** Replaced by a plain Kotlin INI parser (10 lines, no edge cases needed).
+|===
+
+== Decision
+
+Use https://github.com/Kotlin/kotlinx-io[kotlinx-io] (`org.jetbrains.kotlinx:kotlinx-io-core`)
+throughout `kbeatz-flac` and `kbeatz-tagger`. Zero `java.io.*` or `java.nio.*` imports anywhere.
+
+=== Binary I/O: Buffer and Source (kotlinx-io)
+
+`kotlinx.io.Buffer` replaces both `ByteArrayOutputStream` (as a `Sink`) and
+`ByteArrayParser`/`ByteBuffer` (as a `Source`). It is the standard accumulator for
+building a `ByteArray` result and a readable cursor over raw bytes.
+
+Key APIs used:
+
+|===
+| Operation | kotlinx-io call
+
+| Parse `ByteArray` as a readable source | `Buffer().apply { write(data) }` → `Source`
+| Read 1 byte | `source.readByte()`
+| Read 32-bit big-endian int | `source.readInt()`
+| Read 32-bit little-endian unsigned | `source.readUIntLe()`
+| Read n bytes as `ByteArray` | `source.readByteArray(n.toLong())`
+| Read n bytes as UTF-8 `String` | `source.readString(n.toLong())`
+| Read all remaining as `ByteArray` | `source.readByteArray()`
+| Write `ByteArray` to sink | `sink.write(bytes)`
+| Write 32-bit big-endian int | `sink.writeInt(value)`
+| Write 32-bit little-endian int | `sink.writeIntLe(value)`
+| Get accumulated `ByteArray` from `Buffer` | `buffer.readByteArray()`
+|===
+
+The FLAC-specific 24-bit big-endian length (RFC 9639 block headers) is not in the stdlib;
+it is implemented as a private `Source.readInt24Be()` / `Sink.writeInt24Be()` extension
+in the reader and writer files respectively.
+
+=== Marker comparison: ByteString (kotlinx-io)
+
+The FLAC `fLaC` marker is stored as `ByteString` (immutable, value-semantic byte sequence)
+and compared with `source.readByteString(4L)`. This is cleaner and type-safer than
+comparing raw `ByteArray` instances.
+
+=== File operations: kotlinx.io.files
+
+`kotlinx.io.files.Path` is the path type; `SystemFileSystem` is the singleton that
+executes file operations:
+
+|===
+| Operation | kotlinx-io call
+
+| Open for reading | `SystemFileSystem.source(path).buffered()`
+| Open for writing | `SystemFileSystem.sink(path).buffered()`
+| Atomic move (write safety) | `SystemFileSystem.atomicMove(tmp, destination)`
+| Check existence | `SystemFileSystem.exists(path)`
+| List directory | `SystemFileSystem.list(directory)`
+| File/dir metadata | `SystemFileSystem.metadataOrNull(path)`
+| Delete | `SystemFileSystem.delete(path)`
+| Construct child path | `Path(parent, childName)`
+| Sibling path | `Path(path.parent!!, "${path.name}.tmp")`
+|===
+
+=== CLI boundary (kbeatz-tagger)
+
+Clikt 4.x provides path arguments as plain `String` values (via `argument().convert { ... }`).
+The `convert` block constructs a `kotlinx.io.files.Path` and validates existence via
+`SystemFileSystem.exists()`. No `java.nio.file.Path` appears anywhere in the tagger.
+
+=== INI file parsing (kbeatz-tagger)
+
+`java.util.Properties` is replaced by a 10-line Kotlin function `parseIni(text: String)`:
+strip comment/section lines, split on `=`, filter blanks. The discogstagger id files
+never use continuation lines, unicode escapes, or other Properties edge cases.
+
+== Consequences
+
+* **Zero Java I/O imports** anywhere in `kbeatz-flac` or `kbeatz-tagger`.
+* `kbeatz-flac` has one dependency: `kotlinx-io-core`.
+* `FlacWriter.write()` is a pure function — `ByteArray` in, `ByteArray` out — trivially
+  unit-testable without touching the filesystem.
+* `FlacReader.parse()` is likewise pure.
+* Write atomicity is provided by `SystemFileSystem.atomicMove()` — the original file
+  is never left in a corrupt state.
+* The library is multiplatform-ready: `kotlinx-io` and `kotlinx.io.files` support
+  JVM, Native, and JS targets. Upgrading kbeatz to KMP would require no I/O changes.
+
+== Alternatives Rejected
+
+* **`kotlin.io.path.*` + `java.nio.file.Path`**: still brings `java.nio.file.Path` into
+  every signature. The `kotlinx.io.files.Path` type is the clean replacement.
+* **Okio** (Square): would also eliminate Java types, but is a larger dependency with a
+  different API style. `kotlinx-io` is the official JetBrains multiplatform library.
+* **`kotlinx-io` only for streams, keep `java.nio.file.Path` for paths**: half-measure —
+  the goal is zero Java I/O types.
+* **`java.util.Properties` for INI parsing**: unnecessary for the simple key=value format
+  used in discogstagger id files; a 10-line Kotlin function covers all real-world cases.
