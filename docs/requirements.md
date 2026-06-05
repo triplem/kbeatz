@@ -89,7 +89,7 @@ Each album card shows: cover art (placeholder if absent), album title, primary a
 
 ### P1 — Identity file migration
 
-**FR-13** The CLI tool (`kbeatz-tagger migrate-ids`) shall convert INI-style `id.txt` / `local_ids.txt` files to YAML `metadata.yml`. The original files are deleted after successful conversion unless `--keep-original` is specified.
+**FR-14** The CLI tool (`kbeatz-tagger migrate-ids`) shall convert INI-style `id.txt` / `local_ids.txt` files to YAML `metadata.yml`. The original files are deleted after successful conversion unless `--keep-original` is specified.
 
 **FR-15** `kbeatz-tagger tag` shall accept both INI and YAML id files. File type is detected by extension (`.yml`/`.yaml` → YAML; all other → INI).
 
@@ -123,7 +123,7 @@ Each album card shows: cover art (placeholder if absent), album title, primary a
 |---|---|---|
 | NFR-01 | Performance | Initial album grid load: p95 < 3 s (v1); p95 < 1 s (long-term with warm cache) |
 | NFR-02 | Performance | Filter / search on loaded data: p95 < 200 ms (client-side) |
-| NFR-03 | Performance | Single-album tag write: p95 < 500 ms |
+| NFR-03 | Performance | Single-album tag write: p95 < 500 ms for files ≤ 200 MB. Larger files (24-bit/96 kHz) are subject to the in-memory audio load limitation noted in ADR-001; streaming write is a v2 improvement. |
 | NFR-04 | Performance | Discogs metadata fetch (single album): p95 < 3 s (network-dependent) |
 | NFR-05 | Availability | No formal SLA; personal tool. Service restart < 30 s. |
 | NFR-06 | Security | No authentication in v1 (trusted LAN). `DISCOGS_TOKEN` via environment variable only; never in source or logs. Path traversal guard on all filesystem operations. |
@@ -132,7 +132,7 @@ Each album card shows: cover art (placeholder if absent), album title, primary a
 | NFR-09 | Deployment | Deployable with `podman-compose up`. Single `compose.yml` works with both Podman and Docker. |
 | NFR-10 | Browsers | Latest Firefox and Chromium on Linux. Safari (tablet) as stretch goal. |
 | NFR-11 | Library size | System must remain responsive at 10 000 albums (indexing strategy must support future growth). |
-| NFR-12 | Payload size | Album listing API response shall not exceed 500 KB at 10 000 albums. Above 5 000 albums (configurable threshold), the listing endpoint switches to server-side pagination with a pre-built in-memory search index. |
+| NFR-12 | Payload size | Album listing API response shall not exceed 500 KB (after gzip compression) at 10 000 albums. Above 5 000 albums (configurable threshold), the listing endpoint switches to server-side pagination with a pre-built in-memory search index. |
 | NFR-13 | Write consistency | A multi-file album write interrupted mid-operation shall be detectable and recoverable on next startup via the `.kbeatz-write.lock` manifest (see FR-20). No album shall be permanently left in a partially-written state. |
 
 ---
@@ -158,7 +158,7 @@ An album maps to one filesystem directory (the **album root**), with optional im
 | **Album** | albumArtist, album, date, genre, label, catno, composer, conductor, ensemble, discogsId, coverArt | Logical grouping |
 | **Track** | title, trackNumber, discNumber, trackTotal, discTotal, artist, duration | Per-file |
 | **IdFile** | sources: Map<fieldName, value> | `metadata.yml` per album directory |
-| **FlacFile** | path, metadataBlocks, audioFrames | Physical file; parsed by kbeatz-filecodec |
+| **FlacFile** | path, metadataBlocks, audioFrames | Physical file; parsed by kbeatz-tagger (codec/flac/) |
 | **DiscogsRelease** | id, title, artists, extraArtists, year, labels, genres, styles, tracklist, images | Cached from Discogs API |
 
 ### Tag field mapping (Discogs → Vorbis Comment)
@@ -193,7 +193,7 @@ An album maps to one filesystem directory (the **album root**), with optional im
 ### Local filesystem
 - Library root: configured via `catalog.library.root` in `application.conf`
 - All path parameters validated to resolve within the configured root (path traversal guard)
-- FLAC files read/written using kbeatz-filecodec (RFC 9639 implementation)
+- FLAC files read/written using kbeatz-tagger (codec/flac/) (RFC 9639 implementation)
 
 ### kbeatz-sources (library)
 - Consumed in-process by `kbeatz-catalog` and `kbeatz-tagger` as a compile-time dependency
@@ -222,6 +222,10 @@ An album maps to one filesystem directory (the **album root**), with optional im
 | AC-14 | Initial album grid loads in under 5 seconds on the LAN from a cold start | Browser DevTools Network tab; measure DOMContentLoaded |
 | AC-15 | `POST /api/v1/library/scan` triggers a rescan; newly added album directory appears in grid | Add directory after first scan, trigger rescan, verify album appears |
 | AC-16 | A write process killed mid-album leaves `.kbeatz-write.lock`; on next startup the album is repaired | Kill -9 during write; restart service; verify all FLAC tags are consistent |
+| AC-17 | During a library scan the UI displays a progress indicator (e.g. "Scanning: 342 / 2 000 albums") | Trigger `POST /api/v1/library/scan`; observe UI polling `GET /api/v1/library/scan/status` |
+| AC-18 | When `COMPOSER` is set on an album, the album card shows the composer as primary attribution (not ALBUMARTIST) | Browse grid for a classical album; verify composer is displayed prominently |
+| AC-19 | A path parameter containing `..` (e.g. `../../../etc/passwd`) returns HTTP 400 | Send `GET /api/v1/albums/../../../etc/passwd`; expect 400 |
+| AC-20 | When the Discogs image quota is exhausted, the sync panel shows a message with the expected reset time (UTC midnight) | Exhaust quota in test; trigger sync with `downloadImages=true`; verify 429 response and UI message |
 
 ---
 

@@ -2,24 +2,25 @@ openapi: "3.1.0"
 info:
   title: "kbeatz-catalog API"
   version: "0.0.1"
-  description: "Music collection catalog — browse albums, tracks, and FLAC metadata."
+  description: "Music collection catalog — browse albums, edit tags, and trigger Discogs sync."
   contact:
-    name: "kbeatz team"
+    name: "kbeatz"
 servers:
   - url: "http://localhost:8080/api/v1"
     description: Local development
 tags:
   - name: Health
     description: Service health
-  - name: Items
-    description: Item management
+  - name: Albums
+    description: Album browsing and tag management
+  - name: Library
+    description: Library scan operations
 
 paths:
   /health:
     get:
       operationId: healthCheck
       summary: Liveness and readiness probe
-      description: Returns 200 when the service is healthy. Suitable for Docker/k8s liveness probes.
       tags: [Health]
       security: []
       responses:
@@ -36,144 +37,367 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthResponse"
 
-  /items:
+  /albums:
     get:
-      operationId: listItems
-      summary: List all items
-      description: Returns a paginated list of items accessible to the authenticated user.
-      tags: [Items]
-      security:
-        - bearerAuth: []
+      operationId: listAlbums
+      summary: List all albums
+      description: |
+        Returns a paginated list of albums in the collection.
+        Client-side filtering (FR-02/03) operates on the full in-memory result set
+        at ≤ 5 000 albums. Above the threshold the endpoint switches to server-side
+        pagination and the search/filter params are evaluated server-side (NFR-12).
+      tags: [Albums]
+      security: []
       parameters:
         - name: page
           in: query
-          schema: { type: integer, default: 0 }
+          description: "Zero-based page number"
+          schema: { type: integer, default: 0, minimum: 0 }
         - name: size
           in: query
-          schema: { type: integer, default: 20, maximum: 100 }
+          description: "Page size (max 100)"
+          schema: { type: integer, default: 20, minimum: 1, maximum: 100 }
+        - name: albumArtist
+          in: query
+          description: "Filter by album artist (case-insensitive contains)"
+          schema: { type: string }
+        - name: composer
+          in: query
+          description: "Filter by composer (case-insensitive contains)"
+          schema: { type: string }
+        - name: genre
+          in: query
+          description: "Filter by exact genre"
+          schema: { type: string }
+        - name: yearFrom
+          in: query
+          description: "Filter albums released on or after this year"
+          schema: { type: integer }
+        - name: yearTo
+          in: query
+          description: "Filter albums released on or before this year"
+          schema: { type: integer }
+        - name: q
+          in: query
+          description: "Free-text search across title, albumArtist, composer, label"
+          schema: { type: string }
       responses:
         "200":
-          description: Paginated list of items
+          description: Paginated list of albums
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ItemPage"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-    post:
-      operationId: createItem
-      summary: Create a new item
-      description: Creates a new item owned by the authenticated user. Returns the created resource with a Location header.
-      tags: [Items]
-      security:
-        - bearerAuth: []
+                $ref: "#/components/schemas/AlbumPage"
+
+  /albums/{albumId}:
+    get:
+      operationId: getAlbum
+      summary: Get album detail
+      description: Returns a single album with all Vorbis Comment tag fields.
+      tags: [Albums]
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/AlbumId"
+      responses:
+        "200":
+          description: Album detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Album"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updateAlbumTags
+      summary: Update album tags
+      description: |
+        Writes updated tag values to FLAC files in the album directory.
+        Album-level fields (ALBUM, ALBUMARTIST, DATE, GENRE, LABEL, CATALOGNUMBER,
+        COMPOSER, CONDUCTOR, ENSEMBLE) are written to all files. Track-level fields
+        (TITLE, TRACKNUMBER) require a track-scoped endpoint (future).
+        Writes are atomic per file (temp + rename). A .kbeatz-write.lock manifest
+        is created before the first write and removed on completion (FR-20).
+      tags: [Albums]
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/AlbumId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateItemRequest"
-      responses:
-        "201":
-          description: Item created
-          headers:
-            Location:
-              schema: { type: string }
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Item"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-
-  /items/{itemId}:
-    get:
-      operationId: getItem
-      summary: Get an item by ID
-      description: Returns a single item by its UUID. Returns 404 if the item does not exist or is not accessible to the caller.
-      tags: [Items]
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: itemId
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+              $ref: "#/components/schemas/UpdateAlbumTagsRequest"
       responses:
         "200":
-          description: The item
+          description: Tags updated; returns the refreshed album
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Item"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
+                $ref: "#/components/schemas/Album"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /albums/{albumId}/cover:
+    get:
+      operationId: getAlbumCover
+      summary: Get album cover art
+      description: |
+        Returns the front cover image.
+        Resolution order: embedded METADATA_BLOCK_PICTURE type 3 → folder.jpg → 404.
+      tags: [Albums]
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/AlbumId"
+      responses:
+        "200":
+          description: Cover image (JPEG or PNG)
+          headers:
+            Cache-Control:
+              schema: { type: string }
+              example: "max-age=86400"
+          content:
+            image/jpeg:
+              schema: { type: string, format: binary }
+            image/png:
+              schema: { type: string, format: binary }
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /albums/{albumId}/sync:
+    post:
+      operationId: syncAlbumFromDiscogs
+      summary: Sync album tags from Discogs
+      description: |
+        Fetches the Discogs release identified by the album's discogsId and writes
+        all standard Vorbis Comment tags to every FLAC file in the album directory.
+        Requires a metadata.yml (or id.txt) with a discogs_id in the album directory.
+        Images are only downloaded when downloadImages=true (default false) to
+        preserve the 1 000/day Discogs image quota.
+      tags: [Albums]
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/AlbumId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SyncRequest"
+      responses:
+        "200":
+          description: Sync completed; returns the updated album
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Album"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          description: Discogs rate limit or image quota exhausted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /library/scan:
+    post:
+      operationId: triggerLibraryScan
+      summary: Trigger a library scan
+      description: |
+        Scans all FLAC files under the configured library root and rebuilds
+        the metadata index. Returns immediately; poll /library/scan/status
+        for progress.
+      tags: [Library]
+      security: []
+      responses:
+        "202":
+          description: Scan accepted and started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScanStatus"
+
+  /library/scan/status:
+    get:
+      operationId: getLibraryScanStatus
+      summary: Get library scan status
+      description: Returns the status of the most recent (or in-progress) library scan.
+      tags: [Library]
+      security: []
+      responses:
+        "200":
+          description: Current scan status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScanStatus"
+
 components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
+  parameters:
+    AlbumId:
+      name: albumId
+      in: path
+      required: true
+      description: "Album UUID"
+      schema: { type: string, format: uuid }
 
   schemas:
-    Item:
+    Album:
       type: object
-      required: [id, name, createdAt]
+      required: [id, albumArtist, album, directoryPath, hasCoverArt]
       properties:
         id:
           type: string
           format: uuid
+          description: "Internal album identifier"
           example: "550e8400-e29b-41d4-a716-446655440000"
-        name:
+        albumArtist:
           type: string
-          example: "My item"
-        description:
+          description: "ALBUMARTIST tag"
+          example: "Miles Davis"
+        album:
           type: string
-          example: "Optional description"
-        createdAt:
+          description: "ALBUM tag"
+          example: "Kind of Blue"
+        date:
           type: string
-          format: date-time
-          example: "2026-01-01T12:00:00Z"
+          description: "DATE tag (year or ISO date)"
+          example: "1959"
+        genre:
+          type: string
+          description: "GENRE tag"
+          example: "Jazz"
+        label:
+          type: string
+          description: "LABEL tag"
+          example: "Columbia"
+        catalogNumber:
+          type: string
+          description: "CATALOGNUMBER tag"
+          example: "CL 1355"
+        composer:
+          type: string
+          description: "COMPOSER tag; when set the UI shows this as primary attribution"
+          example: "Ludwig van Beethoven"
+        conductor:
+          type: string
+          description: "CONDUCTOR tag"
+          example: "Herbert von Karajan"
+        ensemble:
+          type: string
+          description: "ENSEMBLE tag"
+          example: "Berlin Philharmoniker"
+        discogsId:
+          type: string
+          description: "Discogs release ID from metadata.yml"
+          example: "12345678"
+        directoryPath:
+          type: string
+          description: "Absolute path of the album directory within the library root"
+          example: "/music/Jazz/Miles Davis/Kind of Blue"
+        hasCoverArt:
+          type: boolean
+          description: "True when cover art is available via GET /albums/{albumId}/cover"
+          example: true
 
-    CreateItemRequest:
-      type: object
-      required: [name]
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 200
-          example: "My item"
-        description:
-          type: string
-          maxLength: 1000
-          example: "Optional description"
-
-    ItemPage:
+    AlbumPage:
       type: object
       required: [content, page, size, totalElements, totalPages]
       properties:
         content:
           type: array
           items:
-            $ref: "#/components/schemas/Item"
+            $ref: "#/components/schemas/Album"
         page:
           type: integer
           format: int32
+          example: 0
         size:
           type: integer
           format: int32
+          example: 20
         totalElements:
           type: integer
           format: int64
+          example: 2000
         totalPages:
           type: integer
           format: int32
+          example: 100
+
+    UpdateAlbumTagsRequest:
+      type: object
+      description: "Partial update — only supplied fields are written. Omitted fields are left unchanged."
+      properties:
+        albumArtist:
+          type: string
+          example: "Miles Davis"
+        album:
+          type: string
+          example: "Kind of Blue"
+        date:
+          type: string
+          example: "1959"
+        genre:
+          type: string
+          example: "Jazz"
+        label:
+          type: string
+          example: "Columbia"
+        catalogNumber:
+          type: string
+          example: "CL 1355"
+        composer:
+          type: string
+          example: "Ludwig van Beethoven"
+        conductor:
+          type: string
+          example: "Herbert von Karajan"
+        ensemble:
+          type: string
+          example: "Berlin Philharmoniker"
+
+    SyncRequest:
+      type: object
+      properties:
+        downloadImages:
+          type: boolean
+          description: "Download and embed cover art. Default false — preserves the 1 000/day Discogs image quota."
+          default: false
+
+    ScanStatus:
+      type: object
+      required: [state]
+      properties:
+        state:
+          type: string
+          enum: [IDLE, RUNNING, COMPLETED, FAILED]
+          example: "RUNNING"
+        scannedAlbums:
+          type: integer
+          format: int32
+          description: "Albums processed so far"
+          example: 342
+        totalAlbums:
+          type: integer
+          format: int32
+          description: "Total albums found (null while discovery is still in progress)"
+          example: 2000
+        startedAt:
+          type: string
+          format: date-time
+          example: "2026-06-05T14:00:00Z"
+        completedAt:
+          type: string
+          format: date-time
+          example: "2026-06-05T14:02:30Z"
+        errorMessage:
+          type: string
+          description: "Set when state=FAILED"
 
     HealthResponse:
       type: object
@@ -187,8 +411,7 @@ components:
           type: object
           additionalProperties:
             type: string
-          description: Optional per-dependency health details
-          example: { filesystem: "UP" }
+          example: { filesystem: "UP", database: "UP" }
 
     ErrorResponse:
       type: object
@@ -199,17 +422,15 @@ components:
           example: "RESOURCE_NOT_FOUND"
         message:
           type: string
-          example: "Item '550e...' not found"
+          example: "Album '550e...' not found"
+        details:
+          type: array
+          items:
+            type: string
 
   responses:
     BadRequest:
       description: Validation error
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/ErrorResponse"
-    Unauthorized:
-      description: Authentication required
       content:
         application/json:
           schema:

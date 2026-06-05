@@ -173,7 +173,7 @@ a personal-scale collection.
 
 * Every FLAC file in an album always contains the same embedded front cover — per-track
   tagging runs must include the PICTURE block update.
-* The `FlacMetadataBlock.Picture` class in `kbeatz-filecodec` is already in the sealed hierarchy
+* The `FlacMetadataBlock.Picture` class in `kbeatz-tagger` is already in the sealed hierarchy
   and the reader/writer already handles PICTURE blocks — no library changes needed for v1.
 * Disk usage for a typical album: one 500 KB JPEG × N tracks ≈ N × 500 KB overhead.
   For a 10-track album this is ~5 MB extra per album — acceptable for a personal collection

@@ -13,15 +13,15 @@ includeBuild("kbeatz-common") {
     }
 }
 
-includeBuild("kbeatz-filecodec") {
-    dependencySubstitution {
-        substitute(module("org.javafreedom.kbeatz:kbeatz-filecodec")).using(project(":"))
-    }
-}
-
 includeBuild("kbeatz-tagger") {
     dependencySubstitution {
         substitute(module("org.javafreedom.kbeatz:kbeatz-tagger")).using(project(":"))
+    }
+}
+
+includeBuild("kbeatz-cli") {
+    dependencySubstitution {
+        substitute(module("org.javafreedom.kbeatz:kbeatz-cli")).using(project(":"))
     }
 }
 

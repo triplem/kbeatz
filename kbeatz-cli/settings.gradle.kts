@@ -15,4 +15,4 @@ pluginManagement {
     repositories { gradlePluginPortal() }
 }
 
-rootProject.name = "kbeatz-filecodec"
+rootProject.name = "kbeatz-cli"

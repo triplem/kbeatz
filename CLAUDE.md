@@ -9,11 +9,11 @@ Agent actions are logged to `~/.claude/kbeatz-sessions/<session_id>.jsonl`.
 
 | Module | Directory | Port | Notes |
 |---|---|---|---|
-| kbeatz-common | `kbeatz-common/` | — | Shared library: domain exceptions, Ktor plugins |
-| kbeatz-filecodec | `kbeatz-filecodec/` | — | Audio codec library: FLAC reader/writer (RFC 9639); extensible to MP3/AAC via sub-packages |
+| kbeatz-common | `kbeatz-common/` | — | Shared library: domain exceptions |
 | kbeatz-sources | `kbeatz-sources/` | — | Metadata library: `MetadataSource`/`MetadataCache` ports; `discogs/` + future `musicbrainz/` impls |
-| kbeatz-tagger | `kbeatz-tagger/` | CLI | Tagging engine (`service/`) + CLI entry point (`cli/`); used by kbeatz-catalog and fat-JAR CLI |
-| kbeatz-catalog | `kbeatz-catalog/` | 8080 | Music collection catalog — browse albums, tracks, FLAC metadata |
+| kbeatz-tagger | `kbeatz-tagger/` | — | FLAC codec (`codec/flac/`) + `TaggerService` + id-file parser; library consumed by catalog and CLI |
+| kbeatz-cli | `kbeatz-cli/` | CLI | Fat JAR CLI: `tag` and `migrate-ids` commands (Clikt entry point only) |
+| kbeatz-catalog | `kbeatz-catalog/` | 8080 | Music collection catalog — browse albums, edit tags, Discogs sync |
 | kbeatz-ui | `kbeatz-ui/` | 3005 | React SPA |
 
 ## Common Tech Stack
@@ -69,7 +69,7 @@ Always update the spec before writing handlers.
 
 ### Hexagonal Architecture (Ports and Adapters)
 
-Applies to `kbeatz-catalog` (the Ktor HTTP service). Libraries (`kbeatz-filecodec`, `kbeatz-sources`,
+Applies to `kbeatz-catalog` (the Ktor HTTP service). Libraries (`kbeatz-sources`,
 `kbeatz-tagger`) use a flat package structure appropriate to their scope.
 
 ```

@@ -43,8 +43,8 @@ chmod +x gradlew .claude/hooks/*.sh .claude/scripts/*.sh
 cp .env.example .env        # create if not present
 # Edit .env and set:
 #   GITHUB_TOKEN=ghp_...     (repo + issues + packages scopes)
-#   KEYCLOAK_ADMIN_PASSWORD=...
-#   DB_PASSWORD=...
+#   DISCOGS_TOKEN=...         (Discogs Personal Access Token)
+#   LIBRARY_ROOT=/path/to/music
 ----
 
 === 3. Install MCP servers
@@ -105,11 +105,10 @@ See xref:claude-code-config.adoc[Claude Code Configuration] for the full skill r
 
 [source,bash]
 ----
-# All services + Keycloak + PostgreSQL
-docker compose up --build
+podman-compose up --build
 
-# Or with Podman
-./podman-up.sh --build
+# Or with Docker Compose
+docker compose up --build
 ----
 
 Once running:

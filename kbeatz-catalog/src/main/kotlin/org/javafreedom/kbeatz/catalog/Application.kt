@@ -9,7 +9,6 @@ fun main() {
 }
 
 fun Application.module() {
-    configureSecurity()
     configureSerialization()
     configureStatusPages()
     configureRouting()

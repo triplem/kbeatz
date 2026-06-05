@@ -1,4 +1,4 @@
-package org.javafreedom.kbeatz.tagger.cli.command
+package org.javafreedom.kbeatz.cli.command
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
@@ -42,10 +42,10 @@ class TagAlbumsCommand : CliktCommand(
         help = "Print what would be tagged without writing any files.",
     ).flag()
 
-    private val configFile: Path? by option(
-        "--config", "-c",
-        help = "Path to a custom source-mapping config file.",
-    ).convert { it.toKtxPath() }
+    private val downloadImages: Boolean by option(
+        "--download-images",
+        help = "Download and embed cover art. Default off — preserves the Discogs 1 000/day image quota.",
+    ).flag()
 
     override fun run() {
         val idReader = IdFileReader(SourceConfig())

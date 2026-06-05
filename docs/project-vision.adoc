@@ -105,7 +105,7 @@ The metadata mapping layer must translate these roles to the correct Vorbis Comm
 
 === Implementation
 
-A dedicated library (`kbeatz-flac`) implements FLAC metadata block parsing and writing
+A dedicated library (`kbeatz-tagger` (codec/flac/) implements FLAC metadata block parsing and writing
 directly from https://www.rfc-editor.org/rfc/rfc9639.html[RFC 9639] (The FLAC Audio Codec).
 
 The decision to implement from scratch rather than use an existing library is documented in
@@ -125,7 +125,7 @@ idiomatic Kotlin block modelling but is not used as a dependency.
 === Vorbis Comment Field Conventions
 
 Standard field names follow the Vorbis I specification and community practice.
-See `VorbisCommentFields` in `kbeatz-flac` for the full list.
+See `VorbisCommentFields` in `kbeatz-tagger` for the full list.
 
 Fields preserved on sync (never overwritten by kbeatz unless explicitly requested):
 `MUSICBRAINZ_*`, `ACOUSTID_*`, `FREEDB_DISC_ID`.
@@ -341,8 +341,8 @@ If `kbeatz-sources` is unavailable, `kbeatz-catalog` behaviour:
 | Module | Type | Responsibility
 
 | `kbeatz-common` | Library | Shared domain exceptions, Ktor plugins, JWT principal
-| `kbeatz-flac` | Library | RFC 9639 FLAC metadata read/write (see ADR-001)
-| `kbeatz-catalog` | Ktor service (8080) | Filesystem scan, album / track browse, FLAC tag read/write via kbeatz-flac
+| `kbeatz-tagger` | Library | RFC 9639 FLAC metadata read/write (see ADR-001)
+| `kbeatz-catalog` | Ktor service (8080) | Filesystem scan, album / track browse, FLAC tag read/write via kbeatz-tagger
 | `kbeatz-sources` | Ktor service (8081) | Discogs API client, release caching, metadata API
 | `kbeatz-tagger` | CLI (Clikt, see ADR-003) | Batch tagging from CLI, id-file migration to YAML
 | `kbeatz-ui` | React SPA (3005) | Album browser, metadata editor, sync trigger

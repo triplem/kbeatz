@@ -13,7 +13,6 @@ private fun bundle(alias: String) = catalog().findBundle(alias).get()
 
 dependencies {
     "implementation"("org.javafreedom.kbeatz:kbeatz-common")
-    "implementation"("org.javafreedom.kbeatz:kbeatz-flac")
     "implementation"(bundle("logging"))
     "implementation"(lib("kotlinx-datetime"))
     "implementation"(lib("kotlinx-coroutines-core"))

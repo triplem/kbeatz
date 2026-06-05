@@ -30,16 +30,23 @@ Three questions arose:
 
 == Decision
 
-=== 1. `kbeatz-flac` → `kbeatz-filecodec`
+=== 1. Codec merged into `kbeatz-tagger`; CLI extracted to `kbeatz-cli`
 
-Rename the codec library to `kbeatz-filecodec`. The FLAC implementation moves to the
-`org.javafreedom.kbeatz.filecodec.flac` sub-package. Future codec support (MP3 ID3v2, AAC, OGG Vorbis)
-adds sibling sub-packages (`mp3`, `aac`, `ogg`) under `org.javafreedom.kbeatz.filecodec`.
+The codec library (`kbeatz-flac`, later `kbeatz-filecodec`) is merged into `kbeatz-tagger`.
+The FLAC code moves to `org.javafreedom.kbeatz.tagger.codec.flac`.
+Future format support (MP3, AAC) adds sibling sub-packages under `tagger/codec/`.
 
-The library remains format-specific at the implementation level; the module name is
-format-agnostic to prevent a future rename.
+The CLI entry point (Clikt commands) is extracted to a new `kbeatz-cli` module — a pure
+delivery vehicle that contains no business logic. This keeps the Clikt dependency out of
+`kbeatz-catalog`'s classpath.
 
-=== 2. `kbeatz-sources-discogs` → `kbeatz-sources` (library, not HTTP service)
+`kbeatz-tagger` (library) now contains:
+
+* `codec/flac/` — FLAC binary parser/writer
+* `service/` — `TaggerService` port interface
+* `idfile/` — `IdFileReader`, `IdFile`, `SourceConfig`
+
+=== 2. `kbeatz-metadata-discogs` → `kbeatz-sources` (library, not HTTP service)
 
 Replace the standalone HTTP service with a Kotlin library exposing two port interfaces:
 
@@ -56,27 +63,24 @@ For v1, in-process state is sufficient — the CLI tagger is short-lived and the
 the only long-running process. If concurrent rate-limit sharing is needed in v2, wrapping the library
 in a service is a contained change that does not affect the `MetadataSource` interface.
 
-=== 3. `kbeatz-tagger` — library core + thin CLI wrapper
+=== 3. `kbeatz-tagger` as library; `kbeatz-cli` as CLI distributable
 
-Split internal package structure into:
-
-* `service/` — `TaggerService` and supporting domain logic; consumed in-process by `kbeatz-catalog`
-* `cli/` — Clikt entry point and sub-commands; thin wrapper over `TaggerService`
-* `idfile/` — `IdFileReader`, `IdFile`, `SourceConfig`; shared between service and CLI
-
-`kbeatz-catalog` declares `kbeatz-tagger` as a library dependency and injects `TaggerService`
-for UI-triggered album sync. The CLI fat JAR uses the same module; no logic is duplicated.
+`kbeatz-catalog` depends on `kbeatz-tagger` (the library) and injects `TaggerService`
+for UI-triggered album sync. `kbeatz-cli` also depends on `kbeatz-tagger` and wires the
+Clikt commands. No business logic is duplicated.
 
 === Dependency graph
 
 ```
 kbeatz-common   (shared domain exceptions — no auth in v1)
-kbeatz-filecodec      (codec library: filecodec/flac/*, tag/mp3/* future)
-kbeatz-sources (metadata library: sources/discogs/*, sources/musicbrainz/* future)
-kbeatz-tagger   (service/TaggerService + cli/ entry point)
-    └─ depends on: kbeatz-filecodec, kbeatz-sources, kbeatz-common
+kbeatz-sources  (metadata library: discogs/*, musicbrainz/* future)
+    └─ depends on: kbeatz-common
+kbeatz-tagger   (FLAC codec + TaggerService + idfile — library)
+    └─ depends on: kbeatz-sources, kbeatz-common
+kbeatz-cli      (Clikt fat JAR — delivery only)
+    └─ depends on: kbeatz-tagger
 kbeatz-catalog  (Ktor HTTP service, port 8080)
-    └─ depends on: kbeatz-filecodec, kbeatz-sources, kbeatz-tagger, kbeatz-common
+    └─ depends on: kbeatz-tagger, kbeatz-common
 kbeatz-ui       (React SPA, calls kbeatz-catalog only)
 ```
 
@@ -86,8 +90,8 @@ No circular dependencies. No in-monorepo HTTP calls between backend modules.
 
 * `kbeatz-sources` has no OpenAPI spec and no Ktor dependency. It is a pure Kotlin library.
 * `kbeatz-catalog` is the only backend module with an `api/openapi.yaml`.
-* The fat JAR produced by `kbeatz-tagger` is the CLI distributable; the same Gradle module is
-  also declared as a library dependency in `kbeatz-catalog`.
+* The fat JAR produced by `kbeatz-cli` is the CLI distributable.
+  `kbeatz-catalog` depends on `kbeatz-tagger` (the library) without pulling in Clikt.
 * Adding MusicBrainz support requires: (a) a new `musicbrainz/MusicBrainzMetadataSource.kt` in
   `kbeatz-sources`; (b) wiring the new implementation at the injection site in each consumer.
   No module renames and no new services.

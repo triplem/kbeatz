@@ -1,9 +1,9 @@
-package org.javafreedom.kbeatz.tagger.cli
+package org.javafreedom.kbeatz.cli
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.subcommands
-import org.javafreedom.kbeatz.tagger.cli.command.MigrateIdFilesCommand
-import org.javafreedom.kbeatz.tagger.cli.command.TagAlbumsCommand
+import org.javafreedom.kbeatz.cli.command.MigrateIdFilesCommand
+import org.javafreedom.kbeatz.cli.command.TagAlbumsCommand
 
 class KbeatzTaggerCli : CliktCommand(
     name = "kbeatz-tagger",

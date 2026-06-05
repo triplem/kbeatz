@@ -1,4 +1,4 @@
-package org.javafreedom.kbeatz.filecodec.flac
+package org.javafreedom.kbeatz.tagger.codec.flac
 
 import kotlinx.io.Buffer
 import kotlinx.io.Sink

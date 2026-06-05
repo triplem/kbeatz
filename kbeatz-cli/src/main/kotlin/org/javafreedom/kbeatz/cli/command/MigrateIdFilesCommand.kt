@@ -1,4 +1,4 @@
-package org.javafreedom.kbeatz.tagger.cli.command
+package org.javafreedom.kbeatz.cli.command
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
@@ -70,4 +70,15 @@ class MigrateIdFilesCommand : CliktCommand(
             appendLine("sources:")
             sources.forEach { (key, value) -> appendLine("  $key: \"$value\"") }
         }
+}
+
+private fun walkDirectories(root: Path, maxDepth: Int): Sequence<Path> = sequence {
+    if (maxDepth <= 0) return@sequence
+    val children = runCatching { SystemFileSystem.list(root) }.getOrElse { emptyList() }
+    for (child in children) {
+        if (SystemFileSystem.metadataOrNull(child)?.isDirectory == true) {
+            yield(child)
+            yieldAll(walkDirectories(child, maxDepth - 1))
+        }
+    }
 }
