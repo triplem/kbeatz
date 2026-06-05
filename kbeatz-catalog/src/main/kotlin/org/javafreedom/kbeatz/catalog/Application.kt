@@ -5,6 +5,7 @@ import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import io.ktor.util.AttributeKey
 import org.javafreedom.kbeatz.catalog.plugins.configureLogging
+import org.javafreedom.kbeatz.catalog.plugins.configurePathTraversalGuard
 import org.javafreedom.kbeatz.catalog.plugins.configureRouting
 import org.javafreedom.kbeatz.catalog.plugins.configureSerialization
 import org.javafreedom.kbeatz.catalog.plugins.configureStatusPages
@@ -18,6 +19,7 @@ fun main() {
 fun Application.module() {
     val config = AppConfig.fromEnv()
     attributes.put(AppConfigKey, config)
+    configurePathTraversalGuard()
     configureLogging()
     configureSerialization()
     configureStatusPages()
