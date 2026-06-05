@@ -9,6 +9,7 @@ import kotlinx.io.buffered
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
 import kotlinx.io.writeString
+import org.javafreedom.kbeatz.cli.util.walkDirectories
 import org.javafreedom.kbeatz.tagger.idfile.IdFileReader
 import org.javafreedom.kbeatz.tagger.idfile.SourceConfig
 
@@ -76,14 +77,3 @@ class MigrateIdFilesCommand : CliktCommand(
 
 // Matches the documented 3-level library layout: <Genre>/<AlbumArtist>/<AlbumTitle>
 private const val DEFAULT_LIBRARY_SCAN_DEPTH = 3
-
-private fun walkDirectories(root: Path, maxDepth: Int): Sequence<Path> = sequence {
-    if (maxDepth <= 0) return@sequence
-    val children = runCatching { SystemFileSystem.list(root) }.getOrElse { emptyList() }
-    for (child in children) {
-        if (SystemFileSystem.metadataOrNull(child)?.isDirectory == true) {
-            yield(child)
-            yieldAll(walkDirectories(child, maxDepth - 1))
-        }
-    }
-}
