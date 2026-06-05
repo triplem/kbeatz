@@ -1,0 +1,28 @@
+services:
+  catalog:
+    build:
+      context: .
+      dockerfile: kbeatz-catalog/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      CATALOG_LIBRARY_ROOT: /library
+      DISCOGS_TOKEN: ${DISCOGS_TOKEN:-}
+    volumes:
+      - ${CATALOG_LIBRARY_ROOT:-/tmp/kbeatz-library}:/library:rw
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/api/v1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+
+  ui:
+    build:
+      context: kbeatz-ui
+      dockerfile: Dockerfile
+    ports:
+      - "3005:80"
+    depends_on:
+      catalog:
+        condition: service_healthy
