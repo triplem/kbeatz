@@ -76,7 +76,7 @@ allowed-tools: Read Bash(ls *) Bash(find *) Bash(cat *) Bash(grep -r *) Bash(wc 
 4. Architecture (hexagonal layers, auth pattern, data flow)
 5. Service Details (per-service subsections)
 6. Issue Tracking conventions
-7. Branch Naming & Merge Policy
+7. Branch Naming & Rebase Policy
 8. Commit Conventions
 9. Quality Gates
 10. Audit Logging

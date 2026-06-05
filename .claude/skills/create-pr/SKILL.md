@@ -1,6 +1,6 @@
 ---
 name: create-pr
-description: Open a pull request with a guided review summary, then on merge: delete local/remote branches, close linked issues, and close the parent epic if all its stories are done.
+description: Open a pull request with a guided review summary, then on rebase: delete local/remote branches, close linked issues, and close the parent epic if all its stories are done.
 argument-hint: <story-id> <branch-name>
 arguments: [story_id, branch]
 disable-model-invocation: true
@@ -55,10 +55,10 @@ Add comment on issue `$story_id`: "PR opened: <PR_URL> — awaiting review."
 
 Poll every 5 minutes.
 - **Merged** → proceed to step 7
-- **Approved (not yet merged)** → `/release <pr-id>`, then proceed to step 7 once merged
+- **Approved (not yet rebased)** → `/release <pr-id>`, then proceed to step 7 once rebased onto main
 - **Changes requested** → read comments, fix in feature branch, re-push, re-check gates
 
-### 7 — Post-merge cleanup
+### 7 — Post-rebase cleanup
 
 Run this step once the PR shows `state: MERGED`.
 
@@ -70,7 +70,7 @@ git push origin --delete $branch
 git branch -D $branch
 ```
 
-If the remote branch was already deleted (GitHub "delete on merge" enabled), skip the `push --delete` silently.
+If the remote branch was already deleted (GitHub "delete branch on close" enabled), skip the `push --delete` silently.
 
 #### 7b — Close linked issues
 
@@ -86,7 +86,7 @@ Also include `$story_id` explicitly in case it was not declared with `Closes #` 
 Close each issue:
 
 ```bash
-gh issue close <number> --comment "Closed by merged PR #$pr_number."
+gh issue close <number> --comment "Closed by PR #$pr_number (rebased onto main)."
 ```
 
 Skip issues that are already closed.
@@ -125,4 +125,4 @@ If different issues belong to different epics, check each epic independently.
 
 - PR in tracker (labelled `pending-review`)
 - Comment on story issue
-- On merge: branches deleted, linked issues closed, epic closed if all stories done
+- On rebase: branches deleted, linked issues closed, epic closed if all stories done

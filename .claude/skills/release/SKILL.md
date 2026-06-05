@@ -1,6 +1,6 @@
 ---
 name: release
-description: Squash-merge an approved PR, bump the semantic version, generate a changelog, publish the artefact, and close the story.
+description: Squash-rebase an approved PR onto main, bump the semantic version, generate a changelog, publish the artefact, and close the story.
 argument-hint: <pr-id>
 arguments: pr_id
 disable-model-invocation: true
@@ -22,10 +22,10 @@ hooks:
 
 ## Instructions
 
-### 1 — Squash merge
+### 1 — Squash rebase
 
 ```bash
-gh pr merge $pr_id --squash --delete-branch     # GitHub
+gh pr merge $pr_id --squash --delete-branch     # GitHub (squash onto main, no merge commit)
 glab mr merge $pr_id --squash --remove-source-branch  # GitLab
 ```
 
@@ -87,7 +87,7 @@ mcp__github__update_issue(state:"closed", labels:["released","vX.Y.Z"])
 
 ## Output
 
-- Squash commit on `main` + git tag
+- Squash-rebased commit on `main` + git tag
 - Updated `CHANGELOG.md`
 - Published artefact
 - GitHub/GitLab release entry

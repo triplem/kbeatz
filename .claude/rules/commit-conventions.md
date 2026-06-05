@@ -80,9 +80,9 @@ BREAKING CHANGE: FlacWriter.write() now takes a Path instead of ByteArray.
 Closes #88
 ```
 
-## Squash Merge Policy
+## Squash Rebase Policy
 
-When merging a PR to main, squash all commits. The squash commit message must be the story-level conventional commit:
+When rebasing a PR onto main, squash all commits. The squash commit message must be the story-level conventional commit:
 
 ```
 feat(scope): story title (#story-id)

@@ -46,7 +46,7 @@ Filter the sub-issues list to the **implementable set**:
 
 - **Include**: open issues (`state: OPEN`) with label `story`, `docs`, `documentation`, or `adr`
 - **Skip** (log each skip):
-  - Closed/merged issues → `"#NNN already closed — skipping"`
+  - Closed/rebased issues → `"#NNN already closed — skipping"`
   - Issues labelled `epic` or `pending-approval` → `"#NNN is not an implementation story — skipping"`
   - Issues labelled `BLOCKED` → `"#NNN is externally blocked — skipping"`
 
@@ -141,7 +141,7 @@ After all waves have run, output a summary table:
 
 | Story | Title | Wave | Outcome | PR |
 |---|---|---|---|---|
-| #10 | ... | 1 | ✓ merged | #NNN |
+| #10 | ... | 1 | ✓ rebased | #NNN |
 | #11 | ... | 2 | ✓ open | #NNN |
 | #12 | ... | 2 | ✗ failed | — |
 | #13 | ... | 3 | ⏭ skipped (depends on failed #12) | — |

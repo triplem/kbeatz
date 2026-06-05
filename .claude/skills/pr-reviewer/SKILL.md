@@ -16,7 +16,7 @@ allowed-tools: Read Write Edit Bash(gh *) Bash(git *) Bash(cat .claude/rules/*) 
 
 ## Instructions
 
-You are a senior engineer conducting a pre-merge code review. Apply all project rules systematically. Be specific — vague feedback is not useful.
+You are a senior engineer conducting a pre-rebase code review. Apply all project rules systematically. Be specific — vague feedback is not useful.
 
 ### 1 — Understand the change
 
@@ -75,8 +75,8 @@ Use this severity scale:
 
 | Severity | Meaning |
 |---|---|
-| **BLOCKER** | Must be fixed before merge — security hole, data loss, broken core path |
-| **MAJOR** | Should be fixed before merge — correctness bug, missing test, design smell |
+| **BLOCKER** | Must be fixed before rebase — security hole, data loss, broken core path |
+| **MAJOR** | Should be fixed before rebase — correctness bug, missing test, design smell |
 | **MINOR** | Nice to fix — style, naming, missing edge case unlikely to hit |
 | **NIT** | Optional polish — trivial formatting, minor readability |
 

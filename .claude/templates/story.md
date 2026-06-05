@@ -75,7 +75,7 @@ ALTER TABLE users ADD COLUMN verified_at TIMESTAMP;
 - [ ] OpenAPI spec updated
 - [ ] Linting passes
 - [ ] PR approved
-- [ ] Squash-merged to main
+- [ ] Squash-rebased onto main
 - [ ] Release published
 - [ ] Story closed
 
