@@ -22,7 +22,7 @@ kotlinx-coroutines = "1.10.2"
 cyclonedx = "3.2.2"
 clikt = "4.4.0"
 kaml = "0.68.0"
-kotlinx-io = "0.6.0"
+kotlinx-io = "0.9.0"
 opentelemetry = "1.51.0"
 # The -alpha suffix on opentelemetry-instrumentation is intentional and permanent.
 # The OTel project keeps framework-specific instrumentation libraries (Ktor, Exposed, etc.)

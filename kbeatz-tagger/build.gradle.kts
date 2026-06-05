@@ -5,7 +5,6 @@ plugins {
     id("kbeatz.kotlin-base")
     `java-library`
     `maven-publish`
-    id("org.jetbrains.kotlinx.kover")
 }
 
 private fun catalog(): VersionCatalog = project.extensions.getByType<VersionCatalogsExtension>().named("libs")

@@ -2,6 +2,7 @@ package org.javafreedom.kbeatz.tagger.codec.flac
 
 import kotlinx.io.Buffer
 import kotlinx.io.Sink
+import kotlinx.io.readByteArray
 import kotlinx.io.write
 import kotlinx.io.writeIntLe
 

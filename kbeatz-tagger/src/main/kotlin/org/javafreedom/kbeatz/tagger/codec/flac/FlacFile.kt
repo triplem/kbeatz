@@ -1,5 +1,6 @@
 package org.javafreedom.kbeatz.tagger.codec.flac
 
+import kotlinx.io.buffered
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
 import kotlinx.io.readByteArray

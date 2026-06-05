@@ -6,11 +6,13 @@ plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
     id("io.gitlab.arturbosch.detekt")
+    id("org.jetbrains.kotlinx.kover")
 }
 
 repositories {
     mavenCentral()
 }
+
 
 private fun catalog(): VersionCatalog = project.extensions.getByType<VersionCatalogsExtension>().named("libs")
 private fun lib(alias: String) = catalog().findLibrary(alias).get()
