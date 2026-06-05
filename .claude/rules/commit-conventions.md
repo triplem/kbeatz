@@ -32,7 +32,24 @@ Breaking change: append `!` to type or add `BREAKING CHANGE:` in footer → majo
 
 ## Scope
 
-The scope is the domain area affected: `auth`, `users`, `orders`, `api`, `db`, `config`.
+The scope is the module or domain area affected. Use one of the following:
+
+| Scope | Covers |
+|---|---|
+| `catalog` | kbeatz-catalog service (API handlers, scan, browse) |
+| `metadata` | kbeatz-metadata library (MetadataSource, MetadataCache, Discogs impl) |
+| `tag` | kbeatz-tag codec library (FLAC reader/writer, future MP3) |
+| `tagger` | kbeatz-tagger (TaggerService, CLI commands, id-file migration) |
+| `ui` | kbeatz-ui React SPA |
+| `common` | kbeatz-common shared library |
+| `discogs` | Discogs-specific logic inside kbeatz-metadata |
+| `idfile` | id.txt / local_ids.txt / metadata.yml parsing and migration |
+| `library` | Library scan, album indexing |
+| `api` | OpenAPI spec (kbeatz-catalog/api/openapi.yaml) |
+| `db` | SQLite schema, Liquibase migrations |
+| `config` | Application configuration, environment variables |
+| `ci` | CI/CD pipeline |
+| `scaffold` | Project-wide structure, build-logic, root config |
 
 Use the same scope consistently for a feature area. Check existing commits for precedent.
 
@@ -40,26 +57,27 @@ Use the same scope consistently for a feature area. Check existing commits for p
 
 - Imperative mood: "add", "fix", "update" (not "added", "fixes", "updating")
 - No period at the end
-- Max 72 characters
+- Max 72 characters total (type + scope + summary)
 - Lowercase first letter
+- Include the issue number when one exists: `feat(catalog): #42 add album grid endpoint`
 
 ## Examples
 
 ```
-feat(auth): add JWT refresh token rotation
+feat(catalog): #12 add album listing endpoint with pagination
 
-fix(users): return 404 when user not found instead of 500
+fix(tag): #34 handle little-endian Vorbis Comment length correctly
 
-refactor(orders): extract discount calculation to domain service
+refactor(tagger): #56 extract TaggerService from CLI entry point
 
-test(auth): add integration tests for token expiry
+test(metadata): add unit tests for DiscogsMetadataSource rate limiting
 
-docs(api): document rate limiting headers
+docs(api): document cover art resolution order
 
-feat(billing)!: remove deprecated /v1/invoices endpoint
+feat(tag)!: #88 change FlacFile API to streaming writes
 
-BREAKING CHANGE: Clients must migrate to /v2/invoices before upgrading.
-Closes #84
+BREAKING CHANGE: FlacWriter.write() now takes a Path instead of ByteArray.
+Closes #88
 ```
 
 ## Squash Merge Policy

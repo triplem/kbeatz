@@ -39,7 +39,7 @@ Several existing options were considered:
 
 == Decision
 
-Implement a custom `kbeatz-flac` library based on
+Implement a custom `kbeatz-tag` library based on
 https://www.rfc-editor.org/rfc/rfc9639.html[RFC 9639 — The FLAC Audio Codec].
 
 The SaltAudioTag `MetadataBlock` model was studied for idiomatic Kotlin structure (sealed class
@@ -56,7 +56,7 @@ hierarchy, data classes per block type) but is **not used as a dependency**.
 
 == Consequences
 
-* kbeatz-flac has **one** external library dependency: `org.jetbrains.kotlinx:kotlinx-io-core`
+* kbeatz-tag has **one** external library dependency: `org.jetbrains.kotlinx:kotlinx-io-core`
   (see ADR-002).  Zero other external dependencies.
 * Byte-array fields in `FlacMetadataBlock` data classes use `kotlinx.io.bytestring.ByteString`
   (immutable, content-based equals) rather than `ByteArray`, which would break `equals()`/

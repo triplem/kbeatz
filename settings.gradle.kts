@@ -13,9 +13,9 @@ includeBuild("kbeatz-common") {
     }
 }
 
-includeBuild("kbeatz-flac") {
+includeBuild("kbeatz-tag") {
     dependencySubstitution {
-        substitute(module("org.javafreedom.kbeatz:kbeatz-flac")).using(project(":"))
+        substitute(module("org.javafreedom.kbeatz:kbeatz-tag")).using(project(":"))
     }
 }
 
@@ -32,10 +32,9 @@ includeBuild("kbeatz-catalog") {
     }
 }
 
-includeBuild("kbeatz-metadata-discogs") {
+includeBuild("kbeatz-metadata") {
     dependencySubstitution {
-        substitute(module("org.javafreedom.kbeatz:kbeatz-metadata-discogs")).using(project(":"))
-        substitute(module("org.javafreedom.kbeatz:kbeatz-metadata-discogs-spec")).using(project(":"))
+        substitute(module("org.javafreedom.kbeatz:kbeatz-metadata")).using(project(":"))
     }
 }
 

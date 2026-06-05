@@ -1,0 +1,107 @@
+= ADR-005: Module Structure — Codec Library, Metadata Library, and Tagger Engine
+:toc: left
+:icons: font
+:revdate: 2026-06-05
+:status: Accepted
+
+== Status
+
+Accepted
+
+== Context
+
+The initial scaffold had three modules whose naming and responsibility boundaries were reconsidered
+before any feature implementation began:
+
+* `kbeatz-flac` — FLAC-specific reader/writer
+* `kbeatz-metadata-discogs` — Discogs integration originally designed as a standalone Ktor HTTP service with its own OpenAPI spec
+* `kbeatz-tagger` — CLI-only entry point with no shareable service API
+
+Three questions arose:
+
+. *Format-specific vs. codec library name*: future support for MP3, AAC, or OGG would require either
+  a second library (`kbeatz-mp3`) or a rename. A format-agnostic name with format-specific
+  sub-packages is cleaner and avoids a disruptive rename later.
+. *Metadata as HTTP service vs. library*: the original design exposed `kbeatz-metadata-discogs` as a
+  standalone Ktor service. This forces a network hop for every metadata lookup and requires running
+  and maintaining a second service, despite the single-user personal tool context.
+. *Tagger as CLI-only vs. dual CLI + service API*: both the CLI tool and the catalog service (for
+  UI-triggered Discogs sync) need the same tagging logic. The catalog should not duplicate it.
+
+== Decision
+
+=== 1. `kbeatz-flac` → `kbeatz-tag`
+
+Rename the codec library to `kbeatz-tag`. The FLAC implementation moves to the
+`org.javafreedom.kbeatz.tag.flac` sub-package. Future codec support (MP3 ID3v2, AAC, OGG Vorbis)
+adds sibling sub-packages (`mp3`, `aac`, `ogg`) under `org.javafreedom.kbeatz.tag`.
+
+The library remains format-specific at the implementation level; the module name is
+format-agnostic to prevent a future rename.
+
+=== 2. `kbeatz-metadata-discogs` → `kbeatz-metadata` (library, not HTTP service)
+
+Replace the standalone HTTP service with a Kotlin library exposing two port interfaces:
+
+* `MetadataSource` — fetches release metadata by ID; v1 implementation in `discogs/`,
+  future `musicbrainz/` alongside it
+* `MetadataCache` — caches fetched releases; v1 in-memory implementation, future SQLite-backed
+
+Both `kbeatz-catalog` and `kbeatz-tagger` depend on `kbeatz-metadata` as a compile-time library
+and inject `MetadataSource` at wiring time. No inter-service HTTP call, no OpenAPI spec for this
+module, no second deployment unit.
+
+Rate-limit state (Discogs 60 req/min, 1 000 images/day) is managed inside `DiscogsMetadataSource`.
+For v1, in-process state is sufficient — the CLI tagger is short-lived and the catalog service is
+the only long-running process. If concurrent rate-limit sharing is needed in v2, wrapping the library
+in a service is a contained change that does not affect the `MetadataSource` interface.
+
+=== 3. `kbeatz-tagger` — library core + thin CLI wrapper
+
+Split internal package structure into:
+
+* `service/` — `TaggerService` and supporting domain logic; consumed in-process by `kbeatz-catalog`
+* `cli/` — Clikt entry point and sub-commands; thin wrapper over `TaggerService`
+* `idfile/` — `IdFileReader`, `IdFile`, `SourceConfig`; shared between service and CLI
+
+`kbeatz-catalog` declares `kbeatz-tagger` as a library dependency and injects `TaggerService`
+for UI-triggered album sync. The CLI fat JAR uses the same module; no logic is duplicated.
+
+=== Dependency graph
+
+```
+kbeatz-common   (shared domain exceptions — no auth in v1)
+kbeatz-tag      (codec library: tag/flac/*, tag/mp3/* future)
+kbeatz-metadata (metadata library: metadata/discogs/*, metadata/musicbrainz/* future)
+kbeatz-tagger   (service/TaggerService + cli/ entry point)
+    └─ depends on: kbeatz-tag, kbeatz-metadata, kbeatz-common
+kbeatz-catalog  (Ktor HTTP service, port 8080)
+    └─ depends on: kbeatz-tag, kbeatz-metadata, kbeatz-tagger, kbeatz-common
+kbeatz-ui       (React SPA, calls kbeatz-catalog only)
+```
+
+No circular dependencies. No in-monorepo HTTP calls between backend modules.
+
+== Consequences
+
+* `kbeatz-metadata` has no OpenAPI spec and no Ktor dependency. It is a pure Kotlin library.
+* `kbeatz-catalog` is the only backend module with an `api/openapi.yaml`.
+* The fat JAR produced by `kbeatz-tagger` is the CLI distributable; the same Gradle module is
+  also declared as a library dependency in `kbeatz-catalog`.
+* Adding MusicBrainz support requires: (a) a new `musicbrainz/MusicBrainzMetadataSource.kt` in
+  `kbeatz-metadata`; (b) wiring the new implementation at the injection site in each consumer.
+  No module renames and no new services.
+* The 1 000 images/day Discogs quota counter is in-process state inside `DiscogsMetadataSource`.
+  If the catalog service and the CLI tagger run concurrently, they each have their own counter.
+  This is an acceptable limitation for v1 given the single-user context.
+
+== Alternatives Rejected
+
+* **Separate service per source** (`kbeatz-metadata-discogs`, `kbeatz-metadata-musicbrainz`):
+  over-engineering for a single-user tool; requires orchestrating multiple services per sync request.
+* **`kbeatz-metadata` as HTTP service**: adds network latency, a second deployment unit, and an
+  OpenAPI spec for purely internal logic.
+* **Tagging logic in `kbeatz-catalog`**: duplicates business logic between the Ktor service and the
+  CLI tool; violates single-responsibility at the module level.
+* **Keep `kbeatz-flac` name**: acceptable for FLAC-only scope, but would require a rename when MP3
+  support is added — better to pay the rename cost once now at the scaffold stage.
