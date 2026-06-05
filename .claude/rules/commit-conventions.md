@@ -37,12 +37,12 @@ The scope is the module or domain area affected. Use one of the following:
 | Scope | Covers |
 |---|---|
 | `catalog` | kbeatz-catalog service (API handlers, scan, browse) |
-| `metadata` | kbeatz-metadata library (MetadataSource, MetadataCache, Discogs impl) |
-| `tag` | kbeatz-tag codec library (FLAC reader/writer, future MP3) |
-| `tagger` | kbeatz-tagger (TaggerService, CLI commands, id-file migration) |
+| `sources` | kbeatz-sources library (MetadataSource, MetadataCache, Discogs impl) |
+| `tagger` | kbeatz-tagger codec sub-package (FLAC reader/writer, future MP3) |
+| `cli` | kbeatz-cli module (Clikt entry point, tag and migrate-ids commands) |
 | `ui` | kbeatz-ui React SPA |
 | `common` | kbeatz-common shared library |
-| `discogs` | Discogs-specific logic inside kbeatz-metadata |
+| `discogs` | Discogs-specific logic inside kbeatz-sources |
 | `idfile` | id.txt / local_ids.txt / metadata.yml parsing and migration |
 | `library` | Library scan, album indexing |
 | `api` | OpenAPI spec (kbeatz-catalog/api/openapi.yaml) |
@@ -66,15 +66,15 @@ Use the same scope consistently for a feature area. Check existing commits for p
 ```
 feat(catalog): #12 add album listing endpoint with pagination
 
-fix(tag): #34 handle little-endian Vorbis Comment length correctly
+fix(tagger): #34 handle little-endian Vorbis Comment length correctly
 
 refactor(tagger): #56 extract TaggerService from CLI entry point
 
-test(metadata): add unit tests for DiscogsMetadataSource rate limiting
+test(sources): add unit tests for DiscogsMetadataSource rate limiting
 
 docs(api): document cover art resolution order
 
-feat(tag)!: #88 change FlacFile API to streaming writes
+feat(tagger)!: #88 change FlacFile API to streaming writes
 
 BREAKING CHANGE: FlacWriter.write() now takes a Path instead of ByteArray.
 Closes #88

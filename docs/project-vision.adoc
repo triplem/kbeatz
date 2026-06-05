@@ -186,8 +186,8 @@ Embedding images beyond type 3 is explicitly out of scope for v1.
 Discogs imposes a separate rate limit on image downloads:
 1 000 images per day for authenticated users (significantly tighter than the metadata API).
 `kbeatz-sources` must track image download counts and back off when approaching
-the daily quota. The `--download-images` flag in `kbeatz-tagger` defaults to `true` but
-can be disabled to fetch metadata only.
+the daily quota. The `--download-images` flag in `kbeatz-tagger` defaults to `false` but
+can be enabled to fetch images alongside metadata.
 
 === Catalog API — Cover Art Serving
 
@@ -343,7 +343,7 @@ If `kbeatz-sources` is unavailable, `kbeatz-catalog` behaviour:
 | `kbeatz-common` | Library | Shared domain exceptions, Ktor plugins, JWT principal
 | `kbeatz-tagger` | Library | RFC 9639 FLAC metadata read/write (see ADR-001)
 | `kbeatz-catalog` | Ktor service (8080) | Filesystem scan, album / track browse, FLAC tag read/write via kbeatz-tagger
-| `kbeatz-sources` | Ktor service (8081) | Discogs API client, release caching, metadata API
+| `kbeatz-sources` | Library (no port) | Discogs API client, release caching, metadata API
 | `kbeatz-tagger` | CLI (Clikt, see ADR-003) | Batch tagging from CLI, id-file migration to YAML
 | `kbeatz-ui` | React SPA (3005) | Album browser, metadata editor, sync trigger
 |===
