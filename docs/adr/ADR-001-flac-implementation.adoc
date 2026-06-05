@@ -74,6 +74,15 @@ hierarchy, data classes per block type) but is **not used as a dependency**.
   the sealed class and both reader/writer — low risk, incremental.
 * Other audio formats (MP3 ID3, AAC, OGG) are explicitly out of scope for v1.
 
+=== Known Limitations
+
+* `FlacFile` loads the full audio payload (`audioFrames`) into heap memory.
+  For files up to ~200 MB this is acceptable for single-file operations on a personal server.
+  Batch-tagging large collections concurrently is constrained by available heap.
+  A streaming write path (pipe audio from source to destination without loading into memory)
+  is required before any mass-concurrent-tagging feature is built.
+  Tracked as issue #11.
+
 == Alternatives Rejected
 
 * **JAudioTagger**: too Java-centric, no block-level access, stale release cadence.
