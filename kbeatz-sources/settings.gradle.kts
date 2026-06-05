@@ -15,4 +15,4 @@ pluginManagement {
     repositories { gradlePluginPortal() }
 }
 
-rootProject.name = "kbeatz-tag"
+rootProject.name = "kbeatz-sources"

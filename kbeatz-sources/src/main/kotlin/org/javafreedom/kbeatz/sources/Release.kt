@@ -1,4 +1,4 @@
-package org.javafreedom.kbeatz.metadata
+package org.javafreedom.kbeatz.sources
 
 import kotlinx.datetime.LocalDate
 

@@ -1,4 +1,4 @@
-package org.javafreedom.kbeatz.metadata.discogs
+package org.javafreedom.kbeatz.sources.discogs
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.*
@@ -9,9 +9,9 @@ import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
-import org.javafreedom.kbeatz.metadata.ImageResult
-import org.javafreedom.kbeatz.metadata.MetadataSource
-import org.javafreedom.kbeatz.metadata.Release
+import org.javafreedom.kbeatz.sources.ImageResult
+import org.javafreedom.kbeatz.sources.MetadataSource
+import org.javafreedom.kbeatz.sources.Release
 
 private val log = KotlinLogging.logger {}
 

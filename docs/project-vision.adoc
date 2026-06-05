@@ -185,7 +185,7 @@ Embedding images beyond type 3 is explicitly out of scope for v1.
 
 Discogs imposes a separate rate limit on image downloads:
 1 000 images per day for authenticated users (significantly tighter than the metadata API).
-`kbeatz-metadata-discogs` must track image download counts and back off when approaching
+`kbeatz-sources` must track image download counts and back off when approaching
 the daily quota. The `--download-images` flag in `kbeatz-tagger` defaults to `true` but
 can be disabled to fetch metadata only.
 
@@ -326,7 +326,7 @@ The `kbeatz-common` library already provides a `UserPrincipal` extraction plugin
 
 === Graceful Degradation
 
-If `kbeatz-metadata-discogs` is unavailable, `kbeatz-catalog` behaviour:
+If `kbeatz-sources` is unavailable, `kbeatz-catalog` behaviour:
 
 * **Browse / tag display**: serves whatever is already on disk (FLAC tags, folder.jpg) — no dependency on the metadata service for reads.
 * **Sync operations** (fetch from Discogs): returns `HTTP 503` with `Retry-After` header.
@@ -343,7 +343,7 @@ If `kbeatz-metadata-discogs` is unavailable, `kbeatz-catalog` behaviour:
 | `kbeatz-common` | Library | Shared domain exceptions, Ktor plugins, JWT principal
 | `kbeatz-flac` | Library | RFC 9639 FLAC metadata read/write (see ADR-001)
 | `kbeatz-catalog` | Ktor service (8080) | Filesystem scan, album / track browse, FLAC tag read/write via kbeatz-flac
-| `kbeatz-metadata-discogs` | Ktor service (8081) | Discogs API client, release caching, metadata API
+| `kbeatz-sources` | Ktor service (8081) | Discogs API client, release caching, metadata API
 | `kbeatz-tagger` | CLI (Clikt, see ADR-003) | Batch tagging from CLI, id-file migration to YAML
 | `kbeatz-ui` | React SPA (3005) | Album browser, metadata editor, sync trigger
 |===
@@ -370,7 +370,7 @@ If `kbeatz-metadata-discogs` is unavailable, `kbeatz-catalog` behaviour:
 | Accepted
 
 | TBD
-| Separate `kbeatz-metadata-discogs` service (vs inline in catalog)
+| Separate `kbeatz-sources` service (vs inline in catalog)
 | Proposed
 
 | TBD
@@ -407,7 +407,7 @@ Uses `kotlinx.io.files.Path` and `SystemFileSystem` throughout — no Java I/O t
 
 `tag`:: Fetch Discogs metadata and write FLAC tags for one or more album directories.
 Reads `id.txt` / `local_ids.txt` / `metadata.yml` to resolve the Discogs release ID.
-Calls `kbeatz-metadata-discogs` (or directly the Discogs API in standalone mode).
+Calls `kbeatz-sources` (or directly the Discogs API in standalone mode).
 
 `migrate-ids`:: Converts INI-style id files to `metadata.yml`.
 Supports `--dry-run`, `--recursive`, `--keep-original`.
@@ -429,7 +429,7 @@ The React SPA (`kbeatz-ui`) is album-centric.
 * **shadcn/ui** as the component library — accessible, unstyled components built on Radix UI
   primitives, styled with Tailwind.
 * Vite as the build tool.
-* OpenAPI-generated TypeScript/Axios client from `kbeatz-catalog` and `kbeatz-metadata-discogs` specs.
+* OpenAPI-generated TypeScript/Axios client from `kbeatz-catalog` and `kbeatz-sources` specs.
 
 === Views
 
@@ -482,8 +482,8 @@ Tablet-friendly layout is a stretch goal for v1; mobile is explicitly out of sco
   is required before any mass-tagging feature is built.
   Tracked as a known limitation in ADR-001.
 
-. *MusicBrainz service*: separate `kbeatz-metadata-musicbrainz` service following the same
-  pattern as `kbeatz-metadata-discogs`, or a generic metadata gateway?
+. *MusicBrainz service*: separate `kbeatz-sources` service following the same
+  pattern as `kbeatz-sources`, or a generic metadata gateway?
   Initial assumption: separate service per source for clean isolation.
 
 == Acceptance Criteria (top-level)

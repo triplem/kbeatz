@@ -158,7 +158,7 @@ An album maps to one filesystem directory (the **album root**), with optional im
 | **Album** | albumArtist, album, date, genre, label, catno, composer, conductor, ensemble, discogsId, coverArt | Logical grouping |
 | **Track** | title, trackNumber, discNumber, trackTotal, discTotal, artist, duration | Per-file |
 | **IdFile** | sources: Map<fieldName, value> | `metadata.yml` per album directory |
-| **FlacFile** | path, metadataBlocks, audioFrames | Physical file; parsed by kbeatz-tag |
+| **FlacFile** | path, metadataBlocks, audioFrames | Physical file; parsed by kbeatz-filecodec |
 | **DiscogsRelease** | id, title, artists, extraArtists, year, labels, genres, styles, tracklist, images | Cached from Discogs API |
 
 ### Tag field mapping (Discogs → Vorbis Comment)
@@ -193,9 +193,9 @@ An album maps to one filesystem directory (the **album root**), with optional im
 ### Local filesystem
 - Library root: configured via `catalog.library.root` in `application.conf`
 - All path parameters validated to resolve within the configured root (path traversal guard)
-- FLAC files read/written using kbeatz-tag (RFC 9639 implementation)
+- FLAC files read/written using kbeatz-filecodec (RFC 9639 implementation)
 
-### kbeatz-metadata (library)
+### kbeatz-sources (library)
 - Consumed in-process by `kbeatz-catalog` and `kbeatz-tagger` as a compile-time dependency
 - `MetadataSource` port interface; `DiscogsMetadataSource` implementation in `discogs/` sub-package
 - No inter-service HTTP calls; no deployment unit of its own
@@ -243,7 +243,7 @@ An album maps to one filesystem directory (the **album root**), with optional im
 | ID | Question | Default if not answered |
 |---|---|---|
 | ~~OQ-01~~ | ~~podman-compose availability~~ | **Resolved**: `podman-compose` is installed and is a hard deployment requirement. |
-| ~~OQ-02~~ | ~~Default ports~~ | **Resolved**: 8080 (kbeatz-catalog). kbeatz-metadata is a library — no HTTP port. |
+| ~~OQ-02~~ | ~~Default ports~~ | **Resolved**: 8080 (kbeatz-catalog). kbeatz-sources is a library — no HTTP port. |
 | ~~OQ-03~~ | ~~kbeatz-tagger distribution~~ | **Resolved**: Both fat JAR (for CLI use on the collection machine) and container image (for compose context) are produced as build artefacts. |
 | ~~OQ-04~~ | ~~Database choice~~ | **Resolved**: SQLite for v1 (zero-ops, single file, sufficient for 10 000 albums). PostgreSQL is the documented v2 migration target. Exposed ORM + Liquibase migrations apply to both. |
 

@@ -10,8 +10,8 @@ Agent actions are logged to `~/.claude/kbeatz-sessions/<session_id>.jsonl`.
 | Module | Directory | Port | Notes |
 |---|---|---|---|
 | kbeatz-common | `kbeatz-common/` | — | Shared library: domain exceptions, Ktor plugins |
-| kbeatz-tag | `kbeatz-tag/` | — | Audio codec library: FLAC reader/writer (RFC 9639); extensible to MP3/AAC via sub-packages |
-| kbeatz-metadata | `kbeatz-metadata/` | — | Metadata library: `MetadataSource`/`MetadataCache` ports; `discogs/` + future `musicbrainz/` impls |
+| kbeatz-filecodec | `kbeatz-filecodec/` | — | Audio codec library: FLAC reader/writer (RFC 9639); extensible to MP3/AAC via sub-packages |
+| kbeatz-sources | `kbeatz-sources/` | — | Metadata library: `MetadataSource`/`MetadataCache` ports; `discogs/` + future `musicbrainz/` impls |
 | kbeatz-tagger | `kbeatz-tagger/` | CLI | Tagging engine (`service/`) + CLI entry point (`cli/`); used by kbeatz-catalog and fat-JAR CLI |
 | kbeatz-catalog | `kbeatz-catalog/` | 8080 | Music collection catalog — browse albums, tracks, FLAC metadata |
 | kbeatz-ui | `kbeatz-ui/` | 3005 | React SPA |
@@ -20,7 +20,7 @@ Agent actions are logged to `~/.claude/kbeatz-sessions/<session_id>.jsonl`.
 
 - **Backend**: Kotlin + Ktor, Gradle Kotlin DSL
 - **Frontend**: React 19 + TypeScript + Vite
-- **API Contract**: OpenAPI spec at `kbeatz-catalog/api/openapi.yaml` — single source of truth (catalog only; `kbeatz-metadata` and `kbeatz-tagger` are libraries, not HTTP services)
+- **API Contract**: OpenAPI spec at `kbeatz-catalog/api/openapi.yaml` — single source of truth (catalog only; `kbeatz-sources` and `kbeatz-tagger` are libraries, not HTTP services)
 - **Persistence**: SQLite + Exposed ORM + Liquibase migrations (v1); PostgreSQL is the v2 migration target
 - **Tooling**: Detekt, Kover (≥ 80% coverage), CycloneDX SBOM, AsciiDoc docs
 
@@ -69,7 +69,7 @@ Always update the spec before writing handlers.
 
 ### Hexagonal Architecture (Ports and Adapters)
 
-Applies to `kbeatz-catalog` (the Ktor HTTP service). Libraries (`kbeatz-tag`, `kbeatz-metadata`,
+Applies to `kbeatz-catalog` (the Ktor HTTP service). Libraries (`kbeatz-filecodec`, `kbeatz-sources`,
 `kbeatz-tagger`) use a flat package structure appropriate to their scope.
 
 ```

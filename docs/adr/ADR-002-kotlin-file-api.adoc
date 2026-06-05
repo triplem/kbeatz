@@ -51,7 +51,7 @@ The Java types originally present and their disposition:
 == Decision
 
 Use https://github.com/Kotlin/kotlinx-io[kotlinx-io] (`org.jetbrains.kotlinx:kotlinx-io-core`)
-throughout `kbeatz-tag` and `kbeatz-tagger`. Zero `java.io.*` or `java.nio.*` imports anywhere.
+throughout `kbeatz-filecodec` and `kbeatz-tagger`. Zero `java.io.*` or `java.nio.*` imports anywhere.
 
 === Binary I/O: Buffer and Source (kotlinx-io)
 
@@ -120,8 +120,8 @@ never use continuation lines, unicode escapes, or other Properties edge cases.
 
 == Consequences
 
-* **Zero Java I/O imports** anywhere in `kbeatz-tag` or `kbeatz-tagger`.
-* `kbeatz-tag` has one dependency: `kotlinx-io-core`.
+* **Zero Java I/O imports** anywhere in `kbeatz-filecodec` or `kbeatz-tagger`.
+* `kbeatz-filecodec` has one dependency: `kotlinx-io-core`.
 * `FlacWriter.write()` is a pure function — `ByteArray` in, `ByteArray` out — trivially
   unit-testable without touching the filesystem.
 * `FlacReader.parse()` is likewise pure.

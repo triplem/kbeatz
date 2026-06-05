@@ -1,4 +1,4 @@
-package org.javafreedom.kbeatz.tag.flac
+package org.javafreedom.kbeatz.filecodec.flac
 
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem

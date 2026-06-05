@@ -122,9 +122,8 @@ It must never appear in source code, committed config files, or application logs
   collection already have `folder.jpg` files from previous tagging runs — re-downloading
   the same images would burn the daily quota unnecessarily. Pass `--download-images`
   explicitly only for newly added albums that have no cover art yet.
-* `kbeatz-metadata` exposes a dedicated image proxy endpoint
-  (`GET /api/v1/releases/{id}/images/{index}`) that enforces the quota and caches
-  downloaded images locally so they are not re-fetched on subsequent requests.
+* `DiscogsMetadataSource` in `kbeatz-sources` enforces the quota on every `fetchImage()` call
+  and the quota counter persists to disk so it survives restarts (see Image Quota Counter Persistence below).
 
 === Image Quota Counter Persistence
 
@@ -142,7 +141,7 @@ working directory, `image-quota.json`):
 }
 ----
 
-On startup, `kbeatz-metadata` reads this file.
+On `DiscogsMetadataSource` initialisation, the counter file is read.
 If the stored `date` matches today's UTC date, the counter resumes from `count`.
 If the date differs (new day), the counter resets to 0 and the file is overwritten.
 The file is written atomically (temp file + `SystemFileSystem.atomicMove()`) after each
@@ -174,7 +173,7 @@ a personal-scale collection.
 
 * Every FLAC file in an album always contains the same embedded front cover — per-track
   tagging runs must include the PICTURE block update.
-* The `FlacMetadataBlock.Picture` class in `kbeatz-tag` is already in the sealed hierarchy
+* The `FlacMetadataBlock.Picture` class in `kbeatz-filecodec` is already in the sealed hierarchy
   and the reader/writer already handles PICTURE blocks — no library changes needed for v1.
 * Disk usage for a typical album: one 500 KB JPEG × N tracks ≈ N × 500 KB overhead.
   For a 10-track album this is ~5 MB extra per album — acceptable for a personal collection
@@ -192,4 +191,4 @@ a personal-scale collection.
 * **MusicBrainz Cover Art Archive**: out of scope for v1.
   The CAA provides high-quality scans but requires a separate HTTP client and introduces
   a second image source with different licensing terms.
-  Can be added as a future source following the same pattern as `kbeatz-metadata`.
+  Can be added as a future source following the same pattern as `kbeatz-sources`.

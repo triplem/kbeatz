@@ -1,4 +1,4 @@
-package org.javafreedom.kbeatz.metadata
+package org.javafreedom.kbeatz.sources
 
 /**
  * Port: a source that can fetch release metadata by ID.

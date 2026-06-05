@@ -1,7 +1,7 @@
-package org.javafreedom.kbeatz.metadata.cache
+package org.javafreedom.kbeatz.sources.cache
 
-import org.javafreedom.kbeatz.metadata.MetadataCache
-import org.javafreedom.kbeatz.metadata.Release
+import org.javafreedom.kbeatz.sources.MetadataCache
+import org.javafreedom.kbeatz.sources.Release
 
 /**
  * Thread-safe in-memory cache backed by a [LinkedHashMap] with LRU eviction.

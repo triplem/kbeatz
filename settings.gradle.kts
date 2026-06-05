@@ -13,9 +13,9 @@ includeBuild("kbeatz-common") {
     }
 }
 
-includeBuild("kbeatz-tag") {
+includeBuild("kbeatz-filecodec") {
     dependencySubstitution {
-        substitute(module("org.javafreedom.kbeatz:kbeatz-tag")).using(project(":"))
+        substitute(module("org.javafreedom.kbeatz:kbeatz-filecodec")).using(project(":"))
     }
 }
 
@@ -32,9 +32,9 @@ includeBuild("kbeatz-catalog") {
     }
 }
 
-includeBuild("kbeatz-metadata") {
+includeBuild("kbeatz-sources") {
     dependencySubstitution {
-        substitute(module("org.javafreedom.kbeatz:kbeatz-metadata")).using(project(":"))
+        substitute(module("org.javafreedom.kbeatz:kbeatz-sources")).using(project(":"))
     }
 }
 

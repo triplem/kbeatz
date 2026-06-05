@@ -1,4 +1,4 @@
-package org.javafreedom.kbeatz.metadata
+package org.javafreedom.kbeatz.sources
 
 /**
  * Port: a cache for release metadata to avoid repeated API calls.
