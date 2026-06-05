@@ -77,7 +77,7 @@ class TagAlbumsCommand : CliktCommand(
     private fun resolveTargets(): List<Path> {
         val root = libraryRoot
         return if (root != null) {
-            walkDirectories(root, if (recursive) Int.MAX_VALUE else 3)
+            walkDirectories(root, if (recursive) Int.MAX_VALUE else DEFAULT_LIBRARY_SCAN_DEPTH)
                 .filter { hasIdFile(it) }
                 .toList()
         } else {
@@ -89,6 +89,9 @@ class TagAlbumsCommand : CliktCommand(
         listOf("id.txt", "local_ids.txt", "metadata.yml")
             .any { SystemFileSystem.exists(Path(dir, it)) }
 }
+
+// Matches the documented 3-level library layout: <Genre>/<AlbumArtist>/<AlbumTitle>
+private const val DEFAULT_LIBRARY_SCAN_DEPTH = 3
 
 private fun String.toKtxPath(): Path = Path(this).also {
     require(SystemFileSystem.exists(it)) { "Path does not exist: $this" }

@@ -29,7 +29,7 @@ class MigrateIdFilesCommand : CliktCommand(
 
     private val recursive: Boolean by option(
         "--recursive", "-r",
-        help = "Recurse into subdirectories.",
+        help = "Recurse into subdirectories. Default scans up to 3 levels deep (<Genre>/<Artist>/<Album>).",
     ).flag()
 
     private val dryRun: Boolean by option(
@@ -44,7 +44,7 @@ class MigrateIdFilesCommand : CliktCommand(
 
     override fun run() {
         val idReader = IdFileReader(SourceConfig())
-        val depth = if (recursive) Int.MAX_VALUE else 3
+        val depth = if (recursive) Int.MAX_VALUE else DEFAULT_LIBRARY_SCAN_DEPTH
 
         walkDirectories(rootDir, depth).forEach { dir ->
             val idFile = idReader.read(dir) ?: return@forEach
@@ -71,6 +71,9 @@ class MigrateIdFilesCommand : CliktCommand(
             sources.forEach { (key, value) -> appendLine("  $key: \"$value\"") }
         }
 }
+
+// Matches the documented 3-level library layout: <Genre>/<AlbumArtist>/<AlbumTitle>
+private const val DEFAULT_LIBRARY_SCAN_DEPTH = 3
 
 private fun walkDirectories(root: Path, maxDepth: Int): Sequence<Path> = sequence {
     if (maxDepth <= 0) return@sequence
