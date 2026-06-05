@@ -8,6 +8,7 @@ import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.io.bytestring.ByteString
 import kotlinx.serialization.json.Json
 import org.javafreedom.kbeatz.sources.ImageResult
 import org.javafreedom.kbeatz.sources.MetadataSource
@@ -61,7 +62,7 @@ class DiscogsMetadataSource(
         }
         val release = fetchRelease(releaseId) ?: return null
         val image = release.images.getOrNull(index) ?: return null
-        val bytes = client.get(image.uri).body<ByteArray>()
+        val bytes = ByteString(client.get(image.uri).body<ByteArray>())
         imageQuota.recordDownload()
         val mimeType = if (image.uri.endsWith(".png")) "image/png" else "image/jpeg"
         return ImageResult(bytes, mimeType)
