@@ -4,7 +4,6 @@ import org.gradle.api.artifacts.VersionCatalogsExtension
 plugins {
     id("kbeatz.kotlin-base")
     application
-    id("org.jetbrains.kotlinx.kover")
 }
 
 private fun catalog(): VersionCatalog = project.extensions.getByType<VersionCatalogsExtension>().named("libs")

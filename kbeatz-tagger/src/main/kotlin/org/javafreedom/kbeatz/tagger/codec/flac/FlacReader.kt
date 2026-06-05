@@ -6,7 +6,6 @@ import kotlinx.io.bytestring.ByteString
 import kotlinx.io.bytestring.encodeToByteString
 import kotlinx.io.readByteArray
 import kotlinx.io.readByteString
-import kotlinx.io.readString
 import kotlinx.io.readUIntLe
 import kotlinx.io.write
 
@@ -33,7 +32,7 @@ class FlacReader {
     fun parse(data: ByteArray): FlacParseResult {
         val source = Buffer().apply { write(data) }
 
-        if (source.readByteString(4L) != FLAC_MARKER) {
+        if (source.readByteString(4) != FLAC_MARKER) {
             throw FlacParseException("Not a FLAC file: missing 'fLaC' marker")
         }
 
@@ -45,7 +44,7 @@ class FlacReader {
             isLast = (firstByte and 0x80) != 0
             val blockType = firstByte and 0x7F
             val length = source.readInt24Be()
-            val blockData = source.readByteArray(length.toLong())
+            val blockData = source.readByteArray(length)
 
             blocks += when (blockType) {
                 BLOCK_TYPE_STREAMINFO -> parseStreamInfo(blockData)
@@ -77,7 +76,7 @@ class FlacReader {
         val channels = (((b2 and 0x0E) shr 1) + 1).toInt()
         val bitsPerSample = ((((b2 and 0x01) shl 4) or (b3 shr 4)) + 1).toInt()
         val totalSamples = ((b3 and 0x0F) shl 32) or (b4 shl 24) or (b5 shl 16) or (b6 shl 8) or b7
-        val md5 = p.readByteString(16L)   // ByteString — value-semantic MD5
+        val md5 = p.readByteString(16)   // ByteString — value-semantic MD5
         return FlacMetadataBlock.StreamInfo(
             minBlockSize, maxBlockSize, minFrameSize, maxFrameSize,
             sampleRate, channels, bitsPerSample, totalSamples, md5,
@@ -86,22 +85,22 @@ class FlacReader {
 
     private fun parseVorbisComment(data: ByteArray): FlacMetadataBlock.VorbisComment {
         val p = Buffer().apply { write(data) }
-        val vendor = p.readString(p.readUIntLe().toLong())
+        val vendor = p.readByteArray(p.readUIntLe().toInt()).decodeToString()
         val count = p.readUIntLe().toInt()
-        val comments = (0 until count).map { p.readString(p.readUIntLe().toLong()) }
+        val comments = (0 until count).map { p.readByteArray(p.readUIntLe().toInt()).decodeToString() }
         return FlacMetadataBlock.VorbisComment(vendor, comments)
     }
 
     private fun parsePicture(data: ByteArray): FlacMetadataBlock.Picture {
         val p = Buffer().apply { write(data) }
         val pictureType = p.readInt()
-        val mimeType = p.readString(p.readInt().toLong())
-        val description = p.readString(p.readInt().toLong())
+        val mimeType = p.readByteArray(p.readInt()).decodeToString()
+        val description = p.readByteArray(p.readInt()).decodeToString()
         val width = p.readInt()
         val height = p.readInt()
         val colorDepth = p.readInt()
         val colorCount = p.readInt()
-        val picData = p.readByteString(p.readInt().toLong())   // ByteString — value-semantic image data
+        val picData = p.readByteString(p.readInt())   // ByteString — value-semantic image data
         return FlacMetadataBlock.Picture(pictureType, mimeType, description, width, height, colorDepth, colorCount, picData)
     }
 }

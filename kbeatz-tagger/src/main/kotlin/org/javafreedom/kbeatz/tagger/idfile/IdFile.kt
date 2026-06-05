@@ -2,9 +2,10 @@ package org.javafreedom.kbeatz.tagger.idfile
 
 import com.charleskorn.kaml.Yaml
 import com.charleskorn.kaml.YamlConfiguration
+import kotlinx.io.buffered
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
-import kotlinx.io.readString
+import kotlinx.io.readByteArray
 import kotlinx.serialization.Serializable
 
 /**
@@ -40,11 +41,11 @@ class IdFileReader(private val config: SourceConfig = SourceConfig()) {
             .map { Path(directory, it) }
             .firstOrNull { SystemFileSystem.exists(it) }
             ?: return null
-        return read(file)
+        return readFile(file)
     }
 
-    fun read(file: Path): IdFile {
-        val text = SystemFileSystem.source(file).buffered().use { it.readString() }
+    private fun readFile(file: Path): IdFile {
+        val text = SystemFileSystem.source(file).buffered().use { it.readByteArray().decodeToString() }
         return when {
             file.name.endsWith(".yml") || file.name.endsWith(".yaml") -> parseYaml(text)
             else -> IdFile(parseIni(text))
