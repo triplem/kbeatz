@@ -342,9 +342,9 @@ If `kbeatz-sources` is unavailable, `kbeatz-catalog` behaviour:
 
 | `kbeatz-common` | Library | Shared domain exceptions, Ktor plugins, JWT principal
 | `kbeatz-tagger` | Library | RFC 9639 FLAC metadata read/write (see ADR-001)
+| `kbeatz-cli` | CLI (Clikt, see ADR-003) | Batch tagging from CLI, id-file migration to YAML
 | `kbeatz-catalog` | Ktor service (8080) | Filesystem scan, album / track browse, FLAC tag read/write via kbeatz-tagger
 | `kbeatz-sources` | Library (no port) | Discogs API client, release caching, metadata API
-| `kbeatz-tagger` | CLI (Clikt, see ADR-003) | Batch tagging from CLI, id-file migration to YAML
 | `kbeatz-ui` | React SPA (3005) | Album browser, metadata editor, sync trigger
 |===
 
@@ -429,7 +429,7 @@ The React SPA (`kbeatz-ui`) is album-centric.
 * **shadcn/ui** as the component library — accessible, unstyled components built on Radix UI
   primitives, styled with Tailwind.
 * Vite as the build tool.
-* OpenAPI-generated TypeScript/Axios client from `kbeatz-catalog` and `kbeatz-sources` specs.
+* OpenAPI-generated TypeScript/Axios client from the `kbeatz-catalog` spec.
 
 === Views
 
