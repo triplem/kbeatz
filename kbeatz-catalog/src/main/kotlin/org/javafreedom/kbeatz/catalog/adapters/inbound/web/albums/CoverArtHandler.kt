@@ -1,6 +1,7 @@
 package org.javafreedom.kbeatz.catalog.adapters.inbound.web.albums
 
 import io.ktor.http.*
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlin.uuid.Uuid
@@ -46,7 +47,7 @@ private fun parseUuid(raw: String): Uuid? =
     }
 
 private suspend fun handleCoverArt(
-    call: io.ktor.server.application.ApplicationCall,
+    call: ApplicationCall,
     coverArtService: CoverArtService,
     albumId: Uuid,
     albumIdRaw: String,
