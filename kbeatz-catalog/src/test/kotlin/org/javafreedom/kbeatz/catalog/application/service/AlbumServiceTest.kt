@@ -9,13 +9,16 @@ import kotlin.test.assertFailsWith
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.test.runTest
 import org.javafreedom.kbeatz.catalog.domain.model.Album
+import org.javafreedom.kbeatz.catalog.domain.model.Track
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
+import org.javafreedom.kbeatz.catalog.domain.repository.TrackRepository
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
 
 class AlbumServiceTest {
 
     private val repository: AlbumRepository = mockk()
-    private val service = AlbumService(repository)
+    private val trackRepository: TrackRepository = mockk()
+    private val service = AlbumService(repository, trackRepository)
 
     private fun album(id: Uuid = Uuid.random()) = Album(
         id = id,
@@ -78,4 +81,59 @@ class AlbumServiceTest {
         assertEquals(emptyList(), result)
         assertEquals(0L, total)
     }
+
+    @Test
+    fun `getAlbumWithTracks returns album and tracks when album found`() = runTest {
+        val albumId = Uuid.random()
+        val expectedAlbum = album(albumId)
+        val expectedTracks = listOf(track(albumId = albumId))
+        coEvery { repository.findById(albumId) } returns expectedAlbum
+        coEvery { trackRepository.findByAlbumId(albumId) } returns expectedTracks
+
+        val (resultAlbum, resultTracks) = service.getAlbumWithTracks(albumId)
+
+        assertEquals(expectedAlbum, resultAlbum)
+        assertEquals(expectedTracks, resultTracks)
+    }
+
+    @Test
+    fun `getAlbumWithTracks throws ResourceNotFoundException when album not found`() = runTest {
+        val albumId = Uuid.random()
+        coEvery { repository.findById(albumId) } returns null
+
+        assertFailsWith<ResourceNotFoundException> {
+            service.getAlbumWithTracks(albumId)
+        }
+    }
+
+    @Test
+    fun `getAlbumWithTracks returns empty track list when album has no tracks`() = runTest {
+        val albumId = Uuid.random()
+        val expectedAlbum = album(albumId)
+        coEvery { repository.findById(albumId) } returns expectedAlbum
+        coEvery { trackRepository.findByAlbumId(albumId) } returns emptyList()
+
+        val (resultAlbum, resultTracks) = service.getAlbumWithTracks(albumId)
+
+        assertEquals(expectedAlbum, resultAlbum)
+        assertEquals(emptyList(), resultTracks)
+    }
+
+    private fun track(albumId: Uuid = Uuid.random()) = Track(
+        id = Uuid.random(),
+        albumId = albumId,
+        title = "So What",
+        trackNumber = "1",
+        discNumber = null,
+        trackTotal = null,
+        discTotal = null,
+        artist = null,
+        composer = null,
+        conductor = null,
+        ensemble = null,
+        durationSeconds = 565,
+        path = "01 So What.flac",
+        images = null,
+        extraTags = null,
+    )
 }

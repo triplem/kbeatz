@@ -92,8 +92,8 @@ paths:
   /albums/{albumId}:
     get:
       operationId: getAlbum
-      summary: Get album detail
-      description: Returns a single album with all Vorbis Comment tag fields.
+      summary: Get album detail with tracks
+      description: Returns a single album with all Vorbis Comment tag fields and a list of tracks.
       tags: [Albums]
       security: []
       parameters:
@@ -104,19 +104,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Album"
+                $ref: "#/components/schemas/AlbumDetail"
         "404":
           $ref: "#/components/responses/NotFound"
     patch:
       operationId: updateAlbumTags
-      summary: Update album tags
+      summary: Update album-level tags
       description: |
         Writes updated tag values to FLAC files in the album directory.
         Album-level fields (ALBUM, ALBUMARTIST, DATE, GENRE, LABEL, CATALOGNUMBER,
-        COMPOSER, CONDUCTOR, ENSEMBLE) are written to all files. Track-level fields
-        (TITLE, TRACKNUMBER) require a track-scoped endpoint (future).
+        COMPOSER, CONDUCTOR, ENSEMBLE) are written to all files.
         Writes are atomic per file (temp + rename). A .kbeatz-write.lock manifest
         is created before the first write and removed on completion (FR-20).
+        Field names are case-insensitive (normalised to uppercase before validation).
       tags: [Albums]
       security: []
       parameters:
@@ -126,14 +126,50 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateAlbumTagsRequest"
+              $ref: "#/components/schemas/UpdateTagFieldRequest"
       responses:
         "200":
-          description: Tags updated; returns the refreshed album
+          description: Tag updated; returns the refreshed album detail
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Album"
+                $ref: "#/components/schemas/AlbumDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /albums/{albumId}/tracks/{trackId}:
+    patch:
+      operationId: updateTrackTags
+      summary: Update track-level tags
+      description: |
+        Writes updated tag values to the single FLAC file for the specified track.
+        Track-level allowed fields: TITLE, TRACKNUMBER, ARTIST.
+        Field names are case-insensitive (normalised to uppercase before validation).
+        Write is atomic (temp + rename). No write-lock manifest for single-file writes.
+      tags: [Albums]
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/AlbumId"
+        - name: trackId
+          in: path
+          required: true
+          description: "Track UUID"
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTagFieldRequest"
+      responses:
+        "200":
+          description: Tag updated; returns the refreshed album detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlbumDetail"
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
@@ -304,6 +340,121 @@ components:
           description: "True when cover art is available via GET /albums/{albumId}/cover"
           example: true
 
+    Track:
+      type: object
+      required: [id, albumId, path]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Internal track identifier"
+          example: "660e8400-e29b-41d4-a716-446655440001"
+        albumId:
+          type: string
+          format: uuid
+          description: "Parent album identifier"
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        title:
+          type: string
+          description: "TITLE tag"
+          example: "So What"
+        trackNumber:
+          type: string
+          description: "TRACKNUMBER tag (may be '1', 'A1', or '1/12')"
+          example: "1"
+        discNumber:
+          type: string
+          description: "DISCNUMBER tag"
+          example: "1"
+        artist:
+          type: string
+          description: "ARTIST tag (per-track; falls back to albumArtist when absent)"
+          example: "Miles Davis"
+        composer:
+          type: string
+          description: "COMPOSER tag (per-track override)"
+          example: "Miles Davis"
+        conductor:
+          type: string
+          description: "CONDUCTOR tag (per-track override)"
+          example: "Herbert von Karajan"
+        ensemble:
+          type: string
+          description: "ENSEMBLE tag (per-track override)"
+          example: "Berlin Philharmoniker"
+        durationSeconds:
+          type: integer
+          format: int32
+          description: "Track duration in seconds"
+          example: 565
+        path:
+          type: string
+          description: "Relative path to FLAC file within the album directory"
+          example: "01 So What.flac"
+
+    AlbumDetail:
+      type: object
+      required: [id, albumArtist, album, directoryPath, hasCoverArt, tracks]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Internal album identifier"
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        albumArtist:
+          type: string
+          description: "ALBUMARTIST tag"
+          example: "Miles Davis"
+        album:
+          type: string
+          description: "ALBUM tag"
+          example: "Kind of Blue"
+        date:
+          type: string
+          description: "DATE tag (year or ISO date)"
+          example: "1959"
+        genre:
+          type: string
+          description: "GENRE tag"
+          example: "Jazz"
+        label:
+          type: string
+          description: "LABEL tag"
+          example: "Columbia"
+        catalogNumber:
+          type: string
+          description: "CATALOGNUMBER tag"
+          example: "CL 1355"
+        composer:
+          type: string
+          description: "COMPOSER tag; when set the UI shows this as primary attribution"
+          example: "Ludwig van Beethoven"
+        conductor:
+          type: string
+          description: "CONDUCTOR tag"
+          example: "Herbert von Karajan"
+        ensemble:
+          type: string
+          description: "ENSEMBLE tag"
+          example: "Berlin Philharmoniker"
+        discogsId:
+          type: string
+          description: "Discogs release ID from metadata.yml"
+          example: "12345678"
+        directoryPath:
+          type: string
+          description: "Absolute path of the album directory within the library root"
+          example: "/music/Jazz/Miles Davis/Kind of Blue"
+        hasCoverArt:
+          type: boolean
+          description: "True when cover art is available via GET /albums/{albumId}/cover"
+          example: true
+        tracks:
+          type: array
+          description: "Ordered list of tracks in this album"
+          items:
+            $ref: "#/components/schemas/Track"
+
     AlbumPage:
       type: object
       required: [content, page, size, totalElements, totalPages]
@@ -329,37 +480,22 @@ components:
           format: int32
           example: 100
 
-    UpdateAlbumTagsRequest:
+    UpdateTagFieldRequest:
       type: object
-      description: "Partial update — only supplied fields are written. Omitted fields are left unchanged."
+      required: [field, value]
+      description: |
+        Single-field tag update. The field name is case-insensitive (normalised to uppercase).
+        Album-level allowed fields: ALBUM, ALBUMARTIST, DATE, GENRE, LABEL, CATALOGNUMBER, COMPOSER, CONDUCTOR, ENSEMBLE.
+        Track-level allowed fields: TITLE, TRACKNUMBER, ARTIST.
       properties:
-        albumArtist:
+        field:
           type: string
-          example: "Miles Davis"
-        album:
+          description: "Vorbis Comment field name (case-insensitive)"
+          example: "GENRE"
+        value:
           type: string
-          example: "Kind of Blue"
-        date:
-          type: string
-          example: "1959"
-        genre:
-          type: string
-          example: "Jazz"
-        label:
-          type: string
-          example: "Columbia"
-        catalogNumber:
-          type: string
-          example: "CL 1355"
-        composer:
-          type: string
-          example: "Ludwig van Beethoven"
-        conductor:
-          type: string
-          example: "Herbert von Karajan"
-        ensemble:
-          type: string
-          example: "Berlin Philharmoniker"
+          description: "New field value"
+          example: "Progressive Rock"
 
     SyncRequest:
       type: object
