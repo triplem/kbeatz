@@ -62,6 +62,7 @@ data class DiscogsRelease(
     val tracklist: List<DiscogsTrack> = emptyList(),
     val images: List<DiscogsImage> = emptyList(),
     @SerialName("master_url") val masterUrl: String? = null,
+    @SerialName("master_id") val masterId: Int? = null,
     @SerialName("resource_url") val resourceUrl: String? = null,
     val identifiers: List<DiscogsIdentifier>? = null,
 )
