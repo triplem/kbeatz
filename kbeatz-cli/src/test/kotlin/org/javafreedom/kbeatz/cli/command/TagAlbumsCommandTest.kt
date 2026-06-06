@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
 import kotlin.test.assertContains
+import kotlin.test.assertTrue
 
 class TagAlbumsCommandTest {
 
@@ -22,18 +23,18 @@ class TagAlbumsCommandTest {
     @Test
     fun `should skip directory with no id file when passed directly`(@TempDir tempDir: java.nio.file.Path) {
         val result = TagAlbumsCommand().test("$tempDir")
-        assertContains(result.output, "SKIP")
-        assertContains(result.output, "no id.txt")
+        assertContains(result.output, "WARN")
+        assertContains(result.output, "no id file found")
     }
 
     @Test
     fun `should skip directory when id file has no discogs_id`(@TempDir tempDir: java.nio.file.Path) {
-        // IniIdFileParser returns null for INI files without discogs_id,
-        // so the reader sees no parseable id file → "no id.txt..." message
+        // IniIdFileParser returns null for INI files without discogs_id →
+        // reader sees no parseable id file → "no id file found" warning
         Files.writeString(tempDir.resolve("id.txt"), "[source]\namg_id=99\n")
         val result = TagAlbumsCommand().test("$tempDir")
-        assertContains(result.output, "SKIP")
-        assertContains(result.output, "no id.txt")
+        assertContains(result.output, "WARN")
+        assertContains(result.output, "no id file found")
     }
 
     @Test
@@ -101,5 +102,46 @@ class TagAlbumsCommandTest {
         val result = TagAlbumsCommand().test("--dry-run $tempDir")
         assertContains(result.output, "DRY")
         assertContains(result.output, "discogs_id=999")
+    }
+
+    @Test
+    fun `should write metadata yml after tagging from legacy id txt`(@TempDir tempDir: java.nio.file.Path) {
+        Files.writeString(tempDir.resolve("id.txt"), "[source]\ndiscogs_id=42\n")
+        val mockService = mockk<TaggerService>()
+        coEvery { mockService.tagAlbum(any(), any()) } returns
+            TagResult.Tagged(Path(tempDir.toString()), "42", 1)
+        TagAlbumsCommand(taggerServiceOverride = mockService).test("$tempDir")
+        assertTrue(Files.exists(tempDir.resolve("metadata.yml")))
+        assertContains(Files.readString(tempDir.resolve("metadata.yml")), "discogs_id: \"42\"")
+    }
+
+    @Test
+    fun `should write metadata yml after tagging from local_ids txt`(@TempDir tempDir: java.nio.file.Path) {
+        Files.writeString(tempDir.resolve("local_ids.txt"), "[source]\ndiscogs_id=55\n")
+        val mockService = mockk<TaggerService>()
+        coEvery { mockService.tagAlbum(any(), any()) } returns
+            TagResult.Tagged(Path(tempDir.toString()), "55", 2)
+        TagAlbumsCommand(taggerServiceOverride = mockService).test("$tempDir")
+        assertTrue(Files.exists(tempDir.resolve("metadata.yml")))
+        assertContains(Files.readString(tempDir.resolve("metadata.yml")), "discogs_id: \"55\"")
+    }
+
+    @Test
+    fun `should not overwrite existing metadata yml after tagging`(@TempDir tempDir: java.nio.file.Path) {
+        val existingContent = "sources:\n  discogs_id: \"old\"\n"
+        Files.writeString(tempDir.resolve("id.txt"), "[source]\ndiscogs_id=42\n")
+        Files.writeString(tempDir.resolve("metadata.yml"), existingContent)
+        val mockService = mockk<TaggerService>()
+        coEvery { mockService.tagAlbum(any(), any()) } returns
+            TagResult.Tagged(Path(tempDir.toString()), "42", 1)
+        TagAlbumsCommand(taggerServiceOverride = mockService).test("$tempDir")
+        assertContains(Files.readString(tempDir.resolve("metadata.yml")), "discogs_id: \"old\"")
+    }
+
+    @Test
+    fun `should include skip warning in summary output`(@TempDir tempDir: java.nio.file.Path) {
+        val result = TagAlbumsCommand().test("$tempDir")
+        assertContains(result.output, "WARN")
+        assertContains(result.output, "skipped")
     }
 }
