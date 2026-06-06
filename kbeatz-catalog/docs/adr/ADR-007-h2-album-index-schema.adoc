@@ -1,0 +1,217 @@
+= ADR-007 — H2 Album Index Schema Decisions
+:revnumber: 1.0
+:revdate: 2026-06-06
+:author: kbeatz team
+:status: Accepted
+
+== Status
+
+Accepted
+
+== Context
+
+kbeatz-catalog (v1) needs a persistent album index to support:
+
+* Fast album listing with pagination (FR-02)
+* Text-search across albumArtist, album, composer (FR-03)
+* Discogs metadata sync (FR-10)
+* Cover art management (FR-06)
+
+The v1 runtime target is a single-node home server (≤ 5 000 albums).
+No auth, no multi-tenancy. Deployment is a fat JAR or Docker container.
+
+The team evaluated three persistence strategies:
+
+[cols="1,2,2", options="header"]
+|===
+|Option |Pros |Cons
+
+|H2 (in-memory/file)
+|Zero-config, ships with the JAR, deterministic CI, instant startup
+|JVM-only, not suitable for v2 multi-node
+
+|SQLite + Xerial
+|Tiny footprint, single file, cross-language
+|No native async driver in JVM, limited TYPE support, poor Kotlin tooling
+
+|PostgreSQL
+|Production-grade, full text-search, JSON types, v2 target
+|Requires external daemon, complex local dev setup, over-engineered for v1
+|===
+
+== Decision
+
+Use **H2 (file-backed in production, in-memory in tests)** managed via
+**Liquibase** migrations and queried through **Exposed ORM**.
+
+=== Schema design
+
+==== Why denormalised?
+
+A normalised schema (separate `artists`, `genres`, `labels` tables) would add
+3-way joins to every list query. With ≤ 5 000 albums all fitting in RAM, a flat
+denormalised row per album is simpler, faster on H2, and easier to migrate to
+PostgreSQL later (same column structure, different dialect).
+
+==== Two-table layout: `albums` + `tracks`
+
+FLAC files store per-track tags. The VORBISCOMMENT spec allows COMPOSER,
+CONDUCTOR, PERFORMER to differ per track. Storing them in `tracks` (not
+flattened into `albums`) avoids information loss for classical recordings.
+
+The FK `tracks.album_id → albums.id ON DELETE CASCADE` ensures no orphan
+tracks after an album is removed.
+
+==== Column naming: `album_date`, `directory_path`, `track_path`
+
+The original schema used `date` and `path` as column names.
+Both are reserved words in SQL:2016 and in H2's PostgreSQL compatibility mode
+(`MODE=PostgreSQL`). Exposed v1.x quotes reserved identifiers using the
+dialect's quoting rules, producing `"date"` and `"path"` in generated SQL.
+
+In H2 PostgreSQL mode, Liquibase creates `date` (unquoted, stored lowercase),
+but Exposed emits `"date"` (double-quoted, case-sensitive). The two identifiers
+do not resolve to the same column object, causing runtime `Column not found`
+errors.
+
+**Fix**: rename to `album_date`, `directory_path`, `track_path`. These names
+are not reserved in any targeted dialect and require no quoting.
+
+==== `album_date` DEFAULT '' (not NULL)
+
+H2 implements `UNIQUE` with `NULL != NULL` semantics (matching the SQL standard).
+If `album_date` were nullable, two rows with `NULL` dates for the same artist/album
+would not violate the unique constraint, allowing duplicates.
+
+Making `album_date VARCHAR NOT NULL DEFAULT ''` forces `NULL` dates to serialize
+as the empty string, making the constraint effective:
+
+```sql
+UNIQUE (album_artist, album, album_date, directory_path)
+```
+
+When reading back, an empty string is mapped to `null` in the Kotlin domain model:
+```kotlin
+date = this[AlbumsTable.albumDate].ifEmpty { null }
+```
+
+==== JSON TEXT columns for `extra_tags` and `images`
+
+Vorbis Comment files can contain arbitrary tags beyond the standard set. Rather
+than adding a column per possible tag (open-ended), `extra_tags` stores a JSON
+object (`{"BARCODE": "123", "STYLE": "Modal Jazz"}`).
+
+Similarly, `images` stores a JSON array of `ImageDescriptor` objects
+(picture type, source, path, MIME type, description). This avoids a third
+`album_images` table for an optional feature.
+
+Serialisation is performed only at the persistence boundary (`JsonSerde`);
+the domain model uses plain Kotlin data classes.
+
+==== `discogs_json` TEXT
+
+Raw Discogs API responses can exceed 100 KB. Storing the raw JSON avoids
+data loss on schema changes and allows re-parsing if the domain model evolves.
+This column is excluded from all list queries (loaded only by the detail endpoint).
+
+==== `created_at` / `updated_at` with `CURRENT_TIMESTAMP`
+
+Both columns have `DEFAULT CURRENT_TIMESTAMP` in the Liquibase migration,
+matching Exposed's `defaultExpression(CurrentTimestamp)`. This ensures the
+columns are always populated without requiring the application to set them.
+
+=== Index strategy
+
+[cols="1,2", options="header"]
+|===
+|Index |Rationale
+
+|`idx_albums_album_artist`
+|Primary sort and filter column for album listing (FR-02)
+
+|`idx_albums_composer`
+|Classical music filter (FR-03)
+
+|`idx_albums_genre`
+|Genre filter (FR-03)
+
+|`idx_albums_album_date`
+|Date range filter (FR-03)
+
+|`idx_tracks_album_id`
+|FK lookup — tracks by album (ON DELETE CASCADE maintenance)
+|===
+
+Full-text search (FR-03 free-text) is implemented client-side in v1 over the
+paginated result set. Server-side FTS will require PostgreSQL's `tsvector` in v2.
+
+=== H2 PostgreSQL mode in tests
+
+Integration tests use:
+
+```
+jdbc:h2:mem:kbeatz_test_NNN;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+```
+
+`MODE=PostgreSQL` brings H2's identifier case-sensitivity, `RETURNING` clause,
+and `ILIKE` closer to PostgreSQL, reducing dialect drift before the v2 migration.
+
+=== HikariCP pool sizing
+
+[cols="1,1,2", options="header"]
+|===
+|Setting |Value |Rationale
+
+|`maximumPoolSize`
+|10
+|Single-node v1; avoids thread contention on Ktor's coroutine threads
+
+|`minimumIdle`
+|2
+|Keeps two connections warm for low-traffic home servers
+
+|`connectionTimeout`
+|30 000 ms
+|Generous timeout for H2 file-lock contention during startup repair
+
+|`maxLifetime`
+|1 800 000 ms
+|30-minute connection refresh; matches typical H2 file unlock cycle
+|===
+
+== Consequences
+
+=== Expected
+
+* Zero-config embedded persistence; no external daemon.
+* Deterministic integration tests with `DB_CLOSE_DELAY=-1` isolation.
+* Liquibase changelog provides a clear audit trail and rollback path.
+* `album_date`, `directory_path`, `track_path` names avoid SQL reserved-word issues in all targeted dialects.
+
+=== Known limitations / v2 migration path
+
+* H2 does not support full-text search. The v2 migration target is PostgreSQL,
+  where `tsvector`/`tsquery` can power FR-03 server-side search.
+* The `discogs_json` column should migrate to PostgreSQL's native `jsonb` type in v2
+  for indexable JSON and `->>` extraction.
+* Column naming (`album_date` etc.) is intentionally chosen to be compatible with
+  PostgreSQL — no rename migration required in v2.
+* See ADR-006 for the PostgreSQL v2 migration plan.
+
+== Alternatives considered
+
+=== SQLite + Xerial
+
+Rejected: no async JDBC driver for Kotlin coroutines; Exposed's H2 support is
+more mature; SQLite's `WITHOUT ROWID` tables require additional expertise.
+
+=== Embedded PostgreSQL (Testcontainers only in tests, real PG in prod)
+
+Rejected for v1: adds Docker as a hard dependency for local development.
+Production containers must manage a PostgreSQL process, complicating deployment.
+Revisit for v2 when multi-node and full-text search become requirements.
+
+=== Flat single-table (no `tracks`)
+
+Rejected: would lose per-track COMPOSER/PERFORMER information irreversibly.
+Classical recordings commonly have different performers per movement.
