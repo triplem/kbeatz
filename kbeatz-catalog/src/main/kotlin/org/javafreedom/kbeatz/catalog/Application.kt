@@ -14,6 +14,7 @@ import org.javafreedom.kbeatz.catalog.application.service.LibraryScanService
 import org.javafreedom.kbeatz.catalog.application.service.LibraryWalker
 import org.javafreedom.kbeatz.catalog.infrastructure.persistence.DbFactory
 import org.javafreedom.kbeatz.catalog.infrastructure.persistence.ExposedAlbumRepository
+import org.javafreedom.kbeatz.catalog.infrastructure.persistence.ExposedTrackRepository
 import org.javafreedom.kbeatz.catalog.plugins.configureLogging
 import org.javafreedom.kbeatz.catalog.plugins.configurePathTraversalGuard
 import org.javafreedom.kbeatz.catalog.plugins.configureRouting
@@ -53,7 +54,8 @@ fun Application.module() {
 
     // Wire repositories and services
     val albumRepository = ExposedAlbumRepository()
-    val albumService = AlbumService(albumRepository)
+    val trackRepository = ExposedTrackRepository()
+    val albumService = AlbumService(albumRepository, trackRepository)
     val libraryRootPath = Path.of(config.catalogLibraryRoot)
     val coverArtService = CoverArtService(albumRepository, libraryRootPath)
     val walker = LibraryWalker()

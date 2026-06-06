@@ -2,6 +2,7 @@ package org.javafreedom.kbeatz.catalog.plugins
 
 import io.ktor.server.application.*
 import io.ktor.server.routing.*
+import org.javafreedom.kbeatz.catalog.adapters.inbound.web.albums.albumDetailRoutes
 import org.javafreedom.kbeatz.catalog.adapters.inbound.web.albums.albumRoutes
 import org.javafreedom.kbeatz.catalog.adapters.inbound.web.albums.coverArtRoutes
 import org.javafreedom.kbeatz.catalog.adapters.inbound.web.albums.syncRoutes
@@ -23,6 +24,7 @@ fun Application.configureRouting(
             healthRoutes()
             libraryRoutes(scanService)
             albumRoutes(albumService)
+            albumDetailRoutes(albumService)
             coverArtRoutes(coverArtService)
             syncRoutes(syncService)
         }
