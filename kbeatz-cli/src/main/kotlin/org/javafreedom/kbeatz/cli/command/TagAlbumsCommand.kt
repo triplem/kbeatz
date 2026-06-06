@@ -9,10 +9,13 @@ import com.github.ajalt.clikt.parameters.options.convert
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import kotlinx.coroutines.runBlocking
+import kotlinx.io.buffered
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
+import kotlinx.io.writeString
 import org.javafreedom.kbeatz.cli.util.walkDirectories
 import org.javafreedom.kbeatz.sources.discogs.DiscogsMetadataSource
+import org.javafreedom.kbeatz.tagger.idfile.IdFile
 import org.javafreedom.kbeatz.tagger.idfile.IdFileReader
 import org.javafreedom.kbeatz.tagger.idfile.SourceConfig
 import org.javafreedom.kbeatz.tagger.service.DefaultTaggerService
@@ -66,18 +69,29 @@ class TagAlbumsCommand(
         }
         // Lazy: DISCOGS_TOKEN only required if tagging actually runs (not for skip/dry-run paths)
         val lazyService: Lazy<TaggerService> = lazy { taggerServiceOverride ?: buildService(idReader) }
-        targets.forEach { dir -> tagAlbum(dir, idReader, lazyService) }
+        val skipWarnings = mutableListOf<String>()
+        targets.forEach { dir -> tagAlbum(dir, idReader, lazyService, skipWarnings) }
+        printSummary(skipWarnings)
     }
 
-    private fun tagAlbum(dir: Path, idReader: IdFileReader, lazyService: Lazy<TaggerService>) {
+    private fun tagAlbum(
+        dir: Path,
+        idReader: IdFileReader,
+        lazyService: Lazy<TaggerService>,
+        skipWarnings: MutableList<String>,
+    ) {
         val idFile = idReader.read(dir)
         if (idFile == null) {
-            echo("SKIP  $dir — no id.txt / local_ids.txt / metadata.yml found", err = true)
+            val warning = "WARN: no id file found in $dir — skipped"
+            echo(warning, err = true)
+            skipWarnings += warning
             return
         }
         val discogsId = idReader.discogsId(idFile)
         if (discogsId == null) {
-            echo("SKIP  $dir — no discogs_id in id file", err = true)
+            val warning = "WARN: no discogs_id in id file for $dir — skipped"
+            echo(warning, err = true)
+            skipWarnings += warning
             return
         }
         if (dryRun) {
@@ -85,7 +99,10 @@ class TagAlbumsCommand(
         } else {
             runBlocking {
                 when (val result = lazyService.value.tagAlbum(dir, downloadImages)) {
-                    is TagResult.Tagged -> echo("TAGGED $dir — ${result.filesWritten} FLAC files written")
+                    is TagResult.Tagged -> {
+                        echo("TAGGED $dir — ${result.filesWritten} FLAC files written")
+                        writeMetadataYmlIfLegacy(dir, idFile)
+                    }
                     is TagResult.Skipped -> echo("SKIP   $dir — ${result.reason}", err = true)
                     is TagResult.Failed -> {
                         val msg = result.cause.message ?: result.cause.javaClass.simpleName
@@ -93,6 +110,33 @@ class TagAlbumsCommand(
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * Writes metadata.yml when the source was a legacy INI file (id.txt or local_ids.txt),
+     * normalising the directory for future runs.
+     */
+    private fun writeMetadataYmlIfLegacy(dir: Path, idFile: IdFile) {
+        val legacyNames = listOf("id.txt", "local_ids.txt")
+        val hasLegacy = legacyNames.any { SystemFileSystem.exists(Path(dir, it)) }
+        if (hasLegacy && !SystemFileSystem.exists(Path(dir, "metadata.yml"))) {
+            val yaml = buildYaml(idFile.sources)
+            SystemFileSystem.sink(Path(dir, "metadata.yml")).buffered().use { it.writeString(yaml) }
+            echo("WROTE $dir/metadata.yml")
+        }
+    }
+
+    private fun buildYaml(sources: Map<String, String>): String =
+        buildString {
+            appendLine("sources:")
+            sources.forEach { (key, value) -> appendLine("  $key: \"$value\"") }
+        }
+
+    private fun printSummary(skipWarnings: List<String>) {
+        if (skipWarnings.isNotEmpty()) {
+            echo("--- Skipped albums ---", err = true)
+            skipWarnings.forEach { echo(it, err = true) }
         }
     }
 
