@@ -18,8 +18,9 @@ val TraceIdPlugin: ApplicationPlugin<Unit> = createApplicationPlugin("TraceIdPlu
         MDC.put("traceId", traceId)
     }
     onCallRespond { call, _ ->
-        val traceId = call.attributes.getOrNull(TraceIdKey) ?: return@onCallRespond
-        call.response.headers.append("X-Trace-Id", traceId)
+        call.attributes.getOrNull(TraceIdKey)?.let { traceId ->
+            call.response.headers.append("X-Trace-Id", traceId)
+        }
         MDC.remove("traceId")
     }
 }

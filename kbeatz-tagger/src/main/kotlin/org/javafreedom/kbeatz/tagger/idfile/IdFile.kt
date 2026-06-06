@@ -36,13 +36,11 @@ data class SourceConfig(
  */
 class IdFileReader(private val config: SourceConfig = SourceConfig()) {
 
-    fun read(directory: Path): IdFile? {
-        val file = config.idFileNames
+    fun read(directory: Path): IdFile? =
+        config.idFileNames
             .map { Path(directory, it) }
             .firstOrNull { SystemFileSystem.exists(it) }
-            ?: return null
-        return readFile(file)
-    }
+            ?.let { readFile(it) }
 
     private fun readFile(file: Path): IdFile {
         val text = SystemFileSystem.source(file).buffered().use { it.readByteArray().decodeToString() }
@@ -84,8 +82,8 @@ private fun parseIni(text: String): Map<String, String> =
             line.trimStart().let { it.startsWith("[") || it.startsWith("#") || it.isBlank() }
         }
         .mapNotNull { line ->
-            val eq = line.indexOf('=').takeIf { it > 0 } ?: return@mapNotNull null
-            line.substring(0, eq).trim() to line.substring(eq + 1).trim()
+            val eq = line.indexOf('=').takeIf { it > 0 }
+            eq?.let { eqIdx -> line.substring(0, eqIdx).trim() to line.substring(eqIdx + 1).trim() }
         }
         .filter { (_, v) -> v.isNotEmpty() }
         .toMap()

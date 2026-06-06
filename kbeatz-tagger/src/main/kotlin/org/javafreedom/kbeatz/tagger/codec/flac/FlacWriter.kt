@@ -23,6 +23,7 @@ class FlacWriter(private val targetPaddingBytes: Int = 8192) {
         private const val BLOCK_TYPE_PADDING = 1
         private const val BLOCK_TYPE_VORBIS_COMMENT = 4
         private const val BLOCK_TYPE_PICTURE = 6
+        private const val LAST_METADATA_BLOCK_FLAG = 0x80
     }
 
     fun write(blocks: List<FlacMetadataBlock>, audioFrames: ByteArray): ByteArray {
@@ -44,16 +45,17 @@ class FlacWriter(private val targetPaddingBytes: Int = 8192) {
 
     private fun encodeBlock(block: FlacMetadataBlock, isLast: Boolean): ByteArray =
         when (block) {
-            is FlacMetadataBlock.StreamInfo    -> encodeRaw(BLOCK_TYPE_STREAMINFO,     encodeStreamInfo(block),    isLast)
-            is FlacMetadataBlock.Padding       -> encodePadding(block.length, isLast)
-            is FlacMetadataBlock.VorbisComment -> encodeRaw(BLOCK_TYPE_VORBIS_COMMENT, encodeVorbisComment(block), isLast)
-            is FlacMetadataBlock.Picture       -> encodeRaw(BLOCK_TYPE_PICTURE,        encodePicture(block),       isLast)
-            is FlacMetadataBlock.Unknown       -> encodeRaw(block.blockType,           block.data.toByteArray(),   isLast)
+            is FlacMetadataBlock.StreamInfo -> encodeRaw(BLOCK_TYPE_STREAMINFO, encodeStreamInfo(block), isLast)
+            is FlacMetadataBlock.Padding -> encodePadding(block.length, isLast)
+            is FlacMetadataBlock.VorbisComment ->
+                encodeRaw(BLOCK_TYPE_VORBIS_COMMENT, encodeVorbisComment(block), isLast)
+            is FlacMetadataBlock.Picture -> encodeRaw(BLOCK_TYPE_PICTURE, encodePicture(block), isLast)
+            is FlacMetadataBlock.Unknown -> encodeRaw(block.blockType, block.data.toByteArray(), isLast)
         }
 
     private fun encodeRaw(blockType: Int, data: ByteArray, isLast: Boolean): ByteArray {
         val buf = Buffer()
-        buf.writeByte(((if (isLast) 0x80 else 0x00) or blockType).toByte())
+        buf.writeByte(((if (isLast) LAST_METADATA_BLOCK_FLAG else 0) or blockType).toByte())
         buf.writeInt24Be(data.size)
         buf.write(data)
         return buf.readByteArray()
@@ -62,6 +64,7 @@ class FlacWriter(private val targetPaddingBytes: Int = 8192) {
     private fun encodePadding(length: Int, isLast: Boolean): ByteArray =
         encodeRaw(BLOCK_TYPE_PADDING, ByteArray(length), isLast)
 
+    @Suppress("MagicNumber") // FLAC StreamInfo bit-field layout per RFC 9639 §9.2
     private fun encodeStreamInfo(b: FlacMetadataBlock.StreamInfo): ByteArray {
         val sr = b.sampleRate.toLong()
         val ch = (b.channels - 1).toLong()
@@ -112,6 +115,7 @@ class FlacWriter(private val targetPaddingBytes: Int = 8192) {
     }
 }
 
+@Suppress("MagicNumber") // 24-bit big-endian write: bit-shift constants are defined by the format
 private fun Sink.writeInt24Be(value: Int) {
     writeByte(((value shr 16) and 0xFF).toByte())
     writeByte(((value shr 8) and 0xFF).toByte())

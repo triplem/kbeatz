@@ -10,6 +10,7 @@ import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
 import kotlinx.io.writeString
 import org.javafreedom.kbeatz.cli.util.walkDirectories
+import org.javafreedom.kbeatz.tagger.idfile.IdFile
 import org.javafreedom.kbeatz.tagger.idfile.IdFileReader
 import org.javafreedom.kbeatz.tagger.idfile.SourceConfig
 
@@ -48,24 +49,28 @@ class MigrateIdFilesCommand : CliktCommand(
     override fun run() {
         val idReader = IdFileReader(SourceConfig())
         val depth = if (recursive) Int.MAX_VALUE else DEFAULT_LIBRARY_SCAN_DEPTH
-
         walkDirectories(rootDir, depth).forEach { dir ->
-            val idFile = idReader.read(dir) ?: return@forEach
-            val yamlContent = buildYaml(idFile.sources)
-            val target = Path(dir, "metadata.yml")
-            if (dryRun) {
-                echo("DRY   $target:\n$yamlContent")
-            } else {
-                SystemFileSystem.sink(target).buffered().use { it.writeString(yamlContent) }
-                echo("WROTE $target")
-                if (!keepOriginal) {
-                    listOf("id.txt", "local_ids.txt")
-                        .map { Path(dir, it) }
-                        .filter { SystemFileSystem.exists(it) }
-                        .forEach { path -> SystemFileSystem.delete(path); echo("DEL   $path") }
-                }
-            }
+            idReader.read(dir)?.let { idFile -> migrateDirectory(dir, idFile) }
         }
+    }
+
+    private fun migrateDirectory(dir: Path, idFile: IdFile) {
+        val yamlContent = buildYaml(idFile.sources)
+        val target = Path(dir, "metadata.yml")
+        if (dryRun) {
+            echo("DRY   $target:\n$yamlContent")
+        } else {
+            SystemFileSystem.sink(target).buffered().use { it.writeString(yamlContent) }
+            echo("WROTE $target")
+            if (!keepOriginal) deleteOriginalIdFiles(dir)
+        }
+    }
+
+    private fun deleteOriginalIdFiles(dir: Path) {
+        listOf("id.txt", "local_ids.txt")
+            .map { Path(dir, it) }
+            .filter { SystemFileSystem.exists(it) }
+            .forEach { path -> SystemFileSystem.delete(path); echo("DEL   $path") }
     }
 
     private fun buildYaml(sources: Map<String, String>): String =

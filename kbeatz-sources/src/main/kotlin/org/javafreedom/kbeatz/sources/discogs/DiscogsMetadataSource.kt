@@ -82,16 +82,19 @@ class DiscogsMetadataSource private constructor(
         return release
     }
 
-    override suspend fun fetchImage(releaseId: String, index: Int): ImageResult? {
+    override suspend fun fetchImage(releaseId: String, index: Int): ImageResult? =
         if (!imageQuota.canDownload()) {
             log.warn { "Discogs daily image quota exhausted — skipping image download for release $releaseId" }
-            return null
+            null
+        } else {
+            fetchRelease(releaseId)
+                ?.images
+                ?.getOrNull(index)
+                ?.let { image ->
+                    val bytes = ByteString(client.get(image.uri).body<ByteArray>())
+                    imageQuota.recordDownload()
+                    val mimeType = if (image.uri.endsWith(".png")) "image/png" else "image/jpeg"
+                    ImageResult(bytes, mimeType)
+                }
         }
-        val release = fetchRelease(releaseId) ?: return null
-        val image = release.images.getOrNull(index) ?: return null
-        val bytes = ByteString(client.get(image.uri).body<ByteArray>())
-        imageQuota.recordDownload()
-        val mimeType = if (image.uri.endsWith(".png")) "image/png" else "image/jpeg"
-        return ImageResult(bytes, mimeType)
-    }
 }

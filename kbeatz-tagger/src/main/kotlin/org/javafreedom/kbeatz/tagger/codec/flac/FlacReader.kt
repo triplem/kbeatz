@@ -21,6 +21,11 @@ class FlacReader {
         private const val BLOCK_TYPE_PADDING = 1
         private const val BLOCK_TYPE_VORBIS_COMMENT = 4
         private const val BLOCK_TYPE_PICTURE = 6
+        private const val LAST_BLOCK_FLAG = 0x80
+        private const val BLOCK_TYPE_MASK = 0x7F
+        private const val BYTE_MASK = 0xFF
+        private const val USHORT_MASK = 0xFFFF
+        private const val MD5_SIZE = 16
     }
 
     /**
@@ -32,7 +37,7 @@ class FlacReader {
     fun parse(data: ByteArray): FlacParseResult {
         val source = Buffer().apply { write(data) }
 
-        if (source.readByteString(4) != FLAC_MARKER) {
+        if (source.readByteString(FLAC_MARKER.size) != FLAC_MARKER) {
             throw FlacParseException("Not a FLAC file: missing 'fLaC' marker")
         }
 
@@ -40,9 +45,9 @@ class FlacReader {
         var isLast = false
 
         while (!isLast) {
-            val firstByte = source.readByte().toInt() and 0xFF
-            isLast = (firstByte and 0x80) != 0
-            val blockType = firstByte and 0x7F
+            val firstByte = source.readByte().toInt() and BYTE_MASK
+            isLast = (firstByte and LAST_BLOCK_FLAG) != 0
+            val blockType = firstByte and BLOCK_TYPE_MASK
             val length = source.readInt24Be()
             val blockData = source.readByteArray(length)
 
@@ -58,10 +63,11 @@ class FlacReader {
         return FlacParseResult(blocks, source.readByteArray())
     }
 
+    @Suppress("MagicNumber") // FLAC StreamInfo bit-field layout per RFC 9639 §9.2
     private fun parseStreamInfo(data: ByteArray): FlacMetadataBlock.StreamInfo {
         val p = Buffer().apply { write(data) }
-        val minBlockSize = p.readShort().toInt() and 0xFFFF
-        val maxBlockSize = p.readShort().toInt() and 0xFFFF
+        val minBlockSize = p.readShort().toInt() and USHORT_MASK
+        val maxBlockSize = p.readShort().toInt() and USHORT_MASK
         val minFrameSize = p.readInt24Be()
         val maxFrameSize = p.readInt24Be()
         val b0 = p.readByte().toLong() and 0xFF
@@ -76,7 +82,7 @@ class FlacReader {
         val channels = (((b2 and 0x0E) shr 1) + 1).toInt()
         val bitsPerSample = ((((b2 and 0x01) shl 4) or (b3 shr 4)) + 1).toInt()
         val totalSamples = ((b3 and 0x0F) shl 32) or (b4 shl 24) or (b5 shl 16) or (b6 shl 8) or b7
-        val md5 = p.readByteString(16)   // ByteString — value-semantic MD5
+        val md5 = p.readByteString(MD5_SIZE)   // ByteString — value-semantic MD5
         return FlacMetadataBlock.StreamInfo(
             minBlockSize, maxBlockSize, minFrameSize, maxFrameSize,
             sampleRate, channels, bitsPerSample, totalSamples, md5,
@@ -101,7 +107,9 @@ class FlacReader {
         val colorDepth = p.readInt()
         val colorCount = p.readInt()
         val picData = p.readByteString(p.readInt())   // ByteString — value-semantic image data
-        return FlacMetadataBlock.Picture(pictureType, mimeType, description, width, height, colorDepth, colorCount, picData)
+        return FlacMetadataBlock.Picture(
+            pictureType, mimeType, description, width, height, colorDepth, colorCount, picData,
+        )
     }
 }
 
@@ -119,6 +127,7 @@ class FlacParseResult(
 
 class FlacParseException(message: String) : RuntimeException(message)
 
+@Suppress("MagicNumber") // 24-bit big-endian read: bit-shift constants are defined by the format
 private fun Source.readInt24Be(): Int {
     val b0 = readByte().toInt() and 0xFF
     val b1 = readByte().toInt() and 0xFF
