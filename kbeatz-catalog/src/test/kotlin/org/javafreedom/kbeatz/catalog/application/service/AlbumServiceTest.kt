@@ -30,7 +30,8 @@ class AlbumServiceTest {
         ensemble = null,
         discogsId = null,
         directoryPath = "/music/Kind of Blue",
-        hasCoverArt = false,
+        extraTags = null,
+        images = null,
     )
 
     @Test

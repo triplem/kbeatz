@@ -1,0 +1,423 @@
+package org.javafreedom.kbeatz.catalog.infrastructure.persistence
+
+import java.util.UUID
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+import kotlin.uuid.Uuid
+import kotlinx.coroutines.test.runTest
+import org.javafreedom.kbeatz.catalog.domain.model.Album
+import org.javafreedom.kbeatz.catalog.domain.model.Track
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.deleteAll
+import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+
+private fun Uuid.asJavaUuid(): UUID = UUID.fromString(this.toString())
+
+/**
+ * Integration tests verifying the V1__baseline Liquibase migration and Exposed ORM.
+ *
+ * Tests run against an H2 in-memory database matching the production schema.
+ * All ACs from story #57 are covered:
+ * - Tables + constraints created correctly
+ * - Migration is idempotent
+ * - UNIQUE constraint prevents duplicates
+ * - discogs_json stores raw JSON
+ * - extra_tags and images nullable
+ * - FK CASCADE DELETE
+ */
+class MigrationTest {
+
+    private val jdbcUrl =
+        "jdbc:h2:mem:kbeatz_test_${System.nanoTime()};DB_CLOSE_DELAY=-1;MODE=PostgreSQL"
+
+    @Test
+    fun `schema creates albums and tracks tables`() = runTest {
+        val ds = DbFactory.init(jdbcUrl)
+        try {
+            transaction {
+                val albumCount = AlbumsTable.selectAll().count()
+                val trackCount = TracksTable.selectAll().count()
+                assertEquals(0L, albumCount)
+                assertEquals(0L, trackCount)
+            }
+        } finally {
+            ds.close()
+        }
+    }
+
+    @Test
+    fun `migration is idempotent on restart`() = runTest {
+        // First init
+        val ds1 = DbFactory.init(jdbcUrl)
+        ds1.close()
+        // Second init on same URL (simulates restart)
+        val ds2 = DbFactory.init(jdbcUrl)
+        try {
+            transaction {
+                assertEquals(0L, AlbumsTable.selectAll().count())
+            }
+        } finally {
+            ds2.close()
+        }
+    }
+
+    @Test
+    fun `albums insert and read back all fields`() = runTest {
+        val ds = DbFactory.init(jdbcUrl)
+        try {
+            val albumId = Uuid.random()
+            transaction {
+                AlbumsTable.insert {
+                    it[id] = org.jetbrains.exposed.v1.core.dao.id.EntityID(
+                        albumId.asJavaUuid(), AlbumsTable
+                    )
+                    it[albumArtist] = "Miles Davis"
+                    it[album] = "Kind of Blue"
+                    it[albumDate] = "1959"
+                    it[genre] = "Jazz"
+                    it[label] = "Columbia"
+                    it[catalogNumber] = null
+                    it[composer] = null
+                    it[conductor] = null
+                    it[ensemble] = null
+                    it[discogsId] = null
+                    it[discogsJson] = null
+                    it[extraTags] = null
+                    it[images] = null
+                    it[directoryPath] = "jazz/miles-davis/kind-of-blue"
+                }
+            }
+            transaction {
+                val row = AlbumsTable.selectAll()
+                    .where { AlbumsTable.id eq albumId.asJavaUuid() }
+                    .single()
+                assertEquals("Miles Davis", row[AlbumsTable.albumArtist])
+                assertEquals("Kind of Blue", row[AlbumsTable.album])
+                assertEquals("1959", row[AlbumsTable.albumDate])
+                assertNull(row[AlbumsTable.extraTags])
+                assertNull(row[AlbumsTable.images])
+            }
+        } finally {
+            transaction { AlbumsTable.deleteAll() }
+            ds.close()
+        }
+    }
+
+    @Test
+    fun `unique constraint prevents duplicate albums`() = runTest {
+        val ds = DbFactory.init(jdbcUrl)
+        try {
+            val albumId1 = Uuid.random()
+            val albumId2 = Uuid.random()
+            transaction {
+                AlbumsTable.insert {
+                    it[id] = org.jetbrains.exposed.v1.core.dao.id.EntityID(
+                        albumId1.asJavaUuid(), AlbumsTable
+                    )
+                    it[albumArtist] = "Test Artist"
+                    it[album] = "Test Album"
+                    it[albumDate] = "2020"
+                    it[directoryPath] = "test/artist/album"
+                }
+            }
+            var uniqueViolated = false
+            try {
+                transaction {
+                    AlbumsTable.insert {
+                        it[id] = org.jetbrains.exposed.v1.core.dao.id.EntityID(
+                            albumId2.asJavaUuid(), AlbumsTable
+                        )
+                        it[albumArtist] = "Test Artist"
+                        it[album] = "Test Album"
+                        it[albumDate] = "2020"
+                        it[directoryPath] = "test/artist/album"
+                    }
+                }
+            } catch (e: Exception) {
+                uniqueViolated = true
+            }
+            assertTrue(uniqueViolated, "Expected unique constraint violation")
+        } finally {
+            transaction { AlbumsTable.deleteAll() }
+            ds.close()
+        }
+    }
+
+    @Test
+    fun `discogs_json stores raw JSON string`() = runTest {
+        val ds = DbFactory.init(jdbcUrl)
+        try {
+            val albumId = Uuid.random()
+            val rawJson = """{"id":12345,"title":"Kind of Blue","year":1959}"""
+            transaction {
+                AlbumsTable.insert {
+                    it[id] = org.jetbrains.exposed.v1.core.dao.id.EntityID(
+                        albumId.asJavaUuid(), AlbumsTable
+                    )
+                    it[albumArtist] = "Miles Davis"
+                    it[album] = "Kind of Blue"
+                    it[albumDate] = "1959"
+                    it[directoryPath] = "jazz/kind-of-blue"
+                    it[discogsJson] = rawJson
+                }
+            }
+            transaction {
+                val row = AlbumsTable.selectAll()
+                    .where { AlbumsTable.id eq albumId.asJavaUuid() }
+                    .single()
+                assertEquals(rawJson, row[AlbumsTable.discogsJson])
+            }
+        } finally {
+            transaction { AlbumsTable.deleteAll() }
+            ds.close()
+        }
+    }
+
+    @Test
+    fun `extra_tags round-trips JSON string`() = runTest {
+        val ds = DbFactory.init(jdbcUrl)
+        try {
+            val albumId = Uuid.random()
+            val extraTagsJson = """{"BARCODE":"012345678","STYLE":"Modal Jazz"}"""
+            transaction {
+                AlbumsTable.insert {
+                    it[id] = org.jetbrains.exposed.v1.core.dao.id.EntityID(
+                        albumId.asJavaUuid(), AlbumsTable
+                    )
+                    it[albumArtist] = "Miles Davis"
+                    it[album] = "Kind of Blue"
+                    it[albumDate] = "1959"
+                    it[directoryPath] = "jazz/kind-of-blue-extra"
+                    it[extraTags] = extraTagsJson
+                }
+            }
+            transaction {
+                val row = AlbumsTable.selectAll()
+                    .where { AlbumsTable.id eq albumId.asJavaUuid() }
+                    .single()
+                assertEquals(extraTagsJson, row[AlbumsTable.extraTags])
+            }
+        } finally {
+            transaction { AlbumsTable.deleteAll() }
+            ds.close()
+        }
+    }
+
+    @Test
+    fun `tracks are cascade deleted when parent album is deleted`() = runTest {
+        val ds = DbFactory.init(jdbcUrl)
+        try {
+            val albumId = Uuid.random()
+            val trackId = Uuid.random()
+            transaction {
+                AlbumsTable.insert {
+                    it[id] = org.jetbrains.exposed.v1.core.dao.id.EntityID(
+                        albumId.asJavaUuid(), AlbumsTable
+                    )
+                    it[albumArtist] = "Miles Davis"
+                    it[album] = "Kind of Blue"
+                    it[albumDate] = "1959"
+                    it[directoryPath] = "jazz/kind-of-blue-cascade"
+                }
+                TracksTable.insert {
+                    it[id] = org.jetbrains.exposed.v1.core.dao.id.EntityID(
+                        trackId.asJavaUuid(), TracksTable
+                    )
+                    it[TracksTable.albumId] = albumId.asJavaUuid()
+                    it[trackPath] = "01 - So What.flac"
+                }
+            }
+            // Verify track exists
+            transaction {
+                val count = TracksTable.selectAll()
+                    .where { TracksTable.albumId eq albumId.asJavaUuid() }
+                    .count()
+                assertEquals(1L, count, "Track should exist before album delete")
+            }
+            // Delete album
+            transaction {
+                AlbumsTable.deleteAll()
+            }
+            // Verify track was cascade deleted
+            transaction {
+                val count = TracksTable.selectAll()
+                    .where { TracksTable.albumId eq albumId.asJavaUuid() }
+                    .count()
+                assertEquals(0L, count, "Track should be cascade deleted with album")
+            }
+        } finally {
+            ds.close()
+        }
+    }
+
+    @Test
+    fun `ExposedAlbumRepository save and findById round-trip`() = runTest {
+        val ds = DbFactory.init(jdbcUrl)
+        try {
+            val repo = ExposedAlbumRepository()
+            val album = org.javafreedom.kbeatz.catalog.domain.model.Album(
+                id = Uuid.random(),
+                albumArtist = "Johann Sebastian Bach",
+                album = "Goldberg Variations",
+                date = "1741",
+                genre = "Baroque",
+                label = null,
+                catalogNumber = null,
+                composer = "Johann Sebastian Bach",
+                conductor = null,
+                ensemble = null,
+                discogsId = null,
+                extraTags = mapOf("STYLE" to "Keyboard"),
+                images = null,
+                directoryPath = "baroque/bach/goldberg",
+            )
+            repo.save(album)
+            val found = repo.findById(album.id)
+            assertNotNull(found)
+            assertEquals(album.albumArtist, found.albumArtist)
+            assertEquals(album.composer, found.composer)
+            assertEquals(mapOf("STYLE" to "Keyboard"), found.extraTags)
+        } finally {
+            transaction { AlbumsTable.deleteAll() }
+            ds.close()
+        }
+    }
+
+    @Test
+    fun `ExposedAlbumRepository count and findAll paginate correctly`() = runTest {
+        val ds = DbFactory.init(jdbcUrl)
+        try {
+            val repo = ExposedAlbumRepository()
+            val albums = (1..5).map { i ->
+                Album(
+                    id = Uuid.random(),
+                    albumArtist = "Artist $i",
+                    album = "Album $i",
+                    date = "200$i",
+                    genre = null,
+                    label = null,
+                    catalogNumber = null,
+                    composer = null,
+                    conductor = null,
+                    ensemble = null,
+                    discogsId = null,
+                    extraTags = null,
+                    images = null,
+                    directoryPath = "music/artist$i",
+                )
+            }
+            albums.forEach { repo.save(it) }
+            val total = repo.count()
+            assertEquals(5L, total)
+            val page = repo.findAll(0, 3)
+            assertEquals(3, page.size)
+        } finally {
+            transaction { AlbumsTable.deleteAll() }
+            ds.close()
+        }
+    }
+
+    @Test
+    fun `ExposedAlbumRepository saveAll persists multiple albums`() = runTest {
+        val ds = DbFactory.init(jdbcUrl)
+        try {
+            val repo = ExposedAlbumRepository()
+            val albums = listOf(
+                Album(
+                    id = Uuid.random(), albumArtist = "Bach", album = "BWV 998",
+                    date = "1720", genre = "Baroque", label = null, catalogNumber = null,
+                    composer = "Bach", conductor = null, ensemble = null, discogsId = null,
+                    extraTags = null, images = null, directoryPath = "baroque/bach/bwv998",
+                ),
+                Album(
+                    id = Uuid.random(), albumArtist = "Mozart", album = "K. 331",
+                    date = "1783", genre = "Classical", label = null, catalogNumber = null,
+                    composer = "Mozart", conductor = null, ensemble = null, discogsId = null,
+                    extraTags = null, images = null, directoryPath = "classical/mozart/k331",
+                ),
+            )
+            repo.saveAll(albums)
+            assertEquals(2L, repo.count())
+        } finally {
+            transaction { AlbumsTable.deleteAll() }
+            ds.close()
+        }
+    }
+
+    @Test
+    fun `ExposedTrackRepository saveAll and findByAlbumId round-trip`() = runTest {
+        val ds = DbFactory.init(jdbcUrl)
+        try {
+            val albumRepo = ExposedAlbumRepository()
+            val trackRepo = ExposedTrackRepository()
+            val album = Album(
+                id = Uuid.random(), albumArtist = "Miles Davis", album = "Kind of Blue",
+                date = "1959", genre = "Jazz", label = null, catalogNumber = null,
+                composer = null, conductor = null, ensemble = null, discogsId = null,
+                extraTags = null, images = null, directoryPath = "jazz/kind-of-blue",
+            )
+            albumRepo.save(album)
+            val tracks = listOf(
+                Track(
+                    id = Uuid.random(), albumId = album.id, title = "So What",
+                    trackNumber = "1", discNumber = null, trackTotal = "6", discTotal = null,
+                    artist = null, composer = "Miles Davis", conductor = null, ensemble = null,
+                    durationSeconds = 565, path = "01 - So What.flac",
+                    images = null, extraTags = null,
+                ),
+                Track(
+                    id = Uuid.random(), albumId = album.id, title = "Freddie Freeloader",
+                    trackNumber = "2", discNumber = null, trackTotal = "6", discTotal = null,
+                    artist = null, composer = "Miles Davis", conductor = null, ensemble = null,
+                    durationSeconds = 584, path = "02 - Freddie Freeloader.flac",
+                    images = null, extraTags = mapOf("STYLE" to "Modal Jazz"),
+                ),
+            )
+            trackRepo.saveAll(tracks)
+            val found = trackRepo.findByAlbumId(album.id)
+            assertEquals(2, found.size)
+            assertEquals("So What", found.first { it.trackNumber == "1" }.title)
+            assertEquals(mapOf("STYLE" to "Modal Jazz"), found.first { it.trackNumber == "2" }.extraTags)
+        } finally {
+            transaction { AlbumsTable.deleteAll() }
+            ds.close()
+        }
+    }
+
+    @Test
+    fun `ExposedTrackRepository deleteByAlbumId removes tracks`() = runTest {
+        val ds = DbFactory.init(jdbcUrl)
+        try {
+            val albumRepo = ExposedAlbumRepository()
+            val trackRepo = ExposedTrackRepository()
+            val album = Album(
+                id = Uuid.random(), albumArtist = "Coltrane", album = "A Love Supreme",
+                date = "1964", genre = "Jazz", label = null, catalogNumber = null,
+                composer = null, conductor = null, ensemble = null, discogsId = null,
+                extraTags = null, images = null, directoryPath = "jazz/coltrane/love-supreme",
+            )
+            albumRepo.save(album)
+            trackRepo.saveAll(listOf(
+                Track(
+                    id = Uuid.random(), albumId = album.id, title = "Acknowledgement",
+                    trackNumber = "1", discNumber = null, trackTotal = "4", discTotal = null,
+                    artist = null, composer = null, conductor = null, ensemble = null,
+                    durationSeconds = 420, path = "01 - Acknowledgement.flac",
+                    images = null, extraTags = null,
+                ),
+            ))
+            assertEquals(1, trackRepo.findByAlbumId(album.id).size)
+            trackRepo.deleteByAlbumId(album.id)
+            assertEquals(0, trackRepo.findByAlbumId(album.id).size)
+        } finally {
+            transaction { AlbumsTable.deleteAll() }
+            ds.close()
+        }
+    }
+
+}

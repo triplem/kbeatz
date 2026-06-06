@@ -1,0 +1,205 @@
+databaseChangeLog:
+  - changeSet:
+      id: V1-001-create-albums
+      author: kbeatz
+      comment: >
+        Create albums table. album_date is VARCHAR with DEFAULT '' to avoid H2's NULL != NULL
+        UNIQUE behaviour. discogs_json, extra_tags, and images are stored as JSON TEXT blobs
+        and serialised/deserialised at the persistence boundary only.
+        Column names album_date and directory_path avoid SQL reserved-word quoting issues with
+        H2 in PostgreSQL mode.
+      changes:
+        - createTable:
+            tableName: albums
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: album_artist
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: album
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: album_date
+                  type: VARCHAR(50)
+                  defaultValue: ''
+                  constraints:
+                    nullable: false
+              - column:
+                  name: genre
+                  type: VARCHAR(100)
+              - column:
+                  name: label
+                  type: VARCHAR(255)
+              - column:
+                  name: catalog_number
+                  type: VARCHAR(100)
+              - column:
+                  name: composer
+                  type: VARCHAR(500)
+              - column:
+                  name: conductor
+                  type: VARCHAR(500)
+              - column:
+                  name: ensemble
+                  type: VARCHAR(500)
+              - column:
+                  name: discogs_id
+                  type: VARCHAR(50)
+              - column:
+                  name: discogs_json
+                  type: TEXT
+              - column:
+                  name: extra_tags
+                  type: TEXT
+              - column:
+                  name: images
+                  type: TEXT
+              - column:
+                  name: directory_path
+                  type: VARCHAR(2000)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: V1-002-albums-unique-constraint
+      author: kbeatz
+      comment: >
+        UNIQUE constraint on (album_artist, album, album_date, directory_path) prevents duplicate albums.
+        album_date uses DEFAULT '' (not NULL) so the constraint works with H2's NULL != NULL semantics.
+      changes:
+        - addUniqueConstraint:
+            tableName: albums
+            columnNames: album_artist, album, album_date, directory_path
+            constraintName: uq_albums_identity
+
+  - changeSet:
+      id: V1-003-albums-indexes
+      author: kbeatz
+      comment: Indexes for common filter predicates used by listAlbums endpoint.
+      changes:
+        - createIndex:
+            tableName: albums
+            indexName: idx_albums_album_artist
+            columns:
+              - column:
+                  name: album_artist
+        - createIndex:
+            tableName: albums
+            indexName: idx_albums_composer
+            columns:
+              - column:
+                  name: composer
+        - createIndex:
+            tableName: albums
+            indexName: idx_albums_genre
+            columns:
+              - column:
+                  name: genre
+        - createIndex:
+            tableName: albums
+            indexName: idx_albums_album_date
+            columns:
+              - column:
+                  name: album_date
+
+  - changeSet:
+      id: V1-004-create-tracks
+      author: kbeatz
+      comment: >
+        Create tracks table. track_number, disc_number, track_total, disc_total are VARCHAR
+        because Vorbis TRACKNUMBER may be "1", "A1", or "1/12". ON DELETE CASCADE ensures
+        tracks are removed when their parent album is deleted.
+        Column name track_path avoids SQL reserved-word quoting issues with H2 in PostgreSQL mode.
+      changes:
+        - createTable:
+            tableName: tracks
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: album_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_tracks_album
+                    references: albums(id)
+                    deleteCascade: true
+              - column:
+                  name: title
+                  type: VARCHAR(500)
+              - column:
+                  name: track_number
+                  type: VARCHAR(20)
+              - column:
+                  name: disc_number
+                  type: VARCHAR(20)
+              - column:
+                  name: track_total
+                  type: VARCHAR(20)
+              - column:
+                  name: disc_total
+                  type: VARCHAR(20)
+              - column:
+                  name: artist
+                  type: VARCHAR(500)
+              - column:
+                  name: composer
+                  type: VARCHAR(500)
+              - column:
+                  name: conductor
+                  type: VARCHAR(500)
+              - column:
+                  name: ensemble
+                  type: VARCHAR(500)
+              - column:
+                  name: duration_seconds
+                  type: INTEGER
+              - column:
+                  name: track_path
+                  type: VARCHAR(2000)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: images
+                  type: TEXT
+              - column:
+                  name: extra_tags
+                  type: TEXT
+
+  - changeSet:
+      id: V1-005-tracks-album-index
+      author: kbeatz
+      comment: Index on album_id FK for efficient track lookups by album.
+      changes:
+        - createIndex:
+            tableName: tracks
+            indexName: idx_tracks_album_id
+            columns:
+              - column:
+                  name: album_id

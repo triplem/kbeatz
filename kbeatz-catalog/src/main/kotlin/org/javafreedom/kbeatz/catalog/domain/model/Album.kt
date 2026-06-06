@@ -15,5 +15,9 @@ data class Album(
     val ensemble: String?,
     val discogsId: String?,
     val directoryPath: String,
-    val hasCoverArt: Boolean,
-)
+    val extraTags: Map<String, String>?,
+    val images: List<ImageDescriptor>?,
+) {
+    /** True when at least one [ImageDescriptor] is present (embedded or folder art). */
+    val hasCoverArt: Boolean get() = !images.isNullOrEmpty()
+}
