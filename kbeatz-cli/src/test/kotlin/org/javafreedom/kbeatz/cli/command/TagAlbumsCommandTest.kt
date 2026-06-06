@@ -1,6 +1,11 @@
 package org.javafreedom.kbeatz.cli.command
 
 import com.github.ajalt.clikt.testing.test
+import io.mockk.coEvery
+import io.mockk.mockk
+import kotlinx.io.files.Path
+import org.javafreedom.kbeatz.tagger.service.TagResult
+import org.javafreedom.kbeatz.tagger.service.TaggerService
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
@@ -38,11 +43,36 @@ class TagAlbumsCommandTest {
     }
 
     @Test
-    fun `should print TODO output without dry-run when discogs_id present`(@TempDir tempDir: java.nio.file.Path) {
+    fun `should print TAGGED output when service tags successfully`(@TempDir tempDir: java.nio.file.Path) {
         Files.writeString(tempDir.resolve("id.txt"), "[source]\ndiscogs_id=42\n")
-        val result = TagAlbumsCommand().test("$tempDir")
-        assertContains(result.output, "TODO")
-        assertContains(result.output, "discogs_id=42")
+        val mockService = mockk<TaggerService>()
+        coEvery { mockService.tagAlbum(any(), any()) } returns
+            TagResult.Tagged(Path(tempDir.toString()), "42", 3)
+        val result = TagAlbumsCommand(taggerServiceOverride = mockService).test("$tempDir")
+        assertContains(result.output, "TAGGED")
+        assertContains(result.output, "3 FLAC files")
+    }
+
+    @Test
+    fun `should print SKIP from service when service returns Skipped`(@TempDir tempDir: java.nio.file.Path) {
+        Files.writeString(tempDir.resolve("id.txt"), "[source]\ndiscogs_id=42\n")
+        val mockService = mockk<TaggerService>()
+        coEvery { mockService.tagAlbum(any(), any()) } returns
+            TagResult.Skipped(Path(tempDir.toString()), "release not found")
+        val result = TagAlbumsCommand(taggerServiceOverride = mockService).test("$tempDir")
+        assertContains(result.output, "SKIP")
+        assertContains(result.output, "release not found")
+    }
+
+    @Test
+    fun `should print ERROR when service returns Failed`(@TempDir tempDir: java.nio.file.Path) {
+        Files.writeString(tempDir.resolve("id.txt"), "[source]\ndiscogs_id=42\n")
+        val mockService = mockk<TaggerService>()
+        coEvery { mockService.tagAlbum(any(), any()) } returns
+            TagResult.Failed(Path(tempDir.toString()), RuntimeException("network error"))
+        val result = TagAlbumsCommand(taggerServiceOverride = mockService).test("$tempDir")
+        assertContains(result.output, "ERROR")
+        assertContains(result.output, "network error")
     }
 
     @Test

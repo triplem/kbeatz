@@ -1,17 +1,23 @@
 package org.javafreedom.kbeatz.cli.command
 
 import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.UsageError
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.convert
 import com.github.ajalt.clikt.parameters.arguments.multiple
 import com.github.ajalt.clikt.parameters.options.convert
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
+import kotlinx.coroutines.runBlocking
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
 import org.javafreedom.kbeatz.cli.util.walkDirectories
+import org.javafreedom.kbeatz.sources.discogs.DiscogsMetadataSource
 import org.javafreedom.kbeatz.tagger.idfile.IdFileReader
 import org.javafreedom.kbeatz.tagger.idfile.SourceConfig
+import org.javafreedom.kbeatz.tagger.service.DefaultTaggerService
+import org.javafreedom.kbeatz.tagger.service.TagResult
+import org.javafreedom.kbeatz.tagger.service.TaggerService
 
 /**
  * Tags one or more album directories from Discogs metadata.
@@ -20,7 +26,9 @@ import org.javafreedom.kbeatz.tagger.idfile.SourceConfig
  *   kbeatz-tagger tag /music/Artist/Album1 /music/Artist/Album2
  *   kbeatz-tagger tag --library /music --recursive
  */
-class TagAlbumsCommand : CliktCommand(
+class TagAlbumsCommand(
+    private val taggerServiceOverride: TaggerService? = null,
+) : CliktCommand(
     name = "tag",
     help = "Fetch Discogs metadata and write FLAC tags for the given album directories.",
 ) {
@@ -44,6 +52,11 @@ class TagAlbumsCommand : CliktCommand(
         help = "Print what would be tagged without writing any files.",
     ).flag()
 
+    private val downloadImages: Boolean by option(
+        "--download-images",
+        help = "Download and embed cover art. Default off — preserves the Discogs image quota.",
+    ).flag()
+
     override fun run() {
         val idReader = IdFileReader(SourceConfig())
         val targets = resolveTargets()
@@ -51,10 +64,12 @@ class TagAlbumsCommand : CliktCommand(
             echo("No album directories found.", err = true)
             return
         }
-        targets.forEach { dir -> tagAlbum(dir, idReader) }
+        // Lazy: DISCOGS_TOKEN only required if tagging actually runs (not for skip/dry-run paths)
+        val lazyService: Lazy<TaggerService> = lazy { taggerServiceOverride ?: buildService(idReader) }
+        targets.forEach { dir -> tagAlbum(dir, idReader, lazyService) }
     }
 
-    private fun tagAlbum(dir: Path, idReader: IdFileReader) {
+    private fun tagAlbum(dir: Path, idReader: IdFileReader, lazyService: Lazy<TaggerService>) {
         val idFile = idReader.read(dir)
         if (idFile == null) {
             echo("SKIP  $dir — no id.txt / local_ids.txt / metadata.yml found", err = true)
@@ -68,9 +83,23 @@ class TagAlbumsCommand : CliktCommand(
         if (dryRun) {
             echo("DRY   $dir → discogs_id=$discogsId")
         } else {
-            // TODO(#TBD): inject TaggerService and delegate
-            echo("TODO  $dir → discogs_id=$discogsId (tagging not yet implemented)")
+            runBlocking {
+                when (val result = lazyService.value.tagAlbum(dir, downloadImages)) {
+                    is TagResult.Tagged -> echo("TAGGED $dir — ${result.filesWritten} FLAC files written")
+                    is TagResult.Skipped -> echo("SKIP   $dir — ${result.reason}", err = true)
+                    is TagResult.Failed -> {
+                        val msg = result.cause.message ?: result.cause.javaClass.simpleName
+                        echo("ERROR  $dir — $msg", err = true)
+                    }
+                }
+            }
         }
+    }
+
+    private fun buildService(idReader: IdFileReader): TaggerService {
+        val token = System.getenv("DISCOGS_TOKEN")
+            ?: throw UsageError("DISCOGS_TOKEN environment variable must be set for tagging")
+        return DefaultTaggerService(idReader, DiscogsMetadataSource(token))
     }
 
     private fun resolveTargets(): List<Path> {
@@ -95,4 +124,3 @@ private const val DEFAULT_LIBRARY_SCAN_DEPTH = 3
 private fun String.toKtxPath(): Path = Path(this).also {
     require(SystemFileSystem.exists(it)) { "Path does not exist: $this" }
 }
-
