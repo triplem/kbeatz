@@ -1,5 +1,6 @@
 plugins {
     id("kbeatz.cli-app")
+    id("com.gradleup.shadow") version "9.0.0-beta4"
 }
 
 group = "org.javafreedom.kbeatz"
@@ -12,6 +13,13 @@ dependencies {
 
 application {
     mainClass.set("org.javafreedom.kbeatz.cli.KbeatzTaggerCliKt")
+}
+
+tasks.shadowJar {
+    archiveBaseName.set("kbeatz-cli")
+    archiveVersion.set("")
+    archiveClassifier.set("all")
+    mergeServiceFiles()
 }
 
 kover {
