@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Routes, Route } from 'react-router-dom'
 import { AlbumPage } from './api/generated'
 import { AlbumsService } from './api/generated'
 import { AlbumGrid } from './features/albums/album-grid'
+import { AlbumDetail } from './features/albums/album-detail'
 import { FilterPanel } from './features/albums/filter-panel'
 import { SearchBox } from './features/albums/search-box'
 import { SortPreference } from './features/albums/sort-preference'
@@ -17,7 +19,7 @@ import {
   type SortField,
 } from './features/albums/album-filters'
 
-export function App() {
+function AlbumListPage() {
   const [albumPage, setAlbumPage] = useState<AlbumPage | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -104,5 +106,14 @@ export function App() {
         </div>
       </main>
     </div>
+  )
+}
+
+export function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<AlbumListPage />} />
+      <Route path="/albums/:albumId" element={<AlbumDetail />} />
+    </Routes>
   )
 }
