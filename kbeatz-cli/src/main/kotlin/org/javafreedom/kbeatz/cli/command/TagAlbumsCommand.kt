@@ -31,7 +31,7 @@ class TagAlbumsCommand : CliktCommand(
 
     private val libraryRoot: Path? by option(
         "--library", "-l",
-        help = "Root of the music library. Scans up to 3 levels deep (<Genre>/<Artist>/<Album>); use --recursive for unlimited depth.",
+        help = "Root of the music library. Scans up to 3 levels deep (<Genre>/<Artist>/<Album>).",
     ).convert { it.toKtxPath() }
 
     private val recursive: Boolean by option(
@@ -44,11 +44,6 @@ class TagAlbumsCommand : CliktCommand(
         help = "Print what would be tagged without writing any files.",
     ).flag()
 
-    private val downloadImages: Boolean by option(
-        "--download-images",
-        help = "Download and embed cover art. Default off — preserves the Discogs 1 000/day image quota.",
-    ).flag()
-
     override fun run() {
         val idReader = IdFileReader(SourceConfig())
         val targets = resolveTargets()
@@ -56,23 +51,25 @@ class TagAlbumsCommand : CliktCommand(
             echo("No album directories found.", err = true)
             return
         }
-        for (dir in targets) {
-            val idFile = idReader.read(dir)
-            if (idFile == null) {
-                echo("SKIP  $dir — no id.txt / local_ids.txt / metadata.yml found", err = true)
-                continue
-            }
-            val discogsId = idReader.discogsId(idFile)
-            if (discogsId == null) {
-                echo("SKIP  $dir — no discogs_id in id file", err = true)
-                continue
-            }
-            if (dryRun) {
-                echo("DRY   $dir → discogs_id=$discogsId")
-            } else {
-                // TODO(#TBD): inject TaggerService and delegate
-                echo("TODO  $dir → discogs_id=$discogsId (tagging not yet implemented)")
-            }
+        targets.forEach { dir -> tagAlbum(dir, idReader) }
+    }
+
+    private fun tagAlbum(dir: Path, idReader: IdFileReader) {
+        val idFile = idReader.read(dir)
+        if (idFile == null) {
+            echo("SKIP  $dir — no id.txt / local_ids.txt / metadata.yml found", err = true)
+            return
+        }
+        val discogsId = idReader.discogsId(idFile)
+        if (discogsId == null) {
+            echo("SKIP  $dir — no discogs_id in id file", err = true)
+            return
+        }
+        if (dryRun) {
+            echo("DRY   $dir → discogs_id=$discogsId")
+        } else {
+            // TODO(#TBD): inject TaggerService and delegate
+            echo("TODO  $dir → discogs_id=$discogsId (tagging not yet implemented)")
         }
     }
 

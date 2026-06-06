@@ -11,7 +11,7 @@ import org.javafreedom.kbeatz.sources.Release
  */
 class InMemoryMetadataCache(private val maxEntries: Int = 500) : MetadataCache {
 
-    private val store = object : LinkedHashMap<String, Release>(maxEntries, 0.75f, true) {
+    private val store = object : LinkedHashMap<String, Release>(maxEntries, LOAD_FACTOR, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Release>?) =
             size > maxEntries
     }
@@ -26,4 +26,8 @@ class InMemoryMetadataCache(private val maxEntries: Int = 500) : MetadataCache {
         synchronized(store) { store.remove(key(sourceName, releaseId)) }.let { }
 
     private fun key(sourceName: String, releaseId: String) = "$sourceName:$releaseId"
+
+    companion object {
+        private const val LOAD_FACTOR = 0.75f
+    }
 }
