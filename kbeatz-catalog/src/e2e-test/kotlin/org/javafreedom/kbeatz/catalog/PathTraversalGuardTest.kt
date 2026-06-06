@@ -4,6 +4,11 @@ import io.ktor.client.request.get
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
+import java.nio.file.Path
+import org.javafreedom.kbeatz.catalog.application.service.AlbumService
+import org.javafreedom.kbeatz.catalog.application.service.LibraryScanService
+import org.javafreedom.kbeatz.catalog.application.service.LibraryWalker
+import org.javafreedom.kbeatz.catalog.infrastructure.persistence.ExposedAlbumRepository
 import org.javafreedom.kbeatz.catalog.plugins.configurePathTraversalGuard
 import org.javafreedom.kbeatz.catalog.plugins.configureRouting
 import org.javafreedom.kbeatz.catalog.plugins.configureSerialization
@@ -14,12 +19,8 @@ import kotlin.test.assertEquals
 class PathTraversalGuardTest {
 
     private fun ApplicationTestBuilder.setupApp() {
-        application {
-            configurePathTraversalGuard()
-            configureSerialization()
-            configureStatusPages()
-            configureRouting()
-        }
+        // Use the full module() — env vars are set by the e2eTest Gradle task
+        application { module() }
     }
 
     @Test

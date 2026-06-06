@@ -30,6 +30,7 @@ openApiGenerate {
 
 tasks.named<Test>("e2eTest") {
     environment("CATALOG_LIBRARY_ROOT", System.getenv("CATALOG_LIBRARY_ROOT") ?: System.getProperty("java.io.tmpdir"))
+    environment("CATALOG_JDBC_URL", "jdbc:h2:mem:kbeatz_e2e;DB_CLOSE_DELAY=-1;MODE=PostgreSQL")
 }
 
 kover {

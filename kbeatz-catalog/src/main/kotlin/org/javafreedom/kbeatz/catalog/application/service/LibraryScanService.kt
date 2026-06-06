@@ -1,13 +1,16 @@
 package org.javafreedom.kbeatz.catalog.application.service
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import java.io.IOException
+import java.nio.file.FileVisitResult
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.SimpleFileVisitor
+import java.nio.file.attribute.BasicFileAttributes
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.CoroutineContext
 import kotlin.io.path.deleteIfExists
-import kotlin.io.path.isRegularFile
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -111,12 +114,21 @@ class LibraryScanService(
         }
     }
 
-    private fun collectLockFiles(): List<Path> =
-        Files.walk(libraryRoot).use { stream ->
-            stream
-                .filter { it.isRegularFile() && it.fileName.toString() == LOCK_FILE_NAME }
-                .toList()
-        }
+    private fun collectLockFiles(): List<Path> {
+        val result = mutableListOf<Path>()
+        Files.walkFileTree(libraryRoot, object : SimpleFileVisitor<Path>() {
+            override fun visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult {
+                if (file.fileName.toString() == LOCK_FILE_NAME) result.add(file)
+                return FileVisitResult.CONTINUE
+            }
+
+            override fun visitFileFailed(file: Path, exc: IOException): FileVisitResult {
+                log.warn { "Skipping inaccessible path during lock file scan: $file (${exc.message})" }
+                return FileVisitResult.CONTINUE
+            }
+        })
+        return result
+    }
 
     @Suppress("TooGenericExceptionCaught") // intentional: any scan failure transitions to FAILED
     private suspend fun runScan() {

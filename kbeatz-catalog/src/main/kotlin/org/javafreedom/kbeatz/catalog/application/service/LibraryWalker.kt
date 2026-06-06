@@ -1,11 +1,14 @@
 package org.javafreedom.kbeatz.catalog.application.service
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import java.io.IOException
+import java.nio.file.FileVisitResult
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.SimpleFileVisitor
+import java.nio.file.attribute.BasicFileAttributes
 import kotlin.io.path.extension
 import kotlin.io.path.isDirectory
-import kotlin.io.path.isRegularFile
 import kotlin.io.path.name
 import kotlinx.io.files.Path as KtPath
 import org.javafreedom.kbeatz.catalog.domain.model.AlbumGroup
@@ -52,13 +55,24 @@ class LibraryWalker {
         return groupFlacFiles(flacFiles, libraryRoot)
     }
 
-    private fun collectFlacFiles(root: Path): List<Path> =
-        Files.walk(root).use { stream ->
-            stream
-                .filter { it.isRegularFile() && it.extension.equals("flac", ignoreCase = true) }
-                .sorted()
-                .toList()
-        }
+    private fun collectFlacFiles(root: Path): List<Path> {
+        val result = mutableListOf<Path>()
+        Files.walkFileTree(root, object : SimpleFileVisitor<Path>() {
+            override fun visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult {
+                if (file.extension.equals("flac", ignoreCase = true)) result.add(file)
+                return FileVisitResult.CONTINUE
+            }
+
+            override fun visitFileFailed(file: Path, exc: IOException): FileVisitResult {
+                log.warn { "Skipping inaccessible path during walk: $file (${exc.message})" }
+                return FileVisitResult.CONTINUE
+            }
+
+            override fun preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult =
+                FileVisitResult.CONTINUE
+        })
+        return result.sorted()
+    }
 
     private fun groupFlacFiles(flacFiles: List<Path>, libraryRoot: Path): List<AlbumGroup> {
         // Map of (canonicalDir, albumArtist, albumTitle) → list of (path, date)
