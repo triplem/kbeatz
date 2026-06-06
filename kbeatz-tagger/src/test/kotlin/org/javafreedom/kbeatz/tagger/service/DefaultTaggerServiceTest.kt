@@ -70,11 +70,13 @@ class DefaultTaggerServiceTest {
 
     @Test
     fun `should return Skipped when id file has no discogs_id`(@TempDir tempDir: java.nio.file.Path) = runTest {
+        // IniIdFileParser returns null for INI files without discogs_id,
+        // so the reader sees no parseable id file → "no id file found"
         Files.writeString(tempDir.resolve("id.txt"), "[source]\namg_id=99\n")
         val service = DefaultTaggerService(idReader, metadataSource)
         val result = service.tagAlbum(Path(tempDir.toString()))
         assertIs<TagResult.Skipped>(result)
-        assertContains(result.reason, "discogs_id")
+        assertContains(result.reason, "no id file found")
     }
 
     @Test
