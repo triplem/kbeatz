@@ -49,25 +49,63 @@ class MigrateIdFilesCommand : CliktCommand(
     override fun run() {
         val idReader = IdFileReader(SourceConfig())
         val depth = if (recursive) Int.MAX_VALUE else DEFAULT_LIBRARY_SCAN_DEPTH
+        var migrated = 0
+        var skipped = 0
+        var errors = 0
+
         walkDirectories(rootDir, depth).forEach { dir ->
-            idReader.read(dir)?.let { idFile -> migrateDirectory(dir, idFile) }
+            val outcome = migrateDirectory(dir, idReader)
+            when (outcome) {
+                MigrateOutcome.MIGRATED -> migrated++
+                MigrateOutcome.SKIPPED -> skipped++
+                MigrateOutcome.ERROR -> errors++
+                MigrateOutcome.NO_ID_FILE -> { /* nothing to count */ }
+            }
+        }
+
+        echo("Migrated $migrated files, $skipped skipped, $errors errors")
+    }
+
+    private fun migrateDirectory(dir: Path, idReader: IdFileReader): MigrateOutcome {
+        val hasLegacy = LEGACY_NAMES.any { SystemFileSystem.exists(Path(dir, it)) }
+        return when {
+            !hasLegacy -> MigrateOutcome.NO_ID_FILE
+            SystemFileSystem.exists(Path(dir, "metadata.yml")) -> {
+                echo("SKIP  $dir — metadata.yml already exists", err = true)
+                MigrateOutcome.SKIPPED
+            }
+            else -> migrateWithIdFile(dir, idReader)
         }
     }
 
-    private fun migrateDirectory(dir: Path, idFile: IdFile) {
+    private fun migrateWithIdFile(dir: Path, idReader: IdFileReader): MigrateOutcome {
+        val idFile = runCatching { idReader.read(dir) }.getOrElse { e ->
+            echo("ERROR $dir — ${e.message ?: e.javaClass.simpleName}", err = true)
+            return MigrateOutcome.ERROR
+        }
+        return if (idFile == null) {
+            echo("SKIP  $dir — no parseable id file found", err = true)
+            MigrateOutcome.SKIPPED
+        } else {
+            performMigration(dir, idFile, Path(dir, "metadata.yml"))
+        }
+    }
+
+    private fun performMigration(dir: Path, idFile: IdFile, target: Path): MigrateOutcome {
         val yamlContent = buildYaml(idFile.sources)
-        val target = Path(dir, "metadata.yml")
-        if (dryRun) {
+        return if (dryRun) {
             echo("DRY   $target:\n$yamlContent")
+            MigrateOutcome.MIGRATED
         } else {
             SystemFileSystem.sink(target).buffered().use { it.writeString(yamlContent) }
             echo("WROTE $target")
             if (!keepOriginal) deleteOriginalIdFiles(dir)
+            MigrateOutcome.MIGRATED
         }
     }
 
     private fun deleteOriginalIdFiles(dir: Path) {
-        listOf("id.txt", "local_ids.txt")
+        LEGACY_NAMES
             .map { Path(dir, it) }
             .filter { SystemFileSystem.exists(it) }
             .forEach { path -> SystemFileSystem.delete(path); echo("DEL   $path") }
@@ -80,5 +118,9 @@ class MigrateIdFilesCommand : CliktCommand(
         }
 }
 
+private val LEGACY_NAMES = listOf("id.txt", "local_ids.txt")
+
 // Matches the documented 3-level library layout: <Genre>/<AlbumArtist>/<AlbumTitle>
 private const val DEFAULT_LIBRARY_SCAN_DEPTH = 3
+
+private enum class MigrateOutcome { MIGRATED, SKIPPED, ERROR, NO_ID_FILE }
