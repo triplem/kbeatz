@@ -53,10 +53,12 @@ class LibraryWalker {
     }
 
     private fun collectFlacFiles(root: Path): List<Path> =
-        Files.walk(root)
-            .filter { it.isRegularFile() && it.extension.equals("flac", ignoreCase = true) }
-            .sorted()
-            .toList()
+        Files.walk(root).use { stream ->
+            stream
+                .filter { it.isRegularFile() && it.extension.equals("flac", ignoreCase = true) }
+                .sorted()
+                .toList()
+        }
 
     private fun groupFlacFiles(flacFiles: List<Path>, libraryRoot: Path): List<AlbumGroup> {
         // Map of (canonicalDir, albumArtist, albumTitle) → list of (path, date)
