@@ -15,4 +15,10 @@ pluginManagement {
     repositories { gradlePluginPortal() }
 }
 
+includeBuild("../kbeatz-tagger") {
+    dependencySubstitution {
+        substitute(module("org.javafreedom.kbeatz:kbeatz-tagger")).using(project(":"))
+    }
+}
+
 rootProject.name = "kbeatz-catalog"
