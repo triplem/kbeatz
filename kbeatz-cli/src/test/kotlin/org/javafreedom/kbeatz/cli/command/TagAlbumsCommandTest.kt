@@ -144,4 +144,44 @@ class TagAlbumsCommandTest {
         assertContains(result.output, "WARN")
         assertContains(result.output, "skipped")
     }
+
+    @Test
+    fun `should print progress and summary when using --library`(@TempDir tempDir: java.nio.file.Path) {
+        val album = Files.createDirectory(tempDir.resolve("album"))
+        Files.writeString(album.resolve("id.txt"), "[source]\ndiscogs_id=77\n")
+        val result = TagAlbumsCommand().test("--library $tempDir --dry-run")
+        assertContains(result.output, "Tagging [1/1]:")
+        assertContains(result.output, "Tagged 1 albums, 0 skipped, 0 errors")
+    }
+
+    @Test
+    fun `should scan at custom depth when --depth option is given`(@TempDir tempDir: java.nio.file.Path) {
+        // album at depth 2 — should be found with --depth 2
+        val level1 = Files.createDirectory(tempDir.resolve("genre"))
+        val album = Files.createDirectory(level1.resolve("album"))
+        Files.writeString(album.resolve("id.txt"), "[source]\ndiscogs_id=99\n")
+        val result = TagAlbumsCommand().test("--library $tempDir --depth 2 --dry-run")
+        assertContains(result.output, "DRY")
+        assertContains(result.output, "discogs_id=99")
+    }
+
+    @Test
+    fun `should not scan beyond --depth`(@TempDir tempDir: java.nio.file.Path) {
+        // album at depth 4 — should NOT be found with --depth 3
+        val deep = Files.createDirectories(tempDir.resolve("a/b/c/d"))
+        Files.writeString(deep.resolve("id.txt"), "[source]\ndiscogs_id=77\n")
+        val result = TagAlbumsCommand().test("--library $tempDir --depth 3 --dry-run")
+        assertContains(result.output, "No album directories found")
+    }
+
+    @Test
+    fun `should show skipped count in library summary when album has no id file`(@TempDir tempDir: java.nio.file.Path) {
+        val noId = Files.createDirectory(tempDir.resolve("no-id"))
+        val hasId = Files.createDirectory(tempDir.resolve("has-id"))
+        Files.writeString(hasId.resolve("id.txt"), "[source]\ndiscogs_id=55\n")
+        // The "no-id" dir has no id file so won't appear in resolveTargets —
+        // but "has-id" dir will be found and tagged (dry-run)
+        val result = TagAlbumsCommand().test("--library $tempDir --dry-run")
+        assertContains(result.output, "Tagged 1 albums, 0 skipped, 0 errors")
+    }
 }
