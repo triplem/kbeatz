@@ -1,13 +1,46 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AlbumPage } from './api/generated'
 import { AlbumsService } from './api/generated'
 import { AlbumGrid } from './features/albums/album-grid'
+import { FilterPanel } from './features/albums/filter-panel'
+import { SearchBox } from './features/albums/search-box'
+import { SortPreference } from './features/albums/sort-preference'
 import { ScanProgress } from './features/library/scan-progress'
+import {
+  applyFiltersAndSort,
+  deriveFilterOptions,
+  filtersFromParams,
+  filtersToParams,
+  loadSortPreference,
+  saveSortPreference,
+  type AlbumFilters,
+  type SortField,
+} from './features/albums/album-filters'
 
 export function App() {
   const [albumPage, setAlbumPage] = useState<AlbumPage | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Filter and sort state — initialised from URL query params and localStorage
+  const [filters, setFilters] = useState<AlbumFilters>(() =>
+    filtersFromParams(new URLSearchParams(window.location.search)),
+  )
+  const [sortBy, setSortBy] = useState<SortField>(() => loadSortPreference())
+
+  // Sync filters to URL whenever they change
+  useEffect(() => {
+    const params = filtersToParams(filters)
+    const search = params.toString()
+    const newUrl = search ? `${window.location.pathname}?${search}` : window.location.pathname
+    window.history.replaceState(null, '', newUrl)
+  }, [filters])
+
+  // Persist sort preference to localStorage
+  const handleSortChange = useCallback((next: SortField) => {
+    setSortBy(next)
+    saveSortPreference(next)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -35,16 +68,40 @@ export function App() {
     }
   }, [])
 
+  const allAlbums = useMemo(() => albumPage?.content ?? [], [albumPage])
+
+  const filterOptions = useMemo(() => deriveFilterOptions(allAlbums), [allAlbums])
+
+  const visibleAlbums = useMemo(
+    () => applyFiltersAndSort(allAlbums, filters, sortBy),
+    [allAlbums, filters, sortBy],
+  )
+
   return (
     <div className="app">
       <header className="app-header">
         <h1>kbeatz</h1>
+        <SearchBox filters={filters} onFiltersChange={setFilters} />
       </header>
-      <main>
+      <main className="app-main">
         <ScanProgress />
-        {loading && <p>Loading albums...</p>}
-        {error && <p role="alert">Error: {error}</p>}
-        {albumPage && <AlbumGrid albums={albumPage.content} />}
+        <div className="app-content">
+          {!loading && !error && (
+            <FilterPanel
+              options={filterOptions}
+              filters={filters}
+              onFiltersChange={setFilters}
+            />
+          )}
+          <div className="app-grid-area">
+            <div className="app-toolbar">
+              <SortPreference value={sortBy} onChange={handleSortChange} />
+            </div>
+            {loading && <p>Loading albums...</p>}
+            {error && <p role="alert">Error: {error}</p>}
+            {!loading && !error && <AlbumGrid albums={visibleAlbums} />}
+          </div>
+        </div>
       </main>
     </div>
   )
