@@ -36,17 +36,19 @@ data class SourceConfig(
  */
 class IdFileReader(private val config: SourceConfig = SourceConfig()) {
 
+    private val iniParser = IniIdFileParser()
+
     fun read(directory: Path): IdFile? =
         config.idFileNames
             .map { Path(directory, it) }
             .firstOrNull { SystemFileSystem.exists(it) }
             ?.let { readFile(it) }
 
-    private fun readFile(file: Path): IdFile {
+    private fun readFile(file: Path): IdFile? {
         val text = SystemFileSystem.source(file).buffered().use { it.readByteArray().decodeToString() }
         return when {
             file.name.endsWith(".yml") || file.name.endsWith(".yaml") -> parseYaml(text)
-            else -> IdFile(parseIni(text))
+            else -> iniParser.parse(text)
         }
     }
 
@@ -68,22 +70,3 @@ private val yamlParser = Yaml(configuration = YamlConfiguration(strictMode = fal
 private fun parseYaml(text: String): IdFile =
     IdFile(yamlParser.decodeFromString(MetadataYaml.serializer(), text).sources)
 
-// ---------------------------------------------------------------------------
-// INI parsing (id.txt / local_ids.txt)
-// ---------------------------------------------------------------------------
-
-/**
- * Minimal INI parser: reads `key=value` lines, ignores `[section]` headers and `#` comments.
- * Sufficient for discogstagger id files — no multi-line values, no unicode escapes needed.
- */
-private fun parseIni(text: String): Map<String, String> =
-    text.lines()
-        .filterNot { line ->
-            line.trimStart().let { it.startsWith("[") || it.startsWith("#") || it.isBlank() }
-        }
-        .mapNotNull { line ->
-            val eq = line.indexOf('=').takeIf { it > 0 }
-            eq?.let { eqIdx -> line.substring(0, eqIdx).trim() to line.substring(eqIdx + 1).trim() }
-        }
-        .filter { (_, v) -> v.isNotEmpty() }
-        .toMap()
