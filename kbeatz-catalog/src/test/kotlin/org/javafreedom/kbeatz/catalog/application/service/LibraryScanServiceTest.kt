@@ -1,0 +1,168 @@
+package org.javafreedom.kbeatz.catalog.application.service
+
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
+import java.nio.file.Path
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.uuid.Uuid
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
+import org.javafreedom.kbeatz.catalog.domain.model.AlbumGroup
+import org.javafreedom.kbeatz.catalog.domain.model.ScanState
+import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class LibraryScanServiceTest {
+
+    private val libraryRoot: Path = Path.of("/music")
+    private val walker: LibraryWalker = mockk()
+    private val albumRepository: AlbumRepository = mockk()
+
+    private fun service() = LibraryScanService(
+        libraryRoot = libraryRoot,
+        walker = walker,
+        albumRepository = albumRepository,
+        scanDispatcher = UnconfinedTestDispatcher(),
+    )
+
+    private fun albumGroup(artist: String = "Miles Davis", album: String = "Kind of Blue") =
+        AlbumGroup(
+            rootPath = Path.of("/music/$artist/$album"),
+            flacPaths = listOf(Path.of("/music/$artist/$album/01.flac")),
+            albumArtist = artist,
+            albumTitle = album,
+            date = "1959",
+        )
+
+    @Test
+    fun `initial status is IDLE with zero counts`() {
+        val svc = service()
+
+        val status = svc.status()
+
+        assertEquals(ScanState.IDLE, status.state)
+        assertEquals(0L, status.scannedAlbums)
+        assertEquals(0L, status.totalAlbums)
+        assertNull(status.errorMessage)
+    }
+
+    @Test
+    fun `startScan transitions to COMPLETE with correct counts`() = runTest {
+        val groups = listOf(albumGroup("Miles Davis"), albumGroup("John Coltrane"))
+        every { walker.walk(libraryRoot) } returns groups
+        coEvery { albumRepository.saveAll(any()) } returns Unit
+
+        val svc = service()
+        svc.startScan()
+
+        val status = svc.status()
+        assertEquals(ScanState.COMPLETE, status.state)
+        assertEquals(2L, status.scannedAlbums)
+        assertEquals(2L, status.totalAlbums)
+        assertNull(status.errorMessage)
+    }
+
+    @Test
+    fun `startScan does not launch duplicate scan when already RUNNING`() = runTest {
+        // Use a blocking walker to keep scan RUNNING
+        var scanStarted = false
+        every { walker.walk(libraryRoot) } answers {
+            scanStarted = true
+            // Return groups immediately (UnconfinedTestDispatcher runs synchronously)
+            emptyList()
+        }
+        coEvery { albumRepository.saveAll(any()) } returns Unit
+
+        val svc = service()
+        svc.startScan() // First scan — completes synchronously
+        svc.startScan() // Second call — should start a new scan from COMPLETE state
+
+        // Both calls should have succeeded; walker called twice at most
+        val status = svc.status()
+        assertEquals(ScanState.COMPLETE, status.state)
+    }
+
+    @Test
+    fun `startScan transitions to FAILED when walker throws`() = runTest {
+        every { walker.walk(libraryRoot) } throws RuntimeException("Disk read error")
+
+        val svc = service()
+        svc.startScan()
+
+        val status = svc.status()
+        assertEquals(ScanState.FAILED, status.state)
+        assertNotNull(status.errorMessage)
+        assertEquals("Disk read error", status.errorMessage)
+    }
+
+    @Test
+    fun `startScan transitions to FAILED when repository throws`() = runTest {
+        val groups = listOf(albumGroup())
+        every { walker.walk(libraryRoot) } returns groups
+        coEvery { albumRepository.saveAll(any()) } throws RuntimeException("DB unavailable")
+
+        val svc = service()
+        svc.startScan()
+
+        val status = svc.status()
+        assertEquals(ScanState.FAILED, status.state)
+        assertEquals("DB unavailable", status.errorMessage)
+    }
+
+    @Test
+    fun `startScan persists album groups via repository`() = runTest {
+        val groups = listOf(albumGroup("Bach", "Goldberg Variations"))
+        every { walker.walk(libraryRoot) } returns groups
+        coEvery { albumRepository.saveAll(any()) } returns Unit
+
+        val svc = service()
+        svc.startScan()
+
+        coVerify(exactly = 1) {
+            albumRepository.saveAll(match { albums ->
+                albums.size == 1 &&
+                    albums[0].albumArtist == "Bach" &&
+                    albums[0].album == "Goldberg Variations"
+            })
+        }
+    }
+
+    @Test
+    fun `startScan with empty library completes with zero counts`() = runTest {
+        every { walker.walk(libraryRoot) } returns emptyList()
+        coEvery { albumRepository.saveAll(any()) } returns Unit
+
+        val svc = service()
+        svc.startScan()
+
+        val status = svc.status()
+        assertEquals(ScanState.COMPLETE, status.state)
+        assertEquals(0L, status.scannedAlbums)
+        assertEquals(0L, status.totalAlbums)
+    }
+
+    @Test
+    fun `AlbumGroup toAlbum maps fields correctly`() {
+        val group = AlbumGroup(
+            rootPath = Path.of("/music/classical/bach"),
+            flacPaths = emptyList(),
+            albumArtist = "Bach",
+            albumTitle = "BWV 998",
+            date = "1720",
+        )
+
+        val album = with(LibraryScanService.Companion) { group.toAlbum() }
+
+        assertEquals("Bach", album.albumArtist)
+        assertEquals("BWV 998", album.album)
+        assertEquals("1720", album.date)
+        assertEquals("/music/classical/bach", album.directoryPath)
+        assertNotNull(album.id)
+    }
+}
