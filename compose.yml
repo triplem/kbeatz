@@ -26,3 +26,15 @@ services:
     depends_on:
       catalog:
         condition: service_healthy
+
+  cli:
+    build:
+      context: .
+      dockerfile: kbeatz-cli/Dockerfile
+    environment:
+      DISCOGS_TOKEN: ${DISCOGS_TOKEN:-}
+      CATALOG_LIBRARY_ROOT: ${CATALOG_LIBRARY_ROOT:-/library}
+    volumes:
+      - ${CATALOG_LIBRARY_ROOT:-/tmp/kbeatz-library}:/library:rw
+    profiles:
+      - tools
