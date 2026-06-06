@@ -50,4 +50,4 @@ All epics are labelled `epic` + `pending-approval` in the issue tracker. Add lab
 | H2 album index schema (denormalised vs normalised, multi-disc representation) | #14 | to be created before #14 stories |
 | Discogs rate-limiting strategy (token bucket vs sliding window) | #17 | to be created before #17 stories |
 
-Existing ADRs (ADR-001 through ADR-005) cover FLAC implementation, Kotlin File API, CLI framework, image handling, and module structure — no rework needed.
+Existing ADRs (ADR-001 through ADR-006) cover FLAC implementation, Kotlin File API, CLI framework, image handling, module structure, and database choice — no rework needed.

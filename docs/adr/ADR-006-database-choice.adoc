@@ -84,6 +84,10 @@ No Exposed DSL changes and no Liquibase migration rewrites are expected.
   Testcontainers needed, keeping test execution fast.
 * `kbeatz-cli` can open the same H2 file the catalog service uses via `AUTO_SERVER=TRUE`
   for read access (e.g., checking whether an album is already indexed before tagging).
+  `AUTO_SERVER=TRUE` starts H2's built-in TCP server on port 9092 the first time a client
+  connects — this is the intended sharing mechanism. On a private LAN this is acceptable
+  (no auth in v1 per NFR-07); on a multi-tenant or untrusted network, firewall port 9092
+  or disable `AUTO_SERVER` and use a shared PostgreSQL instance instead (the v2 path).
 * The `image-quota.json` flat file (ADR-004) remains as-is — a full DB dependency for
   a single integer counter is disproportionate.
 * The Discogs release JSON cache (`MetadataCache` in `kbeatz-sources`) stays in-memory
