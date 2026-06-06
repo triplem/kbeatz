@@ -1,20 +1,18 @@
 # kbeatz — Epics Index
 
-**Date**: 2026-06-05  
-**Status**: pending-approval
-
-All epics are labelled `epic` + `pending-approval` in the issue tracker. Add label `approved` to each epic to trigger story decomposition via `/write-stories <issue-number>`.
+**Date**: 2026-06-06  
+**Status**: all epics approved
 
 ---
 
 | # | Epic | Milestone | Complexity | Priority | Status |
 |---|---|---|---|---|---|
-| [#13](https://github.com/triplem/kbeatz/issues/13) | Platform Foundation & Deployment | M1 | M | — | pending-approval |
-| [#14](https://github.com/triplem/kbeatz/issues/14) | Library Scan & Album Indexing | M1 | L | P0 | pending-approval |
-| [#15](https://github.com/triplem/kbeatz/issues/15) | Album Browsing & Search | M2 | L | P0 | pending-approval |
-| [#16](https://github.com/triplem/kbeatz/issues/16) | In-Place Tag Editing | M3 | M | P0 | pending-approval |
-| [#17](https://github.com/triplem/kbeatz/issues/17) | Discogs Metadata Sync | M3 | L | P0 | pending-approval |
-| [#18](https://github.com/triplem/kbeatz/issues/18) | CLI Tagger & ID-File Migration | M4 | M | P1 | pending-approval |
+| [#13](https://github.com/triplem/kbeatz/issues/13) | Platform Foundation & Deployment | M1 | M | — | approved |
+| [#14](https://github.com/triplem/kbeatz/issues/14) | Library Scan & Album Indexing | M1 | L | P0 | approved |
+| [#15](https://github.com/triplem/kbeatz/issues/15) | Album Browsing & Search | M2 | L | P0 | approved |
+| [#16](https://github.com/triplem/kbeatz/issues/16) | In-Place Tag Editing | M3 | M | P0 | approved |
+| [#17](https://github.com/triplem/kbeatz/issues/17) | Discogs Metadata Sync | M3 | L | P0 | approved |
+| [#18](https://github.com/triplem/kbeatz/issues/18) | CLI Tagger & ID-File Migration | M4 | M | P1 | approved |
 
 ---
 
