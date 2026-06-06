@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Album } from '../../api/generated'
 
 interface AlbumCardProps {
@@ -32,12 +33,18 @@ const CoverPlaceholder = () => (
  */
 export function AlbumCard({ album }: AlbumCardProps) {
   const [coverError, setCoverError] = useState(false)
+  const navigate = useNavigate()
 
   const primaryAttribution = album.composer ?? album.albumArtist
   const showCover = album.hasCoverArt && !coverError
 
   return (
-    <article className="album-card" aria-label={`${album.album} by ${primaryAttribution}`}>
+    <article
+      className="album-card"
+      aria-label={`${album.album} by ${primaryAttribution}`}
+      onClick={() => { navigate(`/albums/${album.id}`) }}
+      style={{ cursor: 'pointer' }}
+    >
       <div className="album-card__cover">
         {showCover ? (
           <img

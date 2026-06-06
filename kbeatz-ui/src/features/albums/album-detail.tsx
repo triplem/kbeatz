@@ -1,16 +1,26 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { Album, AlbumsService } from '../../api/generated'
-import { SyncPanel } from '../sync/sync-panel'
+import { useNavigate, useParams } from 'react-router-dom'
+import { AlbumDetail as AlbumDetailModel, AlbumsService, Track } from '../../api/generated'
+import { EditableField } from './editable-field'
 
 /**
- * AlbumDetail — shows all Vorbis Comment tag fields for a single album
- * and provides the "Sync from Discogs" panel when a discogsId is present.
+ * AlbumDetail — shows all Vorbis Comment tag fields for a single album with inline editing.
+ *
+ * ## Album-level editable fields
+ * ALBUM, ALBUMARTIST, DATE, GENRE, LABEL, CATALOGNUMBER, COMPOSER, CONDUCTOR, ENSEMBLE
+ *
+ * ## Track-level editable fields (per row)
+ * TITLE, TRACKNUMBER, ARTIST
+ *
+ * ## Edit flow
+ * - Click on any field value → inline input pre-filled with current value
+ * - Enter or blur → PATCH API call; optimistic update; rollback + error toast on failure
+ * - Escape → cancel, restore original value; no API call
  */
 export function AlbumDetail() {
   const { albumId } = useParams<{ albumId: string }>()
   const navigate = useNavigate()
-  const [album, setAlbum] = useState<Album | null>(null)
+  const [album, setAlbum] = useState<AlbumDetailModel | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -33,12 +43,36 @@ export function AlbumDetail() {
     }
 
     void fetchAlbum()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [albumId])
 
-  const handleSyncComplete = useCallback((updated: Album) => {
-    setAlbum(updated)
-  }, [])
+  const handleAlbumTagSave = useCallback(
+    async (field: string, value: string) => {
+      if (!albumId) return
+      const updated = await AlbumsService.updateAlbumTags({
+        albumId,
+        requestBody: { field, value },
+      })
+      setAlbum(updated)
+    },
+    [albumId],
+  )
+
+  const handleTrackTagSave = useCallback(
+    (trackId: string) =>
+      async (field: string, value: string) => {
+        if (!albumId) return
+        const updated = await AlbumsService.updateTrackTags({
+          albumId,
+          trackId,
+          requestBody: { field, value },
+        })
+        setAlbum(updated)
+      },
+    [albumId],
+  )
 
   if (loading) return <p>Loading album…</p>
   if (error) return <p role="alert">Error: {error}</p>
@@ -50,63 +84,10 @@ export function AlbumDetail() {
         type="button"
         onClick={() => { navigate(-1) }}
         className="back-button"
+        data-testid="back-button"
       >
         ← Back
       </button>
-
-      <h2 data-testid="album-title">{album.album}</h2>
-      <h3 data-testid="album-artist">{album.albumArtist}</h3>
-
-      <dl className="album-tags">
-        {album.date && (
-          <>
-            <dt>Date</dt>
-            <dd data-testid="album-date">{album.date}</dd>
-          </>
-        )}
-        {album.genre && (
-          <>
-            <dt>Genre</dt>
-            <dd data-testid="album-genre">{album.genre}</dd>
-          </>
-        )}
-        {album.label && (
-          <>
-            <dt>Label</dt>
-            <dd data-testid="album-label">{album.label}</dd>
-          </>
-        )}
-        {album.catalogNumber && (
-          <>
-            <dt>Catalog #</dt>
-            <dd data-testid="album-catalog-number">{album.catalogNumber}</dd>
-          </>
-        )}
-        {album.composer && (
-          <>
-            <dt>Composer</dt>
-            <dd data-testid="album-composer">{album.composer}</dd>
-          </>
-        )}
-        {album.conductor && (
-          <>
-            <dt>Conductor</dt>
-            <dd data-testid="album-conductor">{album.conductor}</dd>
-          </>
-        )}
-        {album.ensemble && (
-          <>
-            <dt>Ensemble</dt>
-            <dd data-testid="album-ensemble">{album.ensemble}</dd>
-          </>
-        )}
-        {album.discogsId && (
-          <>
-            <dt>Discogs ID</dt>
-            <dd data-testid="album-discogs-id">{album.discogsId}</dd>
-          </>
-        )}
-      </dl>
 
       {album.hasCoverArt && (
         <img
@@ -117,7 +98,155 @@ export function AlbumDetail() {
         />
       )}
 
-      <SyncPanel album={album} onSyncComplete={handleSyncComplete} />
+      <section aria-label="Album tags">
+        <h2 className="album-detail__section-title">Album Tags</h2>
+        <dl className="album-tags">
+          <EditableField
+            label="Album"
+            value={album.album}
+            fieldName="ALBUM"
+            onSave={handleAlbumTagSave}
+            testIdPrefix="album"
+          />
+          <EditableField
+            label="Album Artist"
+            value={album.albumArtist}
+            fieldName="ALBUMARTIST"
+            onSave={handleAlbumTagSave}
+            testIdPrefix="album"
+          />
+          <EditableField
+            label="Date"
+            value={album.date}
+            fieldName="DATE"
+            onSave={handleAlbumTagSave}
+            testIdPrefix="album"
+          />
+          <EditableField
+            label="Genre"
+            value={album.genre}
+            fieldName="GENRE"
+            onSave={handleAlbumTagSave}
+            testIdPrefix="album"
+          />
+          <EditableField
+            label="Label"
+            value={album.label}
+            fieldName="LABEL"
+            onSave={handleAlbumTagSave}
+            testIdPrefix="album"
+          />
+          <EditableField
+            label="Catalog #"
+            value={album.catalogNumber}
+            fieldName="CATALOGNUMBER"
+            onSave={handleAlbumTagSave}
+            testIdPrefix="album"
+          />
+          <EditableField
+            label="Composer"
+            value={album.composer}
+            fieldName="COMPOSER"
+            onSave={handleAlbumTagSave}
+            testIdPrefix="album"
+          />
+          <EditableField
+            label="Conductor"
+            value={album.conductor}
+            fieldName="CONDUCTOR"
+            onSave={handleAlbumTagSave}
+            testIdPrefix="album"
+          />
+          <EditableField
+            label="Ensemble"
+            value={album.ensemble}
+            fieldName="ENSEMBLE"
+            onSave={handleAlbumTagSave}
+            testIdPrefix="album"
+          />
+        </dl>
+      </section>
+
+      {album.tracks.length > 0 && (
+        <section aria-label="Tracks">
+          <h2 className="album-detail__section-title">Tracks</h2>
+          <table className="tracks-table" role="grid">
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Title</th>
+                <th scope="col">Artist</th>
+                <th scope="col">Duration</th>
+              </tr>
+            </thead>
+            <tbody>
+              {album.tracks.map((track) => (
+                <TrackRow
+                  key={track.id}
+                  track={track}
+                  onSave={handleTrackTagSave(track.id)}
+                />
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+
+      {album.discogsId && (
+        <p className="album-detail__discogs-id" data-testid="album-discogs-id">
+          Discogs ID: {album.discogsId}
+        </p>
+      )}
     </article>
   )
+}
+
+interface TrackRowProps {
+  readonly track: Track
+  readonly onSave: (field: string, value: string) => Promise<void>
+}
+
+function TrackRow({ track, onSave }: TrackRowProps) {
+  const durationDisplay = track.durationSeconds !== undefined
+    ? formatDuration(track.durationSeconds)
+    : '—'
+
+  return (
+    <tr data-testid={`track-row-${track.id}`}>
+      <td>
+        <EditableField
+          label="Track number"
+          value={track.trackNumber}
+          fieldName="TRACKNUMBER"
+          onSave={onSave}
+          testIdPrefix={`track-${track.id}`}
+        />
+      </td>
+      <td>
+        <EditableField
+          label="Title"
+          value={track.title}
+          fieldName="TITLE"
+          onSave={onSave}
+          testIdPrefix={`track-${track.id}`}
+        />
+      </td>
+      <td>
+        <EditableField
+          label="Artist"
+          value={track.artist}
+          fieldName="ARTIST"
+          onSave={onSave}
+          testIdPrefix={`track-${track.id}`}
+        />
+      </td>
+      <td>{durationDisplay}</td>
+    </tr>
+  )
+}
+
+function formatDuration(seconds: number): string {
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins.toString()}:${secs.toString().padStart(2, '0')}`
 }

@@ -8,13 +8,15 @@ export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
 export type { Album } from './models/Album';
+export type { AlbumDetail } from './models/AlbumDetail';
 export type { AlbumId } from './models/AlbumId';
 export type { AlbumPage } from './models/AlbumPage';
 export type { ErrorResponse } from './models/ErrorResponse';
 export type { HealthResponse } from './models/HealthResponse';
 export type { ScanStatus } from './models/ScanStatus';
 export type { SyncRequest } from './models/SyncRequest';
-export type { UpdateAlbumTagsRequest } from './models/UpdateAlbumTagsRequest';
+export type { Track } from './models/Track';
+export type { UpdateTagFieldRequest } from './models/UpdateTagFieldRequest';
 
 export { AlbumsService } from './services/AlbumsService';
 export { HealthService } from './services/HealthService';
