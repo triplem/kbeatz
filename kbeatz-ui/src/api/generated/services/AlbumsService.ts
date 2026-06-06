@@ -3,9 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { Album } from '../models/Album';
+import type { AlbumDetail } from '../models/AlbumDetail';
 import type { AlbumPage } from '../models/AlbumPage';
 import type { SyncRequest } from '../models/SyncRequest';
-import type { UpdateAlbumTagsRequest } from '../models/UpdateAlbumTagsRequest';
+import type { UpdateTagFieldRequest } from '../models/UpdateTagFieldRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -79,9 +80,9 @@ export class AlbumsService {
         });
     }
     /**
-     * Get album detail
-     * Returns a single album with all Vorbis Comment tag fields.
-     * @returns Album Album detail
+     * Get album detail with tracks
+     * Returns a single album with all Vorbis Comment tag fields and a list of tracks.
+     * @returns AlbumDetail Album detail
      * @throws ApiError
      */
     public static getAlbum({
@@ -91,7 +92,7 @@ export class AlbumsService {
          * Album UUID
          */
         albumId: string,
-    }): CancelablePromise<Album> {
+    }): CancelablePromise<AlbumDetail> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/albums/{albumId}',
@@ -104,15 +105,15 @@ export class AlbumsService {
         });
     }
     /**
-     * Update album tags
+     * Update album-level tags
      * Writes updated tag values to FLAC files in the album directory.
      * Album-level fields (ALBUM, ALBUMARTIST, DATE, GENRE, LABEL, CATALOGNUMBER,
-     * COMPOSER, CONDUCTOR, ENSEMBLE) are written to all files. Track-level fields
-     * (TITLE, TRACKNUMBER) require a track-scoped endpoint (future).
+     * COMPOSER, CONDUCTOR, ENSEMBLE) are written to all files.
      * Writes are atomic per file (temp + rename). A .kbeatz-write.lock manifest
      * is created before the first write and removed on completion (FR-20).
+     * Field names are case-insensitive (normalised to uppercase before validation).
      *
-     * @returns Album Tags updated; returns the refreshed album
+     * @returns AlbumDetail Tag updated; returns the refreshed album detail
      * @throws ApiError
      */
     public static updateAlbumTags({
@@ -123,13 +124,53 @@ export class AlbumsService {
          * Album UUID
          */
         albumId: string,
-        requestBody: UpdateAlbumTagsRequest,
-    }): CancelablePromise<Album> {
+        requestBody: UpdateTagFieldRequest,
+    }): CancelablePromise<AlbumDetail> {
         return __request(OpenAPI, {
             method: 'PATCH',
             url: '/albums/{albumId}',
             path: {
                 'albumId': albumId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Validation error`,
+                404: `Resource not found`,
+            },
+        });
+    }
+    /**
+     * Update track-level tags
+     * Writes updated tag values to the single FLAC file for the specified track.
+     * Track-level allowed fields: TITLE, TRACKNUMBER, ARTIST.
+     * Field names are case-insensitive (normalised to uppercase before validation).
+     * Write is atomic (temp + rename). No write-lock manifest for single-file writes.
+     *
+     * @returns AlbumDetail Tag updated; returns the refreshed album detail
+     * @throws ApiError
+     */
+    public static updateTrackTags({
+        albumId,
+        trackId,
+        requestBody,
+    }: {
+        /**
+         * Album UUID
+         */
+        albumId: string,
+        /**
+         * Track UUID
+         */
+        trackId: string,
+        requestBody: UpdateTagFieldRequest,
+    }): CancelablePromise<AlbumDetail> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/albums/{albumId}/tracks/{trackId}',
+            path: {
+                'albumId': albumId,
+                'trackId': trackId,
             },
             body: requestBody,
             mediaType: 'application/json',
