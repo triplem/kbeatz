@@ -7,6 +7,7 @@ import io.ktor.util.AttributeKey
 import java.nio.file.Path
 import kotlinx.coroutines.runBlocking
 import org.javafreedom.kbeatz.catalog.application.service.AlbumService
+import org.javafreedom.kbeatz.catalog.application.service.CoverArtService
 import org.javafreedom.kbeatz.catalog.application.service.LibraryScanService
 import org.javafreedom.kbeatz.catalog.application.service.LibraryWalker
 import org.javafreedom.kbeatz.catalog.infrastructure.persistence.DbFactory
@@ -36,9 +37,11 @@ fun Application.module() {
     // Wire repositories and services
     val albumRepository = ExposedAlbumRepository()
     val albumService = AlbumService(albumRepository)
+    val libraryRootPath = Path.of(config.catalogLibraryRoot)
+    val coverArtService = CoverArtService(albumRepository, libraryRootPath)
     val walker = LibraryWalker()
     val scanService = LibraryScanService(
-        libraryRoot = Path.of(config.catalogLibraryRoot),
+        libraryRoot = libraryRootPath,
         walker = walker,
         albumRepository = albumRepository,
     )
@@ -57,7 +60,7 @@ fun Application.module() {
     configureLogging()
     configureSerialization()
     configureStatusPages()
-    configureRouting(scanService, albumService)
+    configureRouting(scanService, albumService, coverArtService)
 
     // Launch initial library scan in the background after startup
     scanService.startScan()
