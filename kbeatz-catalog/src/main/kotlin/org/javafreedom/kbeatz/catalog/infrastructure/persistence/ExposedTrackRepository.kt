@@ -11,6 +11,7 @@ import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
+import org.jetbrains.exposed.v1.jdbc.update
 
 /**
  * Exposed-backed [TrackRepository] using H2 (v1) or PostgreSQL (v2 migration target).
@@ -48,6 +49,26 @@ class ExposedTrackRepository : TrackRepository {
                     it[images] = JsonSerde.encodeImages(track.images)
                     it[extraTags] = JsonSerde.encodeExtraTags(track.extraTags)
                 }
+            }
+        }
+    }
+
+    override suspend fun update(track: Track) {
+        suspendTransaction {
+            TracksTable.update({ TracksTable.id eq track.id.toJavaUuid() }) {
+                it[title] = track.title
+                it[trackNumber] = track.trackNumber
+                it[discNumber] = track.discNumber
+                it[trackTotal] = track.trackTotal
+                it[discTotal] = track.discTotal
+                it[artist] = track.artist
+                it[composer] = track.composer
+                it[conductor] = track.conductor
+                it[ensemble] = track.ensemble
+                it[durationSeconds] = track.durationSeconds
+                it[trackPath] = track.path
+                it[images] = JsonSerde.encodeImages(track.images)
+                it[extraTags] = JsonSerde.encodeExtraTags(track.extraTags)
             }
         }
     }
