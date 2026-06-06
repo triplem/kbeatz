@@ -1,0 +1,107 @@
+= ADR-008 — Discogs Rate-Limiting Strategy
+:revnumber: 1.0
+:revdate: 2026-06-07
+:author: kbeatz team
+:status: Accepted
+
+== Status
+
+Accepted
+
+== Context
+
+The Discogs API enforces a rate limit of 60 authenticated requests per minute
+per Personal Access Token (PAT). Exceeding this limit results in HTTP 429
+responses and a temporary ban that disrupts metadata sync.
+
+kbeatz-catalog calls the Discogs API in two scenarios:
+
+* `GET /releases/{id}` — metadata fetch (triggered by UI sync or CLI tag command)
+* Image CDN download — triggered when `downloadImages=true`
+
+At 60 req/min, bursts of up to 60 immediate requests are possible, but sustained
+throughput is capped at 1 request/second.
+
+The rate-limiter must:
+
+* Never reject a request with a 429 error to the caller
+* Suspend the calling coroutine transparently until a token is available
+* Be safe for concurrent coroutine callers (thread-safe state)
+* Be testable without wall-clock waits
+
+== Decision
+
+We implement a **coroutine-friendly token bucket** in `DiscogsTokenBucket`
+(kbeatz-sources module), wired into `DiscogsMetadataSource`.
+
+=== Token Bucket Parameters
+
+|===
+| Parameter | Value | Rationale
+
+| Max tokens (burst) | 60 | Allows one full minute of immediate requests on startup
+| Refill rate | 1 token / second | Matches Discogs sustained limit (60/min)
+| Refill clock | `System.currentTimeMillis()` | Wall-clock, injectable for testing
+|===
+
+=== Algorithm
+
+[source,kotlin]
+----
+suspend fun acquire() {
+    while (true) {
+        val waitMs = mutex.withLock {
+            refill()                    // add elapsed-time tokens (capped at maxTokens)
+            if (tokens > 0) { tokens--; 0L } else refillIntervalMs
+        }
+        if (waitMs == 0L) return        // token acquired — proceed
+        delay(waitMs)                   // suspend coroutine; no thread is blocked
+    }
+}
+----
+
+The bucket refills based on elapsed wall-clock time (not a ticker goroutine),
+so no background thread is required. All state is protected by a `kotlinx.coroutines.sync.Mutex`.
+
+=== Integration Points
+
+`DiscogsMetadataSource.fetchRelease()` acquires one token before each HTTP call
+(cache hits bypass the rate limiter). `fetchImage()` acquires one token for the
+image CDN call (conservatively counted against the limit).
+
+== Alternatives Considered
+
+=== Sliding Window (Leaky Bucket)
+
+Would more strictly enforce the 60/min limit across any rolling window. The added
+complexity is not justified for single-user personal library management where
+burst < 60 is the common case. Token bucket chosen for simplicity.
+
+=== Fixed Window Counter
+
+Simpler to implement but allows up to 2× the limit at window boundaries (e.g. 60
+requests at 59s and 60 more at 61s = 120 in 2 seconds). Rejected for this reason.
+
+=== Third-Party Rate-Limiting Library (Guava `RateLimiter`, `resilience4j`)
+
+Would add a dependency for functionality achievable in ~60 lines of idiomatic
+Kotlin coroutine code. Rejected to keep the dependency footprint minimal.
+
+=== HTTP 429 Pass-Through (no client-side limiting)
+
+Letting the Discogs server reject excess requests and surfacing 429 to the caller
+would require the caller to implement retry logic. Rejected: the token bucket gives
+a better experience by suspending transparently.
+
+== Consequences
+
+* Callers (service, CLI) are fully decoupled from rate-limit mechanics.
+* The bucket state is per-JVM and resets on restart — acceptable for personal use
+  (single user, small library).
+* In tests, `nowMs` is injectable so virtual-time tests run instantly without
+  wall-clock waits.
+* Image CDN calls are conservatively counted against the 60/min limit even though
+  Discogs CDN is technically separate from their API rate limit. This may limit
+  image throughput slightly but avoids any risk of hitting real limits.
+* If multiple service instances were deployed (not a v1 concern), they would each
+  have independent buckets — this is acceptable for the LAN-only personal-use target.
