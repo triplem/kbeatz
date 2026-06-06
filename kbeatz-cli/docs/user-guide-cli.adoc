@@ -1,0 +1,320 @@
+= kbeatz-tagger CLI User Guide
+:toc:
+:toc-placement: preamble
+:sectnums:
+
+Tagger and ID-file migration tool for FLAC music collections.
+
+== Prerequisites
+
+* Java 21 or later on the `PATH`
+* A built fat JAR — see <<building-the-jar>>
+* A Discogs personal access token (required only for the `tag` command)
+
+[[building-the-jar]]
+=== Building the JAR
+
+[source,bash]
+----
+./gradlew :kbeatz-cli:shadowJar
+----
+
+The output is produced at:
+
+----
+kbeatz-cli/build/libs/kbeatz-cli-all.jar
+----
+
+=== Environment Variables
+
+[cols="1,3,1", options="header"]
+|===
+| Variable | Purpose | Required for
+
+| `DISCOGS_TOKEN`
+| Personal access token from https://www.discogs.com/settings/developers[Discogs Developer Settings]
+| `tag` command
+
+| `CATALOG_LIBRARY_ROOT`
+| Root path of your music library (used by Docker Compose only)
+| Docker Compose
+|===
+
+== Commands Overview
+
+[source]
+----
+java -jar kbeatz-cli-all.jar --help
+
+Usage: kbeatz-tagger [<options>] <command> [<args>]...
+
+Commands:
+  tag          Fetch Discogs metadata and write FLAC tags for album directories.
+  migrate-ids  Convert INI-style id.txt / local_ids.txt files to YAML metadata.yml.
+----
+
+== Tagging a Single Album
+
+Tags all FLAC files in one album directory using metadata from Discogs.
+
+[source,bash]
+----
+export DISCOGS_TOKEN=my_token
+java -jar kbeatz-cli-all.jar tag /music/Jazz/Miles\ Davis/Kind\ of\ Blue
+----
+
+**Expected output:**
+
+----
+TAGGED /music/Jazz/Miles Davis/Kind of Blue — 9 FLAC files written
+----
+
+=== ID-file resolution order
+
+The `tag` command looks for an ID file in this order (first found wins):
+
+. `metadata.yml`
+. `id.txt`
+. `local_ids.txt`
+
+If the source is a legacy INI file (`id.txt` or `local_ids.txt`), a `metadata.yml` is automatically
+written to the album directory after successful tagging, normalising the directory for future runs.
+
+=== Dry-run mode
+
+Preview what would be tagged without writing any files:
+
+[source,bash]
+----
+java -jar kbeatz-cli-all.jar tag --dry-run /music/Jazz/Miles\ Davis/Kind\ of\ Blue
+----
+
+----
+DRY   /music/Jazz/Miles Davis/Kind of Blue → discogs_id=249504
+----
+
+=== Embedding cover art
+
+Download and embed the primary Discogs image as cover art:
+
+[source,bash]
+----
+java -jar kbeatz-cli-all.jar tag --download-images /music/Jazz/Miles\ Davis/Kind\ of\ Blue
+----
+
+NOTE: The Discogs free tier allows 25 image downloads per minute. Use `--download-images` sparingly
+or Discogs will rate-limit the process.
+
+== Batch Tagging a Library
+
+Tags all album directories found under a library root.
+
+[source,bash]
+----
+export DISCOGS_TOKEN=my_token
+java -jar kbeatz-cli-all.jar tag --library /music
+----
+
+**Expected output:**
+
+----
+Tagging [1/42]: /music/Jazz/Miles Davis/Kind of Blue
+TAGGED /music/Jazz/Miles Davis/Kind of Blue — 9 FLAC files written
+Tagging [2/42]: /music/Jazz/John Coltrane/A Love Supreme
+TAGGED /music/Jazz/John Coltrane/A Love Supreme — 4 FLAC files written
+...
+Tagged 41 albums, 1 skipped, 0 errors
+----
+
+=== Controlling scan depth
+
+The default scan depth is 3, matching the typical library layout
+`<Genre>/<AlbumArtist>/<Album>`. Override with `--depth`:
+
+[source,bash]
+----
+# Flat layout: just artist/album — depth 2
+java -jar kbeatz-cli-all.jar tag --library /music --depth 2
+
+# No limit — scan all nested directories
+java -jar kbeatz-cli-all.jar tag --library /music --recursive
+----
+
+=== Skipped albums
+
+When an album directory has no recognised ID file, the command writes a warning to stderr
+immediately (so no information is lost if the process exits early) and continues:
+
+----
+WARN: no id file found in /music/Misc/Unlabelled — skipped
+----
+
+At the end of the run the same warning appears in the skip count:
+
+----
+Tagged 99 albums, 1 skipped, 0 errors
+----
+
+== Migrating Legacy id.txt Files
+
+Converts INI-style `id.txt` and `local_ids.txt` files to YAML `metadata.yml` format.
+
+[source,bash]
+----
+java -jar kbeatz-cli-all.jar migrate-ids /music
+----
+
+**Expected output per migrated album:**
+
+----
+WROTE /music/Jazz/Miles Davis/Kind of Blue/metadata.yml
+DEL   /music/Jazz/Miles Davis/Kind of Blue/id.txt
+----
+
+**Final summary:**
+
+----
+Migrated 42 files, 0 skipped, 0 errors
+----
+
+=== Keeping the original files
+
+[source,bash]
+----
+java -jar kbeatz-cli-all.jar migrate-ids --keep-original /music
+----
+
+=== Recursive scan
+
+[source,bash]
+----
+java -jar kbeatz-cli-all.jar migrate-ids --recursive /music
+----
+
+=== Dry-run mode
+
+Preview what would be migrated without writing or deleting any files:
+
+[source,bash]
+----
+java -jar kbeatz-cli-all.jar migrate-ids --dry-run /music
+----
+
+----
+DRY   /music/Jazz/Miles Davis/Kind of Blue/metadata.yml:
+sources:
+  discogs_id: "249504"
+...
+Migrated 42 files, 0 skipped, 0 errors
+----
+
+=== Skipped directories
+
+Directories where `metadata.yml` already exists are skipped with a warning:
+
+----
+SKIP  /music/Jazz/Miles Davis/Kind of Blue — metadata.yml already exists
+----
+
+== Flag Reference
+
+=== `tag` command
+
+[cols="1,2,1", options="header"]
+|===
+| Flag | Description | Default
+
+| `--library <path>`, `-l`
+| Root of the music library to scan
+| —
+
+| `--depth <N>`
+| Maximum directory depth to scan under `--library`
+| `3`
+
+| `--recursive`, `-r`
+| Scan `--library` without depth limit
+| `false`
+
+| `--dry-run`, `-n`
+| Print what would be tagged, write nothing
+| `false`
+
+| `--download-images`
+| Download and embed Discogs cover art
+| `false`
+
+| `--help`, `-h`
+| Show usage
+| —
+|===
+
+=== `migrate-ids` command
+
+[cols="1,2,1", options="header"]
+|===
+| Flag | Description | Default
+
+| `--recursive`, `-r`
+| Recurse into subdirectories
+| `false`
+
+| `--dry-run`, `-n`
+| Print what would be migrated, write nothing
+| `false`
+
+| `--keep-original`
+| Keep original `id.txt` / `local_ids.txt` after migration
+| `false` (original is deleted)
+
+| `--help`, `-h`
+| Show usage
+| —
+|===
+
+== Exit Codes
+
+[cols="1,3", options="header"]
+|===
+| Code | Meaning
+
+| `0`
+| Success (including partially skipped albums — skips are not fatal)
+
+| `1`
+| Fatal error (missing `DISCOGS_TOKEN`, invalid path argument, unrecoverable I/O error)
+|===
+
+== Troubleshooting
+
+=== "DISCOGS_TOKEN environment variable must be set"
+
+The `tag` command requires a Discogs personal access token. Set it before running:
+
+[source,bash]
+----
+export DISCOGS_TOKEN=your_token_here
+----
+
+Obtain a token at https://www.discogs.com/settings/developers[Discogs Developer Settings].
+
+=== "no id file found in <path> — skipped"
+
+The album directory contains no `metadata.yml`, `id.txt`, or `local_ids.txt`. Either add one manually or run `migrate-ids` first if you have other id files in a different location.
+
+=== "metadata.yml already exists"
+
+When running `migrate-ids`, directories that already have a `metadata.yml` are skipped.
+Use `migrate-ids --keep-original` first to inspect the existing files before deciding
+whether to overwrite them manually.
+
+=== Rate limiting from Discogs
+
+Discogs limits API requests to 60 per minute on the free tier. If you see rate-limit errors,
+the `DiscogsMetadataSource` backs off automatically. For `--download-images`, reduce the
+number of albums processed per run or upgrade your Discogs membership tier.
+
+=== Cover art not embedded
+
+The `--download-images` flag must be passed explicitly. Discogs does not always have cover art
+for every release; if no image is available the FLAC file is tagged without a PICTURE block.
