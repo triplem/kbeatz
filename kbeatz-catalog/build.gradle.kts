@@ -10,6 +10,7 @@ application {
 }
 
 dependencies {
+    "implementation"("org.javafreedom.kbeatz:kbeatz-sources")
     "implementation"("org.javafreedom.kbeatz:kbeatz-tagger")
     "implementation"(libs.exposed.core)
     "implementation"(libs.exposed.jdbc)
