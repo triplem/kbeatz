@@ -1,0 +1,246 @@
+= Developer Reference: Album Grouping Disambiguation Rules
+:revnumber: 1.0
+:revdate: 2026-06-06
+:author: kbeatz team
+:toc: left
+:icons: font
+
+== Overview
+
+`LibraryWalker` groups FLAC files discovered under the library root into
+`AlbumGroup` objects. This document explains how the grouping algorithm
+works, how edge cases are handled, and what rules disambiguate albums that
+might otherwise be incorrectly merged or split.
+
+== Grouping Key
+
+Every FLAC file is assigned a *canonical directory* and a *tag tuple*:
+
+[cols="1,3", options="header"]
+|===
+|Component |Source
+
+|`canonicalDir`
+|The directory containing the FLAC file, normalised for multi-disc (see below).
+
+|`ALBUMARTIST`
+|Vorbis Comment `ALBUMARTIST` tag. Falls back to `ARTIST` if absent.
+
+|`ALBUM`
+|Vorbis Comment `ALBUM` tag.
+|===
+
+Files with the same `(canonicalDir, ALBUMARTIST, ALBUM)` triple are merged
+into one `AlbumGroup`. `DATE` is *not* part of the grouping key; it is read
+from the first file in each group and stored as `AlbumGroup.date`.
+
+=== Why directory first?
+
+Using the directory as the primary boundary avoids cross-contamination between
+two albums by the same artist released in different years that happen to share
+an identical album title (e.g. live albums with the same name on different tours).
+
+Even if `(ALBUMARTIST, ALBUM, DATE)` were identical for two physical directories,
+they will produce separate `AlbumGroup`s because their `canonicalDir` differs.
+
+== Multi-Disc Albums
+
+=== Detection
+
+A directory is identified as a disc subdirectory if its name matches the
+regular expression (case-insensitive):
+
+```
+disc\d+
+```
+
+Examples that match: `disc1`, `Disc2`, `DISC10`
+
+Examples that do not match: `cd1`, `side-a`, `bonus`, `disc-1`
+
+=== Canonicalisation
+
+When a FLAC file's immediate parent directory is a disc subdirectory, the
+*grandparent* directory is used as the canonical directory:
+
+```
+/music/
+  the-beatles/
+    white-album/        ← canonicalDir for all FLAC files in disc1/ and disc2/
+      disc1/
+        01 - Back in the USSR.flac
+        02 - Dear Prudence.flac
+      disc2/
+        01 - Revolution 1.flac
+```
+
+Both disc directories share the same `canonicalDir` (`white-album/`) and the
+same `(ALBUMARTIST, ALBUM)` tags, so they are merged into one `AlbumGroup` with
+`rootPath = white-album/` and all FLAC files from both discs.
+
+=== Limitations
+
+* Only one level of disc subdirectory is recognised. If disc directories are
+  nested two levels deep (e.g. `album/set1/disc1/`), the files in `disc1/`
+  will have `set1/` as their canonical directory, not `album/`.
+* Directory names like `cd1`, `cd2` or `disk1`, `disk2` are *not* recognised
+  as disc subdirectories. Use `disc1`, `disc2` or rename the directories.
+
+== `DATE` Handling
+
+`DATE` is *optional* in Vorbis Comment. Many rips omit it; others use
+non-numeric formats (`"1959"`, `"1959-10"`, `"October 1959"`).
+
+`LibraryWalker` does not validate the format. It reads the raw string value
+and stores it in `AlbumGroup.date`. `null` is stored if the tag is absent
+in all files of the group.
+
+In the H2 schema, `DATE` is persisted as `album_date VARCHAR NOT NULL DEFAULT ''`.
+An empty string (`""`) represents a missing date; it is mapped back to `null`
+in the Kotlin domain model on read.
+
+[IMPORTANT]
+====
+Because `DATE` is not part of the grouping key, two FLAC directories with
+the same `(ALBUMARTIST, ALBUM)` but different `DATE` values that live in the
+*same physical directory* will be merged into one `AlbumGroup`. The `date`
+field of the resulting group will be the date from the first FLAC file
+encountered.
+
+In practice this situation is rare (it would require two different releases
+of the same album to share a directory), but collectors should organise releases
+in separate directories.
+====
+
+== Various Artists (VA) Compilations
+
+For compilations, the Vorbis Comment convention is:
+
+* `ALBUMARTIST=Various Artists` (or any consistent string)
+* Per-track `ARTIST=<individual artist>`
+
+`LibraryWalker` uses `ALBUMARTIST` as the primary artist field. Compilations
+with a consistent `ALBUMARTIST` tag will be grouped correctly into one `AlbumGroup`.
+
+If `ALBUMARTIST` is absent, the walker falls back to `ARTIST`. This means a
+compilation without `ALBUMARTIST` tags, where each track has a different
+`ARTIST`, will produce *one `AlbumGroup` per unique artist value*, incorrectly
+splitting the compilation.
+
+**Recommendation**: always tag compilations with `ALBUMARTIST=Various Artists`
+(or equivalent) to ensure correct grouping.
+
+== Classical Music Edge Cases
+
+Classical recordings frequently have:
+
+* Multiple composers in a single album (`COMPOSER` tag, not `ALBUMARTIST`)
+* Conductors and ensembles as additional artist fields
+* Disc subdivisions by work (symphony 1 on disc1, symphony 2 on disc2)
+
+The grouping algorithm treats classical music identically to pop:
+
+* `ALBUMARTIST` is the performer (orchestra/conductor), not the composer.
+* `ALBUM` typically includes the composer name (e.g. "Beethoven: Symphonies 5 & 7").
+* The disc subdivision rule handles multi-disc box sets correctly.
+
+=== Recommended tagging for classical recordings
+
+[cols="1,3", options="header"]
+|===
+|Tag |Example value
+
+|`ALBUMARTIST`
+|`Berlin Philharmonic Orchestra`
+
+|`ALBUM`
+|`Beethoven: Symphonies 5 & 7`
+
+|`DATE`
+|`1963`
+
+|`COMPOSER`
+|`Ludwig van Beethoven`
+
+|`CONDUCTOR`
+|`Herbert von Karajan`
+
+|`DISCNUMBER`
+|`1` (per-track; used by player apps, not by LibraryWalker)
+|===
+
+When box sets span multiple discs with different works, use `disc1/`, `disc2/`
+subdirectory naming to ensure the multi-disc rule applies and all discs are
+merged into one `AlbumGroup` under the box set directory.
+
+== Unreadable FLAC Files
+
+If `FlacFile.read()` throws any exception for a given file (corrupt header,
+truncated file, I/O error), the file is *skipped with a WARN log entry* and
+the walk continues. The remaining files in the same directory are still processed.
+
+This means a partially-corrupt album directory will produce an `AlbumGroup`
+containing only the readable files. The unreadable file's path will not appear
+in `AlbumGroup.flacPaths`.
+
+== `AlbumGroup` to `Album` Mapping
+
+After the walk, `LibraryScanService` maps each `AlbumGroup` to an `Album`
+domain object for persistence:
+
+[cols="2,3", options="header"]
+|===
+|`Album` field |Source
+
+|`id`
+|Fresh `kotlin.uuid.Uuid.random()` on each scan. See note below.
+
+|`albumArtist`
+|`AlbumGroup.albumArtist`
+
+|`album`
+|`AlbumGroup.albumTitle`
+
+|`date`
+|`AlbumGroup.date`
+
+|`directoryPath`
+|`AlbumGroup.rootPath.toString()`
+
+|`genre`, `label`, `catalogNumber`, `composer`, `conductor`, `ensemble`, `discogsId`
+|`null` (populated by Discogs sync in a later story)
+
+|`extraTags`, `images`
+|`null` (populated by tag editing features in a later story)
+|===
+
+[NOTE]
+====
+A fresh UUID is generated on every scan. The H2 unique constraint on
+`(album_artist, album, album_date, directory_path)` prevents duplicates.
+However, the UUID changes on each re-scan, which means album IDs seen by API
+clients are not stable across scans. Stable IDs (via lookup-before-insert)
+will be addressed in a future story.
+====
+
+== Summary: Disambiguation Precedence
+
+[cols="1,3", options="header"]
+|===
+|Priority |Rule
+
+|1 (highest)
+|Physical directory path (canonical, after multi-disc normalisation)
+
+|2
+|`ALBUMARTIST` tag (falls back to `ARTIST` if absent)
+
+|3
+|`ALBUM` tag
+
+|4 (informational only, not used for grouping)
+|`DATE` tag (stored as metadata, not used to split groups)
+|===
+
+Files that share all three of directory, ALBUMARTIST, and ALBUM are always
+grouped together, regardless of DATE, DISCNUMBER, or any other tag.
