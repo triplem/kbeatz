@@ -48,6 +48,14 @@ class FlacFile private constructor(
         return FlacFile(updated, audioFrames)
     }
 
+    /** Returns a new [FlacFile] with the [picture] replacing any existing block of the same type. */
+    fun withPicture(picture: FlacMetadataBlock.Picture): FlacFile {
+        val updated = metadataBlocks
+            .filterNot { it is FlacMetadataBlock.Picture && it.pictureType == picture.pictureType }
+            .plus(picture)
+        return FlacFile(updated, audioFrames)
+    }
+
     /** Returns a new [FlacFile] with a Vorbis Comment modified by [transform]. */
     fun updateVorbisComment(transform: (VorbisCommentEditor) -> VorbisCommentEditor): FlacFile {
         val current = vorbisComment ?: FlacMetadataBlock.VorbisComment("kbeatz", emptyList())

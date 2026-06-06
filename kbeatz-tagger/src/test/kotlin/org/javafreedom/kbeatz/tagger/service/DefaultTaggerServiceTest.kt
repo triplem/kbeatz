@@ -1,10 +1,12 @@
 package org.javafreedom.kbeatz.tagger.service
 
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import kotlinx.io.bytestring.ByteString
 import kotlinx.io.files.Path
+import org.javafreedom.kbeatz.sources.ImageResult
 import org.javafreedom.kbeatz.sources.Label
 import org.javafreedom.kbeatz.sources.MetadataSource
 import org.javafreedom.kbeatz.sources.Release
@@ -202,5 +204,51 @@ class DefaultTaggerServiceTest {
         val tags = FlacReader().parse(Files.readAllBytes(tempDir.resolve("01-track.flac")))
             .blocks.filterIsInstance<FlacMetadataBlock.VorbisComment>().first()
         assertEquals("1959", tags.get(VorbisCommentFields.DATE))
+    }
+
+    @Test
+    fun `should map Orchestra extra artist to ENSEMBLE tag`(@TempDir tempDir: java.nio.file.Path) = runTest {
+        Files.writeString(tempDir.resolve("id.txt"), "[source]\ndiscogs_id=12345\n")
+        Files.write(tempDir.resolve("01-track.flac"), minimalFlacBytes())
+        val classicalRelease = release.copy(
+            extraArtists = listOf(ReleaseArtist("5", "Berlin Philharmonic", role = "Orchestra")),
+        )
+        coEvery { metadataSource.fetchRelease("12345") } returns classicalRelease
+
+        val service = DefaultTaggerService(idReader, metadataSource)
+        service.tagAlbum(Path(tempDir.toString()))
+
+        val tags = FlacReader().parse(Files.readAllBytes(tempDir.resolve("01-track.flac")))
+            .blocks.filterIsInstance<FlacMetadataBlock.VorbisComment>().first()
+        assertEquals("Berlin Philharmonic", tags.get(VorbisCommentFields.ENSEMBLE))
+    }
+
+    @Test
+    fun `should embed cover art in PICTURE block when downloadImages is true`(@TempDir tempDir: java.nio.file.Path) = runTest {
+        Files.writeString(tempDir.resolve("id.txt"), "[source]\ndiscogs_id=12345\n")
+        Files.write(tempDir.resolve("01-track.flac"), minimalFlacBytes())
+        val imageBytes = ByteString(byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte()))
+        coEvery { metadataSource.fetchRelease("12345") } returns release
+        coEvery { metadataSource.fetchImage("12345", 0) } returns ImageResult(imageBytes, "image/jpeg")
+
+        val service = DefaultTaggerService(idReader, metadataSource)
+        service.tagAlbum(Path(tempDir.toString()), downloadImages = true)
+
+        val blocks = FlacReader().parse(Files.readAllBytes(tempDir.resolve("01-track.flac"))).blocks
+        val picture = blocks.filterIsInstance<FlacMetadataBlock.Picture>().firstOrNull()
+        assertEquals(FlacMetadataBlock.Picture.TYPE_FRONT_COVER, picture?.pictureType)
+        assertEquals("image/jpeg", picture?.mimeType)
+        assertEquals(imageBytes, picture?.data)
+    }
+
+    @Test
+    fun `should not call fetchImage when downloadImages is false`(@TempDir tempDir: java.nio.file.Path) = runTest {
+        Files.writeString(tempDir.resolve("id.txt"), "[source]\ndiscogs_id=12345\n")
+        coEvery { metadataSource.fetchRelease("12345") } returns release
+
+        val service = DefaultTaggerService(idReader, metadataSource)
+        service.tagAlbum(Path(tempDir.toString()), downloadImages = false)
+
+        coVerify(exactly = 0) { metadataSource.fetchImage(any(), any()) }
     }
 }

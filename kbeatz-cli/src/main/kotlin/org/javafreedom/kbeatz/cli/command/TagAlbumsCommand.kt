@@ -64,10 +64,12 @@ class TagAlbumsCommand(
             echo("No album directories found.", err = true)
             return
         }
-        targets.forEach { dir -> tagAlbum(dir, idReader) }
+        // Lazy: DISCOGS_TOKEN only required if tagging actually runs (not for skip/dry-run paths)
+        val lazyService: Lazy<TaggerService> = lazy { taggerServiceOverride ?: buildService(idReader) }
+        targets.forEach { dir -> tagAlbum(dir, idReader, lazyService) }
     }
 
-    private fun tagAlbum(dir: Path, idReader: IdFileReader) {
+    private fun tagAlbum(dir: Path, idReader: IdFileReader, lazyService: Lazy<TaggerService>) {
         val idFile = idReader.read(dir)
         if (idFile == null) {
             echo("SKIP  $dir — no id.txt / local_ids.txt / metadata.yml found", err = true)
@@ -81,12 +83,14 @@ class TagAlbumsCommand(
         if (dryRun) {
             echo("DRY   $dir → discogs_id=$discogsId")
         } else {
-            val service = taggerServiceOverride ?: buildService(idReader)
             runBlocking {
-                when (val result = service.tagAlbum(dir, downloadImages)) {
+                when (val result = lazyService.value.tagAlbum(dir, downloadImages)) {
                     is TagResult.Tagged -> echo("TAGGED $dir — ${result.filesWritten} FLAC files written")
                     is TagResult.Skipped -> echo("SKIP   $dir — ${result.reason}", err = true)
-                    is TagResult.Failed -> echo("ERROR  $dir — ${result.cause.message}", err = true)
+                    is TagResult.Failed -> {
+                        val msg = result.cause.message ?: result.cause.javaClass.simpleName
+                        echo("ERROR  $dir — $msg", err = true)
+                    }
                 }
             }
         }
