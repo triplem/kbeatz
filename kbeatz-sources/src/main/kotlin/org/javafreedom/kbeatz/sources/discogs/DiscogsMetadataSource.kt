@@ -21,12 +21,14 @@ private val log = KotlinLogging.logger {}
  * Discogs REST API adapter for [MetadataSource].
  *
  * Authentication: Personal Access Token via DISCOGS_TOKEN environment variable.
- * Rate limiting: 60 requests/minute (metadata), 1 000 images/day.
- * Image quota is tracked in a JSON file; see [DiscogsImageQuota].
+ * Rate limiting: 60 requests/minute enforced by a [DiscogsTokenBucket] — callers are suspended,
+ * not rejected, when the bucket is empty.
+ * Image quota: 1 000 images/day tracked by [DiscogsImageQuota].
  *
  * @param token Discogs Personal Access Token (from DISCOGS_TOKEN env var).
  * @param userAgent User-Agent header sent with every request.
- * @param imageQuota Persistent daily image quota tracker.
+ * @param imageQuota Daily image download quota tracker.
+ * @param tokenBucket Token-bucket rate limiter (60 req/min).
  * @param cache Optional metadata cache; when provided, [fetchRelease] checks the cache before
  *   making an API call and stores the result on a cache miss.
  */
@@ -34,6 +36,7 @@ class DiscogsMetadataSource private constructor(
     private val token: String,
     private val client: HttpClient,
     private val imageQuota: DiscogsImageQuota,
+    private val tokenBucket: DiscogsTokenBucket,
     private val cache: MetadataCache? = null,
 ) : MetadataSource {
 
@@ -41,6 +44,7 @@ class DiscogsMetadataSource private constructor(
         token: String,
         userAgent: String = "kbeatz/1.0",
         imageQuota: DiscogsImageQuota = DiscogsImageQuota(),
+        tokenBucket: DiscogsTokenBucket = DiscogsTokenBucket(),
         cache: MetadataCache? = null,
     ) : this(
         token = token,
@@ -58,6 +62,7 @@ class DiscogsMetadataSource private constructor(
             }
         },
         imageQuota = imageQuota,
+        tokenBucket = tokenBucket,
         cache = cache,
     )
 
@@ -67,14 +72,16 @@ class DiscogsMetadataSource private constructor(
             token: String,
             httpClient: HttpClient,
             imageQuota: DiscogsImageQuota = DiscogsImageQuota(),
+            tokenBucket: DiscogsTokenBucket = DiscogsTokenBucket(),
             cache: MetadataCache? = null,
-        ): DiscogsMetadataSource = DiscogsMetadataSource(token, httpClient, imageQuota, cache)
+        ): DiscogsMetadataSource = DiscogsMetadataSource(token, httpClient, imageQuota, tokenBucket, cache)
     }
 
     override val name = "discogs"
 
     override suspend fun fetchRelease(releaseId: String): Release? {
         cache?.get(name, releaseId)?.let { return it }
+        tokenBucket.acquire()
         log.info { "Fetching Discogs release $releaseId" }
         val response: DiscogsRelease = client.get("https://api.discogs.com/releases/$releaseId").body()
         val release = response.toDomain()
@@ -91,6 +98,7 @@ class DiscogsMetadataSource private constructor(
                 ?.images
                 ?.getOrNull(index)
                 ?.let { image ->
+                    tokenBucket.acquire()
                     val bytes = ByteString(client.get(image.uri).body<ByteArray>())
                     imageQuota.recordDownload()
                     val mimeType = if (image.uri.endsWith(".png")) "image/png" else "image/jpeg"
