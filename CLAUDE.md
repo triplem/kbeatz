@@ -21,7 +21,7 @@ Agent actions are logged to `~/.claude/kbeatz-sessions/<session_id>.jsonl`.
 - **Backend**: Kotlin + Ktor, Gradle Kotlin DSL
 - **Frontend**: React 19 + TypeScript + Vite
 - **API Contract**: OpenAPI spec at `kbeatz-catalog/api/openapi.yaml` — single source of truth (catalog only; `kbeatz-sources` and `kbeatz-tagger` are libraries, not HTTP services)
-- **Persistence**: SQLite + Exposed ORM + Liquibase migrations (v1); PostgreSQL is the v2 migration target
+- **Persistence**: H2 + Exposed ORM + Liquibase migrations (v1); PostgreSQL is the v2 migration target (see ADR-006)
 - **Tooling**: Detekt, Kover (≥ 80% coverage), CycloneDX SBOM, AsciiDoc docs
 
 ## Commands
@@ -78,7 +78,7 @@ application/service/        # Business logic
 domain/model/               # Pure domain model
 domain/repository/          # Port interfaces
 domain/exception/           # Domain exceptions
-infrastructure/persistence/ # Exposed ORM + SQLite adapter (v1)
+infrastructure/persistence/ # Exposed ORM + H2 adapter (v1)
 plugins/                    # Ktor plugin config (StatusPages, Logging)
 ```
 

@@ -46,7 +46,7 @@ The scope is the module or domain area affected. Use one of the following:
 | `idfile` | id.txt / local_ids.txt / metadata.yml parsing and migration |
 | `library` | Library scan, album indexing |
 | `api` | OpenAPI spec (kbeatz-catalog/api/openapi.yaml) |
-| `db` | SQLite schema, Liquibase migrations |
+| `db` | H2 schema, Liquibase migrations |
 | `config` | Application configuration, environment variables |
 | `ci` | CI/CD pipeline |
 | `scaffold` | Project-wide structure, build-logic, root config |

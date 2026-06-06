@@ -249,7 +249,7 @@ An album maps to one filesystem directory (the **album root**), with optional im
 | ~~OQ-01~~ | ~~podman-compose availability~~ | **Resolved**: `podman-compose` is installed and is a hard deployment requirement. |
 | ~~OQ-02~~ | ~~Default ports~~ | **Resolved**: 8080 (kbeatz-catalog). kbeatz-sources is a library — no HTTP port. |
 | ~~OQ-03~~ | ~~kbeatz-tagger distribution~~ | **Resolved**: Both fat JAR (for CLI use on the collection machine) and container image (for compose context) are produced as build artefacts. |
-| ~~OQ-04~~ | ~~Database choice~~ | **Resolved**: SQLite for v1 (zero-ops, single file, sufficient for 10 000 albums). PostgreSQL is the documented v2 migration target. Exposed ORM + Liquibase migrations apply to both. |
+| ~~OQ-04~~ | ~~Database choice~~ | **Resolved**: H2 for v1 (pure-Java, zero-ops single file, in-memory test mode, `MODE=PostgreSQL` for dialect compatibility). PostgreSQL is the documented v2 migration target. Exposed ORM + Liquibase migrations apply to both. See ADR-006. |
 
 ---
 
