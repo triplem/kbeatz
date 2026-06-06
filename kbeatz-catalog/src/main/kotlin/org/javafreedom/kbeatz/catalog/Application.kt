@@ -12,6 +12,7 @@ import org.javafreedom.kbeatz.catalog.application.service.DiscogsSyncService
 import org.javafreedom.kbeatz.catalog.application.service.DiscogsImageService
 import org.javafreedom.kbeatz.catalog.application.service.LibraryScanService
 import org.javafreedom.kbeatz.catalog.application.service.LibraryWalker
+import org.javafreedom.kbeatz.catalog.application.service.TagWriteService
 import org.javafreedom.kbeatz.catalog.infrastructure.persistence.DbFactory
 import org.javafreedom.kbeatz.catalog.infrastructure.persistence.ExposedAlbumRepository
 import org.javafreedom.kbeatz.catalog.infrastructure.persistence.ExposedTrackRepository
@@ -68,6 +69,8 @@ fun Application.module() {
     // Wire Discogs sync service
     val syncService = buildSyncService(config, albumRepository, libraryRootPath)
 
+    val tagWriteService = TagWriteService(albumRepository, trackRepository, libraryRootPath)
+
     // Run startup repair synchronously before accepting requests
     runBlocking { scanService.repairOnStartup() }
 
@@ -82,7 +85,7 @@ fun Application.module() {
     configureLogging()
     configureSerialization()
     configureStatusPages()
-    configureRouting(scanService, albumService, coverArtService, syncService)
+    configureRouting(scanService, albumService, coverArtService, syncService, tagWriteService)
 
     // Launch initial library scan in the background after startup
     scanService.startScan()
