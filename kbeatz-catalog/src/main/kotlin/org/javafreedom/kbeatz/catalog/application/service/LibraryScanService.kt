@@ -1,10 +1,13 @@
 package org.javafreedom.kbeatz.catalog.application.service
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.CoroutineContext
+import kotlin.io.path.deleteIfExists
+import kotlin.io.path.isRegularFile
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -77,6 +80,44 @@ class LibraryScanService(
         }
     }
 
+    /**
+     * Synchronous startup repair: finds all `.kbeatz-write.lock` files under [libraryRoot],
+     * re-indexes the containing album directory for each, then deletes the lock file.
+     *
+     * Must be called before HTTP requests are accepted. Runs on the caller's thread (blocking).
+     * Lock files indicate a previous run was killed mid-write; re-indexing restores consistency.
+     */
+    @Suppress("TooGenericExceptionCaught") // individual lock repairs must not abort the whole startup
+    suspend fun repairOnStartup() {
+        val lockFiles = collectLockFiles()
+        if (lockFiles.isEmpty()) {
+            log.info { "No .kbeatz-write.lock files found — skipping startup repair" }
+            return
+        }
+
+        log.info { "Found ${lockFiles.size} .kbeatz-write.lock file(s) — running startup repair" }
+        lockFiles.forEach { lockFile ->
+            val albumDir = lockFile.parent ?: libraryRoot
+            try {
+                val groups = walker.walk(albumDir)
+                if (groups.isNotEmpty()) {
+                    albumRepository.saveAll(groups.map { it.toAlbum() })
+                }
+                lockFile.deleteIfExists()
+                log.info { "Repaired album directory: $albumDir" }
+            } catch (ex: Exception) {
+                log.error(ex) { "Startup repair failed for $albumDir — lock file retained: $lockFile" }
+            }
+        }
+    }
+
+    private fun collectLockFiles(): List<Path> =
+        Files.walk(libraryRoot).use { stream ->
+            stream
+                .filter { it.isRegularFile() && it.fileName.toString() == LOCK_FILE_NAME }
+                .toList()
+        }
+
     @Suppress("TooGenericExceptionCaught") // intentional: any scan failure transitions to FAILED
     private suspend fun runScan() {
         try {
@@ -100,6 +141,9 @@ class LibraryScanService(
     }
 
     companion object {
+        /** Name of the write-lock sentinel file created by the FLAC tagger during writes. */
+        const val LOCK_FILE_NAME = ".kbeatz-write.lock"
+
         /**
          * Maps a [AlbumGroup] from the walker to an [Album] suitable for persistence.
          *
