@@ -147,9 +147,9 @@ If the date differs (new day), the counter resets to 0 and the file is overwritt
 The file is written atomically (temp file + `SystemFileSystem.atomicMove()`) after each
 successful image download.
 
-A lightweight embedded database (e.g. SQLite via Exposed) may be substituted
-if the service later needs to store other operational state, but the JSON file
-is sufficient for v1 — it avoids adding a DB dependency for a single integer.
+The catalog service already depends on H2 for the album index (see ADR-006);
+that same H2 file could store the quota counter if operational state grows beyond a
+single integer, but the JSON file is sufficient for v1.
 
 === Catalog API — Cover Art Serving
 

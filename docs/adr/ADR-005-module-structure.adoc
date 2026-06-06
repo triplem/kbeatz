@@ -52,7 +52,7 @@ Replace the standalone HTTP service with a Kotlin library exposing two port inte
 
 * `MetadataSource` — fetches release metadata by ID; v1 implementation in `discogs/`,
   future `musicbrainz/` alongside it
-* `MetadataCache` — caches fetched releases; v1 in-memory implementation, future SQLite-backed
+* `MetadataCache` — caches fetched releases; v1 in-memory implementation, future H2-backed
 
 Both `kbeatz-catalog` and `kbeatz-tagger` depend on `kbeatz-sources` as a compile-time library
 and inject `MetadataSource` at wiring time. No inter-service HTTP call, no OpenAPI spec for this

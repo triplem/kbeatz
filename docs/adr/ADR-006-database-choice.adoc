@@ -1,0 +1,106 @@
+= ADR-006: H2 as the Embedded Database (v1); PostgreSQL as the v2 Migration Target
+:toc: left
+:icons: font
+:revdate: 2026-06-06
+:status: Accepted
+
+== Status
+
+Accepted
+
+== Context
+
+The catalog service (`kbeatz-catalog`) needs a persistent album index so the API can return the
+full album grid without re-scanning 2 000+ FLAC files on every request (NFR-01: p95 < 3 s grid
+load; NFR-12: payload size ceiling at 10 000 albums).
+
+The initial project vision asked: "can the catalog work read-only from the filesystem, with a
+lightweight embedded cache?" — and briefly considered a **no-database** design where every request
+drives a fresh filesystem walk. That approach was ruled out early:
+
+* A full FLAC-tag scan of 2 000 albums takes tens of seconds, violating NFR-01.
+* Filtering and pagination (NFR-12) require a queryable store, not a raw directory walk.
+
+Once a persistent store was accepted as necessary, two embedded options were compared against
+the v2 migration target (PostgreSQL):
+
+=== Candidates Evaluated
+
+==== SQLite (initial assumption in requirements doc, OQ-04)
+
+* Zero-ops single-file deployment — attractive for a personal tool.
+* No native JVM library: SQLite requires a native `.so` / `.dll` on the host.
+  On JVM the only mature driver (`sqlite-jdbc`) bundles platform binaries for x86/ARM Linux,
+  macOS, and Windows — increasing JAR size and adding a native-library failure mode.
+* No JSON column type (without an extension).
+* No built-in full-text search (FTS5 extension required separately on some distributions).
+* PostgreSQL dialect: very different (no `RETURNING`, different `UPSERT` syntax, different
+  date arithmetic) — SQL must be rewritten when migrating to PostgreSQL in v2.
+* Testcontainers: the only option for realistic integration tests (no in-memory mode).
+
+==== H2 (selected)
+
+* Pure Java — ships as a single `.jar` with no native dependencies.
+* Full in-memory mode (`jdbc:h2:mem:kbeatz;DB_CLOSE_DELAY=-1`) for fast, zero-setup
+  unit and integration tests — no Testcontainers required for the repository layer.
+* File mode (`jdbc:h2:file:./data/kbeatz`) gives the same zero-ops single-file
+  deployment experience as SQLite.
+* `AUTO_SERVER=TRUE` allows the CLI tool (`kbeatz-cli`) to read the same file the
+  catalog service is using without a separate server process.
+* `MODE=PostgreSQL` makes H2's SQL dialect closely mirror PostgreSQL — Liquibase
+  migrations written against H2 in PostgreSQL mode require minimal adjustment when
+  migrating to a real PostgreSQL cluster in v2.
+* Native JSON column type (H2 2.x+).
+* Built-in full-text search via `FT_INIT()` (Lucene or native mode) — relevant for
+  server-side search index if client-side filtering becomes insufficient at large scale.
+
+== Decision
+
+Use **H2** as the embedded database for `kbeatz-catalog` in v1.
+
+.Connection strings
+|===
+| Context | JDBC URL
+
+| Production (persistent) | `jdbc:h2:file:./data/kbeatz;AUTO_SERVER=TRUE;MODE=PostgreSQL`
+| Tests (in-memory) | `jdbc:h2:mem:kbeatz;DB_CLOSE_DELAY=-1;MODE=PostgreSQL`
+|===
+
+Schema is managed by **Liquibase** migrations.
+The ORM layer uses **Exposed** with the Kotlin DSL.
+SQL is written in PostgreSQL-compatible syntax (enforced by `MODE=PostgreSQL`) to keep
+the v2 migration cost near zero.
+
+**PostgreSQL** remains the explicit v2 migration target.
+When the user eventually runs this on a home server with multiple household members (or
+decides they want better concurrent write support), the migration is: swap the JDBC URL,
+remove `MODE=PostgreSQL`, and run `./gradlew liquibaseUpdate` against the new database.
+No Exposed DSL changes and no Liquibase migration rewrites are expected.
+
+== Consequences
+
+* `kbeatz-catalog` gains an H2 compile-time dependency (`com.h2database:h2`).
+* Integration tests for the repository layer use `jdbc:h2:mem:` directly — no
+  Testcontainers needed, keeping test execution fast.
+* `kbeatz-cli` can open the same H2 file the catalog service uses via `AUTO_SERVER=TRUE`
+  for read access (e.g., checking whether an album is already indexed before tagging).
+  `AUTO_SERVER=TRUE` starts H2's built-in TCP server on port 9092 the first time a client
+  connects — this is the intended sharing mechanism. On a private LAN this is acceptable
+  (no auth in v1 per NFR-07); on a multi-tenant or untrusted network, firewall port 9092
+  or disable `AUTO_SERVER` and use a shared PostgreSQL instance instead (the v2 path).
+* The `image-quota.json` flat file (ADR-004) remains as-is — a full DB dependency for
+  a single integer counter is disproportionate.
+* The Discogs release JSON cache (`MetadataCache` in `kbeatz-sources`) stays in-memory
+  for v1. If it grows large enough to warrant persistence, it can be backed by the same
+  H2 file in a future story.
+
+== Alternatives Rejected
+
+* **SQLite**: requires native library on JVM; no in-memory test mode; different SQL dialect
+  from PostgreSQL; no JSON type. Offers no advantage over H2 for a JVM project.
+* **No database (filesystem-only)**: violates NFR-01 (p95 < 3 s grid load) — scanning
+  2 000 FLAC files on every request takes tens of seconds.
+* **PostgreSQL from day 1**: operationally heavier (requires a running Postgres server in
+  compose); unnecessary for a single-user personal tool on a LAN. Documented as v2 target.
+* **Derby / HSQLDB**: lower community activity, fewer modern features, less PostgreSQL
+  dialect compatibility than H2.

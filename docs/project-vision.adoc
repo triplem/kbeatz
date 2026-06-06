@@ -369,6 +369,10 @@ If `kbeatz-sources` is unavailable, `kbeatz-catalog` behaviour:
 | Dual image storage: embed front cover in FLAC PICTURE block + external folder.jpg
 | Accepted
 
+| <<adr-006,ADR-006>>
+| H2 as embedded database (v1); PostgreSQL as v2 target
+| Accepted
+
 | TBD
 | Separate `kbeatz-sources` service (vs inline in catalog)
 | Proposed
@@ -388,6 +392,9 @@ If `kbeatz-sources` is unavailable, `kbeatz-catalog` behaviour:
 
 [[adr-001]]
 ADR-001 is at `docs/adr/ADR-001-flac-implementation.adoc`.
+
+[[adr-006]]
+ADR-006 is at `docs/adr/ADR-006-database-choice.adoc`.
 
 [[adr-002]]
 ADR-002 is at `docs/adr/ADR-002-kotlin-file-api.adoc`.
@@ -463,9 +470,11 @@ Tablet-friendly layout is a stretch goal for v1; mobile is explicitly out of sco
   configured path, or does it read files via a separate file-scanning daemon?
   Initial assumption: configured root path in `application.conf`, no daemon.
 
-. *Database*: is PostgreSQL required from the start, or can the catalog work read-only from
-  the filesystem with a lightweight SQLite cache?
-  Initial assumption: SQLite for metadata cache; PostgreSQL when user edits need persistence.
+. *Database*: resolved — **H2** (embedded, pure-Java) for v1.
+  PostgreSQL is the explicit v2 migration target.
+  H2 runs in file mode for production and in-memory mode for tests, avoiding any native
+  library dependency. `MODE=PostgreSQL` keeps the SQL dialect close to the v2 target.
+  See <<adr-006,ADR-006>>.
 
 . *Authentication*: resolved — no auth in v1 (risk explicitly accepted for private LAN use);
   Keycloak JWT in v2. See Security Considerations section.
