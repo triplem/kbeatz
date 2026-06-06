@@ -28,10 +28,12 @@ class TagAlbumsCommandTest {
 
     @Test
     fun `should skip directory when id file has no discogs_id`(@TempDir tempDir: java.nio.file.Path) {
+        // IniIdFileParser returns null for INI files without discogs_id,
+        // so the reader sees no parseable id file → "no id.txt..." message
         Files.writeString(tempDir.resolve("id.txt"), "[source]\namg_id=99\n")
         val result = TagAlbumsCommand().test("$tempDir")
         assertContains(result.output, "SKIP")
-        assertContains(result.output, "no discogs_id")
+        assertContains(result.output, "no id.txt")
     }
 
     @Test
