@@ -1,17 +1,23 @@
 package org.javafreedom.kbeatz.cli.command
 
 import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.UsageError
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.convert
 import com.github.ajalt.clikt.parameters.arguments.multiple
 import com.github.ajalt.clikt.parameters.options.convert
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
+import kotlinx.coroutines.runBlocking
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
 import org.javafreedom.kbeatz.cli.util.walkDirectories
+import org.javafreedom.kbeatz.sources.discogs.DiscogsMetadataSource
 import org.javafreedom.kbeatz.tagger.idfile.IdFileReader
 import org.javafreedom.kbeatz.tagger.idfile.SourceConfig
+import org.javafreedom.kbeatz.tagger.service.DefaultTaggerService
+import org.javafreedom.kbeatz.tagger.service.TagResult
+import org.javafreedom.kbeatz.tagger.service.TaggerService
 
 /**
  * Tags one or more album directories from Discogs metadata.
@@ -20,7 +26,9 @@ import org.javafreedom.kbeatz.tagger.idfile.SourceConfig
  *   kbeatz-tagger tag /music/Artist/Album1 /music/Artist/Album2
  *   kbeatz-tagger tag --library /music --recursive
  */
-class TagAlbumsCommand : CliktCommand(
+class TagAlbumsCommand(
+    private val taggerServiceOverride: TaggerService? = null,
+) : CliktCommand(
     name = "tag",
     help = "Fetch Discogs metadata and write FLAC tags for the given album directories.",
 ) {
@@ -42,6 +50,11 @@ class TagAlbumsCommand : CliktCommand(
     private val dryRun: Boolean by option(
         "--dry-run", "-n",
         help = "Print what would be tagged without writing any files.",
+    ).flag()
+
+    private val downloadImages: Boolean by option(
+        "--download-images",
+        help = "Download and embed cover art. Default off — preserves the Discogs image quota.",
     ).flag()
 
     override fun run() {
@@ -68,9 +81,21 @@ class TagAlbumsCommand : CliktCommand(
         if (dryRun) {
             echo("DRY   $dir → discogs_id=$discogsId")
         } else {
-            // TODO(#TBD): inject TaggerService and delegate
-            echo("TODO  $dir → discogs_id=$discogsId (tagging not yet implemented)")
+            val service = taggerServiceOverride ?: buildService(idReader)
+            runBlocking {
+                when (val result = service.tagAlbum(dir, downloadImages)) {
+                    is TagResult.Tagged -> echo("TAGGED $dir — ${result.filesWritten} FLAC files written")
+                    is TagResult.Skipped -> echo("SKIP   $dir — ${result.reason}", err = true)
+                    is TagResult.Failed -> echo("ERROR  $dir — ${result.cause.message}", err = true)
+                }
+            }
         }
+    }
+
+    private fun buildService(idReader: IdFileReader): TaggerService {
+        val token = System.getenv("DISCOGS_TOKEN")
+            ?: throw UsageError("DISCOGS_TOKEN environment variable must be set for tagging")
+        return DefaultTaggerService(idReader, DiscogsMetadataSource(token))
     }
 
     private fun resolveTargets(): List<Path> {
@@ -95,4 +120,3 @@ private const val DEFAULT_LIBRARY_SCAN_DEPTH = 3
 private fun String.toKtxPath(): Path = Path(this).also {
     require(SystemFileSystem.exists(it)) { "Path does not exist: $this" }
 }
-

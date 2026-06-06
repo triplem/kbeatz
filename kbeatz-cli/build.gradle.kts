@@ -7,6 +7,7 @@ version = "0.0.1"
 
 dependencies {
     implementation("org.javafreedom.kbeatz:kbeatz-tagger")
+    implementation("org.javafreedom.kbeatz:kbeatz-sources")
 }
 
 application {
