@@ -1,0 +1,273 @@
+= kbeatz-catalog Operations Guide
+:revnumber: 1.0
+:revdate: 2026-06-07
+:author: kbeatz team
+:toc:
+:toc-placement!:
+
+toc::[]
+
+== Overview
+
+This guide covers day-to-day operations for `kbeatz-catalog`: configuring the Discogs
+integration, monitoring the image quota, and troubleshooting common errors.
+
+== Environment Variables
+
+[cols="2,1,3", options="header"]
+|===
+| Variable | Required | Description
+
+| `CATALOG_LIBRARY_ROOT`
+| Yes
+| Absolute path to the root of the FLAC music library. The service refuses to start if this is not set.
+
+| `DISCOGS_TOKEN`
+| No (but recommended)
+| Discogs Personal Access Token (PAT) for metadata sync. Without this, all Discogs sync operations will fail with a 503-style error. See <<discogs-token>>.
+
+| `CATALOG_JDBC_URL`
+| No
+| JDBC URL for the H2 database. Defaults to `jdbc:h2:file:./data/kbeatz;DB_CLOSE_DELAY=-1;MODE=PostgreSQL`. Override for custom data directory or PostgreSQL migration target.
+
+| `DATA_DIR`
+| No (default: same dir as JAR)
+| Directory for runtime data files including `discogs-image-quota.json`. Must be writable by the service process.
+|===
+
+WARNING: Never log, print, or include `DISCOGS_TOKEN` in error messages or API responses.
+The token grants access to your Discogs account and must be treated as a secret.
+
+[#discogs-token]
+== Configuring the Discogs Token
+
+=== Obtaining a Personal Access Token
+
+. Log in to https://www.discogs.com/
+. Navigate to **Settings → Developers → My Applications → Generate new token**
+. Copy the generated token — you will not be able to view it again
+
+=== Setting the Token
+
+==== Docker
+
+[source,bash]
+----
+docker run -e DISCOGS_TOKEN=your_token_here \
+           -e CATALOG_LIBRARY_ROOT=/music \
+           -v /mnt/music:/music \
+           kbeatz-catalog:latest
+----
+
+==== Docker Compose
+
+[source,yaml]
+----
+services:
+  catalog:
+    image: kbeatz-catalog:latest
+    environment:
+      DISCOGS_TOKEN: ${DISCOGS_TOKEN}      # from .env file
+      CATALOG_LIBRARY_ROOT: /music
+    volumes:
+      - /mnt/music:/music
+----
+
+Store the token in a `.env` file (gitignored) and reference it with `${DISCOGS_TOKEN}`.
+
+==== Systemd
+
+[source,ini]
+----
+[Service]
+Environment="DISCOGS_TOKEN=your_token_here"
+Environment="CATALOG_LIBRARY_ROOT=/mnt/music"
+----
+
+=== Verifying the Token
+
+A correctly configured service logs this at startup:
+
+[source,text]
+----
+INFO  o.j.k.catalog.AppConfig - Discogs integration enabled
+----
+
+A missing token produces:
+
+[source,text]
+----
+WARN  o.j.k.catalog.AppConfig - DISCOGS_TOKEN not set — Discogs sync will be unavailable
+----
+
+== Discogs Image Quota Monitoring
+
+The Discogs API permits **1 000 image downloads per day** per PAT. kbeatz-catalog
+tracks this quota in a JSON file to preserve the count across service restarts.
+
+=== Quota File Location
+
+`$DATA_DIR/discogs-image-quota.json`
+
+Default location (same directory as the JAR):
+
+[source,text]
+----
+./data/discogs-image-quota.json
+----
+
+=== Quota File Format
+
+[source,json]
+----
+{"downloaded":42,"date":"2026-06-07"}
+----
+
+[cols="1,3", options="header"]
+|===
+| Field | Description
+
+| `downloaded` | Number of images downloaded today (UTC)
+| `date` | Today's UTC date (ISO 8601). If this differs from today, the counter is reset to 0 on next access.
+|===
+
+=== When the Quota Resets
+
+The quota resets automatically at **UTC midnight**. The reset is triggered lazily —
+it happens on the next `canDownload()` or `recordDownload()` call after midnight.
+
+To find when the next reset occurs:
+
+[source,bash]
+----
+date -u -d "tomorrow 00:00:00" +%Y-%m-%dT%H:%M:%SZ
+----
+
+=== Checking Current Usage
+
+[source,bash]
+----
+cat $DATA_DIR/discogs-image-quota.json
+# {"downloaded":750,"date":"2026-06-07"}
+----
+
+=== Monitoring via Logs
+
+The service logs quota exhaustion at WARN level:
+
+[source,text]
+----
+WARN  D.DiscogsMetadataSource - Discogs daily image quota exhausted — skipping image download for release 12345
+----
+
+And daily resets at INFO level:
+
+[source,text]
+----
+INFO  D.DiscogsImageQuota - Discogs image quota reset for new UTC day: 2026-06-08 (was 2026-06-07)
+----
+
+=== Manual Quota Reset
+
+To reset the quota before UTC midnight (e.g. after rotating to a new PAT):
+
+[source,bash]
+----
+# Stop the service first to avoid concurrent writes
+systemctl stop kbeatz-catalog
+
+echo '{"downloaded":0,"date":"'$(date -u +%Y-%m-%d)'"}' > $DATA_DIR/discogs-image-quota.json
+
+systemctl start kbeatz-catalog
+----
+
+== Rate Limit Behaviour
+
+The Discogs API limits **authenticated metadata requests to 60/minute**.
+kbeatz-catalog uses a token-bucket rate limiter to enforce this transparently.
+
+* Requests that exceed the 60/min limit are **suspended** (queued), never rejected.
+* At peak throughput, the user may notice a sync operation taking longer than expected.
+  This is normal — the limiter is protecting the Discogs API limit.
+* The rate-limit state is in-memory and resets when the service restarts. There is no
+  persistent token-bucket state.
+
+== Troubleshooting
+
+=== Sync Returns "No Discogs token configured"
+
+*Cause*: `DISCOGS_TOKEN` environment variable is not set.
+
+*Fix*: Set the variable and restart the service. See <<discogs-token>>.
+
+=== Sync Returns "Image quota exhausted"
+
+*Cause*: 1 000 images have been downloaded today.
+
+*Fix*: Wait for UTC midnight (see <<when-the-quota-resets>>). For urgent cases,
+manually reset the quota file as described in the manual reset section.
+
+=== "Failed to persist Discogs image quota" in Logs
+
+*Cause*: The service cannot write to `$DATA_DIR/discogs-image-quota.json`. Common
+causes: wrong file permissions, read-only filesystem, or the directory does not exist.
+
+*Fix*:
+
+[source,bash]
+----
+mkdir -p $DATA_DIR
+chmod 755 $DATA_DIR
+# Restart the service — it will create the file on first write
+----
+
+=== Rate Limit Errors (HTTP 429) from Discogs
+
+*Cause*: Multiple service instances are running simultaneously and sharing the same PAT,
+or the token-bucket state was reset (service restart) during a burst.
+
+*Fix*: Ensure only one instance of kbeatz-catalog runs per PAT. If running multiple
+instances is required, each needs its own Discogs PAT.
+
+=== "Startup repair failed" in Logs
+
+*Cause*: A `.kbeatz-write.lock` file was found in the library but re-indexing the
+album directory failed (e.g. directory moved or FLAC files deleted).
+
+*Fix*: Manually delete the lock file after verifying the album directory contents:
+
+[source,bash]
+----
+find $CATALOG_LIBRARY_ROOT -name ".kbeatz-write.lock" -exec rm {} \;
+systemctl restart kbeatz-catalog
+----
+
+== Backup and Restore
+
+=== What to Back Up
+
+[cols="2,3", options="header"]
+|===
+| Path | Contents
+
+| `./data/kbeatz.mv.db` (default) | H2 database — album index, track metadata, all tag data
+| `$DATA_DIR/discogs-image-quota.json` | Daily image quota counter (low value, recreated automatically)
+|===
+
+=== Restore Procedure
+
+. Stop the service.
+. Replace `kbeatz.mv.db` with the backup copy.
+. Start the service. Liquibase migrations run automatically on startup.
+. The quota file is optional — the service starts fresh if it is absent.
+
+== Upgrade Path
+
+kbeatz-catalog uses Liquibase for schema migrations. On every startup:
+
+. Liquibase checks the `DATABASECHANGELOG` table.
+. Any pending migrations are applied in version order.
+. The service starts accepting requests after migrations complete.
+
+No manual SQL is required for upgrades. Always back up the database before deploying
+a new version to a production instance.
