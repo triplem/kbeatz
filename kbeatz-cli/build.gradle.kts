@@ -10,14 +10,14 @@ dependencies {
 }
 
 application {
-    mainClass.set("org.javafreedom.kbeatz.cli.ApplicationKt")
+    mainClass.set("org.javafreedom.kbeatz.cli.KbeatzTaggerCliKt")
 }
 
 kover {
     reports {
         filters {
             excludes {
-                classes("org.javafreedom.kbeatz.cli.ApplicationKt*")
+                classes("org.javafreedom.kbeatz.cli.KbeatzTaggerCliKt*")
             }
         }
         verify {
