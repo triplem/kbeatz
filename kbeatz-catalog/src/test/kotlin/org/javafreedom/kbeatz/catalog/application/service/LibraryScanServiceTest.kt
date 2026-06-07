@@ -166,6 +166,40 @@ class LibraryScanServiceTest {
     }
 
     @Test
+    fun `startedAt is set when scan begins and completedAt is set on COMPLETE`() = runTest {
+        val groups = listOf(albumGroup())
+        every { walker.walk(libraryRoot) } returns groups
+        coEvery { albumRepository.saveAll(any()) } returns Unit
+
+        val svc = service()
+        svc.startScan()
+
+        val status = svc.status()
+        assertNotNull(status.startedAt, "startedAt should be non-null after scan starts")
+        assertNotNull(status.completedAt, "completedAt should be non-null after scan completes")
+    }
+
+    @Test
+    fun `startedAt is set and completedAt is set on FAILED`() = runTest {
+        every { walker.walk(libraryRoot) } throws RuntimeException("Disk error")
+
+        val svc = service()
+        svc.startScan()
+
+        val status = svc.status()
+        assertNotNull(status.startedAt, "startedAt should be non-null after scan starts")
+        assertNotNull(status.completedAt, "completedAt should be non-null after scan fails")
+    }
+
+    @Test
+    fun `initial status has null startedAt and completedAt`() {
+        val svc = service()
+        val status = svc.status()
+        assertNull(status.startedAt, "startedAt should be null initially")
+        assertNull(status.completedAt, "completedAt should be null initially")
+    }
+
+    @Test
     fun `AlbumGroup toAlbum maps fields correctly`() {
         val group = AlbumGroup(
             rootPath = Path.of("/music/classical/bach"),
