@@ -1,0 +1,887 @@
+= Developer Guide
+:toc: left
+:toclevels: 3
+:icons: font
+:source-highlighter: rouge
+
+This guide gives a developer unfamiliar with kbeatz enough context to make a change, add
+an endpoint, or extend the frontend without reading the full project CLAUDE.md. It covers
+the module map, hexagonal architecture in practice, a complete end-to-end feature walkthrough,
+Gradle composite build structure, domain conventions, frontend development, and CLI commands.
+
+== 1. Module Map
+
+kbeatz is a Gradle composite build (includeBuild). Each module is a self-contained Gradle root
+with its own `settings.gradle.kts` and `build.gradle.kts`.
+
+[cols="2,2,3,2"]
+|===
+|Module |Root package |Domain concepts owned |When to change this module
+
+|`kbeatz-common`
+|`org.javafreedom.kbeatz.common`
+|Shared domain exceptions: `ResourceNotFoundException`, `BusinessValidationException`,
+`ConflictException`, `AuthenticationException`, `AuthorizationException`
+|When adding a new domain exception type that multiple modules need to throw
+
+|`kbeatz-sources`
+|`org.javafreedom.kbeatz.sources`
+|`MetadataSource` port, `MetadataCache` port, `Release` domain type, Discogs adapter,
+filesystem cache adapter
+|When changing Discogs API integration, adding a MusicBrainz adapter, or modifying
+the metadata cache strategy
+
+|`kbeatz-tagger`
+|`org.javafreedom.kbeatz.tagger`
+|FLAC binary codec (RFC 9639 StreamInfo + VorbisComment blocks), id-file parser
+(INI-format `id.txt`/`local_ids.txt` and YAML `metadata.yml`), `TaggerService`
+|When adding FLAC tag fields, fixing binary parsing, or supporting a new id-file format
+
+|`kbeatz-cli`
+|`org.javafreedom.kbeatz.cli`
+|Clikt entry point, `tag` command (write FLAC tags from id-file), `migrate-ids` command
+(convert id-file formats)
+|When adding a new CLI command or changing command-line argument parsing
+
+|`kbeatz-catalog`
+|`org.javafreedom.kbeatz.catalog`
+|Album browsing, library scan, FLAC tag writing, Discogs sync, cover art. The HTTP API
+that the UI calls.
+|When adding or changing API endpoints, modifying the album domain model, or changing
+persistence logic
+
+|`kbeatz-ui`
+|`src/` (TypeScript, React 19)
+|Album grid, album detail, editable tag fields, library scan trigger, Discogs sync workflow
+|When adding or changing UI features, updating the TypeScript API client, or modifying
+component state
+|===
+
+=== Inter-module dependencies
+
+----
+kbeatz-cli
+  └── kbeatz-tagger (reads/writes FLAC files)
+      └── kbeatz-common (domain exceptions)
+
+kbeatz-catalog
+  ├── kbeatz-sources (Discogs/MB metadata)
+  ├── kbeatz-tagger (FLAC codec)
+  └── kbeatz-common (domain exceptions)
+
+kbeatz-ui
+  └── kbeatz-catalog (REST API via generated TypeScript client)
+----
+
+`kbeatz-common` is a shared library with no runtime server. It is published to the local
+Maven repository during the build and consumed by the other Kotlin modules.
+
+=== "Where to look when changing X"
+
+[cols="2,2"]
+|===
+|Change |Module to edit
+
+|Add a Vorbis Comment tag field
+|`kbeatz-tagger` - `codec/flac/`
+
+|Add a Discogs metadata field mapping
+|`kbeatz-sources` - `discogs/`
+
+|Add a REST endpoint
+|`kbeatz-catalog` - `adapters/inbound/web/` + `application/service/` + `domain/`
+
+|Change album domain model
+|`kbeatz-catalog` - `domain/model/` and `infrastructure/persistence/`
+
+|Add an album migration
+|`kbeatz-catalog` - `src/main/resources/db/changelog/`
+
+|Change the library scan logic
+|`kbeatz-catalog` - `application/service/LibraryScanService.kt`
+
+|Add a UI feature
+|`kbeatz-ui` - `src/features/`
+
+|Add a CLI command
+|`kbeatz-cli` - `command/`
+
+|Add a domain exception
+|`kbeatz-common` - `DomainExceptions.kt`
+|===
+
+== 2. kbeatz-catalog Hexagonal Architecture in Practice
+
+The catalog module follows strict hexagonal architecture (ports and adapters). The dependency
+direction is inward: adapters depend on the application layer; the application layer depends
+on domain interfaces; infrastructure implements those interfaces.
+
+=== Package layout
+
+----
+kbeatz-catalog/src/main/kotlin/org/javafreedom/kbeatz/catalog/
+├── AppConfig.kt                           # environment variable bindings
+├── Application.kt                         # Ktor application entry point
+├── adapters/
+│   └── inbound/
+│       └── web/
+│           ├── albums/
+│           │   └── CoverArtHandler.kt     # Ktor route handler
+│           └── library/
+│               └── LibraryHandler.kt      # Ktor route handler
+├── application/
+│   └── service/
+│       ├── AlbumService.kt                # album CRUD and browsing
+│       ├── CoverArtService.kt             # cover art resolution
+│       ├── DiscogsImageService.kt         # image download from Discogs
+│       ├── DiscogsSyncService.kt          # Discogs release sync
+│       ├── LibraryScanService.kt          # filesystem scan
+│       ├── LibraryWalker.kt               # filesystem traversal
+│       └── TagWriteService.kt             # FLAC tag write via kbeatz-tagger
+├── domain/
+│   ├── model/
+│   │   ├── Album.kt                       # pure domain type
+│   │   ├── AlbumGroup.kt
+│   │   ├── ImageDescriptor.kt
+│   │   ├── ScanStatus.kt
+│   │   ├── SyncResult.kt
+│   │   ├── Track.kt
+│   │   └── WriteLock.kt
+│   └── repository/
+│       ├── AlbumRepository.kt             # port interface
+│       └── TrackRepository.kt             # port interface
+├── infrastructure/
+│   └── persistence/
+│       ├── AlbumsTable.kt                 # Exposed table definition
+│       ├── DatabaseFactory.kt             # H2/Liquibase setup
+│       ├── ExposedAlbumRepository.kt      # adapter: implements AlbumRepository
+│       ├── ExposedTrackRepository.kt      # adapter: implements TrackRepository
+│       └── JsonSerde.kt                   # JSON serialisation helpers
+└── plugins/
+    ├── PathTraversalGuard.kt
+    ├── Routing.kt
+    ├── Serialization.kt
+    ├── StatusPages.kt
+    └── TraceId.kt
+----
+
+=== Layer rules
+
+*Domain layer (`domain/`)*
+
+* No framework imports (`io.ktor.*`, `org.jetbrains.exposed.*`, etc.)
+* No `java.time.*` - use `kotlinx.datetime.Instant` and `kotlinx.datetime.LocalDate`
+* No `java.util.UUID` - use `kotlin.uuid.Uuid`
+* No null returns from public API methods - use nullable return type (`Album?`) or throw
+  a domain exception from `kbeatz-common`
+* Interfaces are the ports: `AlbumRepository`, `TrackRepository`
+
+*Application layer (`application/service/`)*
+
+* Contains business logic
+* Depends on domain interfaces, not concrete implementations
+* Throws domain exceptions from `kbeatz-common`
+* No HTTP-specific types
+
+*Adapters (`adapters/inbound/web/`)*
+
+* Ktor route handlers
+* Calls the OpenAPI-generated `Paths` stubs and maps to/from domain types
+* Maps `ResourceNotFoundException` to 404 etc. via `StatusPages` plugin
+
+*Infrastructure (`infrastructure/persistence/`)*
+
+* Implements repository interfaces using Exposed ORM
+* Maps between Exposed result rows and domain types
+* All database access via `suspendTransaction` (Exposed coroutine support)
+
+=== OpenAPI spec is the contract
+
+Before writing any handler, edit the spec:
+
+[source,bash]
+----
+# Edit the spec first
+kbeatz-catalog/api/openapi.yaml
+
+# Then regenerate stubs
+./gradlew :kbeatz-catalog:openApiGenerate
+----
+
+The generated stubs appear in `kbeatz-catalog/build/generated/api/`. Do not edit them
+manually - they are regenerated on every build.
+
+== 3. End-to-End Feature Walkthrough: Adding GET /api/v1/albums/{albumId}/track-listing
+
+This section walks through every step required to add a new endpoint. Follow these steps
+exactly and a developer unfamiliar with the codebase can add an endpoint without reading
+CLAUDE.md.
+
+=== Step 1: Update openapi.yaml
+
+[source,bash]
+----
+# Open the spec
+vim kbeatz-catalog/api/openapi.yaml
+----
+
+Add the path under `paths:`:
+
+[source,yaml]
+----
+/api/v1/albums/{albumId}/track-listing:
+  get:
+    operationId: getAlbumTrackListing
+    summary: Get the track listing for an album
+    tags: [Albums]
+    parameters:
+      - name: albumId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      '200':
+        description: Track listing
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrackListing'
+      '404':
+        $ref: '#/components/responses/NotFound'
+----
+
+Add the `TrackListing` schema to `components/schemas:`:
+
+[source,yaml]
+----
+TrackListing:
+  type: object
+  required: [albumId, tracks]
+  properties:
+    albumId:
+      type: string
+      format: uuid
+      description: Album identifier
+      example: "01933d17-b650-7c4a-a234-c9a91a3afb8c"
+    tracks:
+      type: array
+      description: Ordered list of tracks
+      items:
+        $ref: '#/components/schemas/TrackSummary'
+
+TrackSummary:
+  type: object
+  required: [position, title]
+  properties:
+    position:
+      type: string
+      description: Track position (e.g. A1, 1, 2)
+      example: "A1"
+    title:
+      type: string
+      description: Track title
+      example: "Some Song"
+    durationSeconds:
+      type: integer
+      format: int32
+      description: Duration in seconds if known
+      example: 210
+----
+
+=== Step 2: Run openApiGenerate
+
+[source,bash]
+----
+./gradlew :kbeatz-catalog:openApiGenerate
+----
+
+Check `kbeatz-catalog/build/generated/api/` for the new generated stubs.
+
+=== Step 3: Add the domain model
+
+Add `TrackListing.kt` in `domain/model/`:
+
+[source,kotlin]
+----
+package org.javafreedom.kbeatz.catalog.domain.model
+
+import kotlin.uuid.Uuid
+
+data class TrackListing(
+    val albumId: Uuid,
+    val tracks: List<TrackSummary>,
+)
+
+data class TrackSummary(
+    val position: String,
+    val title: String,
+    val durationSeconds: Int?,
+)
+----
+
+Note: no framework imports. `Uuid` is from `kotlin.uuid`, not `java.util.UUID`.
+
+=== Step 4: Add the repository port
+
+Add the query method to `AlbumRepository.kt` in `domain/repository/`:
+
+[source,kotlin]
+----
+interface AlbumRepository {
+    // ... existing methods ...
+    suspend fun findTrackListingByAlbumId(albumId: Uuid): TrackListing?
+}
+----
+
+=== Step 5: Implement the service
+
+Add the method to `AlbumService.kt` in `application/service/`:
+
+[source,kotlin]
+----
+class AlbumService(private val albumRepository: AlbumRepository) {
+
+    suspend fun getTrackListing(albumId: Uuid): TrackListing =
+        albumRepository.findTrackListingByAlbumId(albumId)
+            ?: throw ResourceNotFoundException("Album $albumId not found")
+}
+----
+
+Import `ResourceNotFoundException` from `kbeatz-common`.
+
+=== Step 6: Add the Exposed ORM query
+
+Add the implementation to `ExposedAlbumRepository.kt` in `infrastructure/persistence/`:
+
+[source,kotlin]
+----
+override suspend fun findTrackListingByAlbumId(albumId: Uuid): TrackListing? =
+    suspendTransaction {
+        val album = AlbumsTable
+            .selectAll()
+            .where { AlbumsTable.id eq albumId }
+            .singleOrNull() ?: return@suspendTransaction null
+
+        val tracks = TracksTable
+            .selectAll()
+            .where { TracksTable.albumId eq albumId }
+            .orderBy(TracksTable.position)
+            .map { row ->
+                TrackSummary(
+                    position = row[TracksTable.position],
+                    title = row[TracksTable.title],
+                    durationSeconds = row[TracksTable.durationSeconds],
+                )
+            }
+
+        TrackListing(albumId = albumId, tracks = tracks)
+    }
+----
+
+=== Step 7: Add the route handler
+
+Add `TrackListingHandler.kt` in `adapters/inbound/web/albums/`:
+
+[source,kotlin]
+----
+package org.javafreedom.kbeatz.catalog.adapters.inbound.web.albums
+
+import io.ktor.server.application.call
+import io.ktor.server.response.respond
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
+import kotlin.uuid.Uuid
+import org.javafreedom.kbeatz.catalog.application.service.AlbumService
+
+fun Route.trackListingRoutes(albumService: AlbumService) {
+    get("/api/v1/albums/{albumId}/track-listing") {
+        val albumId = Uuid.parse(call.parameters["albumId"]!!)
+        val listing = albumService.getTrackListing(albumId)
+        call.respond(listing.toApiModel())
+    }
+}
+----
+
+Register the route in `plugins/Routing.kt` by adding the import and calling the route
+function inside the `route("/api/v1")` block:
+
+[source,kotlin]
+----
+// plugins/Routing.kt
+import org.javafreedom.kbeatz.catalog.adapters.inbound.web.albums.trackListingRoutes
+
+fun Application.configureRouting(/* ... */ albumService: AlbumService /* ... */) {
+    routing {
+        route("/api/v1") {
+            // ... existing routes ...
+            trackListingRoutes(albumService)
+        }
+    }
+}
+----
+
+=== Step 8: Write unit tests
+
+In `src/test/kotlin/.../application/service/`:
+
+[source,kotlin]
+----
+class AlbumServiceTest {
+
+    private val albumRepository = mockk<AlbumRepository>()
+    private val albumService = AlbumService(albumRepository)
+
+    @Test
+    fun `should return track listing when album exists`() = runTest {
+        val albumId = Uuid.random()
+        val listing = TrackListing(albumId, listOf(TrackSummary("A1", "Song", 180)))
+        coEvery { albumRepository.findTrackListingByAlbumId(albumId) } returns listing
+
+        val result = albumService.getTrackListing(albumId)
+
+        assertThat(result).isEqualTo(listing)
+    }
+
+    @Test
+    fun `should throw ResourceNotFoundException when album not found`() = runTest {
+        val albumId = Uuid.random()
+        coEvery { albumRepository.findTrackListingByAlbumId(albumId) } returns null
+
+        assertThrows<ResourceNotFoundException> {
+            albumService.getTrackListing(albumId)
+        }
+    }
+}
+----
+
+=== Step 9: Write an integration test
+
+In `src/integration-test/kotlin/.../adapters/inbound/web/`:
+
+[source,kotlin]
+----
+class TrackListingRouteTest : IntegrationTestBase() {
+
+    @Test
+    fun `GET track-listing returns 200 with tracks for known album`() {
+        val albumId = seedAlbum() // helper that inserts a test album + tracks
+
+        client.get("/api/v1/albums/$albumId/track-listing").apply {
+            assertEquals(HttpStatusCode.OK, status)
+            val body = Json.decodeFromString<TrackListingResponse>(bodyAsText())
+            assertTrue(body.tracks.isNotEmpty())
+        }
+    }
+
+    @Test
+    fun `GET track-listing returns 404 for unknown album`() {
+        client.get("/api/v1/albums/${Uuid.random()}/track-listing").apply {
+            assertEquals(HttpStatusCode.NotFound, status)
+        }
+    }
+}
+----
+
+=== Step 10: Run the quality gate
+
+[source,bash]
+----
+./gradlew :kbeatz-catalog:check
+----
+
+This runs unit tests, integration tests, Detekt, and Kover coverage verification. Fix all
+failures before opening a PR.
+
+=== Step 11: Regenerate the TypeScript client
+
+[source,bash]
+----
+cd kbeatz-ui
+npm run api:generate
+----
+
+The generated client in `src/api/generated/` is updated automatically. Do not edit it
+manually.
+
+=== Step 12: Regenerate lockfiles if needed
+
+If `./gradlew :kbeatz-catalog:check` fails with a lockfile mismatch after adding a new
+dependency, regenerate the lockfiles:
+
+[source,bash]
+----
+./gradlew --project-dir kbeatz-catalog dependencies --write-locks
+----
+
+See section 4 for details.
+
+== 4. Composite Gradle Build Structure
+
+=== Why includeBuild instead of subprojects
+
+kbeatz uses Gradle's `includeBuild()` (composite builds) rather than subprojects. Each
+module is a separate Gradle root with its own `settings.gradle.kts`. This means:
+
+* Each module can be built and tested independently: `./gradlew -p kbeatz-catalog check`
+* Each module has its own dependency lock file
+* Modules can be developed and released separately
+* The monorepo root coordinates builds via `build.gradle.kts` task aggregation
+
+The tradeoff is that each module must carry its own convention plugin configuration. The
+shared Gradle build logic lives in `build-logic/` which is referenced by every module's
+`settings.gradle.kts`:
+
+[source,kotlin]
+----
+// kbeatz-catalog/settings.gradle.kts
+pluginManagement {
+    includeBuild("../build-logic")
+    repositories { gradlePluginPortal(); mavenCentral() }
+}
+----
+
+=== Running tasks per module
+
+[source,bash]
+----
+# Run tests for catalog only
+./gradlew :kbeatz-catalog:test
+
+# Run Detekt for all modules
+./gradlew :kbeatz-catalog:detektMain :kbeatz-cli:detektMain \
+          :kbeatz-common:detektMain :kbeatz-sources:detektMain \
+          :kbeatz-tagger:detektMain
+
+# Equivalent shortcut - runs all checks across all modules
+./gradlew check
+
+# Build a single module fat JAR
+./gradlew :kbeatz-cli:shadowJar
+----
+
+The root `./gradlew` commands delegate to all included builds. The `:module:task` prefix
+form runs a task in a specific module.
+
+=== Dependency substitution for kbeatz-common
+
+`kbeatz-common` is a shared library. When another module declares a dependency on it, the
+composite build substitutes the Maven artifact reference with the local project:
+
+[source,kotlin]
+----
+// root settings.gradle.kts
+includeBuild("kbeatz-common") {
+    dependencySubstitution {
+        substitute(module("org.javafreedom.kbeatz:kbeatz-common"))
+            .using(project(":"))
+    }
+}
+----
+
+This means changes to `kbeatz-common` are immediately visible to `kbeatz-catalog` without
+publishing to a Maven repository first.
+
+=== Lockfile regeneration
+
+Gradle dependency locking is enabled to make builds reproducible. If you add or update a
+dependency in a module's `build.gradle.kts`, regenerate its lockfiles:
+
+[source,bash]
+----
+# Regenerate lockfiles for a specific module
+./gradlew --project-dir kbeatz-catalog dependencies --write-locks
+
+# Or regenerate for all modules at once
+./gradlew --write-locks
+----
+
+Commit the updated `gradle.lockfile` (and `buildscript-gradle.lockfile` if present) as part
+of the same PR that adds the dependency.
+
+=== Detekt config per module
+
+Each module carries its own `config/detekt/detekt.yml`. This is required because each
+includeBuild is a separate Gradle root - `project.rootDir` inside the convention plugin
+resolves to the module directory, not the monorepo root. A missing detekt config causes:
+
+----
+Provided path '<module>/config/detekt/detekt.yml' does not exist!
+----
+
+When scaffolding a new module, copy the config from an existing module:
+
+[source,bash]
+----
+mkdir -p new-module/config/detekt
+cp kbeatz-catalog/config/detekt/detekt.yml new-module/config/detekt/detekt.yml
+----
+
+== 5. Domain Conventions
+
+=== Date and time types
+
+Use `kotlinx.datetime` throughout domain code:
+
+[cols="1,1"]
+|===
+|Use this |Never this
+
+|`kotlinx.datetime.Instant`
+|`java.time.Instant`
+
+|`kotlinx.datetime.LocalDate`
+|`java.time.LocalDate`
+
+|`kotlin.uuid.Uuid`
+|`java.util.UUID`
+|===
+
+`java.time.*` and `java.util.UUID` may appear in infrastructure and persistence layers where
+Exposed ORM requires them for type conversion, but never in domain or application layers.
+
+=== Domain exceptions
+
+All domain exceptions are defined in `kbeatz-common/DomainExceptions.kt`. Throw them from
+the service layer; never from route handlers or repositories:
+
+[source,kotlin]
+----
+// Service layer - throw domain exception
+suspend fun getAlbum(id: Uuid): Album =
+    albumRepository.findById(id) ?: throw ResourceNotFoundException("Album $id not found")
+
+// Never throw from route handler - let StatusPages convert exceptions
+get("/api/v1/albums/{id}") {
+    val album = albumService.getAlbum(Uuid.parse(call.parameters["id"]!!))
+    call.respond(album.toResponse())
+}
+----
+
+The `StatusPages` plugin in `plugins/StatusPages.kt` maps domain exceptions to HTTP codes:
+
+[cols="2,1"]
+|===
+|Exception |HTTP Status
+
+|`ResourceNotFoundException`
+|404
+
+|`BusinessValidationException`
+|422
+
+|`ConflictException`
+|409
+
+|`AuthenticationException`
+|401
+
+|`AuthorizationException`
+|403
+|===
+
+=== Detekt false-positives to avoid
+
+[cols="2,1,2"]
+|===
+|Pattern |Detekt rule |Idiomatic fix
+
+|`val x = expr ?: return null` (multi-line Elvis)
+|`UnreachableCode`
+|Use `?.let { }` expression body
+
+|`?: return@label null` inside lambda
+|`UnreachableCode`
+|Use `?.let { }` instead
+
+|`for` loop with 2+ `continue`
+|`LoopWithTooManyJumpStatements`
+|Extract loop body to a private function
+
+|RFC-defined binary constants (FLAC bit-shift amounts)
+|`MagicNumber`
+|`@Suppress("MagicNumber")` with spec reference comment
+|===
+
+=== Null safety in public APIs
+
+Public method return types must be honest. If a method can fail to find a result, return
+a nullable type rather than throwing:
+
+[source,kotlin]
+----
+// Repository interface - returns null when not found
+interface AlbumRepository {
+    suspend fun findById(id: Uuid): Album?       // nullable - caller decides
+    suspend fun save(album: Album): Album        // never null
+}
+
+// Service layer - converts null to exception with context
+suspend fun getAlbum(id: Uuid): Album =
+    albumRepository.findById(id)
+        ?: throw ResourceNotFoundException("Album $id not found")
+----
+
+== 6. Frontend: Adding a UI Feature
+
+=== Setup
+
+[source,bash]
+----
+cd kbeatz-ui
+npm install
+----
+
+=== Regenerating the TypeScript client
+
+The TypeScript client in `src/api/generated/` is auto-generated from
+`kbeatz-catalog/api/openapi.yaml`. Never edit it manually. After any API change:
+
+[source,bash]
+----
+npm run api:generate
+----
+
+The generated client uses Axios. Import from the generated barrel:
+
+[source,typescript]
+----
+import { AlbumsApi, Configuration } from '../api/generated';
+
+const api = new AlbumsApi(new Configuration({ basePath: '/api/v1' }));
+const albums = await api.listAlbums({ page: 0, size: 20 });
+----
+
+=== State management
+
+kbeatz-ui uses React hooks and local component state only. There is no Redux or global
+state library. State that needs to be shared between sibling components is lifted to the
+closest common ancestor.
+
+[source,typescript]
+----
+// Good - local state with a hook
+function AlbumDetail({ albumId }: { albumId: string }) {
+    const [album, setAlbum] = useState<AlbumResponse | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        api.getAlbum({ albumId })
+            .then(setAlbum)
+            .finally(() => setLoading(false));
+    }, [albumId]);
+
+    if (loading) return <Loading />;
+    if (!album) return <NotFound />;
+    return <AlbumView album={album} />;
+}
+----
+
+=== Adding a new feature
+
+[source,bash]
+----
+# Create the feature directory
+mkdir src/features/my-feature
+
+# Recommended structure
+src/features/my-feature/
+├── MyFeature.tsx          # main component
+├── MyFeature.test.tsx     # Vitest + React Testing Library tests
+└── index.ts               # barrel export
+----
+
+Register the route in `App.tsx` if the feature needs its own URL.
+
+=== Testing
+
+[source,bash]
+----
+# Run all tests
+npm run test
+
+# Run with coverage
+npm run test:coverage
+
+# Run in watch mode
+npm run test -- --watch
+----
+
+Tests use Vitest and React Testing Library. Mock API calls with `vi.mock` or MSW.
+
+=== Build
+
+[source,bash]
+----
+npm run build
+----
+
+TypeScript strict mode is enforced (`noUnusedLocals: true`, `noUnusedParameters: true`,
+`strictNullChecks: true`). The build fails on any type error. Fix all errors before
+opening a PR.
+
+== 7. CLI: Adding a Command
+
+The CLI module (`kbeatz-cli`) uses Clikt for command-line argument parsing. It is distributed
+as a fat JAR built by the Gradle Shadow plugin.
+
+=== Clikt entry point structure
+
+[source,kotlin]
+----
+// KbeatzTaggerCli.kt - the root Clikt command
+class KbeatzTaggerCli : CliktCommand(name = "kbeatz") {
+    override fun run() = Unit
+}
+
+fun main(args: Array<String>) = KbeatzTaggerCli()
+    .subcommands(
+        TagAlbumsCommand(/* dependencies */),
+        MigrateIdFilesCommand(/* dependencies */),
+    )
+    .main(args)
+----
+
+=== Adding a subcommand
+
+. Create a new file in `command/`:
++
+[source,kotlin]
+----
+package org.javafreedom.kbeatz.cli.command
+
+import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.parameters.options.option
+import com.github.ajalt.clikt.parameters.options.required
+import com.github.ajalt.clikt.parameters.types.path
+
+class ExportCommand : CliktCommand(
+    name = "export",
+    help = "Export tag data for an album to a YAML file",
+) {
+    private val albumDir by option("--album-dir", help = "Album directory path")
+        .path(mustExist = true, canBeFile = false)
+        .required()
+
+    override fun run() {
+        // implementation
+    }
+}
+----
+
+. Register it in the root command's `subcommands()` call in `KbeatzTaggerCli.kt`.
+
+=== Building the fat JAR
+
+[source,bash]
+----
+./gradlew :kbeatz-cli:shadowJar
+----
+
+The output JAR is at `kbeatz-cli/build/libs/kbeatz-cli-<version>-all.jar`. Run it with:
+
+[source,bash]
+----
+java -jar kbeatz-cli/build/libs/kbeatz-cli-*-all.jar --help
+----
