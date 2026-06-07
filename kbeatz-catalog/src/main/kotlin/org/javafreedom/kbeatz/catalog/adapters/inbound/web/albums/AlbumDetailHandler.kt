@@ -5,6 +5,7 @@ import io.ktor.server.application.ApplicationCall
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
+import java.nio.file.Path
 import kotlin.uuid.Uuid
 import org.javafreedom.kbeatz.catalog.api.models.AlbumDetail
 import org.javafreedom.kbeatz.catalog.api.models.ErrorResponse
@@ -26,9 +27,10 @@ import org.javafreedom.kbeatz.common.ResourceNotFoundException
  * - 400: albumId is not a valid UUID
  * - 404: album not found in H2 index
  *
+ * @param libraryRoot Used to compute relative [directoryPath] in API responses.
  * No auth in v1 (trusted LAN deployment).
  */
-fun Route.albumDetailRoutes(albumService: AlbumService) {
+fun Route.albumDetailRoutes(albumService: AlbumService, libraryRoot: Path) {
     get("/albums/{albumId}") {
         val albumIdStr = call.parameters["albumId"]
         val albumId = albumIdStr?.let { runCatching { Uuid.parse(it) }.getOrNull() }
@@ -42,15 +44,20 @@ fun Route.albumDetailRoutes(albumService: AlbumService) {
                 HttpStatusCode.BadRequest,
                 ErrorResponse(code = "INVALID_ALBUM_ID", message = "Invalid UUID: $albumIdStr"),
             )
-            else -> handleGetAlbum(call, albumService, albumId)
+            else -> handleGetAlbum(call, albumService, albumId, libraryRoot)
         }
     }
 }
 
-private suspend fun handleGetAlbum(call: ApplicationCall, albumService: AlbumService, albumId: Uuid) {
+private suspend fun handleGetAlbum(
+    call: ApplicationCall,
+    albumService: AlbumService,
+    albumId: Uuid,
+    libraryRoot: Path,
+) {
     try {
         val (album, tracks) = albumService.getAlbumWithTracks(albumId)
-        call.respond(HttpStatusCode.OK, album.toDetailApiModel(tracks))
+        call.respond(HttpStatusCode.OK, album.toDetailApiModel(tracks, libraryRoot))
     } catch (ex: ResourceNotFoundException) {
         call.respond(
             HttpStatusCode.NotFound,
@@ -59,11 +66,11 @@ private suspend fun handleGetAlbum(call: ApplicationCall, albumService: AlbumSer
     }
 }
 
-internal fun Album.toDetailApiModel(tracks: List<Track>): AlbumDetail = AlbumDetail(
+internal fun Album.toDetailApiModel(tracks: List<Track>, libraryRoot: Path): AlbumDetail = AlbumDetail(
     id = id.toString(),
     albumArtist = albumArtist,
     album = album,
-    directoryPath = directoryPath,
+    directoryPath = libraryRoot.relativize(Path.of(directoryPath)).toString(),
     hasCoverArt = hasCoverArt,
     date = date,
     genre = genre,

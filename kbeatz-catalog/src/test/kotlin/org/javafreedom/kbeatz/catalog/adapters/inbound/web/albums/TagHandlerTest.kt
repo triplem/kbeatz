@@ -14,6 +14,7 @@ import io.ktor.server.testing.testApplication
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.uuid.Uuid
@@ -35,6 +36,7 @@ class TagHandlerTest {
     private val trackRepository: TrackRepository = mockk()
     private val tagWriteService: TagWriteService = mockk()
     private val albumService = AlbumService(albumRepository, trackRepository)
+    private val libraryRoot = Path.of("/music")
 
     private val albumId = Uuid.random()
     private val trackId = Uuid.random()
@@ -76,7 +78,7 @@ class TagHandlerTest {
 
     private fun testApp(block: suspend io.ktor.client.HttpClient.() -> Unit) = testApplication {
         install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
-        routing { tagRoutes(albumService, tagWriteService) }
+        routing { tagRoutes(albumService, tagWriteService, libraryRoot) }
         val client = createClient { install(ClientContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }
         client.block()
     }

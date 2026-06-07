@@ -29,11 +29,11 @@ fun Application.configureRouting(
         route("/api/v1") {
             healthRoutes(healthConfig.dbProbe, healthConfig.libraryRoot)
             libraryRoutes(scanService)
-            albumRoutes(albumService)
-            albumDetailRoutes(albumService)
-            tagRoutes(albumService, tagWriteService)
+            albumRoutes(albumService, healthConfig.libraryRoot)
+            albumDetailRoutes(albumService, healthConfig.libraryRoot)
+            tagRoutes(albumService, tagWriteService, healthConfig.libraryRoot)
             coverArtRoutes(coverArtService)
-            syncRoutes(syncService)
+            syncRoutes(syncService, healthConfig.libraryRoot)
         }
     }
 }

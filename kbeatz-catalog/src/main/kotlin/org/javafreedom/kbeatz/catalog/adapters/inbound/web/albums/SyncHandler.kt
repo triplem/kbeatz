@@ -6,6 +6,7 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import java.nio.file.Path
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.uuid.Uuid
 import org.javafreedom.kbeatz.catalog.api.models.Album as ApiAlbum
@@ -32,10 +33,11 @@ private val log = KotlinLogging.logger {}
  * - 429: Discogs image quota exhausted (only when `downloadImages=true`)
  * - 503: Discogs API unavailable (network error)
  *
+ * @param libraryRoot Used to compute relative [directoryPath] in API responses.
  * No auth in v1 (trusted LAN deployment).
  */
 @Suppress("TooGenericExceptionCaught") // Ktor route must catch all errors to return structured responses
-fun Route.syncRoutes(syncService: DiscogsSyncService) {
+fun Route.syncRoutes(syncService: DiscogsSyncService, libraryRoot: Path) {
     post("/albums/{albumId}/sync") {
         val albumIdStr = call.parameters["albumId"]
         val albumId = albumIdStr?.let { runCatching { Uuid.parse(it) }.getOrNull() }
@@ -49,17 +51,22 @@ fun Route.syncRoutes(syncService: DiscogsSyncService) {
                 HttpStatusCode.BadRequest,
                 ErrorResponse(code = "INVALID_ALBUM_ID", message = "Invalid UUID: $albumIdStr"),
             )
-            else -> handleSync(call, syncService, albumId)
+            else -> handleSync(call, syncService, albumId, libraryRoot)
         }
     }
 }
 
 @Suppress("TooGenericExceptionCaught") // catch-all for network/codec errors → 503
-private suspend fun handleSync(call: ApplicationCall, syncService: DiscogsSyncService, albumId: Uuid) {
+private suspend fun handleSync(
+    call: ApplicationCall,
+    syncService: DiscogsSyncService,
+    albumId: Uuid,
+    libraryRoot: Path,
+) {
     val downloadImages = call.receiveNullable<Map<String, Boolean>>()?.get("downloadImages") ?: false
     try {
         val result = syncService.sync(albumId, downloadImages)
-        call.respond(HttpStatusCode.OK, result.updatedAlbum.toSyncApiModel())
+        call.respond(HttpStatusCode.OK, result.updatedAlbum.toSyncApiModel(libraryRoot))
     } catch (ex: ResourceNotFoundException) {
         call.respond(HttpStatusCode.NotFound,
             ErrorResponse(code = "RESOURCE_NOT_FOUND", message = ex.message ?: "Album not found"))
@@ -82,11 +89,11 @@ private suspend fun handleSync(call: ApplicationCall, syncService: DiscogsSyncSe
     }
 }
 
-internal fun Album.toSyncApiModel(): ApiAlbum = ApiAlbum(
+internal fun Album.toSyncApiModel(libraryRoot: Path): ApiAlbum = ApiAlbum(
     id = id.toString(),
     albumArtist = albumArtist,
     album = album,
-    directoryPath = directoryPath,
+    directoryPath = libraryRoot.relativize(Path.of(directoryPath)).toString(),
     hasCoverArt = hasCoverArt,
     date = date,
     genre = genre,
