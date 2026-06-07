@@ -5,13 +5,17 @@ import kotlin.uuid.Uuid
 import kotlin.uuid.toKotlinUuid
 import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
+import org.jetbrains.exposed.v1.core.Count
+import org.jetbrains.exposed.v1.core.Expression
 import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.intLiteral
 import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.update
@@ -21,7 +25,7 @@ import org.jetbrains.exposed.v1.jdbc.update
  *
  * All database calls run via [suspendTransaction], which handles dispatcher management
  * internally through Exposed's transaction manager.
- * [discogsJson] is excluded from all queries in this repository — it is loaded only by
+ * [discogsJson] is excluded from all queries in this repository - it is loaded only by
  * the detail endpoint (story #66) which will query it explicitly.
  */
 class ExposedAlbumRepository : AlbumRepository {
@@ -37,13 +41,18 @@ class ExposedAlbumRepository : AlbumRepository {
 
     override suspend fun findAllWithCount(page: Int, size: Int): Pair<List<Album>, Long> =
         suspendTransaction {
-            val albums = AlbumsTable
-                .selectAll()
+            // COUNT(*) OVER() window function folds the total into each row - one round-trip
+            // instead of two, which matters on a networked PostgreSQL (ADR-006) at scale.
+            val totalExpr = Count(intLiteral(1)).over()
+            val cols: List<Expression<*>> = AlbumsTable.columns + listOf(totalExpr)
+            val rows = AlbumsTable
+                .select(cols)
                 .orderBy(AlbumsTable.albumArtist)
-                .limit(size).offset(page.toLong() * size)
-                .map { it.toAlbum() }
-            val total = AlbumsTable.selectAll().count()
-            albums to total
+                .limit(size)
+                .offset(page.toLong() * size)
+                .toList()
+            val total = rows.firstOrNull()?.get(totalExpr) ?: 0L
+            rows.map { it.toAlbum() } to total
         }
 
     override suspend fun save(album: Album): Album =
