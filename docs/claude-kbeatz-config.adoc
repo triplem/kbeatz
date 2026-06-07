@@ -351,7 +351,7 @@ conventions baked into this skill are not replicated by any built-in.
 |Recommendation |Count |Skills
 
 |Keep
-|23
+|25
 |architect-review, challenge, challenge-all, claude-code-expert, create-adr, devops-review,
 domain-model, gather-requirements, implement, implement-epic, learn, operations-review,
 performance-review, pr-reviewer, qa-review, react-patterns, release, requirements-review,
