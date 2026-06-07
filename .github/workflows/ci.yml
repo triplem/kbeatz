@@ -60,6 +60,10 @@ jobs:
           done
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+          # Each module runs as its own Gradle root (composite build) so the root
+          # gradle.properties -Xmx2g is not inherited. GRADLE_OPTS ensures the JVM
+          # has enough heap to buffer the NVD database download.
+          GRADLE_OPTS: "-Xmx2g -XX:MaxMetaspaceSize=512m"
         # Fails build on HIGH/CRITICAL CVEs (CVSS >= 7.0). NVD database is cached via
         # the "Cache NVD database" step above. Suppressions for accepted false positives
         # go in <module>/config/dependency-check/suppressions.xml with a documented rationale.
