@@ -21,6 +21,7 @@ import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.model.AlbumGroup
 import org.javafreedom.kbeatz.catalog.domain.model.ScanState
 import org.javafreedom.kbeatz.catalog.domain.model.ScanStatus
+import org.javafreedom.kbeatz.catalog.domain.model.WRITE_LOCK_FILENAME
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 
 private val log = KotlinLogging.logger {}
@@ -130,7 +131,7 @@ class LibraryScanService(
         val result = mutableListOf<Path>()
         Files.walkFileTree(libraryRoot, object : SimpleFileVisitor<Path>() {
             override fun visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult {
-                if (file.fileName.toString() == LOCK_FILE_NAME) result.add(file)
+                if (file.fileName.toString() == WRITE_LOCK_FILENAME) result.add(file)
                 return FileVisitResult.CONTINUE
             }
 
@@ -165,9 +166,6 @@ class LibraryScanService(
     }
 
     companion object {
-        /** Name of the write-lock sentinel file created by the FLAC tagger during writes. */
-        const val LOCK_FILE_NAME = ".kbeatz-write.lock"
-
         /**
          * Maps a [AlbumGroup] from the walker to an [Album] suitable for persistence.
          *

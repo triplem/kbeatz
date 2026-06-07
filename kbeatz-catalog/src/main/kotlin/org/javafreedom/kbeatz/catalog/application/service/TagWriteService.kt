@@ -7,14 +7,13 @@ import kotlin.uuid.Uuid
 import kotlinx.io.files.Path as KtPath
 import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.model.Track
+import org.javafreedom.kbeatz.catalog.domain.model.WRITE_LOCK_FILENAME
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 import org.javafreedom.kbeatz.catalog.domain.repository.TrackRepository
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
 import org.javafreedom.kbeatz.tagger.codec.flac.FlacFile
 
 private val log = KotlinLogging.logger {}
-
-private const val LOCK_FILE_NAME = ".kbeatz-write.lock"
 
 /** Allowed Vorbis Comment fields for album-level writes. Field names are uppercase. */
 val ALBUM_LEVEL_FIELDS: Set<String> = setOf(
@@ -150,12 +149,12 @@ class TagWriteService(
         if (flacFiles.isEmpty()) return
         Files.createDirectories(albumDir)
         val manifest = flacFiles.joinToString("\n") { it.toString() }
-        Files.writeString(albumDir.resolve(LOCK_FILE_NAME), manifest)
+        Files.writeString(albumDir.resolve(WRITE_LOCK_FILENAME), manifest)
         log.debug { "Write-lock manifest created in $albumDir (${flacFiles.size} files)" }
     }
 
     private fun deleteLockFile(albumDir: Path) {
-        Files.deleteIfExists(albumDir.resolve(LOCK_FILE_NAME))
+        Files.deleteIfExists(albumDir.resolve(WRITE_LOCK_FILENAME))
         log.debug { "Write-lock manifest removed from $albumDir" }
     }
 

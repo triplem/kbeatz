@@ -12,6 +12,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.javafreedom.kbeatz.catalog.domain.model.AlbumGroup
+import org.javafreedom.kbeatz.catalog.domain.model.WRITE_LOCK_FILENAME
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 
 /**
@@ -60,7 +61,7 @@ class RepairOnStartupTest {
     @Test
     fun `repairOnStartup re-indexes and deletes lock file`() = withTempLibrary { root, svc ->
         val albumDir = Files.createDirectories(root.resolve("classical/bach/bwv998"))
-        val lockFile = albumDir.resolve(LibraryScanService.LOCK_FILE_NAME)
+        val lockFile = albumDir.resolve(WRITE_LOCK_FILENAME)
         Files.writeString(lockFile, "dummy content")
 
         every { walker.walk(albumDir) } returns listOf(albumGroup(albumDir))
@@ -84,8 +85,8 @@ class RepairOnStartupTest {
         withTempLibrary { root, svc ->
             val dir1 = Files.createDirectories(root.resolve("classical/bach/bwv998"))
             val dir2 = Files.createDirectories(root.resolve("jazz/miles/blue"))
-            val lock1 = dir1.resolve(LibraryScanService.LOCK_FILE_NAME)
-            val lock2 = dir2.resolve(LibraryScanService.LOCK_FILE_NAME)
+            val lock1 = dir1.resolve(WRITE_LOCK_FILENAME)
+            val lock2 = dir2.resolve(WRITE_LOCK_FILENAME)
             Files.writeString(lock1, "")
             Files.writeString(lock2, "")
 
@@ -105,8 +106,8 @@ class RepairOnStartupTest {
         withTempLibrary { root, svc ->
             val dir1 = Files.createDirectories(root.resolve("album1"))
             val dir2 = Files.createDirectories(root.resolve("album2"))
-            val lock1 = dir1.resolve(LibraryScanService.LOCK_FILE_NAME)
-            val lock2 = dir2.resolve(LibraryScanService.LOCK_FILE_NAME)
+            val lock1 = dir1.resolve(WRITE_LOCK_FILENAME)
+            val lock2 = dir2.resolve(WRITE_LOCK_FILENAME)
             Files.writeString(lock1, "")
             Files.writeString(lock2, "")
 
