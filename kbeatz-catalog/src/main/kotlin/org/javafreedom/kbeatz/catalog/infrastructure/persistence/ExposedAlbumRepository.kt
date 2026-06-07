@@ -10,7 +10,6 @@ import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -36,20 +35,6 @@ class ExposedAlbumRepository : AlbumRepository {
                 ?.toAlbum()
         }
 
-    override suspend fun findAll(page: Int, size: Int): List<Album> =
-        suspendTransaction {
-            AlbumsTable
-                .selectAll()
-                .orderBy(AlbumsTable.albumArtist)
-                .limit(size).offset(page.toLong() * size)
-                .map { it.toAlbum() }
-        }
-
-    override suspend fun count(): Long =
-        suspendTransaction {
-            AlbumsTable.selectAll().count()
-        }
-
     override suspend fun findAllWithCount(page: Int, size: Int): Pair<List<Album>, Long> =
         suspendTransaction {
             val albums = AlbumsTable
@@ -60,24 +45,6 @@ class ExposedAlbumRepository : AlbumRepository {
             val total = AlbumsTable.selectAll().count()
             albums to total
         }
-
-    override suspend fun findIdByNaturalKey(
-        albumArtist: String,
-        album: String,
-        date: String?,
-        directoryPath: String,
-    ): Uuid? = suspendTransaction {
-        AlbumsTable
-            .selectAll()
-            .where {
-                (AlbumsTable.albumArtist eq albumArtist) and
-                    (AlbumsTable.album eq album) and
-                    (AlbumsTable.albumDate eq date.orEmpty()) and
-                    (AlbumsTable.directoryPath eq directoryPath)
-            }
-            .singleOrNull()
-            ?.let { it[AlbumsTable.id].value.toKotlinUuid() }
-    }
 
     override suspend fun save(album: Album): Album =
         suspendTransaction {

@@ -289,7 +289,7 @@ class MigrationTest {
     }
 
     @Test
-    fun `ExposedAlbumRepository count and findAll paginate correctly`() = runTest {
+    fun `ExposedAlbumRepository findAllWithCount returns total and paginated results`() = runTest {
         val ds = DbFactory.init(jdbcUrl)
         try {
             val repo = ExposedAlbumRepository()
@@ -312,9 +312,8 @@ class MigrationTest {
                 )
             }
             albums.forEach { repo.save(it) }
-            val total = repo.count()
+            val (page, total) = repo.findAllWithCount(0, 3)
             assertEquals(5L, total)
-            val page = repo.findAll(0, 3)
             assertEquals(3, page.size)
         } finally {
             transaction { AlbumsTable.deleteAll() }
@@ -342,7 +341,7 @@ class MigrationTest {
                 ),
             )
             repo.saveAll(albums)
-            assertEquals(2L, repo.count())
+            assertEquals(2L, repo.findAllWithCount(0, Int.MAX_VALUE).second)
         } finally {
             transaction { AlbumsTable.deleteAll() }
             ds.close()
@@ -418,7 +417,7 @@ class MigrationTest {
                 ), // new insert
             ))
 
-            assertEquals(2L, repo.count())
+            assertEquals(2L, repo.findAllWithCount(0, Int.MAX_VALUE).second)
             val updated = repo.findById(existingId)
             assertNotNull(updated)
             // Structural-only update: genre must NOT be overwritten with null from the rescan
@@ -515,7 +514,7 @@ class MigrationTest {
                 )
             }
             repo.saveAll(albums)
-            assertEquals(1200L, repo.count())
+            assertEquals(1200L, repo.findAllWithCount(0, Int.MAX_VALUE).second)
         } finally {
             transaction { AlbumsTable.deleteAll() }
             ds.close()
@@ -528,7 +527,7 @@ class MigrationTest {
         try {
             val repo = ExposedAlbumRepository()
             repo.saveAll(emptyList())
-            assertEquals(0L, repo.count())
+            assertEquals(0L, repo.findAllWithCount(0, Int.MAX_VALUE).second)
         } finally {
             ds.close()
         }
