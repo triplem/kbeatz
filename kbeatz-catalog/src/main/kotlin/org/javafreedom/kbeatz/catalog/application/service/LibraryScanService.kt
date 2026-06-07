@@ -15,6 +15,7 @@ import kotlin.uuid.Uuid
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.model.AlbumGroup
