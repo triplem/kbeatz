@@ -14,6 +14,7 @@ class MigrateIdFilesCommandTest {
     fun `should exit cleanly when root has no subdirectories with id files`(@TempDir tempDir: java.nio.file.Path) {
         val result = MigrateIdFilesCommand().test("$tempDir")
         assertTrue(result.statusCode == 0)
+        assertContains(result.output, "Migrated 0 files")
     }
 
     @Test
@@ -29,9 +30,12 @@ class MigrateIdFilesCommandTest {
     fun `should write metadata yml when not in dry-run mode`(@TempDir tempDir: java.nio.file.Path) {
         val album = Files.createDirectory(tempDir.resolve("album"))
         Files.writeString(album.resolve("id.txt"), "[source]\ndiscogs_id=22\n")
-        MigrateIdFilesCommand().test("$tempDir")
+        val result = MigrateIdFilesCommand().test("$tempDir")
         assertTrue(Files.exists(album.resolve("metadata.yml")))
         assertContains(Files.readString(album.resolve("metadata.yml")), "discogs_id")
+        assertContains(result.output, "WROTE")
+        assertContains(result.output, "DEL")
+        assertContains(result.output, "Migrated 1 files")
     }
 
     @Test
@@ -85,9 +89,11 @@ class MigrateIdFilesCommandTest {
         val album = Files.createDirectory(tempDir.resolve("album"))
         Files.writeString(album.resolve("id.txt"), "[source]\ndiscogs_id=99\n")
         Files.writeString(album.resolve("metadata.yml"), "sources:\n  discogs_id: \"old\"\n")
-        MigrateIdFilesCommand().test("$tempDir")
+        val result = MigrateIdFilesCommand().test("$tempDir")
         // original metadata.yml must remain unchanged
         assertContains(Files.readString(album.resolve("metadata.yml")), "discogs_id: \"old\"")
+        assertContains(result.output, "SKIP")
+        assertContains(result.output, "Migrated 0 files, 1 skipped")
     }
 
     @Test
@@ -97,9 +103,10 @@ class MigrateIdFilesCommandTest {
         val album2 = Files.createDirectory(tempDir.resolve("album2"))
         Files.writeString(album2.resolve("id.txt"), "[source]\ndiscogs_id=22\n")
         Files.writeString(album2.resolve("metadata.yml"), "sources:\n  discogs_id: \"old\"\n")
-        MigrateIdFilesCommand().test("$tempDir")
+        val result = MigrateIdFilesCommand().test("$tempDir")
         assertTrue(Files.exists(album1.resolve("metadata.yml")))
         assertContains(Files.readString(album2.resolve("metadata.yml")), "discogs_id: \"old\"")
+        assertContains(result.output, "Migrated 1 files, 1 skipped")
     }
 
     @Test
