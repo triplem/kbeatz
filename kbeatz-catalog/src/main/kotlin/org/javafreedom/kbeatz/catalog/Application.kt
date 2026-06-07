@@ -13,9 +13,13 @@ import org.javafreedom.kbeatz.catalog.application.service.DiscogsImageService
 import org.javafreedom.kbeatz.catalog.application.service.LibraryScanService
 import org.javafreedom.kbeatz.catalog.application.service.LibraryWalker
 import org.javafreedom.kbeatz.catalog.application.service.TagWriteService
+import org.javafreedom.kbeatz.catalog.infrastructure.persistence.AlbumsTable
 import org.javafreedom.kbeatz.catalog.infrastructure.persistence.DbFactory
 import org.javafreedom.kbeatz.catalog.infrastructure.persistence.ExposedAlbumRepository
 import org.javafreedom.kbeatz.catalog.infrastructure.persistence.ExposedTrackRepository
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
+import org.javafreedom.kbeatz.catalog.adapters.inbound.web.health.HealthConfig
 import org.javafreedom.kbeatz.catalog.plugins.configureLogging
 import org.javafreedom.kbeatz.catalog.plugins.configurePathTraversalGuard
 import org.javafreedom.kbeatz.catalog.plugins.configureRouting
@@ -82,11 +86,16 @@ fun Application.module() {
         dataSource.close()
     }
 
+    val dbProbe: suspend () -> Boolean = {
+        suspendTransaction { AlbumsTable.selectAll().limit(1).count() >= 0 }
+    }
+    val healthConfig = HealthConfig(dbProbe = dbProbe, libraryRoot = libraryRootPath)
+
     configurePathTraversalGuard()
     configureLogging()
     configureSerialization()
     configureStatusPages()
-    configureRouting(scanService, albumService, coverArtService, syncService, tagWriteService)
+    configureRouting(scanService, albumService, coverArtService, syncService, tagWriteService, healthConfig)
 
     // Launch initial library scan in the background after startup
     scanService.startScan()
