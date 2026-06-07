@@ -98,7 +98,7 @@ For each issue closed in step 7b, look up its parent epic:
 ```bash
 gh api graphql -f query='
 {
-  repository(owner: "<OWNER>", name: "<REPO>") {
+  repository(owner: "triplem", name: "kbeatz") {
     issue(number: <number>) {
       parent {
         number

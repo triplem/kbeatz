@@ -87,6 +87,153 @@ plugins/                    # Ktor plugin config (StatusPages, Logging)
 - No `java.time.*` or `java.util.UUID` in `domain/` or `application/`.
 - No authentication in v1 (trusted LAN). Keycloak JWT/OIDC is the v2 target (see NFR-07).
 
+## Module Details
+
+### kbeatz-common
+
+- Root package: `org.javafreedom.kbeatz.common`
+- Purpose: shared domain exceptions consumed by all other modules
+- Key files: `kbeatz-common/src/main/kotlin/org/javafreedom/kbeatz/common/`
+
+### kbeatz-sources
+
+- Root package: `org.javafreedom.kbeatz.sources`
+- Purpose: metadata library implementing `MetadataSource` and `MetadataCache` ports; `discogs/` adapter; `cache/` adapter
+- Key behaviours:
+  - Discogs rate limiting: 1 request/second enforced in the Discogs adapter
+  - Image download quota tracked in the `data/` directory (configured via `DATA_DIR` env var)
+
+### kbeatz-tagger
+
+- Root package: `org.javafreedom.kbeatz.tagger`
+- Purpose: FLAC codec and `TaggerService`; id-file parser
+- Sub-packages:
+  - `codec/flac/` - FLAC binary reader/writer (RFC 9639 StreamInfo, VorbisComment blocks)
+  - `idfile/` - id.txt / local_ids.txt / metadata.yml format parser
+  - `service/` - `TaggerService` orchestrating codec + id-file reads/writes
+
+### kbeatz-catalog
+
+- Root package: `org.javafreedom.kbeatz.catalog`
+- Package structure (hexagonal):
+  ```
+  adapters/inbound/web/        HTTP route handlers + mappers (API <-> domain)
+  application/service/         Business logic services
+  domain/model/                Pure domain objects
+  domain/repository/           Port interfaces
+  infrastructure/persistence/  Exposed ORM + H2 (AlbumsTable, ExposedAlbumRepository)
+  plugins/                     Ktor plugins (StatusPages, TraceId, Routing, Serialization)
+  ```
+- H2 schema via Liquibase: `kbeatz-catalog/src/main/resources/db/changelog/`
+- Key env vars:
+  - `CATALOG_LIBRARY_ROOT` (required) - absolute path to the music library root directory
+  - `DATA_DIR` (default: `./data`) - directory for image download quota tracking
+  - `CATALOG_JDBC_URL` (default: in-memory H2) - JDBC connection string
+  - `DISCOGS_TOKEN` (optional) - Discogs API token; Discogs sync is unavailable without it
+
+### kbeatz-cli
+
+- Root package: `org.javafreedom.kbeatz.cli`
+- Purpose: fat-JAR CLI; Clikt entry point for two commands
+- Sub-packages:
+  - `command/` - `tag` (write FLAC tags from id-file) and `migrate-ids` (convert id-file formats)
+  - `util/` - CLI utility helpers
+
+### kbeatz-ui
+
+- Root: `kbeatz-ui/src/`
+- Key feature directories:
+  - `src/features/albums/` - album grid, album detail, editable tag fields, confirm dialog
+  - `src/features/library/` - library scan trigger and status
+  - `src/features/sync/` - Discogs sync workflow
+- API client: `src/api/generated/` - auto-generated from `kbeatz-catalog/api/openapi.yaml`; do not edit manually (regenerate with `npm run api:generate`)
+- State management: React hooks and local component state only; no Redux or global state library
+
+## Language Server Setup (LSP)
+
+LSP integration is configured via the Claude Code plugin system. The `enabledPlugins` block in
+`.claude/settings.json` enables the Kotlin and TypeScript language servers project-wide (all
+collaborators who trust the project folder get them automatically).
+
+```json
+"enabledPlugins": {
+  "kotlin-lsp@claude-plugins-official": true,
+  "typescript-lsp@claude-plugins-official": true
+}
+```
+
+Once active, Claude gains:
+- **Automatic diagnostics**: type errors and missing imports reported after every edit, without
+  running a compiler manually
+- **Code navigation**: go-to-definition, find references, call hierarchy
+
+### Required binaries
+
+Both plugins require the language server binary to be on `$PATH`:
+
+| Language | Plugin | Binary | Installation |
+|---|---|---|---|
+| Kotlin | `kotlin-lsp` | `kotlin-language-server` | `pacman -S kotlin-language-server` (Arch); or download from [github.com/fwcd/kotlin-language-server/releases](https://github.com/fwcd/kotlin-language-server/releases) |
+| TypeScript | `typescript-lsp` | `typescript-language-server` | `npm install -g typescript-language-server typescript --prefix ~/.local` |
+
+### After changing plugin config
+
+Run `/reload-plugins` inside Claude Code to activate changes without restarting.
+
+If a plugin fails to load, check the `/plugin` Errors tab. The most common cause is the binary
+not being found in `$PATH`.
+
+## Audit Logging
+
+Agent actions are written to `~/.claude/kbeatz-sessions/<session_id>.jsonl` via a PostToolUse hook.
+
+### Log format
+
+One JSON object per line:
+
+| Field | Type | Description |
+|---|---|---|
+| `ts` | ISO 8601 UTC | Timestamp of the action |
+| `agent` | string | `"Claude"` for agent actions, `"System"` for hook-generated entries |
+| `session_id` | string | Claude Code session identifier |
+| `action` | string | `bash`, `write`, `edit`, `session_start`, `session_stop` |
+| `detail` | string | Command or file path |
+
+Additional fields on `session_stop`: `branch` (current git branch), `actions_this_session` (count).
+
+### What is logged
+
+- Bash commands (except read-only commands: `cat`, `grep`, `find`, `ls`, and similar)
+- `Write` and `Edit` tool operations
+- Session start and stop events
+
+### What is NOT logged
+
+- Read-only shell commands (`cat`, `grep`, `find`, `ls`)
+- File reads via the Read tool
+- Hook metadata entries
+
+### Sample entries
+
+```json
+{"ts":"2026-06-07T10:00:00Z","agent":"Claude","session_id":"abc123","action":"bash","detail":"git commit -m 'fix(catalog): #201 ...'"}
+{"ts":"2026-06-07T10:05:00Z","agent":"System","session_id":"abc123","action":"session_stop","branch":"main","actions_this_session":12}
+```
+
+### Useful queries
+
+```bash
+# All git commits made by agents in the last session
+grep '"action":"bash"' ~/.claude/kbeatz-sessions/*.jsonl | grep "git commit"
+
+# Session summary (actions per session)
+grep '"action":"session_stop"' ~/.claude/kbeatz-sessions/*.jsonl
+```
+
+### Retention
+
+90 days, configured via `cleanupPeriodDays: 90` in `.claude/settings.json`.
+
 ## Issue Tracking
 
 ```bash
@@ -96,8 +243,6 @@ gh issue create --title "..." --body "..."
 gh pr create
 ```
 
-> Update `<OWNER>` and `<REPO>` placeholders in `.claude/skills/create-pr/SKILL.md`
-> and `.claude/skills/implement-epic/SKILL.md` to match your GitHub repository.
 
 ## Branch Naming
 
@@ -139,6 +284,7 @@ All rules live in `.claude/rules/` and are automatically applied.
 - `openapi.md` — OpenAPI spec discipline
 - `agent-context.md` — CLAUDE.md convention, hook patterns
 - `github-issue-management.md` — Sub-issues, epic body structure
+- `writing-style.md` — No em-dashes; plain ASCII punctuation in all artifacts
 
 ## Skills Index
 

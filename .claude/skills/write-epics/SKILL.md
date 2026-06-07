@@ -3,7 +3,7 @@ name: write-epics
 description: Decompose an approved requirements document into epics with acceptance criteria and push them to the issue tracker. Use after requirements.md is approved.
 disable-model-invocation: true
 effort: high
-allowed-tools: Read Write Bash(cat docs/requirements.md)
+allowed-tools: Read Write Bash(cat docs/requirements.md) Bash(gh *) mcp__github__*
 ---
 
 ## Current requirements

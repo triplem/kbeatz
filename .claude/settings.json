@@ -9,7 +9,7 @@
     },
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "${PROJECT_ROOT}"]
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "${CLAUDE_PROJECT_DIR}"]
     }
   },
   "permissions": {
@@ -45,6 +45,8 @@
       "Bash(mkdir -p *)",
       "Bash(cp -r *)",
       "Bash(./.claude/scripts/create-branch.sh *)",
+      "Bash(./.claude/scripts/quality-check.sh *)",
+      "Bash(./.claude/scripts/squash-rebase.sh *)",
       "Skill(learn)",
       "Skill(pr-reviewer)",
       "mcp__github__*",
@@ -85,7 +87,6 @@
       },
       {
         "matcher": "Bash",
-        "if": "Bash(git commit *)",
         "hooks": [
           {
             "type": "command",
@@ -173,11 +174,16 @@
     ]
   },
   "alwaysThinkingEnabled": true,
+  "cleanupPeriodDays": 90,
   "env": {
     "ISSUE_TRACKER": "github",
     "APPROVAL_LABEL": "approved",
     "COVERAGE_THRESHOLD": "80",
     "DEFAULT_BRANCH": "main",
     "SESSION_LOG_DIR": "~/.claude/kbeatz-sessions"
+  },
+  "enabledPlugins": {
+    "kotlin-lsp@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true
   }
 }

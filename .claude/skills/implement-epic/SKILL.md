@@ -16,7 +16,7 @@ allowed-tools: Read Bash(gh *) Bash(git *)
 
 !`gh api graphql -f query='
 {
-  repository(owner: "<OWNER>", name: "<REPO>") {
+  repository(owner: "triplem", name: "kbeatz") {
     issue(number: '$epic_id') {
       title
       subIssues(first: 50) {
@@ -99,6 +99,39 @@ Wave 2: [#11, #12]     ← both depend only on #10 (completed in wave 1)
 Wave 3: [#13]          ← depends on #11 and #12 (completed in wave 2)
 ```
 
+### 5a — Human confirmation gate
+
+Before dispatching any agents, output the full execution plan and wait for explicit confirmation.
+
+Print a summary table of every story to be implemented:
+
+```
+## Planned implementation — Epic #$epic_id
+
+| # | Story | Title | Wave | Labels | Risk |
+|---|-------|-------|------|--------|------|
+| 1 | #10   | ...   |  1   | story  | low  |
+| 2 | #11   | ...   |  2   | story  | low  |
+| 3 | #12   | ...   |  2   | story  | medium |
+| 4 | #13   | ...   |  3   | story  | low  |
+
+Total: 4 stories across 3 waves.
+```
+
+Risk guidance:
+- **low**: docs-only, test-only, or single-file change
+- **medium**: touches 2-4 files across one module
+- **high**: cross-module change, schema migration, or API contract change
+
+Then stop and ask:
+
+```
+Proceed with implementing these N stories across W waves? [y/N]
+```
+
+- If the human answers `y` or `yes` (case-insensitive): continue to step 6.
+- Any other answer (including no response): exit cleanly with "Aborted. No changes made."
+
 ### 6 — Execute waves
 
 For each wave **in order**:
@@ -153,4 +186,4 @@ After all waves have run, output a summary table:
 - Never duplicate logic from `/implement` — always delegate; this skill only orchestrates
 - A failed story in wave N does **not** cancel wave N+1 unless stories in wave N+1 depend on the failed story
 - Always clean up worktrees after each story completes: `git worktree remove ../.claude/worktrees/epic-$epic_id-story-NNN`
-- If the epic has > 20 open stories, ask the human to confirm before proceeding (risk of overwhelming the system)
+- Always show the execution plan and require explicit human confirmation (step 5a) before dispatching any agents — regardless of story count
