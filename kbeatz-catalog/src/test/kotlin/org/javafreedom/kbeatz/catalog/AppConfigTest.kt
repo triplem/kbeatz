@@ -14,14 +14,68 @@ class AppConfigTest {
         dataDir: String = "./data",
     ) = AppConfig(catalogLibraryRoot = root, discogsToken = token, jdbcUrl = jdbcUrl, dataDir = dataDir)
 
+    // --- fromEnv() tests using injected env provider ---
+
     @Test
     fun `fromEnv fails fast when CATALOG_LIBRARY_ROOT absent`() {
-        // Can't unset env vars in JVM; test the guard expression directly.
+        val env = mapOf<String, String>()
         assertFailsWith<IllegalStateException> {
-            val root: String? = null
-            root ?: error("CATALOG_LIBRARY_ROOT must be set")
+            AppConfig.fromEnv { key -> env[key] }
         }
     }
+
+    @Test
+    fun `fromEnv reads DATA_DIR default when env var is absent`() {
+        val env = mapOf("CATALOG_LIBRARY_ROOT" to System.getProperty("java.io.tmpdir"))
+        val config = AppConfig.fromEnv { key -> env[key] }
+        assertEquals("./data", config.dataDir)
+    }
+
+    @Test
+    fun `fromEnv reads DATA_DIR from environment when set`() {
+        val env = mapOf(
+            "CATALOG_LIBRARY_ROOT" to System.getProperty("java.io.tmpdir"),
+            "DATA_DIR" to "/mnt/appdata",
+        )
+        val config = AppConfig.fromEnv { key -> env[key] }
+        assertEquals("/mnt/appdata", config.dataDir)
+    }
+
+    @Test
+    fun `fromEnv reads DISCOGS_TOKEN as null when absent`() {
+        val env = mapOf("CATALOG_LIBRARY_ROOT" to System.getProperty("java.io.tmpdir"))
+        val config = AppConfig.fromEnv { key -> env[key] }
+        assertNull(config.discogsToken)
+    }
+
+    @Test
+    fun `fromEnv reads DISCOGS_TOKEN when set`() {
+        val env = mapOf(
+            "CATALOG_LIBRARY_ROOT" to System.getProperty("java.io.tmpdir"),
+            "DISCOGS_TOKEN" to "test-token",
+        )
+        val config = AppConfig.fromEnv { key -> env[key] }
+        assertEquals("test-token", config.discogsToken)
+    }
+
+    @Test
+    fun `fromEnv uses default JDBC URL when CATALOG_JDBC_URL is absent`() {
+        val env = mapOf("CATALOG_LIBRARY_ROOT" to System.getProperty("java.io.tmpdir"))
+        val config = AppConfig.fromEnv { key -> env[key] }
+        assertEquals("jdbc:h2:file:./data/kbeatz;DB_CLOSE_DELAY=-1;MODE=PostgreSQL", config.jdbcUrl)
+    }
+
+    @Test
+    fun `fromEnv reads CATALOG_JDBC_URL when set`() {
+        val env = mapOf(
+            "CATALOG_LIBRARY_ROOT" to System.getProperty("java.io.tmpdir"),
+            "CATALOG_JDBC_URL" to "jdbc:postgresql://localhost:5432/kbeatz",
+        )
+        val config = AppConfig.fromEnv { key -> env[key] }
+        assertEquals("jdbc:postgresql://localhost:5432/kbeatz", config.jdbcUrl)
+    }
+
+    // --- AppConfig instance method tests ---
 
     @Test
     fun `filesystemStatus returns UP for existing directory`() {
@@ -51,13 +105,5 @@ class AppConfigTest {
     fun `dataDir reflects custom value when provided`() {
         val config = testConfig(dataDir = "/mnt/appdata")
         assertEquals("/mnt/appdata", config.dataDir)
-    }
-
-    @Test
-    fun `fromEnv DATA_DIR default is dot-slash-data`() {
-        // Simulate the default-value branch: env var absent → DEFAULT_DATA_DIR constant
-        val dataDir: String? = null
-        val resolved = dataDir ?: "./data"
-        assertEquals("./data", resolved)
     }
 }
