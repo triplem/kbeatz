@@ -7,6 +7,7 @@ import io.mockk.mockk
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -216,5 +217,40 @@ class LibraryScanServiceTest {
         assertEquals("1720", album.date)
         assertEquals("/music/classical/bach", album.directoryPath)
         assertNotNull(album.id)
+    }
+
+    @Test
+    fun `AlbumGroup toAlbum uses existingId when provided — UUID stability across rescans`() {
+        val group = AlbumGroup(
+            rootPath = Path.of("/music/jazz/miles"),
+            flacPaths = emptyList(),
+            albumArtist = "Miles Davis",
+            albumTitle = "Kind of Blue",
+            date = "1959",
+        )
+        val stableId = kotlin.uuid.Uuid.random()
+
+        val album = with(LibraryScanService.Companion) { group.toAlbum(existingId = stableId) }
+
+        assertEquals(stableId, album.id)
+    }
+
+    @Test
+    fun `AlbumGroup toAlbum generates fresh UUID when existingId is null`() {
+        val group = AlbumGroup(
+            rootPath = Path.of("/music/jazz/coltrane"),
+            flacPaths = emptyList(),
+            albumArtist = "John Coltrane",
+            albumTitle = "A Love Supreme",
+            date = "1964",
+        )
+
+        val album1 = with(LibraryScanService.Companion) { group.toAlbum(existingId = null) }
+        val album2 = with(LibraryScanService.Companion) { group.toAlbum(existingId = null) }
+
+        // Without existingId, each call gets a fresh random UUID
+        assertNotNull(album1.id)
+        assertNotNull(album2.id)
+        assertNotEquals(album1.id, album2.id)
     }
 }
