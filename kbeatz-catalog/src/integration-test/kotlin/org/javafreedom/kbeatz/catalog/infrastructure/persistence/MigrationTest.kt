@@ -390,12 +390,12 @@ class MigrationTest {
     }
 
     @Test
-    fun `saveAll inserts new albums and updates existing albums in one batch`() = runTest {
+    fun `saveAll inserts new albums and leaves genre unchanged for existing albums`() = runTest {
         val ds = DbFactory.init(jdbcUrl)
         try {
             val repo = ExposedAlbumRepository()
 
-            // Seed one album
+            // Seed one album with a genre set
             val existingId = Uuid.random()
             val existing = Album(
                 id = existingId, albumArtist = "Bach", album = "BWV 999",
@@ -405,24 +405,117 @@ class MigrationTest {
             )
             repo.save(existing)
 
-            // saveAll with: one update (existing) + one insert (new)
+            // saveAll simulates a rescan: same album with null genre (as AlbumGroup.toAlbum() produces),
+            // plus a genuinely new album
             val newId = Uuid.random()
             repo.saveAll(listOf(
-                existing.copy(genre = "Classical"), // update
+                existing.copy(genre = null), // rescan produces null genre
                 Album(
                     id = newId, albumArtist = "Mozart", album = "K. 300",
                     date = "1780", genre = "Classical", label = null, catalogNumber = null,
                     composer = null, conductor = null, ensemble = null, discogsId = null,
                     extraTags = null, images = null, directoryPath = "classical/mozart/k300",
-                ), // insert
+                ), // new insert
             ))
 
             assertEquals(2L, repo.count())
             val updated = repo.findById(existingId)
             assertNotNull(updated)
-            assertEquals("Classical", updated.genre, "existing album genre should be updated")
+            // Structural-only update: genre must NOT be overwritten with null from the rescan
+            assertEquals("Baroque", updated.genre, "genre should be preserved across rescan")
             val inserted = repo.findById(newId)
             assertNotNull(inserted, "new album should be inserted")
+        } finally {
+            transaction { AlbumsTable.deleteAll() }
+            ds.close()
+        }
+    }
+
+    @Test
+    fun `saveAll preserves all Discogs-enriched metadata across rescan`() = runTest {
+        val ds = DbFactory.init(jdbcUrl)
+        try {
+            val repo = ExposedAlbumRepository()
+
+            // Insert album with full Discogs metadata
+            val albumId = Uuid.random()
+            val enriched = Album(
+                id = albumId,
+                albumArtist = "Miles Davis",
+                album = "Kind of Blue",
+                date = "1959",
+                genre = "Jazz",
+                label = "Columbia",
+                catalogNumber = "CL 1355",
+                composer = null,
+                conductor = null,
+                ensemble = null,
+                discogsId = "d1234567",
+                extraTags = mapOf("STYLE" to "Modal Jazz"),
+                images = null,
+                directoryPath = "jazz/miles-davis/kind-of-blue",
+            )
+            repo.save(enriched)
+
+            // Simulate a library rescan: AlbumGroup.toAlbum() produces an album with all
+            // enriched fields set to null
+            repo.saveAll(listOf(
+                Album(
+                    id = Uuid.random(), // fresh UUID; saveAll resolves to existingId by natural key
+                    albumArtist = "Miles Davis",
+                    album = "Kind of Blue",
+                    date = "1959",
+                    genre = null,
+                    label = null,
+                    catalogNumber = null,
+                    composer = null,
+                    conductor = null,
+                    ensemble = null,
+                    discogsId = null,
+                    extraTags = null,
+                    images = null,
+                    directoryPath = "jazz/miles-davis/kind-of-blue",
+                ),
+            ))
+
+            val found = repo.findById(albumId)
+            assertNotNull(found)
+            assertEquals("Jazz", found.genre, "genre must survive rescan")
+            assertEquals("Columbia", found.label, "label must survive rescan")
+            assertEquals("CL 1355", found.catalogNumber, "catalogNumber must survive rescan")
+            assertEquals("d1234567", found.discogsId, "discogsId must survive rescan")
+        } finally {
+            transaction { AlbumsTable.deleteAll() }
+            ds.close()
+        }
+    }
+
+    @Test
+    fun `saveAll processes large batch in chunks without error`() = runTest {
+        val ds = DbFactory.init(jdbcUrl)
+        try {
+            val repo = ExposedAlbumRepository()
+            // 1 200 albums = 3 chunks of 500/500/200 (SAVE_ALL_CHUNK_SIZE = 500)
+            val albums = (1..1200).map { i ->
+                Album(
+                    id = Uuid.random(),
+                    albumArtist = "Artist $i",
+                    album = "Album $i",
+                    date = "2000",
+                    genre = null,
+                    label = null,
+                    catalogNumber = null,
+                    composer = null,
+                    conductor = null,
+                    ensemble = null,
+                    discogsId = null,
+                    extraTags = null,
+                    images = null,
+                    directoryPath = "music/artist$i/album$i",
+                )
+            }
+            repo.saveAll(albums)
+            assertEquals(1200L, repo.count())
         } finally {
             transaction { AlbumsTable.deleteAll() }
             ds.close()
