@@ -1,6 +1,6 @@
 plugins {
     id("kbeatz.cli-app")
-    id("com.gradleup.shadow") version "9.0.0-beta4"
+    id("com.gradleup.shadow") version "9.4.2"
 }
 
 group = "org.javafreedom.kbeatz"
