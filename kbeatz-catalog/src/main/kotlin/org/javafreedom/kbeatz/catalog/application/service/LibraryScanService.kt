@@ -52,6 +52,17 @@ class LibraryScanService(
     private val totalAlbums = AtomicLong(0L)
     private val errorMessage = AtomicReference<String?>(null)
 
+    /**
+     * Cancels all in-progress coroutines launched by this service.
+     *
+     * Must be called during application shutdown (before closing the database pool)
+     * to prevent orphaned coroutines continuing to access a closed datasource.
+     */
+    fun close() {
+        scanScope.cancel()
+        log.info { "LibraryScanService scan scope cancelled" }
+    }
+
     /** Returns a snapshot of the current scan state. */
     fun status(): ScanStatus = ScanStatus(
         state = state.get(),
