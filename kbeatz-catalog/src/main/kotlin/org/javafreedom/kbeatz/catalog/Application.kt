@@ -4,6 +4,7 @@ import io.ktor.server.application.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import io.ktor.util.AttributeKey
+import java.nio.file.Files
 import java.nio.file.Path
 import kotlinx.coroutines.runBlocking
 import org.javafreedom.kbeatz.catalog.application.service.AlbumService
@@ -55,6 +56,10 @@ fun Application.module() {
     val config = AppConfig.fromEnv()
     attributes.put(AppConfigKey, config)
 
+    // Ensure runtime data directory exists (quota file, etc.)
+    val dataDirPath = Path.of(config.dataDir)
+    Files.createDirectories(dataDirPath)
+
     // Initialise database and run Liquibase migrations
     val dataSource = DbFactory.init(config.jdbcUrl)
 
@@ -72,7 +77,7 @@ fun Application.module() {
     )
 
     // Wire Discogs sync service
-    val syncService = buildSyncService(config, albumRepository, libraryRootPath)
+    val syncService = buildSyncService(config, albumRepository, libraryRootPath, dataDirPath)
 
     val tagWriteService = TagWriteService(albumRepository, trackRepository, libraryRootPath)
 
@@ -106,6 +111,7 @@ private fun buildSyncService(
     config: AppConfig,
     albumRepository: AlbumRepository,
     libraryRootPath: Path,
+    dataDir: Path,
 ): DiscogsSyncService {
     val token = config.discogsToken
     if (token == null) {
@@ -116,7 +122,8 @@ private fun buildSyncService(
             libraryRoot = libraryRootPath,
         )
     }
-    val imageQuota = DiscogsImageQuota()
+    val quotaFile = dataDir.resolve("discogs-image-quota.json")
+    val imageQuota = DiscogsImageQuota(quotaFile = quotaFile)
     val metadataSource = DiscogsMetadataSource(
         token = token,
         imageQuota = imageQuota,
