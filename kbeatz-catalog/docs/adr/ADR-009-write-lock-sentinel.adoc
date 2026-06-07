@@ -1,0 +1,204 @@
+= ADR-009 — Write-Lock Sentinel File for Atomic Multi-File FLAC Writes
+:revnumber: 1.0
+:revdate: 2026-06-07
+:author: kbeatz team
+:status: Accepted
+
+== Status
+
+Accepted
+
+== Context
+
+kbeatz-catalog writes Vorbis Comment tag fields to FLAC files on disk.
+Album-level writes (e.g. ALBUM, ALBUMARTIST, DATE, GENRE) must be applied to
+*all* FLAC files in the album directory as a single logical operation.
+An album may contain dozens of tracks.
+
+Each individual file write is atomic at the filesystem level: `FlacFile.writeTo`
+serialises the updated FLAC stream to a `.tmp` sibling file in the same directory,
+then calls `SystemFileSystem.atomicMove` to rename it into place.
+A single-file write therefore cannot corrupt the target file.
+
+However, **across multiple files there is no atomicity guarantee**.
+If the JVM is killed, the host machine loses power, or an unhandled exception
+is thrown after writing some — but not all — FLAC files, the album directory is
+left in a partially-updated state:
+
+* Some tracks carry the new tag value.
+* Other tracks still carry the old value.
+* The H2 database record is not yet updated (it is written after all files succeed).
+
+The inconsistency is invisible to the application on restart: without a recovery
+signal, kbeatz-catalog cannot distinguish a clean directory from a dirty one.
+
+Track-level writes target exactly one FLAC file.
+Because a single `FlacFile.writeTo` call is already atomic, no manifest is
+required for track-level operations.
+
+== Decision
+
+We use a **write-lock sentinel file** (`.kbeatz-write.lock`) as a crash-recovery
+manifest for album-level multi-file writes.
+
+=== Write sequence — album-level
+
+The album-level write sequence in `TagWriteService.writeAlbumTags` is:
+
+. Look up the album in the repository; throw `ResourceNotFoundException` if absent.
+. Validate the field name is in `ALBUM_LEVEL_FIELDS`; throw `IllegalArgumentException` if not.
+. Validate the album directory is within `libraryRoot` (path-traversal guard).
+. **Create `.kbeatz-write.lock`** in the album directory.
+  The file body is a newline-separated manifest of all target FLAC paths.
+. For each FLAC file in directory order: call `FlacFile.writeTo`
+  (temp-file → atomic rename — each individual file is safe).
+. **Delete `.kbeatz-write.lock`** after all writes succeed.
+. Persist the updated `Album` record to H2.
+
+If any file write throws, the sentinel is left in place and the exception
+propagates to the caller. The partially-written directory is flagged for repair.
+
+=== Startup repair — `repairOnStartup()`
+
+`LibraryScanService.repairOnStartup()` is called **synchronously** during
+application startup, before the Ktor server begins accepting HTTP requests
+(`runBlocking { scanService.repairOnStartup() }` in `Application.module()`).
+
+The repair procedure:
+
+. Walk the entire library tree under `libraryRoot` using `Files.walkFileTree`.
+. Collect every file named `.kbeatz-write.lock`.
+. For each found sentinel:
+  .. Call `LibraryWalker.walk(albumDir)` to re-discover the album group in that
+     directory (same logic as a full library scan).
+  .. Call `albumRepository.saveAll(...)` with the re-discovered albums,
+     performing an upsert against the unique constraint
+     `(album_artist, album, album_date, directory_path)`.
+     This re-indexes the directory from whatever state it is currently in —
+     whether fully written, partially written, or rolled back by OS.
+  .. Delete the sentinel file.
+  .. Log: `"Repaired album directory: <path>"`.
+. If the walk or repository call throws for a specific directory, the error is
+  caught and logged at ERROR level:
+  `"Startup repair failed for <dir> — lock file retained: <lockfile>"`
+  The sentinel is *not* deleted, and repair continues with any remaining sentinels.
+
+If no sentinels are found, a single INFO log is emitted:
+`"No .kbeatz-write.lock files found — skipping startup repair"`
+
+=== Key implementation files
+
+|===
+|File |Role
+
+|`domain/model/WriteLock.kt`
+|Defines `WRITE_LOCK_FILENAME = ".kbeatz-write.lock"` — single source of truth for the name
+
+|`application/service/TagWriteService.kt`
+|Creates and deletes the sentinel; writes tags; implements the album-level sequence
+
+|`application/service/LibraryScanService.kt`
+|Implements `repairOnStartup()` and `collectLockFiles()`
+
+|`Application.kt`
+|Calls `repairOnStartup()` synchronously before server startup
+
+|`test/.../RepairOnStartupTest.kt`
+|Unit tests for all repair scenarios using a real temp filesystem
+|===
+
+== Consequences
+
+=== Startup behaviour
+
+* **Normal startup (clean shutdown)**: no sentinel files exist; repair is a
+  no-op with a single INFO log. Overhead is one `Files.walkFileTree` traversal
+  of the library, which is also performed by the subsequent scan.
+* **Startup after a crash mid-write**: each affected album directory is
+  re-indexed. The re-index reads the files' current on-disk state and persists
+  it to H2, bringing the database into alignment with the filesystem.
+  Startup is delayed by one re-index per affected directory.
+* **Startup after a crash during repair**: if the JVM is killed while
+  `repairOnStartup()` is running, the sentinel files that were not yet deleted
+  remain. The next startup re-runs repair for those directories. Idempotent.
+
+=== Operational implications
+
+* The `.kbeatz-write.lock` file is visible in the library filesystem during any
+  active album-level write. Operators and file managers will see it transiently.
+  It is a plain text file containing the list of FLAC paths being written.
+* A sentinel left by a crash persists until the next startup. Running kbeatz-catalog
+  and observing a start-time INFO log about repair is the signal that a previous
+  run was unclean.
+* If the same directory fails repair on every startup (e.g. filesystem permission
+  error), the sentinel is retained indefinitely and an ERROR is logged on each
+  startup. The application starts normally; only that album's database record may
+  be stale. Operator action required: inspect the directory, fix the underlying
+  cause, then delete the sentinel manually.
+* Log messages to monitor:
+  ** `INFO  "Found N .kbeatz-write.lock file(s) — running startup repair"` — dirty shutdown detected
+  ** `INFO  "Repaired album directory: <path>"` — repair succeeded
+  ** `ERROR "Startup repair failed for <dir> — lock file retained: <lockfile>"` — manual intervention needed
+
+=== Scope limitations
+
+* The sentinel is **not** created for track-level writes. A single `FlacFile.writeTo`
+  is atomic; no manifest is needed.
+* The sentinel does **not** contain checksums or expected post-write content.
+  Recovery re-indexes whatever state is on disk — it does not detect or undo partial
+  writes at the byte level. This is sufficient for Vorbis Comment tag updates where
+  even a partial write results in a valid-or-invalid FLAC file, not silent corruption.
+* The sentinel file is per-album-directory. Concurrent writes to two different album
+  directories are independent and do not interfere with each other.
+
+== Alternatives Considered
+
+=== Database transaction wrapping
+
+Wrapping all FLAC file writes inside a single database transaction was considered.
+FLAC writes are filesystem operations — they cannot participate in a JDBC/Exposed
+transaction. Transactional semantics apply only to H2 row mutations, not to the
+`FlacFile.writeTo` calls. Rejected: fundamentally out of transactional scope.
+
+=== Write-Ahead Log (WAL)
+
+A WAL approach would append an intent record (field, value, list of target files)
+to a log file before beginning writes, then replay on restart. WAL requires:
+
+* A log format with sequence numbers and checksums.
+* A replay engine that re-applies or rolls back partial entries.
+* Compaction of the log over time.
+
+This is significantly more complex than a sentinel file for the recovery guarantee
+required here (re-index from current disk state). Rejected as over-engineered for
+a personal music collection manager.
+
+=== Journaling (copy-on-write backup)
+
+Before writing any FLAC file, copy it to a `.bak` sibling. On restart, restore
+`.bak` files in directories that have no sentinel. This would restore the
+pre-write state (full rollback). Rejected because:
+
+* Doubles the disk I/O and temporary space needed per write.
+* FLAC files can be large (lossless audio). A 20-track album may be several GB.
+* The product goal is to persist the user's tag edits — on crash recovery, writing
+  the *new* state (re-index what is there) is preferable to silently reverting it.
+
+=== OS-level filesystem journal (ext4, APFS, NTFS journal)
+
+Relying on the OS filesystem journal for atomicity across multiple files is not
+portable and does not provide application-level recovery. The filesystem journal
+restores individual file metadata, not multi-file application-level invariants.
+Rejected: not a substitute for explicit application recovery.
+
+=== Crash-only restart (no repair, rescan on startup)
+
+Running a full library scan on every startup would also re-index any dirty
+directories. Rejected because:
+
+* A full scan is expensive on large libraries (thousands of FLAC files).
+* The application already triggers a background full scan after startup; a
+  synchronous full scan before accepting requests would add significant startup
+  latency unconditionally.
+* The sentinel-based approach limits synchronous startup work to only the
+  affected directories — typically zero on a clean shutdown.
