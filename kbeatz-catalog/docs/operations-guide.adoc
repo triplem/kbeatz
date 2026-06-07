@@ -264,6 +264,51 @@ systemctl restart kbeatz-catalog
 . Start the service. Liquibase migrations run automatically on startup.
 . The quota file is optional — the service starts fresh if it is absent.
 
+== Request Tracing (X-Trace-Id)
+
+Every HTTP response includes an `X-Trace-Id` header that can be used to correlate client
+errors with server log entries.
+
+=== Behaviour
+
+* If the request includes an `X-Trace-Id` header, the same value is echoed back in the
+  response. The caller can supply its own correlation ID (e.g. a frontend request ID or an
+  end-to-end trace ID from another system).
+* If no `X-Trace-Id` header is present, the service generates a random UUID, uses it
+  internally for the request lifetime, and echoes it in the response.
+
+The traceId appears in every structured log line as the `traceId` field:
+
+[source,json]
+----
+{"timestamp":"2026-06-07T14:32:01Z","level":"DEBUG","traceId":"a1b2c3...","message":"Resource not found"}
+----
+
+=== Finding the Server Log for a Client Error
+
+If a client reports an error, ask them for the `X-Trace-Id` from the failing response and
+search the logs:
+
+[source,bash]
+----
+# Grep log output directly
+grep "a1b2c3..." /var/log/kbeatz-catalog.log
+
+# If using a log aggregation system (e.g. Loki, Elasticsearch):
+# filter by field: traceId = "a1b2c3..."
+----
+
+=== Trust Model and v2 Consideration
+
+In v1, kbeatz-catalog is deployed on a trusted LAN without authentication. Echoing
+server-generated trace UUIDs to all clients is acceptable in this context.
+
+NOTE: Before v2 internet-facing deployment (Keycloak JWT/OIDC per ADR-not-yet-assigned),
+the X-Trace-Id echo behaviour should be re-evaluated. Returning server-generated UUIDs to
+unauthenticated clients could allow UUID sequencing analysis. Options include: echoing
+only client-supplied IDs (not generated ones), or restricting the header to authenticated
+requests only.
+
 == Upgrade Path
 
 kbeatz-catalog uses Liquibase for schema migrations. On every startup:

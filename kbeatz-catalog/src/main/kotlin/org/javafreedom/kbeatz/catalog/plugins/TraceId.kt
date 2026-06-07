@@ -39,6 +39,15 @@ private object TraceIdAndMdcHook : Hook<suspend () -> Unit> {
     }
 }
 
+/**
+ * Ktor plugin that installs [TraceIdAndMdcHook] and echoes the traceId in every
+ * HTTP response as `X-Trace-Id`.
+ *
+ * Trust model note (v1): echoing server-generated UUIDs to all clients is acceptable
+ * on a trusted LAN with no authentication. Before v2 internet-facing deployment
+ * this behaviour should be re-evaluated — see the "Request Tracing" section in
+ * kbeatz-catalog/docs/operations-guide.adoc.
+ */
 val TraceIdPlugin: ApplicationPlugin<Unit> = createApplicationPlugin("TraceIdPlugin") {
     on(TraceIdAndMdcHook) {}
 
