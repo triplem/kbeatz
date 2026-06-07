@@ -1,6 +1,24 @@
 import { useState } from 'react'
 import { Album, AlbumsService } from '../../api/generated'
 
+/** Tag fields that Discogs sync can update. */
+const SYNC_TAG_FIELDS: ReadonlyArray<keyof Album> = [
+  'albumArtist',
+  'album',
+  'date',
+  'genre',
+  'label',
+  'catalogNumber',
+  'composer',
+  'conductor',
+  'ensemble',
+]
+
+/** Count how many tag fields differ between the album before and after sync. */
+function countChangedFields(before: Album, after: Album): number {
+  return SYNC_TAG_FIELDS.filter((field) => before[field] !== after[field]).length
+}
+
 type SyncState =
   | { status: 'idle' }
   | { status: 'loading' }
@@ -18,6 +36,7 @@ interface SyncPanelProps {
  *
  * Only rendered when the album has a `discogsId`.
  * Calls POST /api/v1/albums/{albumId}/sync and handles all response states.
+ * Displays the number of tag fields updated after a successful sync.
  */
 export function SyncPanel({ album, onSyncComplete }: SyncPanelProps) {
   const [downloadImages, setDownloadImages] = useState(false)
@@ -32,8 +51,9 @@ export function SyncPanel({ album, onSyncComplete }: SyncPanelProps) {
         albumId: album.id,
         requestBody: { downloadImages },
       })
+      const fieldsWritten = countChangedFields(album, updated)
       onSyncComplete(updated)
-      setSyncState({ status: 'success', fieldsWritten: 0 })
+      setSyncState({ status: 'success', fieldsWritten })
     } catch (err: unknown) {
       const apiError = err as { body?: { code?: string; message?: string; details?: string[] } }
       const code = apiError.body?.code ?? ''
@@ -86,7 +106,7 @@ export function SyncPanel({ album, onSyncComplete }: SyncPanelProps) {
 
       {syncState.status === 'success' && (
         <p role="status" aria-live="polite" data-testid="sync-success" className="sync-success">
-          Sync complete.
+          Sync complete — {syncState.fieldsWritten} field{syncState.fieldsWritten !== 1 ? 's' : ''} updated.
         </p>
       )}
 

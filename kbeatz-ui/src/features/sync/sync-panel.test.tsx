@@ -95,6 +95,45 @@ describe('SyncPanel', () => {
     expect(onSyncComplete).toHaveBeenCalledWith(updatedAlbum)
   })
 
+  it('should display fieldsWritten count when fields changed', async () => {
+    const album = buildAlbum({ genre: undefined, date: undefined })
+    // Two fields changed: genre and date were added
+    const updatedAlbum = buildAlbum({ genre: 'Jazz', date: '1959' })
+    mockSyncAlbum.mockResolvedValue(updatedAlbum)
+
+    render(<SyncPanel album={album} onSyncComplete={onSyncComplete} />)
+    await userEvent.click(screen.getByTestId('sync-button'))
+
+    await waitFor(() => expect(screen.getByTestId('sync-success')).toBeInTheDocument())
+    expect(screen.getByTestId('sync-success')).toHaveTextContent('2 fields updated')
+  })
+
+  it('should display singular "field" when exactly 1 field changed', async () => {
+    const album = buildAlbum({ genre: undefined })
+    const updatedAlbum = buildAlbum({ genre: 'Jazz' })
+    mockSyncAlbum.mockResolvedValue(updatedAlbum)
+
+    render(<SyncPanel album={album} onSyncComplete={onSyncComplete} />)
+    await userEvent.click(screen.getByTestId('sync-button'))
+
+    await waitFor(() => expect(screen.getByTestId('sync-success')).toBeInTheDocument())
+    expect(screen.getByTestId('sync-success')).toHaveTextContent('1 field updated')
+    expect(screen.getByTestId('sync-success')).not.toHaveTextContent('1 fields')
+  })
+
+  it('should display 0 fields updated when nothing changed', async () => {
+    const album = buildAlbum()
+    // Same album returned — no changes
+    const updatedAlbum = buildAlbum()
+    mockSyncAlbum.mockResolvedValue(updatedAlbum)
+
+    render(<SyncPanel album={album} onSyncComplete={onSyncComplete} />)
+    await userEvent.click(screen.getByTestId('sync-button'))
+
+    await waitFor(() => expect(screen.getByTestId('sync-success')).toBeInTheDocument())
+    expect(screen.getByTestId('sync-success')).toHaveTextContent('0 fields updated')
+  })
+
   // ---- error state ----
 
   it('should show error message on sync failure', async () => {
