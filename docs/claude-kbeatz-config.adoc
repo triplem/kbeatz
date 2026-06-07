@@ -96,9 +96,9 @@ If the answer is no, the skill is a removal or simplification candidate.
 
 === Audit table
 
-[cols="2,1,3,1,3"]
+[cols="2,1,3,1,3,1"]
 |===
-|Skill name |Type |Built-in equivalent |Recommendation |Rationale
+|Skill name |Type |Built-in equivalent |Recommendation |Rationale |Tracking Issue
 
 |`angular-patterns`
 |Pattern
@@ -106,6 +106,7 @@ If the answer is no, the skill is a removal or simplification candidate.
 |Remove
 |kbeatz-ui uses React 19 (`.tsx` files only); no Angular `.component.ts` files exist in the
 repo. The path matcher never fires. The skill adds no value and may confuse future contributors.
+|#276
 
 |`architect-review`
 |Review
@@ -114,6 +115,7 @@ repo. The path matcher never fires. The skill adds no value and may confuse futu
 |Provides a focused software architect persona with hexagonal architecture, SOLID, and coupling
 checks. No built-in skill matches this depth. Used in the challenge pipeline and directly by
 `/challenge-all`.
+|-
 
 |`challenge`
 |Meta
@@ -122,6 +124,7 @@ checks. No built-in skill matches this depth. Used in the challenge pipeline and
 |Internal agent-to-agent quality control primitive. Called by `challenge-all`, `ship`, and
 `pr-reviewer`. No built-in equivalent for structured ACCEPT/REVISE/REJECT verdicts between
 agents.
+|-
 
 |`challenge-all`
 |Meta
@@ -129,6 +132,7 @@ agents.
 |Keep
 |Orchestrates all nine specialist reviewer perspectives in one call. No built-in skill runs
 parallel multi-perspective reviews. Core to the SDLC quality pipeline.
+|-
 
 |`claude-code-expert`
 |Meta
@@ -137,6 +141,7 @@ parallel multi-perspective reviews. Core to the SDLC quality pipeline.
 |The custom skill adds kbeatz-specific focus areas (hooks, MCP config, skills audit) and
 project-specific guidance not present in the generic built-in. The built-in agent type is
 general-purpose; the custom skill is tuned to this project's `.claude/` layout.
+|-
 
 |`create-adr`
 |SDLC
@@ -145,6 +150,7 @@ general-purpose; the custom skill is tuned to this project's `.claude/` layout.
 |Structured debate-and-document workflow for architecture decisions. Produces AsciiDoc ADRs
 following the project naming convention (`ADR-NNN` for platform, `ADR-{SVC}-NNN` for services).
 No built-in equivalent.
+|-
 
 |`create-pr`
 |SDLC
@@ -153,6 +159,7 @@ No built-in equivalent.
 |Most PR guidance is already in `CLAUDE.md` (PR title format, body template, CI green check,
 branch delete). The skill adds post-merge cleanup (close linked issues, close epic if done)
 which is genuinely unique. Consider reducing the skill to only the post-merge cleanup steps.
+|#281
 
 |`devops-review`
 |Review
@@ -160,6 +167,7 @@ which is genuinely unique. Consider reducing the skill to only the post-merge cl
 |Keep
 |Provides a DevSecOps engineer persona covering CI/CD pipeline safety, container hygiene,
 secret management, and operational readiness. No built-in skill matches this perspective.
+|-
 
 |`domain-model`
 |Meta
@@ -167,6 +175,7 @@ secret management, and operational readiness. No built-in skill matches this per
 |Keep
 |Builds or updates the project domain model by scanning Kotlin source, DB migrations, and
 requirements docs. No built-in equivalent for domain model generation from codebase analysis.
+|-
 
 |`gather-requirements`
 |SDLC
@@ -174,6 +183,7 @@ requirements docs. No built-in equivalent for domain model generation from codeb
 |Keep
 |Structured requirements elicitation through dialogue, producing a `docs/requirements.md`
 artefact. No built-in equivalent for structured requirements gathering.
+|-
 
 |`implement`
 |SDLC
@@ -182,6 +192,7 @@ artefact. No built-in equivalent for structured requirements gathering.
 |Full story implementation workflow: branch creation, worktree isolation, quality gates,
 PR opening. Encodes kbeatz-specific conventions (hexagonal layers, scope names, Detekt
 per-module). No built-in equivalent.
+|-
 
 |`implement-epic`
 |SDLC
@@ -189,6 +200,7 @@ per-module). No built-in equivalent.
 |Keep
 |Discovers sub-issues via GitHub API, resolves dependency waves, and delegates each story
 to `/implement` in order. No built-in equivalent for dependency-ordered epic execution.
+|-
 
 |`kotlin-patterns`
 |Pattern
@@ -196,6 +208,7 @@ to `/implement` in order. No built-in equivalent for dependency-ordered epic exe
 |Remove
 |`user-invocable: false` with a `paths: **/*.kt` matcher. The same ground is covered by
 `kotlin-style.md` which auto-loads every session. Keeping both causes duplicate guidance.
+|#277
 
 |`learn`
 |Meta
@@ -204,6 +217,7 @@ to `/implement` in order. No built-in equivalent for dependency-ordered epic exe
 |Extracts a reusable rule or pattern from observed behaviour and writes it to
 `.claude/rules/` or `.claude/skills/`. No built-in equivalent for the learn-and-persist
 workflow.
+|-
 
 |`logging-kotlin`
 |Pattern
@@ -213,6 +227,7 @@ workflow.
 standards in `logging.md` auto-load every session and cover the same level-policy, MDC,
 and structured-field requirements. Kotlin-specific Logback details belong in `logging.md`
 as a Kotlin subsection.
+|#278
 
 |`logging-typescript`
 |Pattern
@@ -221,6 +236,7 @@ as a Kotlin subsection.
 |`user-invocable: false` with `paths: **/*.ts,**/*.js`. The general logging standards in
 `logging.md` auto-load every session. TypeScript-specific Pino details belong in `logging.md`
 as a TypeScript subsection rather than a separate auto-firing skill.
+|#279
 
 |`openapi-patterns`
 |Pattern
@@ -229,6 +245,7 @@ as a TypeScript subsection rather than a separate auto-firing skill.
 |`user-invocable: false` with `paths: **/openapi.yaml,**/*Controller.kt`. The `openapi.md`
 and `api-design.md` rule files auto-load every session and cover spec-first design, naming
 conventions, mandatory fields, and CI enforcement. No unique value over the existing rules.
+|#280
 
 |`operations-review`
 |Review
@@ -236,6 +253,7 @@ conventions, mandatory fields, and CI enforcement. No unique value over the exis
 |Keep
 |Provides an SRE/operations persona covering runbook completeness, observability, incident
 recovery, backup/restore, and upgrade paths. No built-in skill matches this perspective.
+|-
 
 |`performance-review`
 |Review
@@ -243,6 +261,7 @@ recovery, backup/restore, and upgrade paths. No built-in skill matches this pers
 |Keep
 |Provides a performance engineering persona covering query efficiency, frontend bundle size,
 API response times, and memory/CPU usage. No built-in skill matches this perspective.
+|-
 
 |`pr-reviewer`
 |SDLC
@@ -251,6 +270,7 @@ API response times, and memory/CPU usage. No built-in skill matches this perspec
 |The built-in `/review` reads the diff but does not post findings as PR comments, does not
 fix BLOCKER/MAJOR findings on the branch, and does not push fixes. The custom skill does all
 three. The post-review fix-and-push loop is unique value.
+|-
 
 |`qa-review`
 |Review
@@ -258,6 +278,7 @@ three. The post-review fix-and-push loop is unique value.
 |Keep
 |Provides a QA engineer persona covering test coverage gaps, acceptance criteria completeness,
 edge cases, and regression risk. No built-in skill matches this perspective.
+|-
 
 |`react-patterns`
 |Pattern
@@ -266,6 +287,7 @@ edge cases, and regression risk. No built-in skill matches this perspective.
 |`user-invocable: false` with `paths: **/*.tsx,**/*.jsx`. kbeatz-ui is a React 19 SPA. No
 rule file covers React-specific patterns (hooks, TanStack Query, Zustand, component design).
 The skill fires on every `.tsx` edit, which is the primary frontend file type.
+|-
 
 |`release`
 |SDLC
@@ -273,6 +295,7 @@ The skill fires on every `.tsx` edit, which is the primary frontend file type.
 |Keep
 |Squash-rebase onto main, semantic version bump, changelog generation, artefact publish,
 story close. Encodes kbeatz-specific release conventions. No built-in equivalent.
+|-
 
 |`requirements-review`
 |Review
@@ -280,6 +303,7 @@ story close. Encodes kbeatz-specific release conventions. No built-in equivalent
 |Keep
 |Provides a requirements engineer persona checking completeness, testability, consistency,
 and NFR coverage. No built-in skill matches this perspective.
+|-
 
 |`security-review`
 |Review
@@ -288,6 +312,7 @@ and NFR coverage. No built-in skill matches this perspective.
 |The built-in `/security-review` is a general OWASP check. The custom skill is tuned to
 the kbeatz threat model: no auth in v1 (trusted LAN), Discogs token hygiene, FLAC path
 traversal, and H2-to-PostgreSQL migration risks. The project-specific context adds unique value.
+|-
 
 |`ship`
 |SDLC
@@ -296,6 +321,7 @@ traversal, and H2-to-PostgreSQL migration risks. The project-specific context ad
 |Full parallel SDLC pipeline: implement all approved stories, challenge every PR from nine
 perspectives, fix findings, merge, then challenge main. No built-in skill orchestrates this
 multi-agent parallel pipeline.
+|-
 
 |`technical-writer-review`
 |Review
@@ -303,6 +329,7 @@ multi-agent parallel pipeline.
 |Keep
 |Provides a technical writer persona checking documentation clarity, completeness, structure,
 and audience fit. No built-in skill matches this perspective.
+|-
 
 |`typescript-patterns`
 |Pattern
@@ -313,6 +340,7 @@ auto-loads every session and covers strict-mode config, ESLint rules, naming, im
 immutability. The custom skill adds branded types and Result types which are not in the rule
 file. Consider merging the branded-type and Result-type patterns into `typescript-style.md`
 and removing the skill.
+|#282
 
 |`ux-review`
 |Review
@@ -320,6 +348,7 @@ and removing the skill.
 |Keep
 |Provides a UI/UX and accessibility specialist persona covering ease of use, visual clarity,
 interaction design, and WCAG 2.1 AA compliance. No built-in skill matches this perspective.
+|-
 
 |`write-epics`
 |SDLC
@@ -327,6 +356,7 @@ interaction design, and WCAG 2.1 AA compliance. No built-in skill matches this p
 |Keep
 |Decomposes an approved requirements document into epics with acceptance criteria and GitHub
 issues, following the kbeatz epic body structure. No built-in equivalent.
+|-
 
 |`write-stories`
 |SDLC
@@ -334,6 +364,7 @@ issues, following the kbeatz epic body structure. No built-in equivalent.
 |Keep
 |Decomposes an approved epic into user stories with full acceptance criteria and sub-issue
 linking. No built-in equivalent.
+|-
 
 |`write-tests`
 |SDLC
@@ -342,6 +373,7 @@ linking. No built-in equivalent.
 |Writes a complete test suite following the kbeatz test pyramid (unit/integration/E2E ratios,
 Mockk, Testcontainers, Vitest). Runs coverage verification to confirm >= 80%. The project
 conventions baked into this skill are not replicated by any built-in.
+|-
 |===
 
 === Audit summary
