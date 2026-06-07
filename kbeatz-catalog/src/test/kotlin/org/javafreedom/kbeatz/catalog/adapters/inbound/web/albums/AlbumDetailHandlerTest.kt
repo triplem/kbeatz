@@ -23,6 +23,7 @@ import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.model.Track
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 import org.javafreedom.kbeatz.catalog.domain.repository.TrackRepository
+import org.javafreedom.kbeatz.catalog.plugins.configureStatusPages
 
 class AlbumDetailHandlerTest {
 
@@ -110,6 +111,7 @@ class AlbumDetailHandlerTest {
     @Test
     fun `GET albums albumId returns 404 when album not found`() = testApplication {
         install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        application { configureStatusPages() }
         routing { albumDetailRoutes(albumService, libraryRoot) }
         val client = createClient { install(ClientContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }
 

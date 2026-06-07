@@ -8,13 +8,14 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.testApplication
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import org.javafreedom.kbeatz.catalog.api.models.ErrorResponse
 
 class StatusPagesTest {
 
     /**
      * A non-existent album UUID causes the handler to throw [ResourceNotFoundException],
-     * which StatusPages maps to 404 — verifies the named-exception handler works.
+     * which StatusPages maps to 404 - verifies the named-exception handler works.
      */
     @Test
     fun `ResourceNotFoundException returns 404 with RESOURCE_NOT_FOUND code`() = testApplication {
@@ -43,5 +44,8 @@ class StatusPagesTest {
         val body = response.body<ErrorResponse>()
         // code is domain-specific, not a raw exception class name
         assertEquals("RESOURCE_NOT_FOUND", body.code)
+        // message must be the static generic string, never the raw exception message
+        assertEquals("Resource not found", body.message)
+        assertFalse(body.message.contains("Album"), "entity type must not leak into error response")
     }
 }
