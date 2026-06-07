@@ -179,15 +179,12 @@ class LibraryScanService(
         /**
          * Maps a [AlbumGroup] from the walker to an [Album] suitable for persistence.
          *
-         * A fresh [Uuid] is assigned to each discovered album. On re-scans, [AlbumRepository.saveAll]
-         * uses the `(albumArtist, album, albumDate, directoryPath)` unique constraint to upsert rather
-         * than duplicate. The ID is stable as long as the same unique key is present in H2.
-         *
-         * Note: This is a simplification for v1. The upsert strategy (lookup by unique key, reuse
-         * existing UUID) will be addressed in a follow-up story when the detail endpoint is added.
+         * If [existingId] is supplied (looked up by natural key from the repository), it is reused
+         * so that the album UUID remains stable across rescans and bookmarked UI URLs stay valid.
+         * A fresh [Uuid.random] is assigned only for genuinely new albums (where [existingId] is null).
          */
-        fun AlbumGroup.toAlbum(): Album = Album(
-            id = Uuid.random(),
+        fun AlbumGroup.toAlbum(existingId: Uuid? = null): Album = Album(
+            id = existingId ?: Uuid.random(),
             albumArtist = albumArtist,
             album = albumTitle,
             date = date,

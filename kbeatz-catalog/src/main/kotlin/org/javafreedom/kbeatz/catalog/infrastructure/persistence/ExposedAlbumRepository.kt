@@ -5,10 +5,13 @@ import kotlin.uuid.Uuid
 import kotlin.uuid.toKotlinUuid
 import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
+import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
@@ -58,6 +61,24 @@ class ExposedAlbumRepository : AlbumRepository {
             albums to total
         }
 
+    override suspend fun findIdByNaturalKey(
+        albumArtist: String,
+        album: String,
+        date: String?,
+        directoryPath: String,
+    ): Uuid? = suspendTransaction {
+        AlbumsTable
+            .selectAll()
+            .where {
+                (AlbumsTable.albumArtist eq albumArtist) and
+                    (AlbumsTable.album eq album) and
+                    (AlbumsTable.albumDate eq date.orEmpty()) and
+                    (AlbumsTable.directoryPath eq directoryPath)
+            }
+            .singleOrNull()
+            ?.let { it[AlbumsTable.id].value.toKotlinUuid() }
+    }
+
     override suspend fun save(album: Album): Album =
         suspendTransaction {
             val existing = AlbumsTable
@@ -76,16 +97,42 @@ class ExposedAlbumRepository : AlbumRepository {
     override suspend fun saveAll(albums: List<Album>) {
         if (albums.isEmpty()) return
         suspendTransaction {
-            val javaUuids = albums.map { it.id.toJavaUuid() }
-            val existingIds = AlbumsTable
+            // Look up existing albums by natural key to reuse their stable UUIDs.
+            // This prevents duplicate-insert failures from the unique constraint and ensures
+            // URL stability: /albums/<uuid> remains valid across library rescans.
+            val naturalKeyFilter = albums
+                .map { album ->
+                    (AlbumsTable.albumArtist eq album.albumArtist) and
+                        (AlbumsTable.album eq album.album) and
+                        (AlbumsTable.albumDate eq (album.date ?: "")) and
+                        (AlbumsTable.directoryPath eq album.directoryPath)
+                }
+                .reduce(Op<Boolean>::or)
+
+            // naturalKey → existing UUID
+            val existingByNaturalKey: Map<NaturalKey, UUID> = AlbumsTable
                 .selectAll()
-                .where { AlbumsTable.id inList javaUuids }
-                .map { it[AlbumsTable.id].value }
-                .toSet()
+                .where { naturalKeyFilter }
+                .associate { row ->
+                    NaturalKey(
+                        albumArtist = row[AlbumsTable.albumArtist],
+                        album = row[AlbumsTable.album],
+                        albumDate = row[AlbumsTable.albumDate],
+                        directoryPath = row[AlbumsTable.directoryPath],
+                    ) to row[AlbumsTable.id].value
+                }
 
             albums.forEach { album ->
-                if (album.id.toJavaUuid() in existingIds) {
-                    updateAlbum(album)
+                val key = NaturalKey(
+                    albumArtist = album.albumArtist,
+                    album = album.album,
+                    albumDate = album.date.orEmpty(),
+                    directoryPath = album.directoryPath,
+                )
+                val existingId = existingByNaturalKey[key]
+                if (existingId != null) {
+                    // Use the existing UUID so the UPDATE targets the correct row
+                    updateAlbum(album.copy(id = existingId.toKotlinUuid()))
                 } else {
                     insertAlbum(album)
                 }
@@ -93,6 +140,14 @@ class ExposedAlbumRepository : AlbumRepository {
         }
     }
 }
+
+/** Key tuple matching the `uq_albums_identity` unique constraint columns. */
+private data class NaturalKey(
+    val albumArtist: String,
+    val album: String,
+    val albumDate: String,
+    val directoryPath: String,
+)
 
 internal fun Uuid.toJavaUuid(): UUID = UUID.fromString(this.toString())
 
