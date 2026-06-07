@@ -53,6 +53,11 @@ jobs:
         # CI job summary and allows targeted re-runs without re-running all checks.
 
       - name: Run OWASP Dependency Check
+        continue-on-error: true
+        # continue-on-error: remove once NVD_API_KEY secret is configured in repo settings.
+        # Without the API key, anonymous NVD downloads are heavily rate-limited and can
+        # exceed 30 minutes. Once the secret is set, remove this flag so CVE failures block CI.
+        # Obtain a free key at https://nvd.nist.gov/developers/request-an-api-key
         run: |
           for module in kbeatz-common kbeatz-tagger kbeatz-sources kbeatz-catalog kbeatz-cli; do
             echo "--- dependencyCheckAnalyze: $module ---"
