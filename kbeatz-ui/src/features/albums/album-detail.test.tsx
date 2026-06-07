@@ -4,13 +4,29 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { AlbumDetail } from './album-detail'
 import type { AlbumDetail as AlbumDetailModel, Track } from '../../api/generated'
 
-// Mock the AlbumsService
+// Mock the AlbumsService and SyncPanel
 vi.mock('../../api/generated', () => ({
   AlbumsService: {
     getAlbum: vi.fn(),
     updateAlbumTags: vi.fn(),
     updateTrackTags: vi.fn(),
+    syncAlbumFromDiscogs: vi.fn(),
   },
+}))
+
+// Mock SyncPanel so album-detail tests do not depend on sync implementation
+vi.mock('../sync/sync-panel', () => ({
+  SyncPanel: ({ album, onSyncComplete }: { album: { discogsId?: string }; onSyncComplete: (a: unknown) => void }) => (
+    <div data-testid="sync-panel" data-discogs-id={album.discogsId}>
+      <button
+        type="button"
+        data-testid="mock-sync-complete"
+        onClick={() => onSyncComplete({ id: 'album-id-1', albumArtist: 'Updated Artist', album: 'Updated Album', directoryPath: '/music', hasCoverArt: false })}
+      >
+        Trigger sync complete
+      </button>
+    </div>
+  ),
 }))
 
 import { AlbumsService } from '../../api/generated'
@@ -134,6 +150,43 @@ describe('AlbumDetail', () => {
     for (const testId of expectedFields) {
       expect(screen.getByTestId(testId)).toBeInTheDocument()
     }
+  })
+
+  // ──────────────────────────────────────────────
+  // Discogs SyncPanel wiring
+  // ──────────────────────────────────────────────
+
+  it('renders SyncPanel when album has a discogsId', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ discogsId: '12345' }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('sync-panel')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('sync-panel')).toHaveAttribute('data-discogs-id', '12345')
+  })
+
+  it('does NOT render SyncPanel when album has no discogsId', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ discogsId: undefined }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-album')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('sync-panel')).not.toBeInTheDocument()
+  })
+
+  it('updates album tags when onSyncComplete is called', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ discogsId: '12345' }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('sync-panel')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByTestId('mock-sync-complete'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-albumartist')).toHaveTextContent('Updated Artist')
+      expect(screen.getByTestId('album-value-album')).toHaveTextContent('Updated Album')
+    })
   })
 
   // ──────────────────────────────────────────────

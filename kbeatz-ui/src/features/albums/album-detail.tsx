@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { AlbumDetail as AlbumDetailModel, AlbumsService, Track } from '../../api/generated'
+import { AlbumDetail as AlbumDetailModel, Album, AlbumsService, Track } from '../../api/generated'
 import { EditableField } from './editable-field'
+import { SyncPanel } from '../sync/sync-panel'
 
 /**
  * AlbumDetail — shows all Vorbis Comment tag fields for a single album with inline editing.
@@ -16,6 +17,10 @@ import { EditableField } from './editable-field'
  * - Click on any field value → inline input pre-filled with current value
  * - Enter or blur → PATCH API call; optimistic update; rollback + error toast on failure
  * - Escape → cancel, restore original value; no API call
+ *
+ * ## Discogs sync
+ * - SyncPanel is rendered below the tag fields when the album has a discogsId
+ * - On sync complete the album state is updated with the returned Album
  */
 export function AlbumDetail() {
   const { albumId } = useParams<{ albumId: string }>()
@@ -73,6 +78,29 @@ export function AlbumDetail() {
       },
     [albumId],
   )
+
+  const handleSyncComplete = useCallback((updated: Album) => {
+    // Merge the sync result into the current album detail
+    // The sync API returns Album (not AlbumDetail), so we patch only the
+    // fields that Album carries; tracks and hasCoverArt are preserved.
+    setAlbum((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        albumArtist: updated.albumArtist,
+        album: updated.album,
+        date: updated.date,
+        genre: updated.genre,
+        label: updated.label,
+        catalogNumber: updated.catalogNumber,
+        composer: updated.composer,
+        conductor: updated.conductor,
+        ensemble: updated.ensemble,
+        discogsId: updated.discogsId,
+        hasCoverArt: updated.hasCoverArt,
+      }
+    })
+  }, [])
 
   if (loading) return <p>Loading album…</p>
   if (error) return <p role="alert">Error: {error}</p>
@@ -167,6 +195,12 @@ export function AlbumDetail() {
         </dl>
       </section>
 
+      {album.discogsId !== undefined && (
+        <section aria-label="Discogs sync">
+          <SyncPanel album={album} onSyncComplete={handleSyncComplete} />
+        </section>
+      )}
+
       {album.tracks.length > 0 && (
         <section aria-label="Tracks">
           <h2 className="album-detail__section-title">Tracks</h2>
@@ -190,12 +224,6 @@ export function AlbumDetail() {
             </tbody>
           </table>
         </section>
-      )}
-
-      {album.discogsId && (
-        <p className="album-detail__discogs-id" data-testid="album-discogs-id">
-          Discogs ID: {album.discogsId}
-        </p>
       )}
     </article>
   )
