@@ -56,7 +56,7 @@ class DiscogsImageServiceTest {
         val result = service.downloadAndWrite("12345", dir, downloadImages = false)
 
         assertFalse(result)
-        assertFalse(Files.list(dir).findAny().isPresent, "No files should be written")
+        assertFalse(Files.list(dir).use { it.findAny().isPresent }, "No files should be written")
     }
 
     // ---- quota exhausted ----
@@ -70,7 +70,7 @@ class DiscogsImageServiceTest {
             service.downloadAndWrite("12345", dir, downloadImages = true)
         }
 
-        assertFalse(Files.list(dir).findAny().isPresent, "No files should be written on quota error")
+        assertFalse(Files.list(dir).use { it.findAny().isPresent }, "No files should be written on quota error")
     }
 
     @Test

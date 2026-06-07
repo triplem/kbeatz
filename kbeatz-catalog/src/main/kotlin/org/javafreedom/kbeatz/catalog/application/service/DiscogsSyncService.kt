@@ -127,10 +127,12 @@ class DiscogsSyncService(
 
     private fun findFlacFiles(albumDir: Path): List<Path> =
         if (Files.isDirectory(albumDir)) {
-            Files.list(albumDir)
-                .filter { it.fileName.toString().endsWith(".flac", ignoreCase = true) }
-                .sorted()
-                .toList()
+            Files.list(albumDir).use { stream ->
+                stream
+                    .filter { it.fileName.toString().endsWith(".flac", ignoreCase = true) }
+                    .sorted()
+                    .toList()
+            }
         } else {
             emptyList()
         }
