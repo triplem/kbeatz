@@ -404,7 +404,23 @@ fun Route.trackListingRoutes(albumService: AlbumService) {
 }
 ----
 
-Register the route in `plugins/Routing.kt`.
+Register the route in `plugins/Routing.kt` by adding the import and calling the route
+function inside the `route("/api/v1")` block:
+
+[source,kotlin]
+----
+// plugins/Routing.kt
+import org.javafreedom.kbeatz.catalog.adapters.inbound.web.albums.trackListingRoutes
+
+fun Application.configureRouting(/* ... */ albumService: AlbumService /* ... */) {
+    routing {
+        route("/api/v1") {
+            // ... existing routes ...
+            trackListingRoutes(albumService)
+        }
+    }
+}
+----
 
 === Step 8: Write unit tests
 
