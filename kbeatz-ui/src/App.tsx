@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
-import { AlbumPage } from './api/generated'
+import { Album } from './api/generated'
 import { AlbumsService } from './api/generated'
 import { AlbumGrid } from './features/albums/album-grid'
 import { AlbumDetail } from './features/albums/album-detail'
@@ -19,8 +19,22 @@ import {
   type SortField,
 } from './features/albums/album-filters'
 
+/** Fetch all pages sequentially until the last page is reached. */
+async function fetchAllAlbums(): Promise<Album[]> {
+  const all: Album[] = []
+  let page = 0
+  let totalPages = 1
+  do {
+    const response = await AlbumsService.listAlbums({ page, size: 100 })
+    all.push(...response.content)
+    totalPages = response.totalPages
+    page++
+  } while (page < totalPages)
+  return all
+}
+
 function AlbumListPage() {
-  const [albumPage, setAlbumPage] = useState<AlbumPage | null>(null)
+  const [albums, setAlbums] = useState<Album[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -47,11 +61,11 @@ function AlbumListPage() {
   useEffect(() => {
     let cancelled = false
 
-    const fetchAlbums = async () => {
+    const loadAlbums = async () => {
       try {
-        const page = await AlbumsService.listAlbums({ size: 5000 })
+        const all = await fetchAllAlbums()
         if (!cancelled) {
-          setAlbumPage(page)
+          setAlbums(all)
         }
       } catch (err) {
         if (!cancelled) {
@@ -64,19 +78,17 @@ function AlbumListPage() {
       }
     }
 
-    void fetchAlbums()
+    void loadAlbums()
     return () => {
       cancelled = true
     }
   }, [])
 
-  const allAlbums = useMemo(() => albumPage?.content ?? [], [albumPage])
-
-  const filterOptions = useMemo(() => deriveFilterOptions(allAlbums), [allAlbums])
+  const filterOptions = useMemo(() => deriveFilterOptions(albums), [albums])
 
   const visibleAlbums = useMemo(
-    () => applyFiltersAndSort(allAlbums, filters, sortBy),
-    [allAlbums, filters, sortBy],
+    () => applyFiltersAndSort(albums, filters, sortBy),
+    [albums, filters, sortBy],
   )
 
   return (
