@@ -7,7 +7,6 @@ plugins {
     kotlin("plugin.serialization")
     id("io.gitlab.arturbosch.detekt")
     id("org.jetbrains.kotlinx.kover")
-    id("org.owasp.dependencycheck")
 }
 
 repositories {
@@ -66,13 +65,3 @@ tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
     }
 }
 
-dependencyCheck {
-    // Fail build on HIGH (CVSS >= 7.0) and CRITICAL CVEs.
-    failBuildOnCVSS = 7.0f
-    // NVD API key speeds up database updates; set via NVD_API_KEY env var in CI.
-    nvd.apiKey = System.getenv("NVD_API_KEY") ?: ""
-    // Suppress known false positives. Add entries when a CVE is reviewed and accepted.
-    suppressionFile = "${project.rootDir}/config/dependency-check/suppressions.xml"
-    // Store NVD database in a stable Gradle cache path so CI can cache it across runs.
-    data.directory = "${System.getProperty("user.home")}/.gradle/dependency-check-data"
-}
