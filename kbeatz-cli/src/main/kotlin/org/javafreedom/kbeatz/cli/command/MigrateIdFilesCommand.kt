@@ -66,7 +66,8 @@ class MigrateIdFilesCommand : CliktCommand(
             }
         }
 
-        logger.info { "Migrated $migrated files, $skipped skipped, $errors errors" }
+        echo("Migrated $migrated files, $skipped skipped, $errors errors")
+        logger.info { "migrate-ids complete: migrated=$migrated skipped=$skipped errors=$errors" }
     }
 
     private fun migrateDirectory(dir: Path, idReader: IdFileReader): MigrateOutcome {
@@ -74,7 +75,8 @@ class MigrateIdFilesCommand : CliktCommand(
         return when {
             !hasLegacy -> MigrateOutcome.NO_ID_FILE
             SystemFileSystem.exists(Path(dir, "metadata.yml")) -> {
-                logger.warn { "SKIP  $dir — metadata.yml already exists" }
+                echo("SKIP  $dir - metadata.yml already exists")
+                logger.info { "SKIP  dir=$dir reason=metadata.yml already exists" }
                 MigrateOutcome.SKIPPED
             }
             else -> migrateWithIdFile(dir, idReader)
@@ -84,12 +86,14 @@ class MigrateIdFilesCommand : CliktCommand(
     private fun migrateWithIdFile(dir: Path, idReader: IdFileReader): MigrateOutcome =
         runCatching { idReader.read(dir) }
             .getOrElse { e ->
-                logger.error(e) { "ERROR $dir" }
+                echo("ERROR $dir")
+                logger.error(e) { "ERROR dir=$dir" }
                 return MigrateOutcome.ERROR
             }
             ?.let { idFile -> performMigration(dir, idFile, Path(dir, "metadata.yml")) }
             ?: run {
-                logger.warn { "SKIP  $dir — no parseable id file found" }
+                echo("SKIP  $dir - no parseable id file found")
+                logger.info { "SKIP  dir=$dir reason=no parseable id file found" }
                 MigrateOutcome.SKIPPED
             }
 
@@ -100,7 +104,8 @@ class MigrateIdFilesCommand : CliktCommand(
             MigrateOutcome.MIGRATED
         } else {
             SystemFileSystem.sink(target).buffered().use { it.writeString(yamlContent) }
-            logger.info { "WROTE $target" }
+            echo("WROTE $target")
+            logger.info { "WROTE path=$target" }
             if (!keepOriginal) deleteOriginalIdFiles(dir)
             MigrateOutcome.MIGRATED
         }
@@ -110,7 +115,11 @@ class MigrateIdFilesCommand : CliktCommand(
         LEGACY_NAMES
             .map { Path(dir, it) }
             .filter { SystemFileSystem.exists(it) }
-            .forEach { path -> SystemFileSystem.delete(path); logger.info { "DEL   $path" } }
+            .forEach { path ->
+                SystemFileSystem.delete(path)
+                echo("DEL   $path")
+                logger.info { "DEL   path=$path" }
+            }
     }
 
     private fun buildYaml(sources: Map<String, String>): String =

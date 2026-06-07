@@ -74,7 +74,8 @@ class TagAlbumsCommand(
         val idReader = IdFileReader(SourceConfig())
         val targets = resolveTargets()
         if (targets.isEmpty()) {
-            logger.warn { "No album directories found." }
+            echo("No album directories found.")
+            logger.info { "tag: no album directories found" }
             return
         }
         val total = targets.size
@@ -84,7 +85,10 @@ class TagAlbumsCommand(
         var skipped = 0
         var errors = 0
         targets.forEachIndexed { idx, dir ->
-            if (libraryRoot != null) logger.info { "Tagging [${idx + 1}/$total]: $dir" }
+            if (libraryRoot != null) {
+                echo("Tagging [${idx + 1}/$total]: $dir")
+                logger.info { "tagging idx=${idx + 1} total=$total dir=$dir" }
+            }
             val outcome = tagAlbum(dir, idReader, lazyService)
             when (outcome) {
                 TagOutcome.TAGGED -> tagged++
@@ -93,20 +97,23 @@ class TagAlbumsCommand(
             }
         }
         if (libraryRoot != null) {
-            logger.info { "Tagged $tagged albums, $skipped skipped, $errors errors" }
+            echo("Tagged $tagged albums, $skipped skipped, $errors errors")
+            logger.info { "tag complete: tagged=$tagged skipped=$skipped errors=$errors" }
         }
     }
 
     private fun tagAlbum(dir: Path, idReader: IdFileReader, lazyService: Lazy<TaggerService>): TagOutcome {
         val idFile = idReader.read(dir)
         if (idFile == null) {
-            logger.warn { "no id file found in $dir — skipped" }
+            echo("SKIP  $dir - no id file found")
+            logger.info { "SKIP  dir=$dir reason=no id file found" }
             return TagOutcome.SKIPPED
         }
         val discogsId = idReader.discogsId(idFile)
         return when {
             discogsId == null -> {
-                logger.warn { "no discogs_id in id file for $dir — skipped" }
+                echo("SKIP  $dir - no discogs_id in id file")
+                logger.info { "SKIP  dir=$dir reason=no discogs_id in id file" }
                 TagOutcome.SKIPPED
             }
             dryRun -> {
@@ -121,16 +128,19 @@ class TagAlbumsCommand(
         runBlocking {
             when (val result = lazyService.value.tagAlbum(dir, downloadImages)) {
                 is TagResult.Tagged -> {
-                    logger.info { "TAGGED $dir — ${result.filesWritten} FLAC files written" }
+                    echo("TAGGED $dir - ${result.filesWritten} FLAC files written")
+                    logger.info { "TAGGED dir=$dir filesWritten=${result.filesWritten}" }
                     writeMetadataYmlIfLegacy(dir, idFile)
                     TagOutcome.TAGGED
                 }
                 is TagResult.Skipped -> {
-                    logger.warn { "SKIP   $dir — ${result.reason}" }
+                    echo("SKIP   $dir - ${result.reason}")
+                    logger.info { "SKIP   dir=$dir reason=${result.reason}" }
                     TagOutcome.SKIPPED
                 }
                 is TagResult.Failed -> {
-                    logger.error(result.cause) { "ERROR  $dir" }
+                    echo("ERROR  $dir")
+                    logger.error(result.cause) { "ERROR  dir=$dir" }
                     TagOutcome.ERROR
                 }
             }
@@ -146,7 +156,8 @@ class TagAlbumsCommand(
         if (hasLegacy && !SystemFileSystem.exists(Path(dir, "metadata.yml"))) {
             val yaml = buildYaml(idFile.sources)
             SystemFileSystem.sink(Path(dir, "metadata.yml")).buffered().use { it.writeString(yaml) }
-            logger.info { "WROTE $dir/metadata.yml" }
+            echo("WROTE $dir/metadata.yml")
+            logger.info { "WROTE path=$dir/metadata.yml" }
         }
     }
 

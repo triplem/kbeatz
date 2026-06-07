@@ -18,6 +18,7 @@ class TagAlbumsCommandTest {
     fun `should exit cleanly when library root has no id files`(@TempDir tempDir: java.nio.file.Path) {
         val result = TagAlbumsCommand().test("--library $tempDir")
         assertTrue(result.statusCode == 0)
+        assertContains(result.output, "No album directories found.")
     }
 
     @Test
@@ -51,6 +52,7 @@ class TagAlbumsCommandTest {
             TagResult.Tagged(Path(tempDir.toString()), "42", 3)
         val result = TagAlbumsCommand(taggerServiceOverride = mockService).test("$tempDir")
         assertTrue(result.statusCode == 0)
+        assertContains(result.output, "TAGGED")
     }
 
     @Test
@@ -71,6 +73,7 @@ class TagAlbumsCommandTest {
             TagResult.Skipped(Path(tempDir.toString()), "release not found")
         val result = TagAlbumsCommand(taggerServiceOverride = mockService).test("$tempDir")
         assertTrue(result.statusCode == 0)
+        assertContains(result.output, "SKIP")
     }
 
     @Test
@@ -81,6 +84,7 @@ class TagAlbumsCommandTest {
             TagResult.Failed(Path(tempDir.toString()), RuntimeException("network error"))
         val result = TagAlbumsCommand(taggerServiceOverride = mockService).test("$tempDir")
         assertTrue(result.statusCode == 0)
+        assertContains(result.output, "ERROR")
     }
 
     @Test
@@ -90,6 +94,8 @@ class TagAlbumsCommandTest {
         val result = TagAlbumsCommand().test("--library $tempDir --dry-run")
         assertContains(result.output, "DRY")
         assertContains(result.output, "discogs_id=77")
+        assertContains(result.output, "Tagging [1/1]")
+        assertContains(result.output, "Tagged 1 albums")
     }
 
     @Test
