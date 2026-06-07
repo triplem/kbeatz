@@ -113,7 +113,7 @@ npm run dev
 The CLI is a fat JAR. Build it first, then run it:
 
 ```bash
-./gradlew :kbeatz-cli:shadowJar
+cd kbeatz-cli && ./gradlew shadowJar
 java -jar kbeatz-cli/build/libs/kbeatz-cli-all.jar --help
 java -jar kbeatz-cli/build/libs/kbeatz-cli-all.jar tag --help
 java -jar kbeatz-cli/build/libs/kbeatz-cli-all.jar migrate-ids --help
@@ -279,6 +279,8 @@ cd kbeatz-ui && npm run test
 ### 2. Unit test coverage >= 80%
 
 ```bash
+# koverVerify runs automatically as part of ./gradlew check
+# To run it standalone:
 ./gradlew koverVerify   # fails if backend line coverage drops below 80%
 cd kbeatz-ui && npm run test:coverage
 ```
@@ -286,12 +288,17 @@ cd kbeatz-ui && npm run test:coverage
 ### 3. Detekt passes (Kotlin linter)
 
 ```bash
-# Run per module - composite build does not support a single root detektMain task
-./gradlew :kbeatz-catalog:detektMain :kbeatz-cli:detektMain :kbeatz-common:detektMain \
-          :kbeatz-sources:detektMain :kbeatz-tagger:detektMain
+# Easiest: run all quality gates including Detekt for all modules
+./gradlew check
+
+# Or run Detekt per module when you want to check only one module:
+cd kbeatz-catalog && ./gradlew detektMain
+cd kbeatz-tagger && ./gradlew detektMain
 ```
 
-Or run `./gradlew check` which covers all of the above.
+Note: in this composite build setup each module has its own Gradle root, so `detektMain`
+must be run from the module directory (or via `./gradlew check` at the repo root which
+covers all modules).
 
 ### 4. TypeScript strict build passes
 
