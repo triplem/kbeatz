@@ -3,15 +3,18 @@ package org.javafreedom.kbeatz.catalog.application.service
 import io.mockk.coEvery
 import io.mockk.mockk
 import java.nio.file.Files
-import java.time.Clock
-import java.time.LocalDate
-import java.time.ZoneOffset
-import kotlinx.coroutines.runBlocking
-import kotlinx.io.bytestring.ByteString
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
+import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.io.bytestring.ByteString
 import org.javafreedom.kbeatz.common.ImageQuotaExhaustedException
 import org.javafreedom.kbeatz.sources.ImageResult
 import org.javafreedom.kbeatz.sources.MetadataSource
@@ -74,12 +77,14 @@ class DiscogsImageServiceTest {
     }
 
     @Test
+    @OptIn(ExperimentalTime::class)
     fun `ImageQuotaExhaustedException should contain UTC midnight reset time`() = runBlocking {
         val dir = Files.createTempDirectory("cover-art-test")
-        val fixedClock = Clock.fixed(
-            LocalDate.of(2026, 6, 7).atStartOfDay(ZoneOffset.UTC).toInstant(),
-            ZoneOffset.UTC,
-        )
+        val fixedInstant: Instant = LocalDate(2026, 6, 7).atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
+            .let { Instant.fromEpochMilliseconds(it) }
+        val fixedClock = object : Clock {
+            override fun now(): Instant = fixedInstant
+        }
         val quota = DiscogsImageQuota()
         repeat(1000) { quota.recordDownload() }
         val service = DiscogsImageService(

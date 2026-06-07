@@ -5,9 +5,14 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
-import java.time.Clock
-import java.time.LocalDate
-import java.time.ZoneOffset
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.io.files.Path as KtPath
 import org.javafreedom.kbeatz.common.ImageQuotaExhaustedException
 import org.javafreedom.kbeatz.sources.MetadataSource
@@ -36,11 +41,12 @@ private val log = KotlinLogging.logger {}
  * @param embedInFiles When true, embeds the image in FLAC files in addition to writing folder image.
  * @param clock Clock for computing quota reset time (UTC midnight tomorrow).
  */
+@OptIn(ExperimentalTime::class)
 class DiscogsImageService(
     private val metadataSource: MetadataSource,
     private val imageQuota: DiscogsImageQuota,
     val embedInFiles: Boolean = true,
-    private val clock: Clock = Clock.systemUTC(),
+    private val clock: Clock = Clock.System,
 ) {
 
     /**
@@ -136,9 +142,11 @@ class DiscogsImageService(
             emptyList()
         }
 
+    @OptIn(ExperimentalTime::class)
     private fun computeResetAt(): String =
-        LocalDate.now(clock).plusDays(1)
-            .atStartOfDay(ZoneOffset.UTC)
-            .toInstant()
+        clock.now()
+            .toLocalDateTime(TimeZone.UTC).date
+            .plus(1, DateTimeUnit.DAY)
+            .atStartOfDayIn(TimeZone.UTC)
             .toString()
 }
