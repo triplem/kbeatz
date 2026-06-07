@@ -8,10 +8,12 @@ data class AppConfig(
     val catalogLibraryRoot: String,
     val discogsToken: String?,
     val jdbcUrl: String,
+    val dataDir: String,
 ) {
     companion object {
         private const val DEFAULT_JDBC_URL =
             "jdbc:h2:file:./data/kbeatz;DB_CLOSE_DELAY=-1;MODE=PostgreSQL"
+        private const val DEFAULT_DATA_DIR = "./data"
 
         fun fromEnv(): AppConfig {
             val root = System.getenv("CATALOG_LIBRARY_ROOT")
@@ -21,7 +23,13 @@ data class AppConfig(
                 log.warn { "DISCOGS_TOKEN not set — Discogs sync will be unavailable" }
             }
             val jdbcUrl = System.getenv("CATALOG_JDBC_URL") ?: DEFAULT_JDBC_URL
-            return AppConfig(catalogLibraryRoot = root, discogsToken = token, jdbcUrl = jdbcUrl)
+            val dataDir = System.getenv("DATA_DIR") ?: DEFAULT_DATA_DIR
+            return AppConfig(
+                catalogLibraryRoot = root,
+                discogsToken = token,
+                jdbcUrl = jdbcUrl,
+                dataDir = dataDir,
+            )
         }
     }
 

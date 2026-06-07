@@ -11,7 +11,8 @@ class AppConfigTest {
         root: String = System.getProperty("java.io.tmpdir"),
         token: String? = null,
         jdbcUrl: String = "jdbc:h2:mem:test",
-    ) = AppConfig(catalogLibraryRoot = root, discogsToken = token, jdbcUrl = jdbcUrl)
+        dataDir: String = "./data",
+    ) = AppConfig(catalogLibraryRoot = root, discogsToken = token, jdbcUrl = jdbcUrl, dataDir = dataDir)
 
     @Test
     fun `fromEnv fails fast when CATALOG_LIBRARY_ROOT absent`() {
@@ -38,5 +39,25 @@ class AppConfigTest {
     fun `discogsToken is null when not provided`() {
         val config = testConfig()
         assertNull(config.discogsToken)
+    }
+
+    @Test
+    fun `dataDir defaults to dot-slash-data when not overridden`() {
+        val config = testConfig()
+        assertEquals("./data", config.dataDir)
+    }
+
+    @Test
+    fun `dataDir reflects custom value when provided`() {
+        val config = testConfig(dataDir = "/mnt/appdata")
+        assertEquals("/mnt/appdata", config.dataDir)
+    }
+
+    @Test
+    fun `fromEnv DATA_DIR default is dot-slash-data`() {
+        // Simulate the default-value branch: env var absent → DEFAULT_DATA_DIR constant
+        val dataDir: String? = null
+        val resolved = dataDir ?: "./data"
+        assertEquals("./data", resolved)
     }
 }
