@@ -43,7 +43,7 @@ jobs:
         # CI job summary and allows targeted re-runs without re-running all checks.
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.68.2
         with:
           scan-type: 'fs'
           scan-ref: '.'
