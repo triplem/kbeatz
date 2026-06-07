@@ -53,12 +53,17 @@ jobs:
         # CI job summary and allows targeted re-runs without re-running all checks.
 
       - name: Run OWASP Dependency Check
-        run: ./gradlew dependencyCheckAnalyze --no-daemon
+        run: |
+          for module in kbeatz-common kbeatz-tagger kbeatz-sources kbeatz-catalog kbeatz-cli; do
+            echo "--- dependencyCheckAnalyze: $module ---"
+            (cd "$module" && ../gradlew dependencyCheckAnalyze --no-daemon)
+          done
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         # Fails build on HIGH/CRITICAL CVEs (CVSS >= 7.0). NVD database is cached via
         # the "Cache NVD database" step above. Suppressions for accepted false positives
         # go in config/dependency-check/suppressions.xml with a documented rationale.
+        # Each includeBuild module is its own Gradle root, so the task must run per module.
 
       - name: Run E2E tests
         run: ./gradlew :kbeatz-catalog:e2eTest --no-daemon
