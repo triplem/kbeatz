@@ -53,13 +53,6 @@ jobs:
         # CI job summary and allows targeted re-runs without re-running all checks.
 
       - name: Run OWASP Dependency Check
-        continue-on-error: true
-        timeout-minutes: 20
-        # continue-on-error + timeout-minutes: remove both once NVD_API_KEY secret is configured.
-        # Without the API key, anonymous NVD downloads are heavily rate-limited and can
-        # exceed 30 minutes; timeout-minutes caps the step so CI does not stall for hours.
-        # Once the secret is set, remove these flags so CVE failures block CI as intended.
-        # Obtain a free key at https://nvd.nist.gov/developers/request-an-api-key
         run: |
           for module in kbeatz-common kbeatz-tagger kbeatz-sources kbeatz-catalog kbeatz-cli; do
             echo "--- dependencyCheckAnalyze: $module ---"
@@ -69,8 +62,10 @@ jobs:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         # Fails build on HIGH/CRITICAL CVEs (CVSS >= 7.0). NVD database is cached via
         # the "Cache NVD database" step above. Suppressions for accepted false positives
-        # go in config/dependency-check/suppressions.xml with a documented rationale.
+        # go in <module>/config/dependency-check/suppressions.xml with a documented rationale.
         # Each includeBuild module is its own Gradle root, so the task must run per module.
+        # project.rootDir resolves to the module directory in a composite build, so each
+        # module carries its own suppressions.xml copy (mirrors the detekt.yml pattern).
 
       - name: Run E2E tests
         run: ./gradlew :kbeatz-catalog:e2eTest --no-daemon
