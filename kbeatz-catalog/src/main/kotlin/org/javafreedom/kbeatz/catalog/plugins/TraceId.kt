@@ -12,7 +12,6 @@ import io.ktor.util.AttributeKey
 import java.util.UUID
 import kotlinx.coroutines.slf4j.MDCContext
 import kotlinx.coroutines.withContext
-import org.slf4j.MDC
 
 val TraceIdKey = AttributeKey<String>("TraceId")
 
@@ -23,21 +22,18 @@ val TraceIdKey = AttributeKey<String>("TraceId")
  * 3. Wrap the remaining pipeline in [MDCContext] so the traceId is propagated across
  *    coroutine suspension boundaries (e.g. when `suspendTransaction {}` switches threads)
  *
- * All three steps must happen in the same interceptor so the MDCContext snapshot is taken
- * AFTER the traceId is placed in MDC, not before.
+ * The traceId is passed directly as an explicit map to `MDCContext` rather than via a
+ * prior `MDC.put` call. This avoids the intermediate window where the calling thread's
+ * raw MDC is mutated globally before `withContext` takes over, preventing transient
+ * thread-local pollution in concurrent request scenarios.
  */
 private object TraceIdAndMdcHook : Hook<suspend () -> Unit> {
     override fun install(pipeline: ApplicationCallPipeline, handler: suspend () -> Unit) {
         pipeline.intercept(ApplicationCallPipeline.Plugins) {
             val traceId = call.request.header("X-Trace-Id") ?: UUID.randomUUID().toString()
             call.attributes.put(TraceIdKey, traceId)
-            MDC.put("traceId", traceId)
-            try {
-                withContext(MDCContext()) {
-                    proceed()
-                }
-            } finally {
-                MDC.remove("traceId")
+            withContext(MDCContext(mapOf("traceId" to traceId))) {
+                proceed()
             }
         }
     }
