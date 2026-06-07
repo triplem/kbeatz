@@ -37,11 +37,23 @@ jobs:
         run: ./gradlew buildBackends check --no-daemon --no-parallel
         env:
           CATALOG_LIBRARY_ROOT: /tmp/kbeatz-test-library
+        # Note: kbeatz-catalog:check already depends on e2eTest (via kbeatz.ktor-service
+        # convention plugin). The explicit e2eTest step below makes this visible in the
+        # CI job summary and allows targeted re-runs without re-running all checks.
 
       # TODO(#192): Add OWASP Dependency Check (./gradlew dependencyCheckAnalyze).
       # The org.owasp.dependencycheck Gradle plugin is not yet configured; adding it
       # without a pre-seeded NVD cache would add 10-20 min to every CI run.
       # See issue #192 for the plan: add the plugin + cache ~/.gradle/dependency-check-data/.
+
+      - name: Run E2E tests
+        run: ./gradlew :kbeatz-catalog:e2eTest --no-daemon
+        env:
+          CATALOG_LIBRARY_ROOT: /tmp/kbeatz-test-library
+          CATALOG_JDBC_URL: jdbc:h2:mem:kbeatz_e2e;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+        # E2E tests use Ktor's testApplication {} in-process engine — no real server
+        # is started. Tests cover path traversal prevention, album listing contract,
+        # library scan trigger/status, and X-Trace-Id header propagation.
 
       - name: Upload test reports on failure
         if: failure()
