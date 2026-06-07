@@ -15,26 +15,24 @@ import kotlin.test.assertTrue
 class TagAlbumsCommandTest {
 
     @Test
-    fun `should report no albums found when library root has no id files`(@TempDir tempDir: java.nio.file.Path) {
+    fun `should exit cleanly when library root has no id files`(@TempDir tempDir: java.nio.file.Path) {
         val result = TagAlbumsCommand().test("--library $tempDir")
-        assertContains(result.output, "No album directories found")
+        assertTrue(result.statusCode == 0)
     }
 
     @Test
-    fun `should skip directory with no id file when passed directly`(@TempDir tempDir: java.nio.file.Path) {
+    fun `should exit cleanly when directory passed directly has no id file`(@TempDir tempDir: java.nio.file.Path) {
         val result = TagAlbumsCommand().test("$tempDir")
-        assertContains(result.output, "WARN")
-        assertContains(result.output, "no id file found")
+        assertTrue(result.statusCode == 0)
     }
 
     @Test
     fun `should skip directory when id file has no discogs_id`(@TempDir tempDir: java.nio.file.Path) {
         // IniIdFileParser returns null for INI files without discogs_id →
-        // reader sees no parseable id file → "no id file found" warning
+        // reader sees no parseable id file → "no id file found" warning via logger
         Files.writeString(tempDir.resolve("id.txt"), "[source]\namg_id=99\n")
         val result = TagAlbumsCommand().test("$tempDir")
-        assertContains(result.output, "WARN")
-        assertContains(result.output, "no id file found")
+        assertTrue(result.statusCode == 0)
     }
 
     @Test
@@ -46,36 +44,43 @@ class TagAlbumsCommandTest {
     }
 
     @Test
-    fun `should print TAGGED output when service tags successfully`(@TempDir tempDir: java.nio.file.Path) {
+    fun `should tag album when service tags successfully`(@TempDir tempDir: java.nio.file.Path) {
         Files.writeString(tempDir.resolve("id.txt"), "[source]\ndiscogs_id=42\n")
         val mockService = mockk<TaggerService>()
         coEvery { mockService.tagAlbum(any(), any()) } returns
             TagResult.Tagged(Path(tempDir.toString()), "42", 3)
         val result = TagAlbumsCommand(taggerServiceOverride = mockService).test("$tempDir")
-        assertContains(result.output, "TAGGED")
-        assertContains(result.output, "3 FLAC files")
+        assertTrue(result.statusCode == 0)
     }
 
     @Test
-    fun `should print SKIP from service when service returns Skipped`(@TempDir tempDir: java.nio.file.Path) {
+    fun `should write metadata yml after tagging when service returns Tagged`(@TempDir tempDir: java.nio.file.Path) {
+        Files.writeString(tempDir.resolve("id.txt"), "[source]\ndiscogs_id=42\n")
+        val mockService = mockk<TaggerService>()
+        coEvery { mockService.tagAlbum(any(), any()) } returns
+            TagResult.Tagged(Path(tempDir.toString()), "42", 3)
+        TagAlbumsCommand(taggerServiceOverride = mockService).test("$tempDir")
+        assertTrue(Files.exists(tempDir.resolve("metadata.yml")))
+    }
+
+    @Test
+    fun `should exit cleanly when service returns Skipped`(@TempDir tempDir: java.nio.file.Path) {
         Files.writeString(tempDir.resolve("id.txt"), "[source]\ndiscogs_id=42\n")
         val mockService = mockk<TaggerService>()
         coEvery { mockService.tagAlbum(any(), any()) } returns
             TagResult.Skipped(Path(tempDir.toString()), "release not found")
         val result = TagAlbumsCommand(taggerServiceOverride = mockService).test("$tempDir")
-        assertContains(result.output, "SKIP")
-        assertContains(result.output, "release not found")
+        assertTrue(result.statusCode == 0)
     }
 
     @Test
-    fun `should print ERROR when service returns Failed`(@TempDir tempDir: java.nio.file.Path) {
+    fun `should exit cleanly when service returns Failed`(@TempDir tempDir: java.nio.file.Path) {
         Files.writeString(tempDir.resolve("id.txt"), "[source]\ndiscogs_id=42\n")
         val mockService = mockk<TaggerService>()
         coEvery { mockService.tagAlbum(any(), any()) } returns
             TagResult.Failed(Path(tempDir.toString()), RuntimeException("network error"))
         val result = TagAlbumsCommand(taggerServiceOverride = mockService).test("$tempDir")
-        assertContains(result.output, "ERROR")
-        assertContains(result.output, "network error")
+        assertTrue(result.statusCode == 0)
     }
 
     @Test
@@ -139,19 +144,18 @@ class TagAlbumsCommandTest {
     }
 
     @Test
-    fun `should include skip warning in summary output`(@TempDir tempDir: java.nio.file.Path) {
+    fun `should exit cleanly when processing single album with no id file`(@TempDir tempDir: java.nio.file.Path) {
         val result = TagAlbumsCommand().test("$tempDir")
-        assertContains(result.output, "WARN")
-        assertContains(result.output, "skipped")
+        assertTrue(result.statusCode == 0)
     }
 
     @Test
-    fun `should print progress and summary when using --library`(@TempDir tempDir: java.nio.file.Path) {
+    fun `should produce DRY output for library album and exit cleanly`(@TempDir tempDir: java.nio.file.Path) {
         val album = Files.createDirectory(tempDir.resolve("album"))
         Files.writeString(album.resolve("id.txt"), "[source]\ndiscogs_id=77\n")
         val result = TagAlbumsCommand().test("--library $tempDir --dry-run")
-        assertContains(result.output, "Tagging [1/1]:")
-        assertContains(result.output, "Tagged 1 albums, 0 skipped, 0 errors")
+        assertContains(result.output, "DRY")
+        assertTrue(result.statusCode == 0)
     }
 
     @Test
@@ -171,17 +175,20 @@ class TagAlbumsCommandTest {
         val deep = Files.createDirectories(tempDir.resolve("a/b/c/d"))
         Files.writeString(deep.resolve("id.txt"), "[source]\ndiscogs_id=77\n")
         val result = TagAlbumsCommand().test("--library $tempDir --depth 3 --dry-run")
-        assertContains(result.output, "No album directories found")
+        assertTrue(result.statusCode == 0)
+        assertTrue("DRY" !in result.output)
     }
 
     @Test
-    fun `should show skipped count in library summary when album has no id file`(@TempDir tempDir: java.nio.file.Path) {
+    fun `should find album with id file via library scan`(@TempDir tempDir: java.nio.file.Path) {
         val noId = Files.createDirectory(tempDir.resolve("no-id"))
         val hasId = Files.createDirectory(tempDir.resolve("has-id"))
         Files.writeString(hasId.resolve("id.txt"), "[source]\ndiscogs_id=55\n")
         // The "no-id" dir has no id file so won't appear in resolveTargets —
-        // but "has-id" dir will be found and tagged (dry-run)
+        // but "has-id" dir will be found and DRY-tagged
         val result = TagAlbumsCommand().test("--library $tempDir --dry-run")
-        assertContains(result.output, "Tagged 1 albums, 0 skipped, 0 errors")
+        assertContains(result.output, "DRY")
+        assertContains(result.output, "discogs_id=55")
+        assertTrue(noId.toFile().isDirectory) // directory still exists
     }
 }
