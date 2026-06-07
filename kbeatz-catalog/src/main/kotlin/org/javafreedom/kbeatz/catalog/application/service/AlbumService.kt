@@ -22,9 +22,6 @@ class AlbumService(
         return album to tracks
     }
 
-    suspend fun listAlbums(page: Int, size: Int): Pair<List<Album>, Long> {
-        val albums = repository.findAll(page, size)
-        val total = repository.count()
-        return albums to total
-    }
+    suspend fun listAlbums(page: Int, size: Int): Pair<List<Album>, Long> =
+        repository.findAllWithCount(page, size)
 }

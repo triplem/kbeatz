@@ -47,6 +47,17 @@ class ExposedAlbumRepository : AlbumRepository {
             AlbumsTable.selectAll().count()
         }
 
+    override suspend fun findAllWithCount(page: Int, size: Int): Pair<List<Album>, Long> =
+        suspendTransaction {
+            val albums = AlbumsTable
+                .selectAll()
+                .orderBy(AlbumsTable.albumArtist)
+                .limit(size).offset(page.toLong() * size)
+                .map { it.toAlbum() }
+            val total = AlbumsTable.selectAll().count()
+            albums to total
+        }
+
     override suspend fun save(album: Album): Album =
         suspendTransaction {
             val existing = AlbumsTable

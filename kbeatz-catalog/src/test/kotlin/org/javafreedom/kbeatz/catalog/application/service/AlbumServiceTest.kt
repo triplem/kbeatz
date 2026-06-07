@@ -60,26 +60,40 @@ class AlbumServiceTest {
     }
 
     @Test
-    fun `listAlbums returns albums and total count`() = runTest {
+    fun `listAlbums returns albums and total count from a single transaction`() = runTest {
         val albums = listOf(album(), album())
-        coEvery { repository.findAll(0, 20) } returns albums
-        coEvery { repository.count() } returns 2L
+        coEvery { repository.findAllWithCount(0, 20) } returns (albums to 2L)
 
         val (result, total) = service.listAlbums(0, 20)
 
         assertEquals(albums, result)
         assertEquals(2L, total)
+        coVerify(exactly = 1) { repository.findAllWithCount(0, 20) }
     }
 
     @Test
     fun `listAlbums returns empty list when repository is empty`() = runTest {
-        coEvery { repository.findAll(0, 20) } returns emptyList()
-        coEvery { repository.count() } returns 0L
+        coEvery { repository.findAllWithCount(0, 20) } returns (emptyList<Album>() to 0L)
 
         val (result, total) = service.listAlbums(0, 20)
 
         assertEquals(emptyList(), result)
         assertEquals(0L, total)
+    }
+
+    @Test
+    fun `listAlbums delegates to findAllWithCount not separate findAll and count calls`() = runTest {
+        val albums = listOf(album())
+        coEvery { repository.findAllWithCount(1, 10) } returns (albums to 5L)
+
+        val (result, total) = service.listAlbums(1, 10)
+
+        assertEquals(albums, result)
+        assertEquals(5L, total)
+        // Verify the single atomic method is used (not two separate calls that could race)
+        coVerify(exactly = 1) { repository.findAllWithCount(1, 10) }
+        coVerify(exactly = 0) { repository.findAll(any(), any()) }
+        coVerify(exactly = 0) { repository.count() }
     }
 
     @Test
