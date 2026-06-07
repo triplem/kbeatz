@@ -7,6 +7,12 @@ interface AlbumRepository {
     suspend fun findById(id: Uuid): Album?
     suspend fun findAll(page: Int, size: Int): List<Album>
     suspend fun count(): Long
+    /**
+     * Returns the paginated album list and the total album count in a single atomic transaction,
+     * preventing a race condition where a rescan between two separate calls could produce an
+     * inconsistent page response (e.g. count reflects new albums not yet in the page).
+     */
+    suspend fun findAllWithCount(page: Int, size: Int): Pair<List<Album>, Long>
     suspend fun save(album: Album): Album
     suspend fun saveAll(albums: List<Album>)
 }
