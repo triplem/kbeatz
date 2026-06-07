@@ -45,6 +45,14 @@ tasks.withType<Test> {
     }
 }
 
+dependencyLocking {
+    // Lock all configurations so Trivy's gradle-lockfile analyzer finds every
+    // resolved dependency in gradle.lockfile. After any version change in
+    // libs.versions.toml, regenerate with:
+    //   ./gradlew --project-dir <module> dependencies --write-locks
+    lockAllConfigurations()
+}
+
 detekt {
     buildUponDefaultConfig = true
     allRules = false
