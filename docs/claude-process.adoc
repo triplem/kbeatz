@@ -554,7 +554,7 @@ Group issues by file ownership before spawning agents:
 # -> Issue #C also touches AlbumRoutes.kt -> assign to same agent as A
 ----
 
-The `/ship` skill handles this grouping automatically when it reads the story metadata.
+The `/ship` skill or the agent operator must handle this grouping before spawning agents.
 When running agents manually, list the affected files before assigning.
 
 === Dependency wave ordering
@@ -668,8 +668,8 @@ Memory files are stored outside the repository in
 session start and reads referenced files as needed. The files are plain Markdown with
 YAML frontmatter.
 
-Memory files are cleaned up after `cleanupPeriodDays` (default: 90) configured in
-`settings.json`.
+Memory files are cleaned up after the retention period configured via `cleanupPeriodDays`
+in `settings.json`.
 
 === Writing a memory entry
 
