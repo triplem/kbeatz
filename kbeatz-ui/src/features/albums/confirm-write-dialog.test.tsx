@@ -1,5 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { render, screen, fireEvent, act } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ConfirmWriteDialog } from './confirm-write-dialog'
 
 function renderDialog(overrides: Partial<React.ComponentProps<typeof ConfirmWriteDialog>> = {}) {
@@ -14,6 +14,16 @@ function renderDialog(overrides: Partial<React.ComponentProps<typeof ConfirmWrit
 }
 
 describe('ConfirmWriteDialog', () => {
+  beforeEach(() => {
+    // Reset overflow before each test to avoid test pollution
+    document.body.style.overflow = ''
+  })
+
+  afterEach(() => {
+    // Ensure overflow is always restored after each test
+    document.body.style.overflow = ''
+  })
+
   // ──────────────────────────────────────────────
   // Visibility
   // ──────────────────────────────────────────────
@@ -149,5 +159,43 @@ describe('ConfirmWriteDialog', () => {
     // Click the dialog panel itself (not the overlay)
     fireEvent.click(screen.getByTestId('confirm-dialog'))
     expect(onCancel).not.toHaveBeenCalled()
+  })
+
+  // ──────────────────────────────────────────────
+  // Background scroll prevention
+  // ──────────────────────────────────────────────
+
+  it('sets body overflow to hidden when dialog is open', () => {
+    renderDialog({ open: true })
+    expect(document.body.style.overflow).toBe('hidden')
+  })
+
+  it('does not set body overflow to hidden when dialog is closed', () => {
+    renderDialog({ open: false })
+    expect(document.body.style.overflow).not.toBe('hidden')
+  })
+
+  it('restores body overflow when dialog is unmounted', () => {
+    const { unmount } = renderDialog({ open: true })
+    expect(document.body.style.overflow).toBe('hidden')
+    unmount()
+    expect(document.body.style.overflow).toBe('')
+  })
+
+  it('restores body overflow when dialog transitions from open to closed', () => {
+    const { rerender } = renderDialog({ open: true })
+    expect(document.body.style.overflow).toBe('hidden')
+    act(() => {
+      rerender(
+        <ConfirmWriteDialog
+          open={false}
+          albumTitle="Kind of Blue"
+          trackCount={10}
+          onConfirm={vi.fn()}
+          onCancel={vi.fn()}
+        />
+      )
+    })
+    expect(document.body.style.overflow).toBe('')
   })
 })

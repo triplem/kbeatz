@@ -26,6 +26,7 @@ interface ConfirmWriteDialogProps {
  * - Focus returns to the triggering element when it closes
  * - Escape key dismisses as Cancel
  * - Tab focus is trapped inside the dialog while it is open
+ * - document.body overflow is set to hidden while open to prevent background scroll
  */
 export function ConfirmWriteDialog({
   open,
@@ -46,6 +47,16 @@ export function ConfirmWriteDialog({
       cancelButtonRef.current?.focus()
     } else {
       previousFocusRef.current?.focus()
+    }
+  }, [open])
+
+  // Prevent background content from scrolling while the dialog is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden'
+    }
+    return () => {
+      document.body.style.overflow = ''
     }
   }, [open])
 
