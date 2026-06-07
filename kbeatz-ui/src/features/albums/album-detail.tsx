@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { AlbumDetail as AlbumDetailModel, Album, AlbumsService, Track } from '../../api/generated'
+import { CancelledByUserError } from './cancelled-by-user-error'
+import { ConfirmWriteDialog } from './confirm-write-dialog'
 import { EditableField } from './editable-field'
 import { SyncPanel } from '../sync/sync-panel'
 
@@ -14,20 +16,41 @@ import { SyncPanel } from '../sync/sync-panel'
  * TITLE, TRACKNUMBER, ARTIST
  *
  * ## Edit flow
- * - Click on any field value → inline input pre-filled with current value
- * - Enter or blur → PATCH API call; optimistic update; rollback + error toast on failure
- * - Escape → cancel, restore original value; no API call
+ * - Click on any album-level field value → inline input pre-filled with current value
+ * - Enter or blur → confirmation dialog appears before the PATCH is fired
+ * - Confirm → PATCH /albums/{albumId}; optimistic update; rollback + error toast on failure
+ * - Cancel / Escape on dialog → abort, keep the form in its edited state
+ * - Escape on input → cancel edit, restore original value; no dialog shown; no API call
  *
  * ## Discogs sync
  * - SyncPanel is rendered below the tag fields when the album has a discogsId
  * - On sync complete the album state is updated with the returned Album
  */
+
+/**
+ * Pending album-level tag save that is awaiting user confirmation.
+ *
+ * When an EditableField triggers onSave we do NOT fire the PATCH immediately.
+ * Instead we capture the intent here, show the confirmation dialog, and only
+ * call the API once the user clicks "Write tags".
+ */
+interface PendingSave {
+  readonly field: string
+  readonly value: string
+  /** resolve/reject from the Promise returned to EditableField so it can
+   *  show errors or exit edit mode correctly */
+  readonly resolve: () => void
+  readonly reject: (err: unknown) => void
+}
+
 export function AlbumDetail() {
   const { albumId } = useParams<{ albumId: string }>()
   const navigate = useNavigate()
   const [album, setAlbum] = useState<AlbumDetailModel | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const pendingSaveRef = useRef<PendingSave | null>(null)
 
   useEffect(() => {
     if (!albumId) return
@@ -53,17 +76,59 @@ export function AlbumDetail() {
     }
   }, [albumId])
 
+  /**
+   * Called by EditableField when the user commits an album-level field edit.
+   *
+   * Instead of firing the PATCH immediately, we capture the pending save and
+   * open the confirmation dialog. The returned Promise resolves/rejects only
+   * after the user has confirmed (or cancelled).
+   */
   const handleAlbumTagSave = useCallback(
-    async (field: string, value: string) => {
-      if (!albumId) return
+    (field: string, value: string): Promise<void> =>
+      new Promise((resolve, reject) => {
+        pendingSaveRef.current = { field, value, resolve, reject }
+        setConfirmOpen(true)
+      }),
+    [],
+  )
+
+  /**
+   * User clicked "Write tags" in the confirmation dialog.
+   * Fire the actual PATCH call, then resolve/reject the pending promise so
+   * EditableField exits edit mode (or shows an error).
+   */
+  const handleConfirm = useCallback(async () => {
+    const pending = pendingSaveRef.current
+    if (!pending || !albumId) return
+
+    setConfirmOpen(false)
+    pendingSaveRef.current = null
+
+    try {
       const updated = await AlbumsService.updateAlbumTags({
         albumId,
-        requestBody: { field, value },
+        requestBody: { field: pending.field, value: pending.value },
       })
       setAlbum(updated)
-    },
-    [albumId],
-  )
+      pending.resolve()
+    } catch (err) {
+      pending.reject(err)
+    }
+  }, [albumId])
+
+  /**
+   * User clicked "Cancel" or pressed Escape.
+   * Reject the pending promise so EditableField keeps its edited state
+   * (the user's changes remain in the input — they are NOT reset).
+   */
+  const handleCancel = useCallback(() => {
+    const pending = pendingSaveRef.current
+    setConfirmOpen(false)
+    pendingSaveRef.current = null
+    // Reject with a sentinel so EditableField rolls back to original value
+    // and shows no error (the user deliberately cancelled).
+    pending?.reject(new CancelledByUserError())
+  }, [])
 
   const handleTrackTagSave = useCallback(
     (trackId: string) =>
@@ -107,6 +172,14 @@ export function AlbumDetail() {
   if (!album) return <p role="alert">Album not found.</p>
 
   return (
+    <>
+      <ConfirmWriteDialog
+        open={confirmOpen}
+        albumTitle={album.album}
+        trackCount={album.tracks.length}
+        onConfirm={() => { void handleConfirm() }}
+        onCancel={handleCancel}
+      />
     <article className="album-detail" aria-label="Album detail">
       <button
         type="button"
@@ -226,6 +299,7 @@ export function AlbumDetail() {
         </section>
       )}
     </article>
+    </>
   )
 }
 

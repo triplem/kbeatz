@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { CancelledByUserError } from './cancelled-by-user-error'
 
 interface EditableFieldProps {
   readonly label: string
@@ -69,7 +70,13 @@ export function EditableField({
       // Rollback to original value
       setEditValue(originalValue)
       setEditing(false)
-      setError(err instanceof Error ? err.message : 'Save failed')
+      // CancelledByUserError means the user dismissed the confirmation dialog —
+      // do not show an error; the field silently returns to display mode.
+      if (err instanceof CancelledByUserError) {
+        setError(null)
+      } else {
+        setError(err instanceof Error ? err.message : 'Save failed')
+      }
     } finally {
       setSaving(false)
     }
