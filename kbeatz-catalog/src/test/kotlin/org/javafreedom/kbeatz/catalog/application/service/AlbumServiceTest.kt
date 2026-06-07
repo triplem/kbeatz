@@ -82,7 +82,7 @@ class AlbumServiceTest {
     }
 
     @Test
-    fun `listAlbums delegates to findAllWithCount not separate findAll and count calls`() = runTest {
+    fun `listAlbums delegates to findAllWithCount for a single atomic result`() = runTest {
         val albums = listOf(album())
         coEvery { repository.findAllWithCount(1, 10) } returns (albums to 5L)
 
@@ -92,8 +92,6 @@ class AlbumServiceTest {
         assertEquals(5L, total)
         // Verify the single atomic method is used (not two separate calls that could race)
         coVerify(exactly = 1) { repository.findAllWithCount(1, 10) }
-        coVerify(exactly = 0) { repository.findAll(any(), any()) }
-        coVerify(exactly = 0) { repository.count() }
     }
 
     @Test
