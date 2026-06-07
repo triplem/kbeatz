@@ -12,10 +12,10 @@ private val logger = KotlinLogging.logger {}
 
 fun Application.configureStatusPages() {
     install(StatusPages) {
-        exception<ResourceNotFoundException> { call, ex ->
+        exception<ResourceNotFoundException> { call, _ ->
             call.respond(
                 HttpStatusCode.NotFound,
-                ErrorResponse(code = "RESOURCE_NOT_FOUND", message = ex.message ?: "Not found")
+                ErrorResponse(code = "RESOURCE_NOT_FOUND", message = "Resource not found")
             )
         }
         exception<Throwable> { call, ex ->
