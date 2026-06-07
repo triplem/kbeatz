@@ -83,6 +83,27 @@ describe('ConfirmWriteDialog', () => {
     expect(title?.textContent).toMatch(/Write tags/)
   })
 
+  it('dialog element has aria-describedby referencing body and warning paragraphs', () => {
+    renderDialog()
+    const dialog = screen.getByRole('dialog')
+    expect(dialog).toHaveAttribute('aria-describedby', 'confirm-dialog-body confirm-dialog-warning')
+  })
+
+  it('aria-describedby body paragraph exists with an id and contains album info', () => {
+    renderDialog({ albumTitle: 'Kind of Blue', trackCount: 5 })
+    const bodyEl = document.getElementById('confirm-dialog-body')
+    expect(bodyEl).toBeInTheDocument()
+    expect(bodyEl?.textContent).toMatch(/5 FLAC files/)
+    expect(bodyEl?.textContent).toMatch(/Kind of Blue/)
+  })
+
+  it('aria-describedby warning paragraph exists with an id and contains cannot be undone', () => {
+    renderDialog()
+    const warningEl = document.getElementById('confirm-dialog-warning')
+    expect(warningEl).toBeInTheDocument()
+    expect(warningEl?.textContent).toMatch(/This cannot be undone/)
+  })
+
   // ──────────────────────────────────────────────
   // Interactions
   // ──────────────────────────────────────────────

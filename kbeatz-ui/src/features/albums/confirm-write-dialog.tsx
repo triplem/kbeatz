@@ -21,7 +21,7 @@ interface ConfirmWriteDialogProps {
  * destructive and cannot be undone.
  *
  * Accessibility (WCAG AA):
- * - role="dialog" + aria-modal="true" + aria-labelledby
+ * - role="dialog" + aria-modal="true" + aria-labelledby + aria-describedby
  * - Focus moves into the dialog (Cancel button) when it opens
  * - Focus returns to the triggering element when it closes
  * - Escape key dismisses as Cancel
@@ -94,6 +94,7 @@ export function ConfirmWriteDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
+        aria-describedby="confirm-dialog-body confirm-dialog-warning"
         className="confirm-dialog"
         data-testid="confirm-dialog"
         onKeyDown={handleKeyDown}
@@ -104,12 +105,12 @@ export function ConfirmWriteDialog({
           Write tags to FLAC files?
         </h2>
 
-        <p className="confirm-dialog__body">
+        <p id="confirm-dialog-body" className="confirm-dialog__body">
           Write changes to all <strong>{fileLabel}</strong> in{' '}
           <strong>&ldquo;{albumTitle}&rdquo;</strong>?
         </p>
 
-        <p className="confirm-dialog__warning" data-testid="confirm-dialog-warning">
+        <p id="confirm-dialog-warning" className="confirm-dialog__warning" data-testid="confirm-dialog-warning">
           This cannot be undone.
         </p>
 
