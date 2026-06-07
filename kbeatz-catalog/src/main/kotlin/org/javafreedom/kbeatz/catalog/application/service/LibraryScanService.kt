@@ -17,6 +17,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.model.AlbumGroup
 import org.javafreedom.kbeatz.catalog.domain.model.ScanState
@@ -52,6 +54,8 @@ class LibraryScanService(
     private val state = AtomicReference(ScanState.IDLE)
     private val scannedAlbums = AtomicLong(0L)
     private val totalAlbums = AtomicLong(0L)
+    private val startedAt = AtomicReference<Instant?>(null)
+    private val completedAt = AtomicReference<Instant?>(null)
     private val errorMessage = AtomicReference<String?>(null)
 
     /**
@@ -70,6 +74,8 @@ class LibraryScanService(
         state = state.get(),
         scannedAlbums = scannedAlbums.get(),
         totalAlbums = totalAlbums.get(),
+        startedAt = startedAt.get(),
+        completedAt = completedAt.get(),
         errorMessage = errorMessage.get(),
     )
 
@@ -89,6 +95,8 @@ class LibraryScanService(
 
         scannedAlbums.set(0L)
         totalAlbums.set(0L)
+        startedAt.set(Clock.System.now())
+        completedAt.set(null)
         errorMessage.set(null)
 
         scanScope.launch {
@@ -155,11 +163,13 @@ class LibraryScanService(
             albumRepository.saveAll(albums)
             scannedAlbums.set(albums.size.toLong())
 
+            completedAt.set(Clock.System.now())
             state.set(ScanState.COMPLETE)
             log.info { "Library scan complete: ${scannedAlbums.get()} albums indexed" }
         } catch (ex: Exception) {
             val msg = ex.message ?: ex::class.simpleName ?: "Unknown error"
             errorMessage.set(msg)
+            completedAt.set(Clock.System.now())
             state.set(ScanState.FAILED)
             log.error(ex) { "Library scan FAILED: $msg" }
         }

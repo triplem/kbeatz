@@ -33,8 +33,8 @@ private fun ScanStatus.toApiModel(): ApiScanStatus = ApiScanStatus(
     state = state.toApiState(),
     scannedAlbums = scannedAlbums.toInt(),
     totalAlbums = totalAlbums.toInt(),
-    startedAt = null,   // startedAt timestamp tracking deferred to a follow-up story
-    completedAt = null, // completedAt timestamp tracking deferred to a follow-up story
+    startedAt = startedAt?.toString(),
+    completedAt = completedAt?.toString(),
     errorMessage = errorMessage,
 )
 
