@@ -13,6 +13,8 @@ private val logger = KotlinLogging.logger {}
 fun Application.configureStatusPages() {
     install(StatusPages) {
         exception<ResourceNotFoundException> { call, _ ->
+            val traceId = call.attributes.getOrNull(TraceIdKey)
+            logger.debug { "Resource not found traceId=$traceId" }
             call.respond(
                 HttpStatusCode.NotFound,
                 ErrorResponse(code = "RESOURCE_NOT_FOUND", message = "Resource not found")
