@@ -2,7 +2,7 @@
 kotlin = "2.3.20"
 ktor = "3.5.0"
 openapi-generator = "7.21.0"
-sonarqube = "7.2.3.7755"
+sonarqube = "7.3.1.8318"
 detekt = "1.23.8"
 kover = "0.9.8"
 logback = "1.5.32"
