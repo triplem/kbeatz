@@ -60,11 +60,20 @@ Use **H2** as the embedded database for `kbeatz-catalog` in v1.
 
 .Connection strings
 |===
-| Context | JDBC URL
+| Context | JDBC URL | Source
 
-| Production (persistent) | `jdbc:h2:file:./data/kbeatz;AUTO_SERVER=TRUE;MODE=PostgreSQL`
-| Tests (in-memory) | `jdbc:h2:mem:kbeatz;DB_CLOSE_DELAY=-1;MODE=PostgreSQL`
+| Production (persistent, default) | `jdbc:h2:file:./data/kbeatz;DB_CLOSE_DELAY=-1;MODE=PostgreSQL` | `AppConfig.kt` default
+| Production (persistent, with CLI sharing) | `jdbc:h2:file:./data/kbeatz;AUTO_SERVER=TRUE;MODE=PostgreSQL` | Set `CATALOG_JDBC_URL` env var
+| Tests (in-memory) | `jdbc:h2:mem:kbeatz;DB_CLOSE_DELAY=-1;MODE=PostgreSQL` | Test configuration
 |===
+
+NOTE: The default production URL uses `DB_CLOSE_DELAY=-1` rather than `AUTO_SERVER=TRUE`.
+`DB_CLOSE_DELAY=-1` keeps the H2 file connection open indefinitely (preventing H2 from
+closing the file when no active query is running), which is appropriate for a long-lived
+server process. `AUTO_SERVER=TRUE` is an opt-in that starts H2's built-in TCP server on
+port 9092 to allow concurrent file access from `kbeatz-cli`.  To enable CLI sharing,
+set the environment variable `CATALOG_JDBC_URL=jdbc:h2:file:./data/kbeatz;AUTO_SERVER=TRUE;MODE=PostgreSQL`
+when starting `kbeatz-catalog`.
 
 Schema is managed by **Liquibase** migrations.
 The ORM layer uses **Exposed** with the Kotlin DSL.
@@ -82,12 +91,15 @@ No Exposed DSL changes and no Liquibase migration rewrites are expected.
 * `kbeatz-catalog` gains an H2 compile-time dependency (`com.h2database:h2`).
 * Integration tests for the repository layer use `jdbc:h2:mem:` directly — no
   Testcontainers needed, keeping test execution fast.
-* `kbeatz-cli` can open the same H2 file the catalog service uses via `AUTO_SERVER=TRUE`
-  for read access (e.g., checking whether an album is already indexed before tagging).
-  `AUTO_SERVER=TRUE` starts H2's built-in TCP server on port 9092 the first time a client
-  connects — this is the intended sharing mechanism. On a private LAN this is acceptable
-  (no auth in v1 per NFR-07); on a multi-tenant or untrusted network, firewall port 9092
-  or disable `AUTO_SERVER` and use a shared PostgreSQL instance instead (the v2 path).
+* `kbeatz-cli` can open the same H2 file the catalog service uses when `AUTO_SERVER=TRUE`
+  is enabled via the `CATALOG_JDBC_URL` environment variable.  This starts H2's built-in
+  TCP server on port 9092 the first time a client connects — this is the intended sharing
+  mechanism. On a private LAN this is acceptable (no auth in v1 per NFR-07); on a
+  multi-tenant or untrusted network, firewall port 9092 or disable `AUTO_SERVER` and use
+  a shared PostgreSQL instance instead (the v2 path).
+* Without `AUTO_SERVER=TRUE`, attempting to open the H2 file from `kbeatz-cli` while
+  `kbeatz-catalog` is running will result in a file locking error. Either stop the catalog
+  service first, or enable `AUTO_SERVER=TRUE` as described above.
 * The `image-quota.json` flat file (ADR-004) remains as-is — a full DB dependency for
   a single integer counter is disproportionate.
 * The Discogs release JSON cache (`MetadataCache` in `kbeatz-sources`) stays in-memory
