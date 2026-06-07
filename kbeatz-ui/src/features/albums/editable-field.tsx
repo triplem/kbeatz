@@ -14,7 +14,8 @@ interface EditableFieldProps {
  *
  * Behaviour:
  * - Click on value text → input appears pre-filled with current value
- * - Enter or blur → calls onSave; optimistic update applied immediately
+ * - Enter → calls onSave; triggers confirmation dialog before the PATCH is fired
+ * - Blur (click away) → silently cancels edit, restores original value; no dialog, no API call
  * - Escape → cancels edit, restores original value; no API call made
  * - On save error → rolls back to pre-edit value and sets error message
  */
@@ -95,9 +96,11 @@ export function EditableField({
     [commitEdit, cancelEditing],
   )
 
+  // Blur silently cancels the edit without opening the confirmation dialog.
+  // Only Enter (explicit commit intent) should trigger the save/confirmation flow.
   const handleBlur = useCallback(() => {
-    void commitEdit()
-  }, [commitEdit])
+    cancelEditing()
+  }, [cancelEditing])
 
   // Focus input when entering edit mode
   useEffect(() => {
