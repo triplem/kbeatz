@@ -18,14 +18,14 @@ val TraceIdKey = AttributeKey<String>("TraceId")
 /**
  * Hook that intercepts the pipeline at the Plugins phase to:
  * 1. Extract or generate a traceId from the request header
- * 2. Store it in MDC and in the call attributes
+ * 2. Store it in the call attributes for downstream handlers
  * 3. Wrap the remaining pipeline in [MDCContext] so the traceId is propagated across
  *    coroutine suspension boundaries (e.g. when `suspendTransaction {}` switches threads)
  *
- * The traceId is passed directly as an explicit map to `MDCContext` rather than via a
- * prior `MDC.put` call. This avoids the intermediate window where the calling thread's
- * raw MDC is mutated globally before `withContext` takes over, preventing transient
- * thread-local pollution in concurrent request scenarios.
+ * The traceId is passed as an explicit map to [MDCContext] rather than via a prior
+ * `MDC.put` call. This avoids the intermediate window where the calling thread's raw MDC
+ * is mutated globally before `withContext` takes over, preventing transient thread-local
+ * pollution in concurrent request scenarios.
  */
 private object TraceIdAndMdcHook : Hook<suspend () -> Unit> {
     override fun install(pipeline: ApplicationCallPipeline, handler: suspend () -> Unit) {
