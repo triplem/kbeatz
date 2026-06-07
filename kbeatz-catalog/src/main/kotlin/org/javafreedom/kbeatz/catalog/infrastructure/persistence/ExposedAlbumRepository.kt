@@ -96,11 +96,32 @@ class ExposedAlbumRepository : AlbumRepository {
 
     override suspend fun saveAll(albums: List<Album>) {
         if (albums.isEmpty()) return
+        // Chunk into batches of 500 to avoid exceeding JDBC parameter binding limits
+        // (H2 caps at ~32 767 bound parameters; 4 columns * 500 albums = 2 000, well within limit)
+        // and to prevent deeply-nested SQL expression trees that can cause stack-overflow on large
+        // libraries.
+        albums.chunked(SAVE_ALL_CHUNK_SIZE).forEach { chunk -> saveChunk(chunk) }
+    }
+
+    /**
+     * Persists a single chunk of albums inside one transaction.
+     *
+     * Existing albums (matched by natural key) are updated using [updateAlbumStructural], which
+     * touches only the four scan-derived columns (albumArtist, album, albumDate, directoryPath).
+     * Enriched Discogs metadata (genre, label, catalogNumber, composer, conductor, ensemble,
+     * discogsId, images) is intentionally left unchanged so that a library rescan cannot wipe
+     * data that was written by a Discogs sync.
+     *
+     * New albums are inserted with all fields from the [Album] object (which will have nulls for
+     * the enriched fields on first scan).
+     */
+    @Suppress("RedundantSuspendModifier") // suspendTransaction is a suspend function; Detekt false-positive
+    private suspend fun saveChunk(chunk: List<Album>) {
         suspendTransaction {
             // Look up existing albums by natural key to reuse their stable UUIDs.
             // This prevents duplicate-insert failures from the unique constraint and ensures
             // URL stability: /albums/<uuid> remains valid across library rescans.
-            val naturalKeyFilter = albums
+            val naturalKeyFilter = chunk
                 .map { album ->
                     (AlbumsTable.albumArtist eq album.albumArtist) and
                         (AlbumsTable.album eq album.album) and
@@ -109,7 +130,7 @@ class ExposedAlbumRepository : AlbumRepository {
                 }
                 .reduce(Op<Boolean>::or)
 
-            // naturalKey → existing UUID
+            // naturalKey -> existing UUID
             val existingByNaturalKey: Map<NaturalKey, UUID> = AlbumsTable
                 .selectAll()
                 .where { naturalKeyFilter }
@@ -122,7 +143,7 @@ class ExposedAlbumRepository : AlbumRepository {
                     ) to row[AlbumsTable.id].value
                 }
 
-            albums.forEach { album ->
+            chunk.forEach { album ->
                 val key = NaturalKey(
                     albumArtist = album.albumArtist,
                     album = album.album,
@@ -131,13 +152,22 @@ class ExposedAlbumRepository : AlbumRepository {
                 )
                 val existingId = existingByNaturalKey[key]
                 if (existingId != null) {
-                    // Use the existing UUID so the UPDATE targets the correct row
-                    updateAlbum(album.copy(id = existingId.toKotlinUuid()))
+                    // Update only structural (scan-derived) columns to preserve Discogs metadata.
+                    // A full updateAlbum() would overwrite enriched fields with the nulls that
+                    // AlbumGroup.toAlbum() produces, causing silent data loss on every rescan.
+                    updateAlbumStructural(album.copy(id = existingId.toKotlinUuid()))
                 } else {
                     insertAlbum(album)
                 }
             }
         }
+    }
+
+    companion object {
+        // Maximum albums per saveAll chunk. Keeps the OR-filter SQL expression tree bounded
+        // and JDBC parameter count well below H2's 32 767 limit (4 params * 500 = 2 000).
+        @Suppress("MagicNumber")
+        internal const val SAVE_ALL_CHUNK_SIZE = 500
     }
 }
 
@@ -185,6 +215,23 @@ private fun updateAlbum(album: Album) {
         it[discogsId] = album.discogsId
         it[extraTags] = JsonSerde.encodeExtraTags(album.extraTags)
         it[images] = JsonSerde.encodeImages(album.images)
+        it[directoryPath] = album.directoryPath
+    }
+}
+
+/**
+ * Updates only the four scan-derived structural columns for an album that already exists.
+ *
+ * Intentionally does NOT touch enriched Discogs fields (genre, label, catalogNumber, composer,
+ * conductor, ensemble, discogsId, images). Called from [ExposedAlbumRepository.saveChunk] during
+ * library rescan and startup repair so that Discogs-synced data is never overwritten by a rescan
+ * that produces Album objects with null enriched fields.
+ */
+private fun updateAlbumStructural(album: Album) {
+    AlbumsTable.update({ AlbumsTable.id eq album.id.toJavaUuid() }) {
+        it[albumArtist] = album.albumArtist
+        it[AlbumsTable.album] = album.album
+        it[albumDate] = album.date.orEmpty()
         it[directoryPath] = album.directoryPath
     }
 }
