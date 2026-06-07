@@ -51,17 +51,17 @@ export DISCOGS_TOKEN=your_token_here
 ./gradlew build
 
 # 4. Run the catalog service
-./gradlew :kbeatz-catalog:run
+cd kbeatz-catalog && ./gradlew run
+# API available at http://localhost:8080/api/v1
 
-# 5. Open the UI (in a separate terminal)
+# 5. Open the UI (in a separate terminal, from the repo root)
 cd kbeatz-ui
 npm install
 npm run dev
 # UI available at http://localhost:3005
-# API available at http://localhost:8080/api/v1
 ```
 
-For full setup including Docker Compose, container configuration, and production deployment,
+For the quickest start using Docker Compose, and for full container and production setup,
 see [docs/getting-started.adoc](docs/getting-started.adoc).
 
 ## Commands reference
