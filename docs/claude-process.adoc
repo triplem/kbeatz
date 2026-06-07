@@ -1,0 +1,936 @@
+= Claude Code AI-Assisted SDLC Process
+:toc: left
+:toclevels: 3
+:icons: font
+:source-highlighter: rouge
+
+This document explains the AI-assisted software development lifecycle (SDLC) implemented
+with Claude Code. It is a generic reference applicable to any project using this setup.
+For project-specific configuration details see
+xref:claude-kbeatz-config.adoc[kbeatz Claude Code Configuration].
+
+*Audience:* A developer unfamiliar with Claude Code who wants to understand and replicate
+the setup, or who wants to use the AI-assisted workflow on an existing project.
+
+== 1. Overview
+
+=== What is AI-assisted SDLC?
+
+An AI-assisted SDLC uses Claude Code - Anthropic's CLI for Claude - as an active
+participant in the software development process. Claude Code can:
+
+* Read and write code, documentation, and configuration files
+* Execute shell commands (git, gradle, npm, gh, etc.)
+* Call external APIs via MCP servers
+* Invoke project-specific "skills" (multi-step repeatable workflows)
+* Run autonomously as a background agent on a feature branch
+
+The human developer remains the decision-maker at every significant step: approving
+requirements, reviewing code, accepting challenge findings, and deciding when to merge.
+Claude Code handles the mechanical steps: creating branches, writing boilerplate, running
+quality gates, posting PR comments, and fixing lint errors.
+
+=== Why Claude Code?
+
+Claude Code is distinct from a simple LLM chat interface because:
+
+* *Persistent project context* - CLAUDE.md files inject project-specific rules into every
+  session without requiring the developer to re-explain the codebase each time
+* *Hooks system* - shell scripts that fire on lifecycle events enforce project policy
+  automatically (e.g. blocking direct commits to main, validating commit message format)
+* *Skills system* - slash commands invoke multi-step workflows that combine file edits,
+  shell commands, and API calls in a repeatable pipeline
+* *Memory system* - lessons learned from past sessions persist as structured files and are
+  applied automatically in future sessions
+* *MCP integration* - structured access to GitHub, filesystem, and other APIs without
+  requiring raw shell commands
+
+=== SDLC flow
+
+----
+Requirements
+    |
+    v (human approves)
+Epics
+    |
+    v (human approves)
+Stories
+    |
+    v (human adds "approved" label)
+Implement (per story, on a feature branch)
+    |
+    v (automated quality gates)
+Review (challenge from 9 specialist perspectives)
+    |
+    v (fix BLOCKER/MAJOR findings)
+Ship (merge to main, challenge main branch)
+    |
+    v
+Learn (extract lessons, update memory)
+----
+
+The `/ship` skill automates everything from "Implement" through "Ship" for a batch of
+approved stories, running agents in parallel where dependency order allows.
+
+== 2. Claude Code Setup
+
+=== CLAUDE.md files: hierarchical project context
+
+Claude Code reads CLAUDE.md files hierarchically. Files at each level add context to the
+level above - they do not replace it.
+
+[cols="1,2,2"]
+|===
+|Level |File path |Contains
+
+|Global
+|`~/.claude/CLAUDE.md`
+|Rules that apply to every project on the workstation: tool patterns, quality gate mandates,
+language-specific anti-patterns, commit conventions
+
+|Project root
+|`<project>/CLAUDE.md`
+|Project overview, module map, tech stack, commands, architecture conventions, issue workflow,
+rules index, skills index
+
+|Per-module
+|`<project>/<module>/CLAUDE.md`
+|Module-specific domain model, package structure, env vars, state machines, ADRs
+|===
+
+At any level, the file should answer: "What does Claude need to know to work correctly in
+this context without asking the developer?" The goal is to make each session productive
+from the first message without re-explaining the project.
+
+=== .claude/settings.json: permissions, hooks, and env vars
+
+`settings.json` is the Claude Code project configuration file. Key sections:
+
+[source,json]
+----
+{
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}" }
+    }
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(gh *)",
+      "Bash(./gradlew *)",
+      "mcp__github__*"
+    ],
+    "deny": [
+      "Bash(rm -rf /*)",
+      "Bash(git push --force origin main)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [ ... ],
+    "PreToolUse": [ ... ],
+    "PostToolUse": [ ... ],
+    "Stop": [ ... ]
+  },
+  "env": {
+    "DEFAULT_BRANCH": "main",
+    "COVERAGE_THRESHOLD": "80"
+  }
+}
+----
+
+The `permissions` section prevents prompts for frequently-used safe commands and blocks
+explicitly dangerous patterns. The `env` section sets environment variables that skills
+and hooks read at runtime.
+
+=== Hooks system
+
+Hooks are shell scripts that fire on Claude Code lifecycle events. They run outside
+Claude's context and enforce project policy mechanically.
+
+[cols="1,1,3"]
+|===
+|Event |Timing |Typical use
+
+|`SessionStart`
+|Once per session
+|Inject project context (git state, active story, SDLC phase) as additional context
+
+|`PreToolUse`
+|Before each tool call
+|Block dangerous commands; validate commit messages; run quality gates before push
+
+|`PostToolUse`
+|After each tool call
+|Scan edited files for secrets; run linter on changed files; append audit log entry
+
+|`Stop`
+|When session ends
+|Write session summary (branch, action count) to audit log
+
+|`FileChanged`
+|When a file changes
+|Check `.env` files are gitignored; warn on potential secrets
+|===
+
+Hooks communicate with Claude Code via stdout JSON:
+
+[source,json]
+----
+// PreToolUse: deny a command
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "deny",
+    "permissionDecisionReason": "Reason shown to Claude"
+  }
+}
+
+// PostToolUse: inject context into next turn
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PostToolUse",
+    "additionalContext": "Lint output: ..."
+  }
+}
+----
+
+=== Memory system
+
+The memory system stores lessons and context across sessions in structured Markdown files
+at `~/.claude/projects/<project-hash>/memory/`.
+
+[cols="1,2,2"]
+|===
+|Type |Purpose |When created
+
+|`feedback_*.md`
+|Lessons from mistakes - applied automatically to prevent recurrence
+|After resolving a non-obvious problem, via `/learn`
+
+|`project_*.md`
+|Domain reference material for the project
+|When onboarding a new project or domain concept
+
+|`MEMORY.md`
+|Index file - one-line summary per entry
+|Updated automatically by `/learn`
+|===
+
+To create a new memory entry after completing a story or fixing a recurring problem:
+
+[source]
+----
+/learn
+----
+
+The `/learn` skill extracts the lesson, writes a `feedback_*.md` file, and updates
+`MEMORY.md`. Future sessions load this context automatically.
+
+== 3. SDLC Workflow Step by Step
+
+[cols="1,2,2,2"]
+|===
+|Step |Command |What it does |Human decision required
+
+|Gather requirements
+|`/gather-requirements`
+|Elicits requirements through structured questions. Produces `docs/requirements.md` with
+functional requirements, non-functional requirements, and constraints.
+|Approve or reject the requirements document. Add `APPROVED` marker when satisfied.
+
+|Write epics
+|`/write-epics`
+|Reads `docs/requirements.md` and decomposes into epics with acceptance criteria and
+documentation stories. Creates GitHub issues for each epic.
+|Review epic scope and acceptance criteria. Approve or request changes.
+
+|Write stories
+|`/write-stories #N`
+|Reads epic #N and decomposes into user stories with Given/When/Then acceptance criteria.
+Creates GitHub issues. Links child issues to parent via GitHub sub-issue API.
+|Review stories. Add `approved` label to stories that are ready for implementation.
+
+|Implement
+|`/implement #N`
+|Reads story #N, creates a feature branch, implements the feature following project
+architecture, runs quality gates, and opens a PR.
+|Review the PR. Request changes or approve.
+
+|Implement epic
+|`/implement-epic #N`
+|Reads all approved stories under epic #N. Groups them into dependency waves. Implements
+each wave in order, opening one PR per story.
+|Monitor progress. Handle agent failures. Review and merge PRs.
+
+|Ship
+|`/ship`
+|Full parallel pipeline: implements all approved stories, challenges each PR from all 9
+specialist perspectives, posts findings as PR comments, fixes BLOCKER/MAJOR findings,
+waits for CI green, merges, then challenges main.
+|Monitor progress. Triage any failures the agent cannot resolve.
+
+|Code review
+|`/code-review`
+|Reviews the current diff at a configurable effort level (low/medium/high/max). Classifies
+findings as BLOCKER/MAJOR/MINOR/NIT. Use `--fix` to apply findings automatically.
+|Decide which findings to accept or reject. Run `/code-review --fix` to apply.
+
+|Learn
+|`/learn`
+|Extracts a reusable lesson from the just-completed story or session. Writes a memory file
+and updates the MEMORY.md index.
+|Review the extracted lesson. Edit if needed.
+|===
+
+=== Approval workflow
+
+Before any story can be implemented it must be `approved`:
+
+[source,bash]
+----
+# The /write-stories skill creates issues in pending-approval state.
+# Human adds the label after reviewing the story.
+gh issue edit <story-number> --add-label "approved"
+
+# /implement and /ship check for this label before starting work.
+----
+
+== 4. Skills Catalog
+
+Skills are invoked with `/skill-name` inside Claude Code. Each skill is a `SKILL.md` file
+in `.claude/skills/` with embedded instructions. The slash command name matches the
+directory name.
+
+=== Core SDLC skills
+
+[cols="1,2,2"]
+|===
+|Skill |When to invoke |What it produces
+
+|`/gather-requirements`
+|New project or major feature - before writing any code
+|`docs/requirements.md` with functional and non-functional requirements
+
+|`/write-epics`
+|After requirements are approved
+|GitHub issues for each epic with acceptance criteria and documentation checklist
+
+|`/write-stories`
+|After an epic is approved - run once per epic
+|GitHub issues for each story with Given/When/Then criteria; sub-issue links to parent
+
+|`/implement`
+|When a single story is approved and ready for implementation
+|Feature branch, implementation, quality gate results, open PR
+
+|`/implement-epic`
+|When all stories in an epic are approved - runs them in dependency waves
+|A PR per story, merged in order; progress log
+
+|`/write-tests`
+|After implementation, if tests are needed as a separate pass
+|Unit, integration, and E2E tests on the same feature branch
+
+|`/create-pr`
+|After quality gates pass - when not using `/implement` (which opens the PR automatically)
+|PR created with standard template; post-merge cleanup (branch deletion, issue close)
+
+|`/release`
+|After stories are merged to main and a release is needed
+|Semver version bump, changelog, GitHub release with binary artifacts
+
+|`/create-adr`
+|Before a significant architectural decision (database choice, auth approach, etc.)
+|ADR document in `docs/adr/` with context, decision, consequences, alternatives
+
+|`/write-tests`
+|After an implementation that lacks adequate test coverage
+|Test suite added to the feature branch at unit, integration, and E2E layers
+|===
+
+=== Review and challenge skills
+
+[cols="1,2,2"]
+|===
+|Skill |When to invoke |What it produces
+
+|`/challenge`
+|After any agent produces output - review from a single specialist perspective
+|Structured ACCEPT/REVISE/REJECT verdict with BLOCKER/MAJOR/MINOR/NIT findings
+
+|`/challenge-all`
+|Before merging a significant feature or finalising an epic
+|Consolidated report from all 9 specialist perspectives in one pass
+
+|`/pr-reviewer`
+|After a PR is opened - can be run by the author or a reviewer
+|PR comment with all findings; automatic fix of every BLOCKER and MAJOR finding on the branch
+
+|`/code-review`
+|At any point to review the current diff - use `--fix` to auto-apply
+|Findings at specified effort level; optionally applied to working tree
+
+|`/learn`
+|After completing a story or resolving a non-obvious problem
+|Memory file (`feedback_*.md`) capturing the lesson; updated MEMORY.md index
+|===
+
+=== Specialist reviewer skills
+
+Each specialist reviewer evaluates a PR or implementation from a domain-specific lens and
+returns structured BLOCKER/MAJOR/MINOR/NIT findings.
+
+[cols="1,2"]
+|===
+|Skill |Domain perspective
+
+|`/architect-review`
+|Architecture fitness, SOLID principles, coupling, scalability, hexagonal layer rules
+
+|`/devops-review`
+|CI/CD pipeline safety, Docker/container hygiene, environment config, secret management
+
+|`/operations-review`
+|Runbook completeness, observability, incident recovery, backup/restore, upgrade paths
+
+|`/performance-review`
+|Query efficiency, frontend bundle size, API response times, memory/CPU usage
+
+|`/qa-review`
+|Test coverage, acceptance criteria completeness, edge cases, regression risk
+
+|`/requirements-review`
+|Completeness, testability, consistency, non-functional requirement coverage
+
+|`/security-review`
+|OWASP Top 10, authentication/authorisation, secrets hygiene, input validation, dependencies
+
+|`/technical-writer-review`
+|Clarity, completeness, structure, audience fit for documentation
+
+|`/ux-review`
+|Ease of use, visual clarity, interaction design, WCAG accessibility compliance
+|===
+
+Run all nine at once with:
+
+[source]
+----
+/challenge-all <target>
+----
+
+=== Meta and configuration skills
+
+[cols="1,2"]
+|===
+|Skill |Purpose
+
+|`/claude-code-expert`
+|Audits and improves CLAUDE.md files, settings.json, hooks, rules, skills, and MCP
+configuration against official best practices. Invoke with a focus area:
+`/claude-code-expert hooks` or `/claude-code-expert mcp`.
+
+|`/domain-model`
+|Builds or updates the project domain model by reading the codebase. Produces a structured
+glossary and entity relationship description.
+|===
+
+== 5. Built-in vs. Custom Skills
+
+=== Claude Code built-in skills
+
+Claude Code ships with a set of built-in skills that are available without any
+`.claude/skills/` configuration:
+
+[cols="1,2"]
+|===
+|Built-in skill |What it does
+
+|`/code-review`
+|Reviews the current diff at a configurable effort level. Use `--fix` to apply findings.
+Use `--comment` to post findings as inline PR comments.
+
+|`/simplify`
+|Reviews changed code for reuse, simplification, and efficiency improvements. Applies
+the fixes automatically.
+
+|`/init`
+|Initialises a new CLAUDE.md file for a project by reading the codebase.
+
+|`/review`
+|Reviews a GitHub pull request against project rules.
+
+|`/run`
+|Launches the project application and observes its behaviour.
+
+|`/verify`
+|Verifies that a code change does what it is supposed to by running the app and observing.
+
+|`/loop`
+|Runs a prompt or skill on a recurring interval. Use for polling or periodic automation.
+
+|`/schedule`
+|Creates or manages scheduled remote agents that execute on a cron schedule.
+|===
+
+=== When to add a custom skill
+
+Add a custom skill when:
+
+* The built-in skill lacks project-specific quality gates (e.g. a custom `/pr-reviewer`
+  that runs your project's Detekt config and posts findings to the PR automatically)
+* A workflow has more than five steps and needs to be reproducible across team members
+* You need conditional logic ("if X module changed, run Y check; otherwise skip")
+* The skill needs to read project-specific configuration (issue labels, branch naming
+  conventions, required CI checks)
+
+A rule file (`.claude/rules/`) is sufficient when:
+
+* The guidance is a short checklist or set of constraints (e.g. "never use `java.time.*`
+  in domain code")
+* The rule should apply automatically on every session without explicit invocation
+* Claude Code's built-in knowledge of the pattern is already good and you just need to
+  remind it of the project's preferences
+
+=== Language pattern skills vs. rule files
+
+For language and framework patterns, the choice between a skill and a rule file depends
+on complexity:
+
+* *Rule file* - idiomatic conventions that Claude should apply automatically: naming,
+  null safety patterns, which imports to avoid. Example: `.claude/rules/kotlin-style.md`.
+* *Pattern skill* - reference material with worked examples that a developer invokes
+  explicitly when they need guidance: coroutine patterns, complex Exposed ORM queries,
+  React hook composition. Example: `.claude/skills/kotlin-patterns/SKILL.md`.
+
+== 6. Agent Types
+
+=== Foreground vs. background agents
+
+*Foreground agents* run in the active Claude Code session. The developer sees all output
+in real time. Use for interactive work - implementing a story, reviewing a PR, running a
+challenge.
+
+*Background agents* run in a separate Claude Code process, typically triggered by
+`/implement-epic` or `/ship`. They work autonomously on a feature branch and post
+results (PR comment, issue comment) when done. Use for long-running tasks where human
+monitoring is not needed at each step.
+
+=== Worktree isolation for parallel agents
+
+When multiple background agents work on the same repository simultaneously, each agent
+must have its own working tree to prevent conflicts:
+
+[source,bash]
+----
+# Create a worktree for an agent working on issue #N
+git worktree add /path/to/worktree-N-slug feature/N-slug
+
+# The agent works in /path/to/worktree-N-slug
+# After the PR is merged, remove the worktree
+git worktree remove -f -f /path/to/worktree-N-slug
+----
+
+The double-force flag (`-f -f`) is required for Claude agent worktrees because they are
+created with a lock reason. A single `-f` is not enough and produces:
+`"cannot remove a locked working tree"`.
+
+=== Grouping issues by file ownership
+
+The most common source of parallel agent conflicts is two agents editing the same file.
+Group issues by file ownership before spawning agents:
+
+[source,bash]
+----
+# Before spawning parallel agents, identify which files each issue will touch.
+# Issues that touch the same file must be assigned to the same agent.
+
+# Example: Issue #A touches Application.kt and AlbumRoutes.kt
+#          Issue #B touches AlbumService.kt only
+# -> A and B can run in parallel (different files)
+# -> Issue #C also touches AlbumRoutes.kt -> assign to same agent as A
+----
+
+The `/ship` skill handles this grouping automatically when it reads the story metadata.
+When running agents manually, list the affected files before assigning.
+
+=== Dependency wave ordering
+
+Some stories cannot start until another is merged. The most common dependency patterns:
+
+* Story B adds an endpoint that story A's integration test calls: A must merge before B
+* Story B adds a domain model field that story A reads: A must merge before B
+* Story B adds a UI component that story A imports: A must merge before B
+
+Build a dependency graph before starting parallel work. Stories with no overlapping
+dependencies can run in parallel. Stories with dependencies must run in sequence.
+
+== 7. Quality Gates
+
+Quality gates are mandatory checks that must pass before a PR is opened and before it
+is merged. They exist to catch defects before they reach main where they affect all
+future work.
+
+=== Before opening a PR
+
+[cols="2,2"]
+|===
+|Gate |Why it exists
+
+|All tests pass
+|Prevents broken features from reaching review
+
+|Unit test coverage >= 80%
+|Ensures new code is tested; forces design decisions that make code testable
+
+|Linter passes (Detekt / ESLint)
+|Enforces consistent style and catches common bugs at edit time
+
+|OpenAPI spec valid (if changed)
+|Prevents API drift; ensures generated stubs match the spec
+
+|TypeScript strict build passes
+|Catches type errors that would fail the Docker build in CI
+
+|No hardcoded TODO/FIXME in changed files
+|Ensures all temporary notes are tracked as issues, not forgotten in code
+|===
+
+=== Before merging a PR
+
+[cols="2,2"]
+|===
+|Gate |Why it exists
+
+|All GitHub Actions checks green
+|CI catches environment differences and cross-module interactions that local runs miss
+
+|No BLOCKER or MAJOR findings from challenge
+|Ensures security, architectural, and quality issues are resolved before they merge
+
+|PR approved
+|Human decision-maker has reviewed the change
+|===
+
+Never merge a PR with failing CI checks. Never use admin override to bypass branch
+protection. If CI is failing, investigate and fix before merging.
+
+=== Running gates locally
+
+[source,bash]
+----
+# Kotlin / Gradle
+./gradlew check           # tests + coverage + Detekt
+
+# TypeScript / React
+npm run build             # TypeScript strict compile
+npm run lint              # ESLint
+npm run test              # Vitest
+
+# Verify CI checks on the PR
+gh pr checks <pr-number>
+----
+
+== 8. Memory System
+
+=== Purpose
+
+The memory system bridges sessions. Without it, Claude Code starts each session with no
+knowledge of past decisions, mistakes, or project conventions beyond what is in CLAUDE.md.
+The memory system adds a personal knowledge base of lessons learned.
+
+=== Memory file types
+
+[cols="1,2,2"]
+|===
+|Type |When written |Content
+
+|`feedback_*.md`
+|After resolving a mistake or non-obvious problem via `/learn`
+|The lesson: what went wrong, what the fix is, how to apply it in future
+
+|`project_*.md`
+|When onboarding domain concepts or recording design decisions
+|Domain reference material: data formats, external API details, business rules
+
+|`MEMORY.md`
+|Updated automatically by `/learn`
+|Index of all memory files with one-line summaries
+|===
+
+=== How memory persists
+
+Memory files are stored outside the repository in
+`~/.claude/projects/<project-hash>/memory/`. Claude Code loads the MEMORY.md index at
+session start and reads referenced files as needed. The files are plain Markdown with
+YAML frontmatter.
+
+Memory files are cleaned up after `cleanupPeriodDays` (default: 90) configured in
+`settings.json`.
+
+=== Writing a memory entry
+
+[source]
+----
+/learn
+----
+
+The skill prompts Claude to identify the key lesson from the completed work, formats it
+as a `feedback_*.md` or `project_*.md` file, and updates the MEMORY.md index. Review
+the proposed entry before accepting it - the lesson should be concrete and actionable,
+not vague.
+
+=== Example memory entry structure
+
+[source,markdown]
+----
+---
+name: feedback-example-lesson
+description: Short description for the MEMORY.md index
+metadata:
+  node_type: memory
+  type: feedback
+---
+
+## What happened
+Brief description of the mistake or discovery.
+
+## Fix
+The concrete action to take.
+
+## How to apply
+When this lesson should be recalled and applied.
+----
+
+== 9. Hooks Reference
+
+=== Hooks in use
+
+[cols="2,1,3"]
+|===
+|Script |Event |Purpose
+
+|`session-start.sh`
+|SessionStart
+|Detects tech stack, active story from branch name, SDLC phase. Injects as additional
+context. Writes `session_start` entry to audit log.
+
+|`safety-bash.sh`
+|PreToolUse:Bash
+|Blocks: force-push to main, `rm -rf /` root deletion, `git reset --hard` on main.
+Warns on `--no-verify`.
+
+|`commit-guard.sh`
+|PreToolUse:Bash
+|Blocks direct commits to main. Validates commit message against Conventional Commits
+format. Warns if summary exceeds 72 characters.
+
+|`pre-push-gates.sh`
+|PreToolUse:Bash
+|Runs quality gates before any `git push`: Kotlin checks if `.kt` files changed,
+TypeScript checks if `.ts`/`.tsx` files changed. Skips when no source changed.
+
+|`post-edit-secrets.sh`
+|PostToolUse:Write\|Edit
+|Scans written files for hardcoded secrets. Injects warning as additional context.
+
+|`post-edit-lint.sh`
+|PostToolUse:Write\|Edit
+|Runs linter on the edited file: Detekt for `.kt`, ESLint for `.ts`/`.tsx`. Injects
+findings so Claude fixes them immediately.
+
+|`post-edit-openapi.sh`
+|PostToolUse:Write\|Edit
+|Runs Spectral lint after any write to `openapi.yaml`. Injects violations.
+
+|`post-tool-audit.sh`
+|PostToolUse:Bash\|Write\|Edit
+|Appends one JSONL audit entry per meaningful action. Skips read-only commands. Async.
+
+|`stop-audit.sh`
+|Stop
+|Writes session summary (branch, action count) to audit log.
+
+|`file-changed-env.sh`
+|FileChanged
+|Warns if a `.env` file is not gitignored. Scans for obvious secrets.
+|===
+
+=== Audit log format
+
+Each entry in `~/.claude/<project>-sessions/<session_id>.jsonl`:
+
+[source,json]
+----
+{"ts":"2026-06-04T10:00:00Z","agent":"Claude","session_id":"abc123","action":"bash","detail":"git commit -m ..."}
+{"ts":"2026-06-04T10:05:00Z","agent":"System","session_id":"abc123","action":"session_stop","branch":"main","actions_this_session":12}
+----
+
+=== Adding a new hook
+
+. Write the hook script. The script receives the tool input as JSON on stdin:
++
+[source,bash]
+----
+#!/usr/bin/env bash
+INPUT=$(cat)   # read JSON from stdin
+# parse with python3 -c "import sys,json; ..." as needed
+exit 0
+----
+
+. Make it executable: `chmod +x .claude/hooks/my-hook.sh`
+
+. Wire it in `settings.json` under the appropriate event:
++
+[source,json]
+----
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/my-hook.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
+----
+
+. Test by triggering the event and checking the hook output. Hook stdout is parsed as
+  JSON by Claude Code.
+
+== 10. Common Patterns and Pitfalls
+
+=== Worktree cleanup: double-force required
+
+Claude agent worktrees are created with a lock reason. A single `git worktree remove
+--force` is not enough - it fails with `"cannot remove a locked working tree"`. Always
+use double-force:
+
+[source,bash]
+----
+git worktree remove -f -f /path/to/worktree
+----
+
+After removing worktrees, delete dangling local branches and prune stale remote-tracking
+refs:
+
+[source,bash]
+----
+git branch | grep "worktree-agent-" | xargs -r git branch -D
+git fetch --prune
+----
+
+=== Module ownership for parallel agents
+
+Two agents editing the same file produce conflicting commits and difficult-to-resolve
+merge conflicts. Before spawning parallel agents:
+
+. List which files each issue will touch (read the issue body and estimate)
+. Group issues that share files: assign them to the same agent or sequence them
+. Give each agent a separate worktree directory
+
+=== Never merge without CI green
+
+Always confirm all GitHub Actions checks pass before running `gh pr merge`:
+
+[source,bash]
+----
+gh pr checks <pr-number>
+# Wait until all show "pass" - then merge
+gh pr merge <pr-number> --squash --delete-branch
+----
+
+Never use `--admin` flag or bypass required status checks. CI catches environment
+differences, lockfile mismatches, and cross-module interactions that local runs miss.
+
+=== Single-quoted heredoc for gh issue --body
+
+When creating or editing GitHub issues with code blocks in the body, always use a
+single-quoted heredoc (`<<'EOF'`). A double-quoted heredoc causes shell expansion that
+escapes backtick characters, breaking GitHub Markdown code fences:
+
+[source,bash]
+----
+# Correct - single-quoted heredoc
+gh issue create --title "My issue" --body "$(cat <<'EOF'
+```bash
+some code here
+```
+EOF
+)"
+
+# Wrong - double-quoted heredoc breaks backticks
+gh issue create --title "My issue" --body "$(cat <<EOF
+\`\`\`bash    <-- literal backslashes in the output
+some code here
+EOF
+)"
+----
+
+=== Dependency lockfile maintenance
+
+After any dependency version bump in `build.gradle.kts` or `package.json`, regenerate
+lockfiles before pushing:
+
+[source,bash]
+----
+# Gradle per-module lockfile regeneration
+./gradlew --project-dir <module> dependencies --write-locks
+
+# npm lockfile
+cd <frontend-dir>
+npm install
+----
+
+Commit the updated lockfiles as part of the same PR that bumps the version. A lockfile
+mismatch fails the CI build with a dependency verification error.
+
+=== Post-merge branch cleanup
+
+After every PR is merged, delete both remote and local branches immediately to prevent
+stale branch accumulation:
+
+[source,bash]
+----
+# gh pr merge --delete-branch handles the remote; delete local separately
+git checkout main
+git branch -D <branch-name>
+git fetch --prune
+----
+
+=== Recovering from a failed parallel agent
+
+If a background agent session fails partway through (network timeout, OOM):
+
+[source,bash]
+----
+# Assess what was completed
+git branch -a | grep "feature/"
+gh pr list --state all
+git stash list
+
+# Find uncommitted work
+git status --short
+
+# Check which issues are still open
+gh issue list --label "In Progress"
+
+# Inspect worktrees left behind
+git worktree list
+
+# Remove locked worktrees (double-force required)
+git worktree remove -f -f /path/to/worktree
+
+# Resume from the correct story, explicitly stating what is already done
+/implement #<next-story>
+----

@@ -16,6 +16,7 @@ This documentation covers:
 * xref:architecture.adoc[Architecture] — hexagonal structure, API-first design, auth
 * xref:developer-guide.adoc[Developer Guide] — module map, hexagonal architecture in practice, end-to-end feature walkthrough, composite Gradle build, domain conventions
 * xref:claude-code-config.adoc[Claude Code Configuration] — skills, rules, hooks, and the SDLC workflow
+* xref:claude-process.adoc[Claude Code SDLC Process] — generic AI-assisted SDLC: skills catalog, agents, hooks, memory, quality gates, common patterns
 * xref:claude-kbeatz-config.adoc[kbeatz Claude Code Configuration] — kbeatz-specific CLAUDE.md hierarchy, hooks, memory, MCP servers, and recommended workflows
 * xref:adding-a-service.adoc[Adding a Service] — step-by-step guide for new backend services
 
