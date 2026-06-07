@@ -17,7 +17,8 @@ import { SyncPanel } from '../sync/sync-panel'
  *
  * ## Edit flow
  * - Click on any album-level field value → inline input pre-filled with current value
- * - Enter or blur → confirmation dialog appears before the PATCH is fired
+ * - Enter → confirmation dialog appears before the PATCH is fired
+ * - Blur (click away) → silently cancels edit, restores original value; no dialog, no API call
  * - Confirm → PATCH /albums/{albumId}; optimistic update; rollback + error toast on failure
  * - Cancel / Escape on dialog → abort, keep the form in its edited state
  * - Escape on input → cancel edit, restore original value; no dialog shown; no API call

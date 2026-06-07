@@ -95,11 +95,11 @@ describe('EditableField', () => {
   })
 
   // ──────────────────────────────────────────────
-  // Blur save
+  // Blur cancellation (not save)
   // ──────────────────────────────────────────────
 
-  it('calls onSave and exits edit mode on blur', async () => {
-    const onSave = vi.fn().mockResolvedValue(undefined)
+  it('cancels edit silently on blur without calling onSave', async () => {
+    const onSave = vi.fn()
     render(<EditableField {...defaultProps} onSave={onSave} />)
     fireEvent.click(screen.getByTestId('album-value-genre'))
     const input = screen.getByTestId('album-input-genre')
@@ -107,9 +107,37 @@ describe('EditableField', () => {
     fireEvent.blur(input)
 
     await waitFor(() => {
-      expect(onSave).toHaveBeenCalledWith('GENRE', 'Electronic')
+      // Input gone, original value restored silently
+      expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument()
+      expect(screen.getByTestId('album-value-genre')).toHaveTextContent('Jazz')
+    })
+    expect(onSave).not.toHaveBeenCalled()
+  })
+
+  it('cancels edit silently on blur even when value is unchanged', async () => {
+    const onSave = vi.fn()
+    render(<EditableField {...defaultProps} onSave={onSave} />)
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    // Do not change the value - just blur
+    fireEvent.blur(screen.getByTestId('album-input-genre'))
+
+    await waitFor(() => {
       expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument()
     })
+    expect(onSave).not.toHaveBeenCalled()
+  })
+
+  it('does not show error after blur cancellation', async () => {
+    const onSave = vi.fn()
+    render(<EditableField {...defaultProps} onSave={onSave} />)
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Electronic' } })
+    fireEvent.blur(screen.getByTestId('album-input-genre'))
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('album-error-genre')).not.toBeInTheDocument()
   })
 
   // ──────────────────────────────────────────────
