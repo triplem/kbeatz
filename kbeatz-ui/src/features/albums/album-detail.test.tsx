@@ -80,6 +80,19 @@ function renderDetail(albumId = 'album-id-1') {
   )
 }
 
+/** Helper: open edit mode for a field, type a new value, press Enter, then confirm in dialog. */
+async function editAlbumFieldAndConfirm(fieldTestId: string, inputTestId: string, newValue: string) {
+  fireEvent.click(screen.getByTestId(fieldTestId))
+  fireEvent.change(screen.getByTestId(inputTestId), { target: { value: newValue } })
+  fireEvent.keyDown(screen.getByTestId(inputTestId), { key: 'Enter' })
+
+  await waitFor(() => {
+    expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument()
+  })
+
+  fireEvent.click(screen.getByTestId('confirm-dialog-confirm'))
+}
+
 describe('AlbumDetail', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -203,7 +216,7 @@ describe('AlbumDetail', () => {
     expect(screen.getByTestId('album-input-genre')).toHaveValue('Jazz')
   })
 
-  it('calls updateAlbumTags and updates album on Enter save', async () => {
+  it('calls updateAlbumTags and updates album after confirmation', async () => {
     const updatedAlbum = makeAlbum({ genre: 'Progressive Rock' })
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     mockAlbumsService.updateAlbumTags.mockResolvedValue(updatedAlbum)
@@ -213,11 +226,7 @@ describe('AlbumDetail', () => {
       expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByTestId('album-value-genre'))
-    fireEvent.change(screen.getByTestId('album-input-genre'), {
-      target: { value: 'Progressive Rock' },
-    })
-    fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
+    await editAlbumFieldAndConfirm('album-value-genre', 'album-input-genre', 'Progressive Rock')
 
     await waitFor(() => {
       expect(mockAlbumsService.updateAlbumTags).toHaveBeenCalledWith({
@@ -227,7 +236,7 @@ describe('AlbumDetail', () => {
     })
   })
 
-  it('Escape cancels edit and makes no API call', async () => {
+  it('Escape cancels edit and makes no API call (no dialog shown)', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     renderDetail()
 
@@ -241,12 +250,59 @@ describe('AlbumDetail', () => {
 
     expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument()
     expect(screen.getByTestId('album-value-genre')).toHaveTextContent('Jazz')
+    // Escape on the input cancels before the dialog — no dialog, no PATCH
+    expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
     expect(mockAlbumsService.updateAlbumTags).not.toHaveBeenCalled()
   })
 
-  it('rolls back and shows error when updateAlbumTags fails', async () => {
+  it('rolls back and shows error when updateAlbumTags fails after confirmation', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     mockAlbumsService.updateAlbumTags.mockRejectedValue(new Error('Server error'))
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
+    })
+
+    await editAlbumFieldAndConfirm('album-value-genre', 'album-input-genre', 'Rock')
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument()
+      expect(screen.getByTestId('album-value-genre')).toHaveTextContent('Jazz')
+      expect(screen.getByTestId('album-error-genre')).toHaveTextContent('Server error')
+    })
+  })
+
+  // ──────────────────────────────────────────────
+  // Confirmation dialog behaviour
+  // ──────────────────────────────────────────────
+
+  it('shows confirmation dialog before the PATCH fires', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    mockAlbumsService.updateAlbumTags.mockResolvedValue(makeAlbum({ genre: 'Rock' }))
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Rock' } })
+    fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
+
+    // Dialog appears; PATCH has NOT been called yet
+    await waitFor(() => {
+      expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument()
+    })
+    expect(mockAlbumsService.updateAlbumTags).not.toHaveBeenCalled()
+  })
+
+  it('dialog shows album title and track count', async () => {
+    const album = makeAlbum({
+      album: 'Kind of Blue',
+      tracks: [makeTrack(), makeTrack({ id: 'track-2', path: '02.flac' })],
+    })
+    mockAlbumsService.getAlbum.mockResolvedValue(album)
     renderDetail()
 
     await waitFor(() => {
@@ -258,10 +314,134 @@ describe('AlbumDetail', () => {
     fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
 
     await waitFor(() => {
-      expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument()
-      expect(screen.getByTestId('album-value-genre')).toHaveTextContent('Jazz')
-      expect(screen.getByTestId('album-error-genre')).toHaveTextContent('Server error')
+      expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument()
     })
+
+    expect(screen.getByTestId('confirm-dialog')).toHaveTextContent('Kind of Blue')
+    expect(screen.getByTestId('confirm-dialog')).toHaveTextContent('2 FLAC files')
+  })
+
+  it('dialog shows "This cannot be undone"', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Rock' } })
+    fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('confirm-dialog-warning')).toHaveTextContent('This cannot be undone')
+    })
+  })
+
+  it('Cancel button prevents the PATCH and leaves field in edited state', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
+    })
+
+    // Edit and trigger dialog
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Rock' } })
+    fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument()
+    })
+
+    // Cancel
+    fireEvent.click(screen.getByTestId('confirm-dialog-cancel'))
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
+    })
+
+    // PATCH was never called
+    expect(mockAlbumsService.updateAlbumTags).not.toHaveBeenCalled()
+    // Field shows original value (rolled back silently — no error shown)
+    expect(screen.getByTestId('album-value-genre')).toHaveTextContent('Jazz')
+    expect(screen.queryByTestId('album-error-genre')).not.toBeInTheDocument()
+  })
+
+  it('Escape on the dialog cancels without firing the PATCH', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Rock' } })
+    fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument()
+    })
+
+    // Escape on the dialog
+    fireEvent.keyDown(screen.getByTestId('confirm-dialog'), { key: 'Escape' })
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
+    })
+
+    expect(mockAlbumsService.updateAlbumTags).not.toHaveBeenCalled()
+    expect(screen.queryByTestId('album-error-genre')).not.toBeInTheDocument()
+  })
+
+  it('Confirm button fires the PATCH', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    mockAlbumsService.updateAlbumTags.mockResolvedValue(makeAlbum({ genre: 'Rock' }))
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
+    })
+
+    await editAlbumFieldAndConfirm('album-value-genre', 'album-input-genre', 'Rock')
+
+    await waitFor(() => {
+      expect(mockAlbumsService.updateAlbumTags).toHaveBeenCalledOnce()
+    })
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
+    })
+  })
+
+  it('confirmation dialog is NOT shown for track-level field saves', async () => {
+    const updatedAlbum = makeAlbum({ tracks: [makeTrack({ title: 'New Title' })] })
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    mockAlbumsService.updateTrackTags.mockResolvedValue(updatedAlbum)
+    renderDetail()
+
+    const trackId = 'track-id-1'
+    await waitFor(() => {
+      expect(screen.getByTestId(`track-${trackId}-value-title`)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByTestId(`track-${trackId}-value-title`))
+    fireEvent.change(screen.getByTestId(`track-${trackId}-input-title`), {
+      target: { value: 'New Title' },
+    })
+    fireEvent.keyDown(screen.getByTestId(`track-${trackId}-input-title`), { key: 'Enter' })
+
+    // No confirmation dialog for track-level edits
+    await waitFor(() => {
+      expect(mockAlbumsService.updateTrackTags).toHaveBeenCalledWith({
+        albumId: 'album-id-1',
+        trackId: 'track-id-1',
+        requestBody: { field: 'TITLE', value: 'New Title' },
+      })
+    })
+    expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
   })
 
   // ──────────────────────────────────────────────
