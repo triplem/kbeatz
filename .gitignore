@@ -15,6 +15,15 @@ kbeatz-ui/dist/
 *.iml
 .vscode/
 
+# H2 database files (written by catalog service at runtime)
+data/
+*.mv.db
+*.trace.db
+
+# Test coverage reports
+kbeatz-ui/coverage/
+**/build/reports/
+
 # Environment
 .env
 .env.local
