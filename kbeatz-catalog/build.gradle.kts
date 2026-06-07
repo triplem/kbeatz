@@ -19,6 +19,8 @@ dependencies {
     "implementation"(libs.hikaricp)
     "implementation"(libs.h2)
     "implementation"(libs.liquibase.core)
+    // MDC propagation across coroutine suspension boundaries (issue #170)
+    "implementation"("org.jetbrains.kotlinx:kotlinx-coroutines-slf4j:1.10.2")
 }
 
 openApiGenerate {
