@@ -39,17 +39,9 @@ FAILURES=""
 DIFF_BASE=$(git merge-base HEAD "origin/${DEFAULT_BRANCH:-main}" 2>/dev/null || echo "HEAD~1")
 HAS_KT_CHANGES=$(git diff --name-only "$DIFF_BASE" HEAD 2>/dev/null | grep -E '\.kt$' | grep -v 'build/generated' | head -1)
 if [ -f "gradlew" ] && [ -n "$HAS_KT_CHANGES" ]; then
-  if ! ./gradlew test -q 2>/dev/null; then
-    FAILURES+="- Tests failed (./gradlew test)\n"
-  fi
-  if ! ./gradlew koverVerify -q 2>/dev/null; then
-    FAILURES+="- Coverage below 80% threshold (./gradlew koverVerify)\n"
-  fi
-  if ! ./gradlew detekt -q 2>/dev/null; then
-    FAILURES+="- Detekt violations found (./gradlew detekt)\n"
-  fi
-  if ! ./gradlew ktlintCheck -q 2>/dev/null; then
-    FAILURES+="- ktlint violations found (./gradlew ktlintCheck)\n"
+  if ! ./gradlew :kbeatz-catalog:check :kbeatz-tagger:check :kbeatz-common:check \
+                 :kbeatz-sources:check :kbeatz-cli:check -q 2>/dev/null; then
+    FAILURES+="- check failed (tests + Kover + Detekt per module)\n"
   fi
 fi
 

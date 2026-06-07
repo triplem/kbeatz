@@ -8,7 +8,6 @@ allowed-tools: Bash(git *) Bash(gh *) Bash(glab *) Bash(./gradlew *) Bash(npm *)
 hooks:
   PreToolUse:
     - matcher: "Bash"
-      if: "Bash(git push *)"
       hooks:
         - type: command
           command: "${CLAUDE_PROJECT_DIR}/.claude/hooks/pre-push-gates.sh"
