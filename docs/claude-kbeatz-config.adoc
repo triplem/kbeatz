@@ -76,7 +76,306 @@ A module CLAUDE.md is warranted when:
 |Future: kbeatz-catalog Liquibase changelog format; kbeatz-sources rate-limiting rules
 |===
 
-== 2. Rules vs. Skills: The Right Tool
+== 2. Skills Audit
+
+This section audits all 32 custom skills in `.claude/skills/` against Claude Code's built-in
+capabilities and the rule files in `.claude/rules/`. The goal is to identify which custom skills
+add unique value and which are now redundant.
+
+=== Audit methodology
+
+For each skill the audit asks three questions:
+
+. Is this skill user-invocable, or does it fire automatically on file patterns?
+. If it fires automatically - does a rule file in `.claude/rules/` already cover the same ground?
+. If it is user-invocable - does a Claude Code built-in skill (`/code-review`, `/simplify`,
+  `/init`, `/review`, `/run`, `/verify`, etc.) provide equivalent capability?
+
+The key test: "If this skill were deleted, would Claude behave noticeably worse on kbeatz tasks?"
+If the answer is no, the skill is a removal or simplification candidate.
+
+=== Audit table
+
+[cols="2,1,3,1,3"]
+|===
+|Skill name |Type |Built-in equivalent |Recommendation |Rationale
+
+|`angular-patterns`
+|Pattern
+|None
+|Remove
+|kbeatz-ui uses React 19 (`.tsx` files only); no Angular `.component.ts` files exist in the
+repo. The path matcher never fires. The skill adds no value and may confuse future contributors.
+
+|`architect-review`
+|Review
+|None
+|Keep
+|Provides a focused software architect persona with hexagonal architecture, SOLID, and coupling
+checks. No built-in skill matches this depth. Used in the challenge pipeline and directly by
+`/challenge-all`.
+
+|`challenge`
+|Meta
+|None
+|Keep
+|Internal agent-to-agent quality control primitive. Called by `challenge-all`, `ship`, and
+`pr-reviewer`. No built-in equivalent for structured ACCEPT/REVISE/REJECT verdicts between
+agents.
+
+|`challenge-all`
+|Meta
+|None
+|Keep
+|Orchestrates all nine specialist reviewer perspectives in one call. No built-in skill runs
+parallel multi-perspective reviews. Core to the SDLC quality pipeline.
+
+|`claude-code-expert`
+|Meta
+|Built-in `claude-code-expert` agent type
+|Keep
+|The custom skill adds kbeatz-specific focus areas (hooks, MCP config, skills audit) and
+project-specific guidance not present in the generic built-in. The built-in agent type is
+general-purpose; the custom skill is tuned to this project's `.claude/` layout.
+
+|`create-adr`
+|SDLC
+|None
+|Keep
+|Structured debate-and-document workflow for architecture decisions. Produces AsciiDoc ADRs
+following the project naming convention (`ADR-NNN` for platform, `ADR-{SVC}-NNN` for services).
+No built-in equivalent.
+
+|`create-pr`
+|SDLC
+|None
+|Simplify
+|Most PR guidance is already in `CLAUDE.md` (PR title format, body template, CI green check,
+branch delete). The skill adds post-merge cleanup (close linked issues, close epic if done)
+which is genuinely unique. Consider reducing the skill to only the post-merge cleanup steps.
+
+|`devops-review`
+|Review
+|None
+|Keep
+|Provides a DevSecOps engineer persona covering CI/CD pipeline safety, container hygiene,
+secret management, and operational readiness. No built-in skill matches this perspective.
+
+|`domain-model`
+|Meta
+|None
+|Keep
+|Builds or updates the project domain model by scanning Kotlin source, DB migrations, and
+requirements docs. No built-in equivalent for domain model generation from codebase analysis.
+
+|`gather-requirements`
+|SDLC
+|None
+|Keep
+|Structured requirements elicitation through dialogue, producing a `docs/requirements.md`
+artefact. No built-in equivalent for structured requirements gathering.
+
+|`implement`
+|SDLC
+|None
+|Keep
+|Full story implementation workflow: branch creation, worktree isolation, quality gates,
+PR opening. Encodes kbeatz-specific conventions (hexagonal layers, scope names, Detekt
+per-module). No built-in equivalent.
+
+|`implement-epic`
+|SDLC
+|None
+|Keep
+|Discovers sub-issues via GitHub API, resolves dependency waves, and delegates each story
+to `/implement` in order. No built-in equivalent for dependency-ordered epic execution.
+
+|`kotlin-patterns`
+|Pattern
+|`.claude/rules/kotlin-style.md`
+|Remove
+|`user-invocable: false` with a `paths: **/*.kt` matcher. The same ground is covered by
+`kotlin-style.md` which auto-loads every session. Keeping both causes duplicate guidance.
+
+|`learn`
+|Meta
+|None
+|Keep
+|Extracts a reusable rule or pattern from observed behaviour and writes it to
+`.claude/rules/` or `.claude/skills/`. No built-in equivalent for the learn-and-persist
+workflow.
+
+|`logging-kotlin`
+|Pattern
+|`.claude/rules/logging.md`
+|Remove
+|`user-invocable: false` with `paths: **/*.kt,**/logback*.xml`. The general logging
+standards in `logging.md` auto-load every session and cover the same level-policy, MDC,
+and structured-field requirements. Kotlin-specific Logback details belong in `logging.md`
+as a Kotlin subsection.
+
+|`logging-typescript`
+|Pattern
+|`.claude/rules/logging.md`
+|Remove
+|`user-invocable: false` with `paths: **/*.ts,**/*.js`. The general logging standards in
+`logging.md` auto-load every session. TypeScript-specific Pino details belong in `logging.md`
+as a TypeScript subsection rather than a separate auto-firing skill.
+
+|`openapi-patterns`
+|Pattern
+|`.claude/rules/openapi.md`, `.claude/rules/api-design.md`
+|Remove
+|`user-invocable: false` with `paths: **/openapi.yaml,**/*Controller.kt`. The `openapi.md`
+and `api-design.md` rule files auto-load every session and cover spec-first design, naming
+conventions, mandatory fields, and CI enforcement. No unique value over the existing rules.
+
+|`operations-review`
+|Review
+|None
+|Keep
+|Provides an SRE/operations persona covering runbook completeness, observability, incident
+recovery, backup/restore, and upgrade paths. No built-in skill matches this perspective.
+
+|`performance-review`
+|Review
+|None
+|Keep
+|Provides a performance engineering persona covering query efficiency, frontend bundle size,
+API response times, and memory/CPU usage. No built-in skill matches this perspective.
+
+|`pr-reviewer`
+|SDLC
+|Built-in `/review`
+|Keep
+|The built-in `/review` reads the diff but does not post findings as PR comments, does not
+fix BLOCKER/MAJOR findings on the branch, and does not push fixes. The custom skill does all
+three. The post-review fix-and-push loop is unique value.
+
+|`qa-review`
+|Review
+|None
+|Keep
+|Provides a QA engineer persona covering test coverage gaps, acceptance criteria completeness,
+edge cases, and regression risk. No built-in skill matches this perspective.
+
+|`react-patterns`
+|Pattern
+|None
+|Keep
+|`user-invocable: false` with `paths: **/*.tsx,**/*.jsx`. kbeatz-ui is a React 19 SPA. No
+rule file covers React-specific patterns (hooks, TanStack Query, Zustand, component design).
+The skill fires on every `.tsx` edit, which is the primary frontend file type.
+
+|`release`
+|SDLC
+|None
+|Keep
+|Squash-rebase onto main, semantic version bump, changelog generation, artefact publish,
+story close. Encodes kbeatz-specific release conventions. No built-in equivalent.
+
+|`requirements-review`
+|Review
+|None
+|Keep
+|Provides a requirements engineer persona checking completeness, testability, consistency,
+and NFR coverage. No built-in skill matches this perspective.
+
+|`security-review`
+|Review
+|Built-in `/security-review`
+|Keep
+|The built-in `/security-review` is a general OWASP check. The custom skill is tuned to
+the kbeatz threat model: no auth in v1 (trusted LAN), Discogs token hygiene, FLAC path
+traversal, and H2-to-PostgreSQL migration risks. The project-specific context adds unique value.
+
+|`ship`
+|SDLC
+|None
+|Keep
+|Full parallel SDLC pipeline: implement all approved stories, challenge every PR from nine
+perspectives, fix findings, merge, then challenge main. No built-in skill orchestrates this
+multi-agent parallel pipeline.
+
+|`technical-writer-review`
+|Review
+|None
+|Keep
+|Provides a technical writer persona checking documentation clarity, completeness, structure,
+and audience fit. No built-in skill matches this perspective.
+
+|`typescript-patterns`
+|Pattern
+|`.claude/rules/typescript-style.md`
+|Simplify
+|`user-invocable: false` with `paths: **/*.ts,**/*.tsx`. The `typescript-style.md` rule file
+auto-loads every session and covers strict-mode config, ESLint rules, naming, imports, and
+immutability. The custom skill adds branded types and Result types which are not in the rule
+file. Consider merging the branded-type and Result-type patterns into `typescript-style.md`
+and removing the skill.
+
+|`ux-review`
+|Review
+|None
+|Keep
+|Provides a UI/UX and accessibility specialist persona covering ease of use, visual clarity,
+interaction design, and WCAG 2.1 AA compliance. No built-in skill matches this perspective.
+
+|`write-epics`
+|SDLC
+|None
+|Keep
+|Decomposes an approved requirements document into epics with acceptance criteria and GitHub
+issues, following the kbeatz epic body structure. No built-in equivalent.
+
+|`write-stories`
+|SDLC
+|None
+|Keep
+|Decomposes an approved epic into user stories with full acceptance criteria and sub-issue
+linking. No built-in equivalent.
+
+|`write-tests`
+|SDLC
+|None
+|Keep
+|Writes a complete test suite following the kbeatz test pyramid (unit/integration/E2E ratios,
+Mockk, Testcontainers, Vitest). Runs coverage verification to confirm >= 80%. The project
+conventions baked into this skill are not replicated by any built-in.
+|===
+
+=== Audit summary
+
+[cols="1,1,3"]
+|===
+|Recommendation |Count |Skills
+
+|Keep
+|23
+|architect-review, challenge, challenge-all, claude-code-expert, create-adr, devops-review,
+domain-model, gather-requirements, implement, implement-epic, learn, operations-review,
+performance-review, pr-reviewer, qa-review, react-patterns, release, requirements-review,
+security-review, ship, technical-writer-review, ux-review, write-epics, write-stories,
+write-tests
+
+|Simplify
+|2
+|create-pr (reduce to post-merge cleanup only), typescript-patterns (merge unique content
+into typescript-style.md rule)
+
+|Remove
+|5
+|angular-patterns (wrong framework), kotlin-patterns (covered by kotlin-style.md rule),
+logging-kotlin (covered by logging.md rule), logging-typescript (covered by logging.md
+rule), openapi-patterns (covered by openapi.md and api-design.md rules)
+|===
+
+NOTE: "Remove" means the skill file can be deleted. The behaviour it described is either
+not applicable to kbeatz (angular-patterns) or is already enforced by a rule file that
+auto-loads every session. Deleting these skills reduces context-window noise without
+changing Claude's behaviour on kbeatz tasks.
+
+== 3. Rules vs. Skills: The Right Tool
 
 Rules and skills both influence Claude's behaviour, but they serve different purposes.
 
@@ -146,7 +445,7 @@ Add a *skill* when:
 * It involves branching logic ("if the PR has no issues, merge; otherwise fix and re-push")
 * It is invoked explicitly by name, not automatically
 
-== 3. Hooks Architecture
+== 4. Hooks Architecture
 
 Hooks are shell scripts that Claude Code calls at specific lifecycle events. They enforce
 project policy without relying on Claude's memory - the enforcement is in the infrastructure,
@@ -295,7 +594,7 @@ ls -t ~/.claude/kbeatz-sessions/*.jsonl | head -1 | xargs tail -f
 |Command text (bash) or file path (write/edit). Truncated at 300 chars.
 |===
 
-== 4. Memory System in Practice
+== 5. Memory System in Practice
 
 The memory system stores lessons learned, project context, and recurring feedback in
 `~/.claude/projects/-home-triplem-projects-kbeatz/memory/`. Each file is a Markdown
@@ -365,7 +664,7 @@ The skill extracts the lesson, formats it as a `feedback_*.md` file, updates `ME
 and commits the file to the memory directory. The lesson will be automatically applied in
 future sessions.
 
-== 5. MCP Servers in Use
+== 6. MCP Servers in Use
 
 Two Model Context Protocol (MCP) servers are configured in `.claude/settings.json` under
 the `mcpServers` key. These give Claude Code structured access to GitHub and the project
@@ -457,9 +756,9 @@ Set the token in `.env` (which is gitignored):
 GITHUB_TOKEN=ghp_your_token_here
 ----
 
-== 6. Recommended Workflows for Common kbeatz Tasks
+== 7. Recommended Workflows for Common kbeatz Tasks
 
-=== 6.1 Adding a new API endpoint
+=== 7.1 Adding a new API endpoint
 
 [source,bash]
 ----
@@ -503,7 +802,7 @@ EOF
 )"
 ----
 
-=== 6.2 Implementing a story with the /implement skill
+=== 7.2 Implementing a story with the /implement skill
 
 [source]
 ----
@@ -530,7 +829,7 @@ gh pr merge <PR_NUMBER> --squash --delete-branch
 gh issue close NNN --comment "Fixed in PR #PR_NUMBER."
 ----
 
-=== 6.3 Implementing a full epic in dependency order
+=== 7.3 Implementing a full epic in dependency order
 
 [source]
 ----
@@ -550,7 +849,7 @@ gh pr list --state all | grep "feature/"
 gh issue list --label "In Progress"
 ----
 
-=== 6.4 Running a full ship pipeline
+=== 7.4 Running a full ship pipeline
 
 [source]
 ----
@@ -569,7 +868,7 @@ Key things to know before running `/ship`:
 * Group stories that touch the same files so they are assigned to the same agent
 * A GITHUB_TOKEN with `repo`, `issues`, and `packages` scopes is required
 
-=== 6.5 Recovering from a failed parallel agent
+=== 7.5 Recovering from a failed parallel agent
 
 When a parallel agent session fails partway through (network timeout, OOM, etc.):
 
@@ -602,7 +901,7 @@ git worktree remove -f -f /path/to/worktree
 The `feedback_ship_skill_lessons.md` memory file documents the full recovery procedure
 based on real incidents from the kbeatz project.
 
-=== 6.6 Adding a new hook
+=== 7.6 Adding a new hook
 
 [source,bash]
 ----
@@ -630,7 +929,7 @@ by writing a JSON object to stdout. The key output fields are:
 * `additionalContext` - to inject information into Claude's context
 * `systemMessage` - to display a message in the Claude Code UI
 
-=== 6.7 Running a skills audit
+=== 7.7 Running a skills audit
 
 [source]
 ----
