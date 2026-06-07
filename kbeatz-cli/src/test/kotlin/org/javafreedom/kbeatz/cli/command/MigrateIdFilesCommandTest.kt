@@ -11,9 +11,9 @@ import kotlin.test.assertTrue
 class MigrateIdFilesCommandTest {
 
     @Test
-    fun `should print summary with zero counts when root has no subdirectories with id files`(@TempDir tempDir: java.nio.file.Path) {
+    fun `should exit cleanly when root has no subdirectories with id files`(@TempDir tempDir: java.nio.file.Path) {
         val result = MigrateIdFilesCommand().test("$tempDir")
-        assertContains(result.output, "Migrated 0 files, 0 skipped, 0 errors")
+        assertTrue(result.statusCode == 0)
     }
 
     @Test
@@ -29,8 +29,7 @@ class MigrateIdFilesCommandTest {
     fun `should write metadata yml when not in dry-run mode`(@TempDir tempDir: java.nio.file.Path) {
         val album = Files.createDirectory(tempDir.resolve("album"))
         Files.writeString(album.resolve("id.txt"), "[source]\ndiscogs_id=22\n")
-        val result = MigrateIdFilesCommand().test("$tempDir")
-        assertContains(result.output, "WROTE")
+        MigrateIdFilesCommand().test("$tempDir")
         assertTrue(Files.exists(album.resolve("metadata.yml")))
         assertContains(Files.readString(album.resolve("metadata.yml")), "discogs_id")
     }
@@ -58,8 +57,7 @@ class MigrateIdFilesCommandTest {
         val album = Files.createDirectory(tempDir.resolve("album"))
         Files.writeString(album.resolve("id.txt"), "[source]\ndiscogs_id=55\n")
         Files.writeString(album.resolve("local_ids.txt"), "[source]\ndiscogs_id=55\n")
-        val result = MigrateIdFilesCommand().test("$tempDir")
-        assertContains(result.output, "DEL")
+        MigrateIdFilesCommand().test("$tempDir")
         assertFalse(Files.exists(album.resolve("local_ids.txt")))
     }
 
@@ -87,30 +85,29 @@ class MigrateIdFilesCommandTest {
         val album = Files.createDirectory(tempDir.resolve("album"))
         Files.writeString(album.resolve("id.txt"), "[source]\ndiscogs_id=99\n")
         Files.writeString(album.resolve("metadata.yml"), "sources:\n  discogs_id: \"old\"\n")
-        val result = MigrateIdFilesCommand().test("$tempDir")
-        assertContains(result.output, "SKIP")
-        assertContains(result.output, "metadata.yml already exists")
-        // original metadata.yml unchanged
+        MigrateIdFilesCommand().test("$tempDir")
+        // original metadata.yml must remain unchanged
         assertContains(Files.readString(album.resolve("metadata.yml")), "discogs_id: \"old\"")
     }
 
     @Test
-    fun `should print summary with correct counts`(@TempDir tempDir: java.nio.file.Path) {
+    fun `should migrate one album and skip one when metadata yml already exists`(@TempDir tempDir: java.nio.file.Path) {
         val album1 = Files.createDirectory(tempDir.resolve("album1"))
         Files.writeString(album1.resolve("id.txt"), "[source]\ndiscogs_id=11\n")
         val album2 = Files.createDirectory(tempDir.resolve("album2"))
         Files.writeString(album2.resolve("id.txt"), "[source]\ndiscogs_id=22\n")
         Files.writeString(album2.resolve("metadata.yml"), "sources:\n  discogs_id: \"old\"\n")
-        val result = MigrateIdFilesCommand().test("$tempDir")
-        assertContains(result.output, "Migrated 1 files, 1 skipped, 0 errors")
+        MigrateIdFilesCommand().test("$tempDir")
+        assertTrue(Files.exists(album1.resolve("metadata.yml")))
+        assertContains(Files.readString(album2.resolve("metadata.yml")), "discogs_id: \"old\"")
     }
 
     @Test
-    fun `should count dry-run migrations in summary`(@TempDir tempDir: java.nio.file.Path) {
+    fun `should write metadata yml in dry-run output`(@TempDir tempDir: java.nio.file.Path) {
         val album = Files.createDirectory(tempDir.resolve("album"))
         Files.writeString(album.resolve("id.txt"), "[source]\ndiscogs_id=33\n")
         val result = MigrateIdFilesCommand().test("--dry-run $tempDir")
         assertContains(result.output, "DRY")
-        assertContains(result.output, "Migrated 1 files, 0 skipped, 0 errors")
+        assertFalse(Files.exists(album.resolve("metadata.yml")))
     }
 }

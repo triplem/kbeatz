@@ -5,6 +5,7 @@ import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.convert
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.io.buffered
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
@@ -24,6 +25,8 @@ class MigrateIdFilesCommand : CliktCommand(
     name = "migrate-ids",
     help = "Convert INI-style id.txt / local_ids.txt files to YAML metadata.yml.",
 ) {
+    private val logger = KotlinLogging.logger {}
+
     private val rootDir: Path by argument(
         name = "ROOT_DIR",
         help = "Root directory to scan for id files.",
@@ -63,7 +66,7 @@ class MigrateIdFilesCommand : CliktCommand(
             }
         }
 
-        echo("Migrated $migrated files, $skipped skipped, $errors errors")
+        logger.info { "Migrated $migrated files, $skipped skipped, $errors errors" }
     }
 
     private fun migrateDirectory(dir: Path, idReader: IdFileReader): MigrateOutcome {
@@ -71,25 +74,24 @@ class MigrateIdFilesCommand : CliktCommand(
         return when {
             !hasLegacy -> MigrateOutcome.NO_ID_FILE
             SystemFileSystem.exists(Path(dir, "metadata.yml")) -> {
-                echo("SKIP  $dir — metadata.yml already exists", err = true)
+                logger.warn { "SKIP  $dir — metadata.yml already exists" }
                 MigrateOutcome.SKIPPED
             }
             else -> migrateWithIdFile(dir, idReader)
         }
     }
 
-    private fun migrateWithIdFile(dir: Path, idReader: IdFileReader): MigrateOutcome {
-        val idFile = runCatching { idReader.read(dir) }.getOrElse { e ->
-            echo("ERROR $dir — ${e.message ?: e.javaClass.simpleName}", err = true)
-            return MigrateOutcome.ERROR
-        }
-        return if (idFile == null) {
-            echo("SKIP  $dir — no parseable id file found", err = true)
-            MigrateOutcome.SKIPPED
-        } else {
-            performMigration(dir, idFile, Path(dir, "metadata.yml"))
-        }
-    }
+    private fun migrateWithIdFile(dir: Path, idReader: IdFileReader): MigrateOutcome =
+        runCatching { idReader.read(dir) }
+            .getOrElse { e ->
+                logger.error(e) { "ERROR $dir" }
+                return MigrateOutcome.ERROR
+            }
+            ?.let { idFile -> performMigration(dir, idFile, Path(dir, "metadata.yml")) }
+            ?: run {
+                logger.warn { "SKIP  $dir — no parseable id file found" }
+                MigrateOutcome.SKIPPED
+            }
 
     private fun performMigration(dir: Path, idFile: IdFile, target: Path): MigrateOutcome {
         val yamlContent = buildYaml(idFile.sources)
@@ -98,7 +100,7 @@ class MigrateIdFilesCommand : CliktCommand(
             MigrateOutcome.MIGRATED
         } else {
             SystemFileSystem.sink(target).buffered().use { it.writeString(yamlContent) }
-            echo("WROTE $target")
+            logger.info { "WROTE $target" }
             if (!keepOriginal) deleteOriginalIdFiles(dir)
             MigrateOutcome.MIGRATED
         }
@@ -108,7 +110,7 @@ class MigrateIdFilesCommand : CliktCommand(
         LEGACY_NAMES
             .map { Path(dir, it) }
             .filter { SystemFileSystem.exists(it) }
-            .forEach { path -> SystemFileSystem.delete(path); echo("DEL   $path") }
+            .forEach { path -> SystemFileSystem.delete(path); logger.info { "DEL   $path" } }
     }
 
     private fun buildYaml(sources: Map<String, String>): String =
