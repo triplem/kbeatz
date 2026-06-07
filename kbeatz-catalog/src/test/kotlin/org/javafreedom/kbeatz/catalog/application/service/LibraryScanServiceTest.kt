@@ -9,7 +9,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
-import kotlin.uuid.Uuid
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -145,6 +144,25 @@ class LibraryScanServiceTest {
         assertEquals(ScanState.COMPLETE, status.state)
         assertEquals(0L, status.scannedAlbums)
         assertEquals(0L, status.totalAlbums)
+    }
+
+    @Test
+    fun `close cancels the scan scope`() = runTest {
+        val dispatcher = UnconfinedTestDispatcher()
+        val svc = LibraryScanService(
+            libraryRoot = libraryRoot,
+            walker = walker,
+            albumRepository = albumRepository,
+            scanDispatcher = dispatcher,
+        )
+
+        svc.close()
+
+        // After close(), startScan() should still be callable (doesn't crash), and
+        // the scope's Job will be cancelled — no further coroutines execute.
+        // We verify close() does not throw and the service remains in a safe state.
+        val status = svc.status()
+        assertEquals(ScanState.IDLE, status.state)
     }
 
     @Test

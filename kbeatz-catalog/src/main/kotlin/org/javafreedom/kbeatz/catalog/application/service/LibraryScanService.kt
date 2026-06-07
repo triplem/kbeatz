@@ -15,6 +15,7 @@ import kotlin.uuid.Uuid
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.model.AlbumGroup
@@ -51,6 +52,17 @@ class LibraryScanService(
     private val scannedAlbums = AtomicLong(0L)
     private val totalAlbums = AtomicLong(0L)
     private val errorMessage = AtomicReference<String?>(null)
+
+    /**
+     * Cancels all in-progress coroutines launched by this service.
+     *
+     * Must be called during application shutdown (before closing the database pool)
+     * to prevent orphaned coroutines continuing to access a closed datasource.
+     */
+    fun close() {
+        scanScope.cancel()
+        log.info { "LibraryScanService scan scope cancelled" }
+    }
 
     /** Returns a snapshot of the current scan state. */
     fun status(): ScanStatus = ScanStatus(

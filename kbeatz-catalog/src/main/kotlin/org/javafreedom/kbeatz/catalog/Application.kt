@@ -78,6 +78,7 @@ fun Application.module() {
     attributes.put(AlbumServiceKey, albumService)
 
     monitor.subscribe(ApplicationStopped) {
+        scanService.close()
         dataSource.close()
     }
 
