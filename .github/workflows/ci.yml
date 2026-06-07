@@ -38,6 +38,11 @@ jobs:
         env:
           CATALOG_LIBRARY_ROOT: /tmp/kbeatz-test-library
 
+      # TODO(#192): Add OWASP Dependency Check (./gradlew dependencyCheckAnalyze).
+      # The org.owasp.dependencycheck Gradle plugin is not yet configured; adding it
+      # without a pre-seeded NVD cache would add 10-20 min to every CI run.
+      # See issue #192 for the plan: add the plugin + cache ~/.gradle/dependency-check-data/.
+
       - name: Upload test reports on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -64,6 +69,15 @@ jobs:
       - name: Install dependencies
         working-directory: kbeatz-ui
         run: npm ci
+
+      - name: Audit npm dependencies
+        working-directory: kbeatz-ui
+        run: npm audit --audit-level=high --omit=dev
+        # Audits production dependencies only. Dev-only tools (vitest, eslint, etc.)
+        # are excluded because they never ship to users and their CVEs (e.g. vitest
+        # UI server path traversal) do not apply to production workloads.
+        # To accept a production CVE false-positive, document the reason in
+        # docs/security/accepted-risks.md and add an npm audit override to package.json.
 
       - name: Lint
         working-directory: kbeatz-ui
