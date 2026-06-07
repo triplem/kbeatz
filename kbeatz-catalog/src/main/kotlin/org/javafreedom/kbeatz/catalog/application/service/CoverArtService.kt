@@ -22,14 +22,25 @@ private val log = KotlinLogging.logger {}
  * 2. `folder.jpg` in the album directory.
  * 3. Not found → null.
  *
- * Path traversal guard: [libraryRoot] is resolved to its real path; the album
- * directory is validated to be strictly within that root before any file is read.
+ * Path traversal guard: the album directory is validated against [libraryRoot]
+ * using `normalize()` + `startsWith()`. Unlike `toRealPath()`, this does NOT
+ * require the path to exist at construction time, making the service resilient
+ * to a missing library root at startup (e.g. a not-yet-mounted volume).
  */
 class CoverArtService(
     private val repository: AlbumRepository,
     private val libraryRoot: Path,
 ) {
-    private val resolvedRoot: Path = libraryRoot.toRealPath()
+    private val normalizedRoot: Path = libraryRoot.normalize()
+
+    init {
+        if (!Files.isDirectory(libraryRoot)) {
+            log.warn {
+                "CATALOG_LIBRARY_ROOT does not exist or is not a directory: $libraryRoot" +
+                    " — cover art will return 404 until the directory is created"
+            }
+        }
+    }
 
     /**
      * Returns the cover art for the album identified by [albumId], or null if none is found.
@@ -98,9 +109,9 @@ class CoverArtService(
         }
 
     private fun validateWithinLibraryRoot(albumDir: Path) {
-        val normalized = if (Files.exists(albumDir)) albumDir.toRealPath() else albumDir.normalize()
-        if (!normalized.startsWith(resolvedRoot)) {
-            log.warn { "Path traversal attempt: albumDir=$albumDir libraryRoot=$resolvedRoot" }
+        val normalized = albumDir.normalize()
+        if (!normalized.startsWith(normalizedRoot)) {
+            log.warn { "Path traversal attempt: albumDir=$albumDir libraryRoot=$normalizedRoot" }
             throw SecurityException("Album directory is outside the library root")
         }
     }

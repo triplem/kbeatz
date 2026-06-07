@@ -160,4 +160,24 @@ class CoverArtServiceTest {
 
         assertNull(result)
     }
+
+    @Test
+    fun `CoverArtService constructs without exception when library root does not exist`() {
+        val nonExistentRoot = tempDir.resolve("does-not-exist")
+        // Must not throw — startup resilience requirement (#128)
+        CoverArtService(repository, nonExistentRoot)
+    }
+
+    @Test
+    fun `getCoverArt returns null when library root does not exist and album dir is within it`() = runTest {
+        val nonExistentRoot = tempDir.resolve("no-library")
+        val missingService = CoverArtService(repository, nonExistentRoot)
+        val id = Uuid.random()
+        val albumDir = nonExistentRoot.resolve("Jazz/Kind of Blue")
+        coEvery { repository.findById(id) } returns album(id = id, directoryPath = albumDir.toString())
+
+        val result = missingService.getCoverArt(id)
+
+        assertNull(result)
+    }
 }
