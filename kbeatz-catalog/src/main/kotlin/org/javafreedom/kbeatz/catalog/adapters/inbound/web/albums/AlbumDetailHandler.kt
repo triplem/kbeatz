@@ -13,13 +13,12 @@ import org.javafreedom.kbeatz.catalog.api.models.Track as ApiTrack
 import org.javafreedom.kbeatz.catalog.application.service.AlbumService
 import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.model.Track
-import org.javafreedom.kbeatz.common.ResourceNotFoundException
 
 /**
  * Ktor route handler for `GET /albums/{albumId}`.
  *
  * Returns an [AlbumDetail] with all Vorbis Comment tag fields and a list of tracks.
- * The albumId path parameter is a UUID — it is resolved to a filesystem path via the
+ * The albumId path parameter is a UUID - it is resolved to a filesystem path via the
  * database only; no direct path exposure in the URL (path traversal guard satisfied).
  *
  * ## Response codes
@@ -55,15 +54,8 @@ private suspend fun handleGetAlbum(
     albumId: Uuid,
     libraryRoot: Path,
 ) {
-    try {
-        val (album, tracks) = albumService.getAlbumWithTracks(albumId)
-        call.respond(HttpStatusCode.OK, album.toDetailApiModel(tracks, libraryRoot))
-    } catch (ex: ResourceNotFoundException) {
-        call.respond(
-            HttpStatusCode.NotFound,
-            ErrorResponse(code = "RESOURCE_NOT_FOUND", message = ex.message ?: "Album not found"),
-        )
-    }
+    val (album, tracks) = albumService.getAlbumWithTracks(albumId)
+    call.respond(HttpStatusCode.OK, album.toDetailApiModel(tracks, libraryRoot))
 }
 
 internal fun Album.toDetailApiModel(tracks: List<Track>, libraryRoot: Path): AlbumDetail = AlbumDetail(
