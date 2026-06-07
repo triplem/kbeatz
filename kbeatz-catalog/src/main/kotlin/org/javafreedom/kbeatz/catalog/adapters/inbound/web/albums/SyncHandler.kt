@@ -1,10 +1,12 @@
 package org.javafreedom.kbeatz.catalog.adapters.inbound.web.albums
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.uuid.Uuid
 import org.javafreedom.kbeatz.catalog.api.models.Album as ApiAlbum
 import org.javafreedom.kbeatz.catalog.api.models.ErrorResponse
@@ -13,6 +15,8 @@ import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.common.BusinessValidationException
 import org.javafreedom.kbeatz.common.ImageQuotaExhaustedException
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
+
+private val log = KotlinLogging.logger {}
 
 /**
  * Ktor route handler for `POST /albums/{albumId}/sync`.
@@ -69,9 +73,12 @@ private suspend fun handleSync(call: ApplicationCall, syncService: DiscogsSyncSe
                 message = ex.message ?: "Daily image quota exhausted",
                 details = listOf("resetAt=${ex.resetAt}"),
             ))
+    } catch (ex: CancellationException) {
+        throw ex
     } catch (ex: Exception) {
+        log.error(ex) { "Discogs sync failed albumId=$albumId" }
         call.respond(HttpStatusCode.ServiceUnavailable,
-            ErrorResponse(code = "SYNC_FAILED", message = "Discogs sync failed: ${ex.message}"))
+            ErrorResponse(code = "SYNC_FAILED", message = "Discogs sync failed — check server logs for details"))
     }
 }
 
