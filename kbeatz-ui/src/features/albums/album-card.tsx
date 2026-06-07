@@ -30,6 +30,8 @@ const CoverPlaceholder = () => (
  * primary attribution (composer if set, else albumArtist), year, and genre.
  *
  * When cover art returns a 404 or any network error, a placeholder SVG is shown.
+ *
+ * Keyboard accessible: tabIndex=0, role="button", Enter/Space triggers navigation.
  */
 export function AlbumCard({ album }: AlbumCardProps) {
   const [coverError, setCoverError] = useState(false)
@@ -38,11 +40,25 @@ export function AlbumCard({ album }: AlbumCardProps) {
   const primaryAttribution = album.composer ?? album.albumArtist
   const showCover = album.hasCoverArt && !coverError
 
+  const handleNavigate = () => {
+    navigate(`/albums/${album.id}`)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      navigate(`/albums/${album.id}`)
+    }
+  }
+
   return (
     <article
       className="album-card"
-      aria-label={`${album.album} by ${primaryAttribution}`}
-      onClick={() => { navigate(`/albums/${album.id}`) }}
+      tabIndex={0}
+      role="button"
+      aria-label={`View details for ${album.album} by ${primaryAttribution}`}
+      onClick={handleNavigate}
+      onKeyDown={handleKeyDown}
       style={{ cursor: 'pointer' }}
     >
       <div className="album-card__cover">

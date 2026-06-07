@@ -1,8 +1,18 @@
-import { render, screen, act } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
+import { render, screen, act, fireEvent } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { AlbumCard } from './album-card'
 import type { Album } from '../../api/generated'
+
+// Mock react-router-dom navigate so we can assert navigation calls
+const mockNavigate = vi.fn()
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router-dom')>()
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  }
+})
 
 function makeAlbum(overrides: Partial<Album> = {}): Album {
   return {
@@ -18,6 +28,10 @@ function makeAlbum(overrides: Partial<Album> = {}): Album {
 }
 
 describe('AlbumCard', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   it('renders album title', () => {
     render(<MemoryRouter><AlbumCard album={makeAlbum()} /></MemoryRouter>)
     expect(screen.getByText('Kind of Blue')).toBeInTheDocument()
@@ -78,5 +92,43 @@ describe('AlbumCard', () => {
     })
     // After error, placeholder should appear
     expect(screen.getByRole('img', { name: 'No cover art' })).toBeInTheDocument()
+  })
+
+  // ──────────────────────────────────────────────
+  // Accessibility / keyboard navigation
+  // ──────────────────────────────────────────────
+
+  it('card has tabIndex=0 and role="button" for keyboard accessibility', () => {
+    render(<MemoryRouter><AlbumCard album={makeAlbum()} /></MemoryRouter>)
+    const card = screen.getByRole('button', { name: /View details for Kind of Blue/ })
+    expect(card).toHaveAttribute('tabindex', '0')
+  })
+
+  it('navigates to album detail on Enter keydown', () => {
+    render(<MemoryRouter><AlbumCard album={makeAlbum()} /></MemoryRouter>)
+    const card = screen.getByRole('button', { name: /View details for Kind of Blue/ })
+    fireEvent.keyDown(card, { key: 'Enter' })
+    expect(mockNavigate).toHaveBeenCalledWith('/albums/550e8400-e29b-41d4-a716-446655440000')
+  })
+
+  it('navigates to album detail on Space keydown', () => {
+    render(<MemoryRouter><AlbumCard album={makeAlbum()} /></MemoryRouter>)
+    const card = screen.getByRole('button', { name: /View details for Kind of Blue/ })
+    fireEvent.keyDown(card, { key: ' ' })
+    expect(mockNavigate).toHaveBeenCalledWith('/albums/550e8400-e29b-41d4-a716-446655440000')
+  })
+
+  it('does not navigate on other key presses', () => {
+    render(<MemoryRouter><AlbumCard album={makeAlbum()} /></MemoryRouter>)
+    const card = screen.getByRole('button', { name: /View details for Kind of Blue/ })
+    fireEvent.keyDown(card, { key: 'Tab' })
+    expect(mockNavigate).not.toHaveBeenCalled()
+  })
+
+  it('navigates to album detail on click', () => {
+    render(<MemoryRouter><AlbumCard album={makeAlbum()} /></MemoryRouter>)
+    const card = screen.getByRole('button', { name: /View details for Kind of Blue/ })
+    fireEvent.click(card)
+    expect(mockNavigate).toHaveBeenCalledWith('/albums/550e8400-e29b-41d4-a716-446655440000')
   })
 })
