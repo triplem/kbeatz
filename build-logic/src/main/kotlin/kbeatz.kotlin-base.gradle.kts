@@ -45,6 +45,10 @@ tasks.withType<Test> {
     }
 }
 
+dependencyLocking {
+    lockAllConfigurations()
+}
+
 detekt {
     buildUponDefaultConfig = true
     allRules = false

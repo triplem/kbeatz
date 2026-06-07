@@ -51,10 +51,11 @@ jobs:
           exit-code: '1'
           format: 'table'
           skip-dirs: '.git,kbeatz-ui/node_modules'
-        # Scans compiled JARs from the build step above for CVEs in bundled JVM
-        # libraries, plus kbeatz-ui/package-lock.json for npm dependencies.
-        # The build/ directories are intentionally NOT excluded so Trivy can
-        # inspect resolved dependency JARs (the most reliable signal for JVM).
+        # Scans gradle.lockfile in each module for JVM CVEs, and
+        # kbeatz-ui/package-lock.json for npm CVEs.
+        # Lockfiles are committed and must be kept up to date: run
+        # `./gradlew --project-dir <module> dependencies --write-locks`
+        # for each module after any dependency change.
         # To accept a false-positive, add a .trivyignore file at the repo root
         # and document the reason in docs/security/accepted-risks.md.
 
