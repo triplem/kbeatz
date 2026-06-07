@@ -15,6 +15,7 @@ import org.javafreedom.kbeatz.catalog.application.service.LibraryWalker
 import org.javafreedom.kbeatz.catalog.application.service.TagWriteService
 import org.javafreedom.kbeatz.catalog.infrastructure.persistence.AlbumsTable
 import org.javafreedom.kbeatz.catalog.infrastructure.persistence.DbFactory
+import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 import org.javafreedom.kbeatz.catalog.infrastructure.persistence.ExposedAlbumRepository
 import org.javafreedom.kbeatz.catalog.infrastructure.persistence.ExposedTrackRepository
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -103,7 +104,7 @@ fun Application.module() {
 
 private fun buildSyncService(
     config: AppConfig,
-    albumRepository: ExposedAlbumRepository,
+    albumRepository: AlbumRepository,
     libraryRootPath: Path,
 ): DiscogsSyncService {
     val token = config.discogsToken
