@@ -31,3 +31,19 @@ updates:
       interval: "weekly"
     commit-message:
       prefix: "chore(ui)"
+
+  # Keep npm dependencies up to date for kbeatz-ui
+  - package-ecosystem: "npm"
+    directory: "/kbeatz-ui"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(ui)"
+
+  # Keep Gradle dependencies up to date (version catalog libs.versions.toml)
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(scaffold)"
