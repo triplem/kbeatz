@@ -535,6 +535,68 @@ class MigrationTest {
     }
 
     @Test
+    fun `saveAll called from repair path with null enriched fields does not wipe existing metadata`() = runTest {
+        // Regression test for issue #206: repairOnStartup() calls saveAll() with albums produced
+        // by AlbumGroup.toAlbum() which has all enriched fields set to null. The structural-only
+        // update path must leave previously-set Discogs metadata untouched.
+        val ds = DbFactory.init(jdbcUrl)
+        try {
+            val repo = ExposedAlbumRepository()
+
+            // Insert album with full Discogs metadata
+            val albumId = Uuid.random()
+            val enriched = Album(
+                id = albumId,
+                albumArtist = "John Coltrane",
+                album = "A Love Supreme",
+                date = "1964",
+                genre = "Jazz",
+                label = "Impulse!",
+                catalogNumber = "AS-77",
+                composer = "John Coltrane",
+                conductor = null,
+                ensemble = null,
+                discogsId = "d7654321",
+                extraTags = null,
+                images = null,
+                directoryPath = "jazz/coltrane/love-supreme",
+            )
+            repo.save(enriched)
+
+            // Simulate repairOnStartup: passes album with all enriched fields null
+            // (exactly what AlbumGroup.toAlbum() produces in LibraryScanService)
+            repo.saveAll(listOf(
+                Album(
+                    id = Uuid.random(),
+                    albumArtist = "John Coltrane",
+                    album = "A Love Supreme",
+                    date = "1964",
+                    genre = null,
+                    label = null,
+                    catalogNumber = null,
+                    composer = null,
+                    conductor = null,
+                    ensemble = null,
+                    discogsId = null,
+                    extraTags = null,
+                    images = null,
+                    directoryPath = "jazz/coltrane/love-supreme",
+                ),
+            ))
+
+            val found = repo.findById(albumId)
+            assertNotNull(found)
+            assertEquals("Jazz", found.genre, "genre must not be wiped by repair path")
+            assertEquals("Impulse!", found.label, "label must not be wiped by repair path")
+            assertEquals("AS-77", found.catalogNumber, "catalogNumber must not be wiped by repair path")
+            assertEquals("d7654321", found.discogsId, "discogsId must not be wiped by repair path")
+        } finally {
+            transaction { AlbumsTable.deleteAll() }
+            ds.close()
+        }
+    }
+
+    @Test
     fun `ExposedTrackRepository deleteByAlbumId removes tracks`() = runTest {
         val ds = DbFactory.init(jdbcUrl)
         try {
