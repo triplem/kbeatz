@@ -1,0 +1,33 @@
+version: 2
+updates:
+  # Keep GitHub Actions up to date (includes actions/cache, actions/checkout, etc.)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(ci)"
+
+  # Detect new digests for kbeatz-catalog base image (eclipse-temurin:21-*)
+  - package-ecosystem: "docker"
+    directory: "/kbeatz-catalog"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(catalog)"
+
+  # Detect new digests for kbeatz-cli base image (eclipse-temurin:21-*)
+  - package-ecosystem: "docker"
+    directory: "/kbeatz-cli"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(cli)"
+
+  # Detect new digests for kbeatz-ui base image (node:22-alpine)
+  - package-ecosystem: "docker"
+    directory: "/kbeatz-ui"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(ui)"
