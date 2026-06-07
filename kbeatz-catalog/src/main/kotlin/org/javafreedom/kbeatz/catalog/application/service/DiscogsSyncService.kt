@@ -7,6 +7,7 @@ import kotlin.uuid.Uuid
 import kotlinx.io.files.Path as KtPath
 import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.model.SyncResult
+import org.javafreedom.kbeatz.catalog.domain.model.WRITE_LOCK_FILENAME
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 import org.javafreedom.kbeatz.common.BusinessValidationException
 import org.javafreedom.kbeatz.common.ImageQuotaExhaustedException
@@ -17,8 +18,6 @@ import org.javafreedom.kbeatz.tagger.codec.flac.FlacFile
 import org.javafreedom.kbeatz.tagger.codec.flac.VorbisCommentFields
 
 private val log = KotlinLogging.logger {}
-
-private const val LOCK_FILE_NAME = ".kbeatz-write.lock"
 private const val ROLE_COMPOSED_BY = "Composed By"
 private const val ROLE_CONDUCTOR = "Conductor"
 private const val ROLE_ORCHESTRA = "Orchestra"
@@ -139,12 +138,12 @@ class DiscogsSyncService(
 
     private fun writeLockFile(albumDir: Path) {
         Files.createDirectories(albumDir)
-        Files.writeString(albumDir.resolve(LOCK_FILE_NAME), "")
+        Files.writeString(albumDir.resolve(WRITE_LOCK_FILENAME), "")
         log.debug { "Lock file created in $albumDir" }
     }
 
     private fun deleteLockFile(albumDir: Path) {
-        Files.deleteIfExists(albumDir.resolve(LOCK_FILE_NAME))
+        Files.deleteIfExists(albumDir.resolve(WRITE_LOCK_FILENAME))
         log.debug { "Lock file removed from $albumDir" }
     }
 
