@@ -8,6 +8,7 @@ import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
@@ -62,17 +63,20 @@ class ExposedAlbumRepository : AlbumRepository {
         }
 
     override suspend fun saveAll(albums: List<Album>) {
+        if (albums.isEmpty()) return
         suspendTransaction {
-            albums.forEach { album ->
-                val existing = AlbumsTable
-                    .selectAll()
-                    .where { AlbumsTable.id eq album.id.toJavaUuid() }
-                    .singleOrNull()
+            val javaUuids = albums.map { it.id.toJavaUuid() }
+            val existingIds = AlbumsTable
+                .selectAll()
+                .where { AlbumsTable.id inList javaUuids }
+                .map { it[AlbumsTable.id].value }
+                .toSet()
 
-                if (existing == null) {
-                    insertAlbum(album)
-                } else {
+            albums.forEach { album ->
+                if (album.id.toJavaUuid() in existingIds) {
                     updateAlbum(album)
+                } else {
+                    insertAlbum(album)
                 }
             }
         }

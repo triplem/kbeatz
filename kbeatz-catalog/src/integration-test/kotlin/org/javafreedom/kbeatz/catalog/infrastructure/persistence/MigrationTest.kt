@@ -390,6 +390,58 @@ class MigrationTest {
     }
 
     @Test
+    fun `saveAll inserts new albums and updates existing albums in one batch`() = runTest {
+        val ds = DbFactory.init(jdbcUrl)
+        try {
+            val repo = ExposedAlbumRepository()
+
+            // Seed one album
+            val existingId = Uuid.random()
+            val existing = Album(
+                id = existingId, albumArtist = "Bach", album = "BWV 999",
+                date = "1720", genre = "Baroque", label = null, catalogNumber = null,
+                composer = null, conductor = null, ensemble = null, discogsId = null,
+                extraTags = null, images = null, directoryPath = "baroque/bach/bwv999",
+            )
+            repo.save(existing)
+
+            // saveAll with: one update (existing) + one insert (new)
+            val newId = Uuid.random()
+            repo.saveAll(listOf(
+                existing.copy(genre = "Classical"), // update
+                Album(
+                    id = newId, albumArtist = "Mozart", album = "K. 300",
+                    date = "1780", genre = "Classical", label = null, catalogNumber = null,
+                    composer = null, conductor = null, ensemble = null, discogsId = null,
+                    extraTags = null, images = null, directoryPath = "classical/mozart/k300",
+                ), // insert
+            ))
+
+            assertEquals(2L, repo.count())
+            val updated = repo.findById(existingId)
+            assertNotNull(updated)
+            assertEquals("Classical", updated.genre, "existing album genre should be updated")
+            val inserted = repo.findById(newId)
+            assertNotNull(inserted, "new album should be inserted")
+        } finally {
+            transaction { AlbumsTable.deleteAll() }
+            ds.close()
+        }
+    }
+
+    @Test
+    fun `saveAll with empty list is a no-op`() = runTest {
+        val ds = DbFactory.init(jdbcUrl)
+        try {
+            val repo = ExposedAlbumRepository()
+            repo.saveAll(emptyList())
+            assertEquals(0L, repo.count())
+        } finally {
+            ds.close()
+        }
+    }
+
+    @Test
     fun `ExposedTrackRepository deleteByAlbumId removes tracks`() = runTest {
         val ds = DbFactory.init(jdbcUrl)
         try {
