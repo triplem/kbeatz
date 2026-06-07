@@ -6,6 +6,7 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.patch
+import java.nio.file.Path
 import kotlin.uuid.Uuid
 import org.javafreedom.kbeatz.catalog.api.models.AlbumDetail
 import org.javafreedom.kbeatz.catalog.api.models.ErrorResponse
@@ -33,7 +34,7 @@ import org.javafreedom.kbeatz.common.ResourceNotFoundException
  * No auth in v1 (trusted LAN deployment).
  */
 @Suppress("TooGenericExceptionCaught") // route handlers must return structured error responses
-fun Route.tagRoutes(albumService: AlbumService, tagWriteService: TagWriteService) {
+fun Route.tagRoutes(albumService: AlbumService, tagWriteService: TagWriteService, libraryRoot: Path) {
     patch("/albums/{albumId}") {
         val albumIdStr = call.parameters["albumId"]
         val albumId = albumIdStr?.let { runCatching { Uuid.parse(it) }.getOrNull() }
@@ -47,7 +48,7 @@ fun Route.tagRoutes(albumService: AlbumService, tagWriteService: TagWriteService
                 HttpStatusCode.BadRequest,
                 ErrorResponse(code = "INVALID_ALBUM_ID", message = "Invalid UUID: $albumIdStr"),
             )
-            else -> handlePatchAlbum(call, albumId, albumService, tagWriteService)
+            else -> handlePatchAlbum(call, albumId, albumService, tagWriteService, libraryRoot)
         }
     }
 
@@ -66,7 +67,7 @@ fun Route.tagRoutes(albumService: AlbumService, tagWriteService: TagWriteService
                 HttpStatusCode.BadRequest,
                 ErrorResponse(code = "INVALID_TRACK_ID", message = "Invalid trackId"),
             )
-            else -> handlePatchTrack(call, albumId, trackId, albumService, tagWriteService)
+            else -> handlePatchTrack(call, albumId, trackId, albumService, tagWriteService, libraryRoot)
         }
     }
 }
@@ -76,13 +77,14 @@ private suspend fun handlePatchAlbum(
     albumId: Uuid,
     albumService: AlbumService,
     tagWriteService: TagWriteService,
+    libraryRoot: Path,
 ) {
     try {
         val request = call.receive<UpdateTagFieldRequest>()
         // Write returns updated Album; reload tracks separately for the AlbumDetail response
         val updatedAlbum = tagWriteService.writeAlbumTags(albumId, request.field, request.value)
         val (_, tracks) = albumService.getAlbumWithTracks(albumId)
-        call.respond(HttpStatusCode.OK, updatedAlbum.toDetailApiModel(tracks))
+        call.respond(HttpStatusCode.OK, updatedAlbum.toDetailApiModel(tracks, libraryRoot))
     } catch (ex: ResourceNotFoundException) {
         call.respond(
             HttpStatusCode.NotFound,
@@ -96,18 +98,20 @@ private suspend fun handlePatchAlbum(
     }
 }
 
+@Suppress("LongParameterList") // private route handler — call + IDs + services + config
 private suspend fun handlePatchTrack(
     call: ApplicationCall,
     albumId: Uuid,
     trackId: Uuid,
     albumService: AlbumService,
     tagWriteService: TagWriteService,
+    libraryRoot: Path,
 ) {
     try {
         val request = call.receive<UpdateTagFieldRequest>()
         tagWriteService.writeTrackTags(albumId, trackId, request.field, request.value)
         val (album, tracks) = albumService.getAlbumWithTracks(albumId)
-        call.respond(HttpStatusCode.OK, album.toDetailApiModel(tracks))
+        call.respond(HttpStatusCode.OK, album.toDetailApiModel(tracks, libraryRoot))
     } catch (ex: ResourceNotFoundException) {
         call.respond(
             HttpStatusCode.NotFound,

@@ -333,8 +333,8 @@ components:
           example: "12345678"
         directoryPath:
           type: string
-          description: "Absolute path of the album directory within the library root"
-          example: "/music/Jazz/Miles Davis/Kind of Blue"
+          description: "Path of the album directory relative to the configured library root"
+          example: "Jazz/Miles Davis/Kind of Blue"
         hasCoverArt:
           type: boolean
           description: "True when cover art is available via GET /albums/{albumId}/cover"
@@ -443,8 +443,8 @@ components:
           example: "12345678"
         directoryPath:
           type: string
-          description: "Absolute path of the album directory within the library root"
-          example: "/music/Jazz/Miles Davis/Kind of Blue"
+          description: "Path of the album directory relative to the configured library root"
+          example: "Jazz/Miles Davis/Kind of Blue"
         hasCoverArt:
           type: boolean
           description: "True when cover art is available via GET /albums/{albumId}/cover"

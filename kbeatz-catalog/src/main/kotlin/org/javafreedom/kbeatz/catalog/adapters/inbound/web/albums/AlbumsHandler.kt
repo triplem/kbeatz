@@ -3,6 +3,7 @@ package org.javafreedom.kbeatz.catalog.adapters.inbound.web.albums
 import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import java.nio.file.Path
 import kotlin.math.ceil
 import org.javafreedom.kbeatz.catalog.api.models.Album as ApiAlbum
 import org.javafreedom.kbeatz.catalog.api.models.AlbumPage
@@ -15,9 +16,10 @@ import org.javafreedom.kbeatz.catalog.domain.model.Album
  * `GET /albums` supports optional `page` and `size` parameters.
  * Results are always wrapped in an [AlbumPage] pagination envelope.
  *
+ * @param libraryRoot Used to compute relative [directoryPath] in API responses.
  * No auth in v1 (trusted LAN deployment).
  */
-fun Route.albumRoutes(albumService: AlbumService) {
+fun Route.albumRoutes(albumService: AlbumService, libraryRoot: Path) {
     get("/albums") {
         val page = call.request.queryParameters["page"]?.toIntOrNull()?.coerceAtLeast(0) ?: 0
         val size = call.request.queryParameters["size"]?.toIntOrNull()
@@ -29,7 +31,7 @@ fun Route.albumRoutes(albumService: AlbumService) {
         call.respond(
             HttpStatusCode.OK,
             AlbumPage(
-                content = albums.map { it.toApiModel() },
+                content = albums.map { it.toApiModel(libraryRoot) },
                 page = page,
                 propertySize = size,
                 totalElements = total,
@@ -42,11 +44,11 @@ fun Route.albumRoutes(albumService: AlbumService) {
 private const val DEFAULT_PAGE_SIZE = 20
 private const val MAX_PAGE_SIZE = 100
 
-private fun Album.toApiModel(): ApiAlbum = ApiAlbum(
+internal fun Album.toApiModel(libraryRoot: Path): ApiAlbum = ApiAlbum(
     id = id.toString(),
     albumArtist = albumArtist,
     album = album,
-    directoryPath = directoryPath,
+    directoryPath = libraryRoot.relativize(Path.of(directoryPath)).toString(),
     hasCoverArt = hasCoverArt,
     date = date,
     genre = genre,

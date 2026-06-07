@@ -10,6 +10,7 @@ import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
 import io.mockk.coEvery
 import io.mockk.mockk
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -28,6 +29,7 @@ class AlbumDetailHandlerTest {
     private val albumRepository: AlbumRepository = mockk()
     private val trackRepository: TrackRepository = mockk()
     private val albumService = AlbumService(albumRepository, trackRepository)
+    private val libraryRoot = Path.of("/music")
 
     private val albumId = Uuid.random()
 
@@ -69,7 +71,7 @@ class AlbumDetailHandlerTest {
     @Test
     fun `GET albums albumId returns 200 with AlbumDetail when found`() = testApplication {
         install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
-        routing { albumDetailRoutes(albumService) }
+        routing { albumDetailRoutes(albumService, libraryRoot) }
         val client = createClient { install(ClientContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }
 
         val track = buildTrack(albumId)
@@ -92,7 +94,7 @@ class AlbumDetailHandlerTest {
     @Test
     fun `GET albums albumId returns 200 with empty tracks list when album has no tracks`() = testApplication {
         install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
-        routing { albumDetailRoutes(albumService) }
+        routing { albumDetailRoutes(albumService, libraryRoot) }
         val client = createClient { install(ClientContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }
 
         coEvery { albumRepository.findById(albumId) } returns buildAlbum()
@@ -108,7 +110,7 @@ class AlbumDetailHandlerTest {
     @Test
     fun `GET albums albumId returns 404 when album not found`() = testApplication {
         install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
-        routing { albumDetailRoutes(albumService) }
+        routing { albumDetailRoutes(albumService, libraryRoot) }
         val client = createClient { install(ClientContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }
 
         coEvery { albumRepository.findById(albumId) } returns null
@@ -123,7 +125,7 @@ class AlbumDetailHandlerTest {
     @Test
     fun `GET albums albumId returns 400 when albumId is not a UUID`() = testApplication {
         install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
-        routing { albumDetailRoutes(albumService) }
+        routing { albumDetailRoutes(albumService, libraryRoot) }
         val client = createClient { install(ClientContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }
 
         val response = client.get("/albums/not-a-uuid")
@@ -134,9 +136,26 @@ class AlbumDetailHandlerTest {
     }
 
     @Test
+    fun `GET albums albumId returns relative directoryPath when libraryRoot is configured`() = testApplication {
+        install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        routing { albumDetailRoutes(albumService, libraryRoot) }
+        val client = createClient { install(ClientContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }
+
+        coEvery { albumRepository.findById(albumId) } returns buildAlbum()
+        coEvery { trackRepository.findByAlbumId(albumId) } returns emptyList()
+
+        val response = client.get("/albums/${albumId}")
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val detail = response.body<AlbumDetail>()
+        // domain: /music/kind-of-blue, libraryRoot: /music → relative: kind-of-blue
+        assertEquals("kind-of-blue", detail.directoryPath)
+    }
+
+    @Test
     fun `GET albums albumId maps all optional fields correctly`() = testApplication {
         install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
-        routing { albumDetailRoutes(albumService) }
+        routing { albumDetailRoutes(albumService, libraryRoot) }
         val client = createClient { install(ClientContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }
 
         val composerAlbum = buildAlbum().copy(

@@ -13,6 +13,7 @@ import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
 import io.mockk.coEvery
 import io.mockk.mockk
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -25,6 +26,7 @@ class SyncHandlerTest {
 
     private val syncService: DiscogsSyncService = mockk()
     private val albumId = Uuid.random()
+    private val libraryRoot = Path.of("/music")
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -33,7 +35,7 @@ class SyncHandlerTest {
         coEvery { syncService.sync(albumId, any()) } throws RuntimeException("DB connection timeout — secrets leaked here")
 
         install(ContentNegotiation) { json(json) }
-        routing { syncRoutes(syncService) }
+        routing { syncRoutes(syncService, libraryRoot) }
 
         val client = createClient {
             install(ClientContentNegotiation) { json(json) }
@@ -62,7 +64,7 @@ class SyncHandlerTest {
         coEvery { syncService.sync(albumId, any()) } throws RuntimeException("internal error")
 
         install(ContentNegotiation) { json(json) }
-        routing { syncRoutes(syncService) }
+        routing { syncRoutes(syncService, libraryRoot) }
 
         val client = createClient {
             install(ClientContentNegotiation) { json(json) }
