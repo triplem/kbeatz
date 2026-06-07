@@ -45,7 +45,7 @@ private object TraceIdAndMdcHook : Hook<suspend () -> Unit> {
  *
  * Trust model note (v1): echoing server-generated UUIDs to all clients is acceptable
  * on a trusted LAN with no authentication. Before v2 internet-facing deployment
- * this behaviour should be re-evaluated — see the "Request Tracing" section in
+ * this behaviour should be re-evaluated - see the "Request Tracing" section in
  * kbeatz-catalog/docs/operations-guide.adoc.
  */
 val TraceIdPlugin: ApplicationPlugin<Unit> = createApplicationPlugin("TraceIdPlugin") {
