@@ -64,7 +64,12 @@ export function ScanProgress() {
   const progressText = total !== undefined ? `${scanned} / ${total}` : `${scanned}`
 
   return (
-    <div className="scan-progress scan-progress--running" role="status">
+    <div
+      className="scan-progress scan-progress--running"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    >
       Scanning: {progressText} albums
     </div>
   )

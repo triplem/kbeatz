@@ -60,6 +60,19 @@ describe('ScanProgress', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Scanning: 100 / 500 albums')
   })
 
+  it('running banner has aria-live="polite" and aria-atomic="true"', async () => {
+    mockGetStatus.mockResolvedValue(
+      makeStatus('RUNNING', { scannedAlbums: 5, totalAlbums: 50 }),
+    )
+    render(<ScanProgress />)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    const banner = screen.getByRole('status')
+    expect(banner).toHaveAttribute('aria-live', 'polite')
+    expect(banner).toHaveAttribute('aria-atomic', 'true')
+  })
+
   it('renders progress without total when totalAlbums is not set', async () => {
     mockGetStatus.mockResolvedValue(makeStatus('RUNNING', { scannedAlbums: 42 }))
     render(<ScanProgress />)
