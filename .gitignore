@@ -38,3 +38,4 @@ Thumbs.db
 
 # Session audit logs live outside the repo
 # (see SESSION_LOG_DIR in .claude/settings.json)
+.kotlin/
