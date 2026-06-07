@@ -15,6 +15,7 @@ This documentation covers:
 * xref:getting-started.adoc[Getting Started] — first-time setup and project bootstrap
 * xref:architecture.adoc[Architecture] — hexagonal structure, API-first design, auth
 * xref:claude-code-config.adoc[Claude Code Configuration] — skills, rules, hooks, and the SDLC workflow
+* xref:claude-kbeatz-config.adoc[kbeatz Claude Code Configuration] — kbeatz-specific CLAUDE.md hierarchy, hooks, memory, MCP servers, and recommended workflows
 * xref:adding-a-service.adoc[Adding a Service] — step-by-step guide for new backend services
 
 == Services

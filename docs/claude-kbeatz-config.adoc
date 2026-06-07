@@ -1,0 +1,651 @@
+= kbeatz Claude Code Configuration Guide
+:toc: left
+:toclevels: 3
+:icons: font
+:source-highlighter: rouge
+
+This guide covers the kbeatz-specific Claude Code configuration: the CLAUDE.md hierarchy,
+rules vs. skills distinction, hooks architecture, memory system, MCP servers, and recommended
+workflows. For the generic Claude Code SDLC process see xref:claude-process.adoc[Claude Code
+SDLC Process].
+
+The generic configuration skeleton lives in `docs/claude-code-config.adoc`. This document
+covers the actual implemented configuration for the kbeatz monorepo.
+
+== 1. CLAUDE.md Hierarchy
+
+Claude Code reads CLAUDE.md files hierarchically. When working inside a module directory it
+loads all three levels in order, with lower levels adding context rather than replacing it.
+
+----
+~/.claude/CLAUDE.md                     (1) global user rules - apply to every project
+kbeatz/CLAUDE.md                        (2) project root - overview, stack, commands, conventions
+kbeatz/kbeatz-<module>/CLAUDE.md        (3) per-module (none yet; add when module is complex enough)
+----
+
+=== Level 1: Global user rules (~/.claude/CLAUDE.md)
+
+The global file defines rules that apply to every project on the workstation. For kbeatz the
+global file covers:
+
+* Composite Gradle build (includeBuild) quirks - each module needs its own `config/detekt/detekt.yml`
+* Common Detekt false-positive patterns and their idiomatic Kotlin fixes
+* Quality gate mandate: `./gradlew check` and `npm run build` before every PR
+* Merging rule: never merge without all GitHub Actions checks green
+
+These rules live at the global level because they apply to every Kotlin/Gradle project on the
+machine, not just kbeatz.
+
+=== Level 2: Project root (kbeatz/CLAUDE.md)
+
+The project root CLAUDE.md covers kbeatz-specific shared context:
+
+* Module map - all six modules with ports, purposes, and inter-module relationships
+* Common tech stack (Kotlin + Ktor, React 19, Gradle composite builds, OpenAPI-first)
+* Commands for building, testing, and running the full monorepo
+* Hexagonal architecture rules (no `java.time.*` in domain, no framework imports in domain)
+* Issue tracking, branch naming (`<type>/<issue>-<slug>`), commit conventions
+* Rules Index and Skills Index
+
+=== Level 3: Per-module (kbeatz-<module>/CLAUDE.md)
+
+Per-module files add focused context that only applies to one module. For kbeatz, none of the
+current modules have a dedicated CLAUDE.md because the project root covers the key behaviours.
+A module CLAUDE.md is warranted when:
+
+* The module has a non-obvious state machine (e.g., multi-step sync workflow)
+* Domain constraints differ meaningfully from the root (e.g., a service with its own auth rules)
+* The module's schema or domain model is large enough that including it in the root would bloat it
+
+=== What belongs at each level
+
+[cols="1,2,2"]
+|===
+|Level |Belongs here |Example from kbeatz
+
+|Global (`~/.claude/CLAUDE.md`)
+|Rules that apply to multiple projects - tool patterns, anti-patterns, universal quality gates
+|Detekt composite-build quirk; `./gradlew check` before every PR
+
+|Project root (`CLAUDE.md`)
+|Everything shared across modules - module map, stack, commands, conventions, issue workflow
+|Module port table; hexagonal package paths; commit scope reference
+
+|Per-module (`<module>/CLAUDE.md`)
+|Domain model, schema, unique env vars, state machines for that module only
+|Future: kbeatz-catalog Liquibase changelog format; kbeatz-sources rate-limiting rules
+|===
+
+== 2. Rules vs. Skills: The Right Tool
+
+Rules and skills both influence Claude's behaviour, but they serve different purposes.
+
+=== Decision boundary
+
+[cols="1,2,2"]
+|===
+|Criterion |Use a rule file |Use a skill
+
+|Applies automatically
+|Yes - rules load on every session
+|No - skills require explicit invocation (`/skill-name`)
+
+|Complexity
+|Short reference or checklist
+|Multi-step process with conditional logic
+
+|State required
+|No
+|Yes (skills can read files, create branches, open PRs)
+
+|Target
+|Shapes Claude's ongoing behaviour
+|Executes a repeatable workflow
+
+|Example from kbeatz
+|`kotlin-style.md` - how to write Kotlin in this repo
+|`/implement` - the full story implementation workflow
+|===
+
+=== kbeatz examples: rules
+
+The rules in `.claude/rules/` define constraints and patterns that Claude must apply
+automatically in every session:
+
+* `branching-strategy.md` - branch naming format, direct commits to main are blocked
+* `commit-conventions.md` - Conventional Commits format with kbeatz-specific scopes
+* `kotlin-style.md` - Kotlin idioms, Detekt config, Gradle DSL patterns
+* `api-design.md` - OpenAPI-first, REST conventions, pagination
+* `quality-gates.md` - mandatory checklist before any PR
+
+Rules are appropriate here because they define ongoing constraints, not one-time procedures.
+
+=== kbeatz examples: skills
+
+The skills in `.claude/skills/` implement multi-step repeatable processes:
+
+* `/implement` - reads the story, creates a branch, writes code, runs quality gates, opens PR
+* `/ship` - parallel pipeline: implement all approved stories, challenge PRs, fix findings, merge
+* `/create-adr` - proposes options, structures debate, writes an ADR document
+* `/pr-reviewer` - reviews a PR from all nine specialist perspectives, posts findings, fixes them
+
+Skills are appropriate here because they require multi-step logic, file operations, and
+coordination across tool calls that would be impractical to encode as a static rule.
+
+=== When to add a new rule vs. a new skill
+
+Add a *rule* when:
+
+* A pattern keeps being violated because Claude is not applying it consistently
+* The guidance is short enough to scan in 10-30 seconds
+* It applies to all future work, not just one workflow
+
+Add a *skill* when:
+
+* A workflow has more than five steps
+* It involves branching logic ("if the PR has no issues, merge; otherwise fix and re-push")
+* It is invoked explicitly by name, not automatically
+
+== 3. Hooks Architecture
+
+Hooks are shell scripts that Claude Code calls at specific lifecycle events. They enforce
+project policy without relying on Claude's memory - the enforcement is in the infrastructure,
+not the context window.
+
+=== All 10 hooks
+
+[cols="2,1,3"]
+|===
+|Script |Event |What it does
+
+|`session-start.sh`
+|SessionStart
+|Detects tech stack, git state, active story from branch name, SDLC phase. Injects this
+as additional context so Claude does not need to ask. Also writes `session_start` entry
+to the audit JSONL log.
+
+|`safety-bash.sh`
+|PreToolUse:Bash
+|Blocks: force-push to main/master, `git reset --hard` on main, `rm -rf /` root deletion.
+Warns on `--no-verify` (which skips pre-commit hooks).
+
+|`commit-guard.sh`
+|PreToolUse:Bash
+|Intercepts every `git commit` call. Blocks direct commits to main/master. Validates the
+commit message against the Conventional Commits pattern
+(`<type>(<scope>): <summary>`). Warns if the summary exceeds 72 characters.
+
+|`pre-push-gates.sh`
+|PreToolUse:Bash
+|Runs quality gates before any `git push`. Checks for Kotlin source changes and runs
+`:kbeatz-catalog:check` etc. per module; checks for TypeScript changes and runs
+`npm test` and `tsc --noEmit`; runs SAST via Semgrep if available. Skips all checks
+when no matching source files have changed since the merge base.
+
+|`post-edit-secrets.sh`
+|PostToolUse:Write\|Edit
+|Scans every written or edited file for hardcoded secrets: API keys, passwords,
+connection strings, AWS keys, private key headers, GitHub tokens, Stripe keys.
+Injects a warning as additional context so Claude removes the secret immediately.
+
+|`post-edit-lint.sh`
+|PostToolUse:Write\|Edit
+|Runs the appropriate linter immediately after a file is written. Kotlin: runs Detekt
+on the owning subproject. TypeScript/TSX: runs ESLint. Java: runs Checkstyle. C#:
+runs `dotnet format`. Injects lint findings back so Claude fixes them in the same turn.
+
+|`post-edit-openapi.sh`
+|PostToolUse:Write\|Edit
+|Runs Spectral lint after any write to `openapi.yaml`. Injects violations as additional
+context. Only fires on files named `openapi.yaml`, `openapi.yml`, or `openapi.json`.
+
+|`post-tool-audit.sh`
+|PostToolUse:Bash\|Write\|Edit
+|Appends one JSONL line per meaningful tool use to the session audit log. Skips
+read-only commands (`cat`, `grep`, `find`, `ls`, etc.). Runs async to avoid blocking.
+
+|`stop-audit.sh`
+|Stop
+|Writes a `session_stop` summary entry to the audit log: branch, last commit hash,
+and count of actions taken in the session.
+
+|`file-changed-env.sh`
+|FileChanged
+|Fires when a `.env` file is created or modified. Checks that the file is gitignored.
+Warns if it is not. Scans for obvious secrets (hardcoded passwords, AWS keys, private
+key headers). Suggests creating a `.env.example` if one does not exist.
+|===
+
+=== How hooks are wired
+
+Hooks are declared in `.claude/settings.json` under the `hooks` key. Each hook entry
+specifies an event name, an optional `matcher` (regex or tool name), the command to run,
+and a timeout:
+
+[source,json]
+----
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/safety-bash.sh",
+            "timeout": 5,
+            "statusMessage": "Safety check..."
+          }
+        ]
+      }
+    ]
+  }
+}
+----
+
+The `${CLAUDE_PROJECT_DIR}` variable is injected by Claude Code and resolves to the
+project root directory at runtime.
+
+=== Reading the audit log
+
+All sessions write to `~/.claude/kbeatz-sessions/` outside the repo to prevent merge conflicts.
+
+[source,bash]
+----
+# Show all git commits made by agents
+grep '"action":"bash"' ~/.claude/kbeatz-sessions/*.jsonl | grep "git commit"
+
+# Show session summaries (branch + action count per session)
+grep '"action":"session_stop"' ~/.claude/kbeatz-sessions/*.jsonl | \
+  python3 -c "
+import sys, json
+for line in sys.stdin:
+    d = json.loads(line.split(':', 1)[1])
+    print(f\"{d['ts'][:10]}  branch={d['branch']}  actions={d['actions_this_session']}\")
+"
+
+# Tail the current session log in real time
+ls -t ~/.claude/kbeatz-sessions/*.jsonl | head -1 | xargs tail -f
+----
+
+=== Log entry format
+
+[cols="1,1,3"]
+|===
+|Field |Type |Description
+
+|`ts`
+|ISO 8601 UTC
+|Timestamp of the action
+
+|`agent`
+|string
+|`"Claude"` for agent actions, `"System"` for hook-generated entries
+
+|`session_id`
+|string
+|Unique identifier for the Claude Code session
+
+|`action`
+|string
+|`bash`, `write`, `edit`, `session_start`, `session_stop`
+
+|`detail`
+|string
+|Command text (bash) or file path (write/edit). Truncated at 300 chars.
+|===
+
+== 4. Memory System in Practice
+
+The memory system stores lessons learned, project context, and recurring feedback in
+`~/.claude/projects/-home-triplem-projects-kbeatz/memory/`. Each file is a Markdown
+document with YAML frontmatter. The `MEMORY.md` index lists all files with one-line summaries.
+
+=== Memory file types
+
+[cols="1,2,2"]
+|===
+|Type |Purpose |Example filename
+
+|`feedback_*.md`
+|Lessons learned from mistakes - applied automatically to prevent recurrence
+|`feedback_detekt_pr_gate.md`
+
+|`project_*.md`
+|Domain context and reference material for the project
+|`project_kbeatz_requirements.md`
+
+|`MEMORY.md`
+|Index file - lists all memory entries with one-line summaries
+|`MEMORY.md`
+|===
+
+=== Real memory entries in use
+
+The following files currently exist in
+`~/.claude/projects/-home-triplem-projects-kbeatz/memory/`:
+
+`feedback_detekt_pr_gate.md` - records that a PR was merged with Detekt violations because
+the per-module gate was not run. The fix: always run
+`./gradlew :kbeatz-catalog:detektMain :kbeatz-cli:detektMain :kbeatz-common:detektMain :kbeatz-sources:detektMain :kbeatz-tagger:detektMain`
+before every PR. Also documents the includeBuild quirk: each module needs its own
+`config/detekt/detekt.yml` because `project.rootDir` resolves to the module directory,
+not the monorepo root.
+
+`feedback_ci_green_before_merge.md` - records that a PR was merged while GitHub Actions was
+still failing. The fix: always run `gh pr checks <number>` and wait for all checks to be
+green before running `gh pr merge`. Never use `--admin` override.
+
+`feedback_github_issue_heredoc.md` - records that a double-quoted heredoc (`<<EOF`) caused
+shell expansion to escape backtick characters in `gh issue create --body`, breaking GitHub
+Markdown code fences. The fix: always use single-quoted heredoc (`<<'EOF'`).
+
+`feedback_ship_skill_lessons.md` - documents seven hard-won lessons from running the `/ship`
+parallel pipeline: use worktrees to isolate parallel agents; group issues by file ownership
+not feature area; chain-dependent epics sequentially; recover from network timeouts by
+inspecting `git branch -a` and `gh pr list`; wire frontend CI before the first wave merges.
+
+`feedback_no_emdash.md` - records that em-dash characters (U+2014) must never appear in
+any artifact. Use plain hyphen-minus (`-`), a colon, or reword.
+
+`project_kbeatz_requirements.md` - domain reference: FLAC collection directory layout,
+ID file formats (INI and YAML), Vorbis Comment tag fields, classical music support, Discogs
+and MusicBrainz API details, and a reference to the Python discogstagger project.
+
+=== Writing a new memory entry
+
+Use the `/learn` skill after completing any story or resolving any non-obvious problem:
+
+[source]
+----
+/learn
+----
+
+The skill extracts the lesson, formats it as a `feedback_*.md` file, updates `MEMORY.md`,
+and commits the file to the memory directory. The lesson will be automatically applied in
+future sessions.
+
+== 5. MCP Servers in Use
+
+Two Model Context Protocol (MCP) servers are configured in `.claude/settings.json` under
+the `mcpServers` key. These give Claude Code structured access to GitHub and the project
+filesystem without requiring raw Bash commands for every operation.
+
+=== Configured servers
+
+[cols="1,2,2"]
+|===
+|Server name |npm package |Required env var
+
+|`github`
+|`@modelcontextprotocol/server-github`
+|`GITHUB_TOKEN` (mapped from `GITHUB_PERSONAL_ACCESS_TOKEN` in `settings.json`)
+
+|`filesystem`
+|`@modelcontextprotocol/server-filesystem`
+|None - scoped to `${CLAUDE_PROJECT_DIR}` automatically
+|===
+
+=== Configuration in settings.json
+
+[source,json]
+----
+{
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "${CLAUDE_PROJECT_DIR}"]
+    }
+  }
+}
+----
+
+=== Operations enabled by each server
+
+*github server* (`mcp__github__*` permission in settings.json):
+
+* Create, read, update, and close GitHub issues
+* Open pull requests
+* Read PR review comments and CI check status
+* Create releases and tags
+* Manage labels and assignees
+
+This is used by skills such as `/implement`, `/create-pr`, `/ship`, and `/pr-reviewer` to
+operate on the GitHub repository without requiring a separate `gh` CLI invocation for every
+action.
+
+*filesystem server* (`mcp__filesystem__*` permission in settings.json):
+
+* Read files within the project directory without requiring Bash `cat` calls
+* List directory contents
+* Browse the project tree for context gathering
+
+The filesystem server is scoped to `${CLAUDE_PROJECT_DIR}` - it cannot access paths outside
+the project root. This prevents accidental reads of sensitive files outside the project.
+
+=== Installing the servers
+
+[source,bash]
+----
+# One-time setup - installs both servers via npx (cached globally)
+./.claude/scripts/setup-mcp.sh github
+
+# Or install manually
+npm install -g @modelcontextprotocol/server-github
+npm install -g @modelcontextprotocol/server-filesystem
+----
+
+=== Required token scopes
+
+The `GITHUB_TOKEN` must have the following OAuth scopes:
+
+* `repo` - read/write access to the repository
+* `issues` - create and edit issues
+* `packages` - read GitHub Packages for dependency resolution
+
+Set the token in `.env` (which is gitignored):
+
+[source,bash]
+----
+GITHUB_TOKEN=ghp_your_token_here
+----
+
+== 6. Recommended Workflows for Common kbeatz Tasks
+
+=== 6.1 Adding a new API endpoint
+
+[source,bash]
+----
+# Step 1: Pick up the story from GitHub
+gh issue view NNN
+
+# Step 2: Create a feature branch
+./.claude/scripts/create-branch.sh feature NNN add-album-track-listing
+
+# Step 3: Update the OpenAPI spec first (spec-first rule)
+# Edit kbeatz-catalog/api/openapi.yaml
+
+# Step 4: Regenerate server stubs and TypeScript client
+./gradlew :kbeatz-catalog:openApiGenerate
+cd kbeatz-ui && npm run api:generate && cd ..
+
+# Step 5: Implement the handler and service
+# adapters/inbound/web/<Entity>Routes.kt
+# application/service/<Entity>Service.kt
+# domain/model/<Entity>.kt, domain/repository/<Entity>Repository.kt
+# infrastructure/persistence/Exposed<Entity>Repository.kt
+
+# Step 6: Run quality gates
+./gradlew :kbeatz-catalog:check    # tests + Detekt + Kover
+
+# Step 7: Commit, push, open PR
+git add kbeatz-catalog/ kbeatz-ui/
+git commit -m "feat(catalog): #NNN add track listing endpoint"
+git push -u origin feature/NNN-add-album-track-listing
+gh pr create --title "feat(catalog): #NNN add track listing endpoint" --body "$(cat <<'EOF'
+## Summary
+- Adds GET /api/v1/albums/{albumId}/track-listing endpoint
+- Updates OpenAPI spec, regenerates Kotlin stubs and TypeScript client
+
+## Test plan
+- [ ] Unit tests for AlbumService.getTrackListing()
+- [ ] Integration test for AlbumRoutes track-listing handler
+
+Closes #NNN
+EOF
+)"
+----
+
+=== 6.2 Implementing a story with the /implement skill
+
+[source]
+----
+# Start the implementation skill with the story number
+/implement #NNN
+----
+
+The skill reads the story acceptance criteria from GitHub, creates a branch using
+`./.claude/scripts/create-branch.sh`, implements the feature following the hexagonal
+architecture pattern, runs `./gradlew check`, and opens a PR. No manual steps are needed
+unless the skill hits a quality gate failure it cannot resolve.
+
+After the skill finishes:
+
+[source,bash]
+----
+# Confirm CI is green before merging
+gh pr checks <PR_NUMBER>
+
+# Merge when all checks pass
+gh pr merge <PR_NUMBER> --squash --delete-branch
+
+# Close the issue
+gh issue close NNN --comment "Fixed in PR #PR_NUMBER."
+----
+
+=== 6.3 Implementing a full epic in dependency order
+
+[source]
+----
+/implement-epic #NNN
+----
+
+The skill reads all stories under epic #NNN, groups them into dependency waves, and
+implements each wave in sequence (or in parallel where stories do not share files). It
+opens one PR per story, challenges each with specialist review, fixes findings, and merges.
+
+Monitor progress:
+
+[source,bash]
+----
+# See what has been merged and what is still in progress
+gh pr list --state all | grep "feature/"
+gh issue list --label "In Progress"
+----
+
+=== 6.4 Running a full ship pipeline
+
+[source]
+----
+/ship
+----
+
+The `/ship` skill is the highest-level automation: it implements all approved stories,
+opens PRs, challenges them from all nine specialist perspectives (security, QA, architect,
+DevOps, UX, performance, operations, technical-writer, requirements), posts findings as PR
+comments, fixes BLOCKER and MAJOR findings, waits for CI green, merges, then runs a
+main-branch challenge and opens GitHub issues for any remaining findings.
+
+Key things to know before running `/ship`:
+
+* All stories must be in `approved` state (no `pending-approval` stories)
+* Group stories that touch the same files so they are assigned to the same agent
+* A GITHUB_TOKEN with `repo`, `issues`, and `packages` scopes is required
+
+=== 6.5 Recovering from a failed parallel agent
+
+When a parallel agent session fails partway through (network timeout, OOM, etc.):
+
+[source,bash]
+----
+# Step 1: Assess what was completed
+git branch -a | grep "feature/"
+gh pr list --state all | grep "feature/"
+git stash list
+
+# Step 2: Find uncommitted work
+git status --short
+
+# Step 3: Check which issues are still open
+gh issue list --label "In Progress"
+
+# Step 4: Rescue partial work from the worktree (if agent used worktrees)
+# The worktree path is usually ../worktree-<issue>-<slug>
+ls ../worktree-*/
+git worktree list
+
+# Step 5: Remove locked worktrees (double-force required for Claude agent worktrees)
+git worktree remove -f -f /path/to/worktree
+
+# Step 6: Resume the agent with explicit context
+# Tell it: "Issues #A and #B are already merged. Start from #C."
+/implement #C
+----
+
+The `feedback_ship_skill_lessons.md` memory file documents the full recovery procedure
+based on real incidents from the kbeatz project.
+
+=== 6.6 Adding a new hook
+
+[source,bash]
+----
+# Step 1: Write the hook script
+# Follow the pattern in .claude/hooks/post-edit-secrets.sh
+cat > .claude/hooks/my-hook.sh << 'EOF'
+#!/usr/bin/env bash
+INPUT=$(cat)
+# ... process INPUT as JSON ...
+exit 0
+EOF
+chmod +x .claude/hooks/my-hook.sh
+
+# Step 2: Wire it in settings.json under the appropriate event
+# Example: add to PostToolUse for Write|Edit events
+
+# Step 3: Test by triggering the event and checking the hook output
+# Hook stdout is parsed as JSON by Claude Code
+----
+
+Hook scripts receive the tool input as JSON on stdin. They communicate back to Claude Code
+by writing a JSON object to stdout. The key output fields are:
+
+* `permissionDecision` + `permissionDecisionReason` - to allow or deny a PreToolUse event
+* `additionalContext` - to inject information into Claude's context
+* `systemMessage` - to display a message in the Claude Code UI
+
+=== 6.7 Running a skills audit
+
+[source]
+----
+/claude-code-expert
+----
+
+The `claude-code-expert` skill reviews the entire Claude Code configuration: CLAUDE.md
+files, settings.json, hooks, rules, skills, and MCP setup. It identifies gaps, outdated
+content, and improvements. Run it after any significant change to the `.claude/` directory.
+
+For a targeted audit of a specific area:
+
+[source]
+----
+/claude-code-expert hooks
+/claude-code-expert mcp
+/claude-code-expert skills
+----
