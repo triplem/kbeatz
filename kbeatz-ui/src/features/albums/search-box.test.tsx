@@ -32,6 +32,27 @@ describe('SearchBox', () => {
 
     expect(onChange).toHaveBeenCalledWith({ ...EMPTY_FILTERS, query: '' })
   })
+
+  it('input reflects the current filters.query value (controlled)', () => {
+    const filtersWithQuery: AlbumFilters = { ...EMPTY_FILTERS, query: 'beethoven' }
+    render(<SearchBox filters={filtersWithQuery} onFiltersChange={vi.fn()} />)
+    const input = screen.getByRole('searchbox', { name: 'Search albums' })
+    expect(input).toHaveValue('beethoven')
+  })
+
+  it('clears input display when filters.query is reset externally', async () => {
+    const onChange = vi.fn()
+    const filtersWithQuery: AlbumFilters = { ...EMPTY_FILTERS, query: 'miles' }
+    const { rerender } = render(
+      <SearchBox filters={filtersWithQuery} onFiltersChange={onChange} />,
+    )
+    const input = screen.getByRole('searchbox', { name: 'Search albums' })
+    expect(input).toHaveValue('miles')
+
+    // Simulate parent resetting filters to empty
+    rerender(<SearchBox filters={EMPTY_FILTERS} onFiltersChange={onChange} />)
+    expect(input).toHaveValue('')
+  })
 })
 
 describe('SearchBox debounce', () => {
