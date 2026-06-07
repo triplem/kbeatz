@@ -30,26 +30,41 @@ jobs:
           key: gradle-${{ hashFiles('**/*.gradle.kts', '**/libs.versions.toml', '**/gradle-wrapper.properties') }}
           restore-keys: gradle-
 
-      - name: Create test library directory
-        run: mkdir -p /tmp/kbeatz-test-library
+      - name: Create test directories
+        run: mkdir -p /tmp/kbeatz-test-library /tmp/kbeatz-test-data
+
+      - name: Cache NVD database
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/dependency-check-data
+          key: nvd-cache-${{ hashFiles('**/*.gradle.kts', '**/libs.versions.toml') }}
+          restore-keys: nvd-cache-
+        # Required secret: NVD_API_KEY (repo setting). Without it, NVD rate-limits
+        # anonymous requests and the first DB download can take 10-20 minutes.
+        # Obtain a free API key at https://nvd.nist.gov/developers/request-an-api-key.
 
       - name: Build backends and run quality gates
         run: ./gradlew buildBackends check --no-daemon --no-parallel
         env:
           CATALOG_LIBRARY_ROOT: /tmp/kbeatz-test-library
+          DATA_DIR: /tmp/kbeatz-test-data
         # Note: kbeatz-catalog:check already depends on e2eTest (via kbeatz.ktor-service
         # convention plugin). The explicit e2eTest step below makes this visible in the
         # CI job summary and allows targeted re-runs without re-running all checks.
 
-      # TODO(#192): Add OWASP Dependency Check (./gradlew dependencyCheckAnalyze).
-      # The org.owasp.dependencycheck Gradle plugin is not yet configured; adding it
-      # without a pre-seeded NVD cache would add 10-20 min to every CI run.
-      # See issue #192 for the plan: add the plugin + cache ~/.gradle/dependency-check-data/.
+      - name: Run OWASP Dependency Check
+        run: ./gradlew dependencyCheckAnalyze --no-daemon
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        # Fails build on HIGH/CRITICAL CVEs (CVSS >= 7.0). NVD database is cached via
+        # the "Cache NVD database" step above. Suppressions for accepted false positives
+        # go in config/dependency-check/suppressions.xml with a documented rationale.
 
       - name: Run E2E tests
         run: ./gradlew :kbeatz-catalog:e2eTest --no-daemon
         env:
           CATALOG_LIBRARY_ROOT: /tmp/kbeatz-test-library
+          DATA_DIR: /tmp/kbeatz-test-data
           CATALOG_JDBC_URL: jdbc:h2:mem:kbeatz_e2e;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
         # E2E tests use Ktor's testApplication {} in-process engine — no real server
         # is started. Tests cover path traversal prevention, album listing contract,
