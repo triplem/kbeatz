@@ -14,5 +14,4 @@ dependencies {
     implementation("org.openapitools:openapi-generator-gradle-plugin:${catalog.v("openapi-generator")}")
     implementation("org.asciidoctor:asciidoctor-gradle-jvm:${catalog.v("asciidoctor")}")
     implementation("org.cyclonedx:cyclonedx-gradle-plugin:${catalog.v("cyclonedx")}")
-    implementation("org.owasp:dependency-check-gradle:${catalog.v("owasp-dependency-check")}")
 }

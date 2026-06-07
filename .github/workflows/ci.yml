@@ -33,16 +33,6 @@ jobs:
       - name: Create test directories
         run: mkdir -p /tmp/kbeatz-test-library /tmp/kbeatz-test-data
 
-      - name: Cache NVD database
-        uses: actions/cache@v4
-        with:
-          path: ~/.gradle/dependency-check-data
-          key: nvd-cache-${{ hashFiles('**/*.gradle.kts', '**/libs.versions.toml') }}
-          restore-keys: nvd-cache-
-        # Required secret: NVD_API_KEY (repo setting). Without it, NVD rate-limits
-        # anonymous requests and the first DB download can take 10-20 minutes.
-        # Obtain a free API key at https://nvd.nist.gov/developers/request-an-api-key.
-
       - name: Build backends and run quality gates
         run: ./gradlew buildBackends check --no-daemon --no-parallel
         env:
@@ -52,25 +42,19 @@ jobs:
         # convention plugin). The explicit e2eTest step below makes this visible in the
         # CI job summary and allows targeted re-runs without re-running all checks.
 
-      - name: Run OWASP Dependency Check
-        continue-on-error: true
-        timeout-minutes: 20
-        # continue-on-error + timeout-minutes: remove both once NVD_API_KEY secret is configured.
-        # Without the API key, anonymous NVD downloads are heavily rate-limited and can
-        # exceed 30 minutes; timeout-minutes caps the step so CI does not stall for hours.
-        # Once the secret is set, remove these flags so CVE failures block CI as intended.
-        # Obtain a free key at https://nvd.nist.gov/developers/request-an-api-key
-        run: |
-          for module in kbeatz-common kbeatz-tagger kbeatz-sources kbeatz-catalog kbeatz-cli; do
-            echo "--- dependencyCheckAnalyze: $module ---"
-            (cd "$module" && ../gradlew dependencyCheckAnalyze --no-daemon)
-          done
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-        # Fails build on HIGH/CRITICAL CVEs (CVSS >= 7.0). NVD database is cached via
-        # the "Cache NVD database" step above. Suppressions for accepted false positives
-        # go in config/dependency-check/suppressions.xml with a documented rationale.
-        # Each includeBuild module is its own Gradle root, so the task must run per module.
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          severity: 'HIGH,CRITICAL'
+          exit-code: '1'
+          format: 'table'
+          skip-dirs: '.git,build,kbeatz-ui/node_modules'
+        # Scans build artifacts and dependency manifests for HIGH/CRITICAL CVEs.
+        # To accept a false-positive, add a .trivyignore file at the repo root with
+        # a comment-annotated CVE entry and document the reason in
+        # docs/security/accepted-risks.md.
 
       - name: Run E2E tests
         run: ./gradlew :kbeatz-catalog:e2eTest --no-daemon
