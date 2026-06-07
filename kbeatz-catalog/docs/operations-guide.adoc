@@ -1,5 +1,5 @@
 = kbeatz-catalog Operations Guide
-:revnumber: 1.0
+:revnumber: 1.1
 :revdate: 2026-06-07
 :author: kbeatz team
 :toc:
@@ -31,8 +31,8 @@ integration, monitoring the image quota, and troubleshooting common errors.
 | JDBC URL for the H2 database. Defaults to `jdbc:h2:file:./data/kbeatz;DB_CLOSE_DELAY=-1;MODE=PostgreSQL`. Override for custom data directory or PostgreSQL migration target.
 
 | `DATA_DIR`
-| No (default: same dir as JAR)
-| Directory for runtime data files including `discogs-image-quota.json`. Must be writable by the service process.
+| No (default: `./data`)
+| Directory for runtime data files including `discogs-image-quota.json`. Created automatically on startup if it does not exist. Must be writable by the service process.
 |===
 
 WARNING: Never log, print, or include `DISCOGS_TOKEN` in error messages or API responses.
@@ -109,12 +109,15 @@ tracks this quota in a JSON file to preserve the count across service restarts.
 
 `$DATA_DIR/discogs-image-quota.json`
 
-Default location (same directory as the JAR):
+Default location (`DATA_DIR` defaults to `./data`):
 
 [source,text]
 ----
 ./data/discogs-image-quota.json
 ----
+
+NOTE: The `DATA_DIR` directory is created automatically at startup if it does not exist.
+The quota file itself is created on the first image download.
 
 === Quota File Format
 
@@ -210,13 +213,13 @@ manually reset the quota file as described in the manual reset section.
 === "Failed to persist Discogs image quota" in Logs
 
 *Cause*: The service cannot write to `$DATA_DIR/discogs-image-quota.json`. Common
-causes: wrong file permissions, read-only filesystem, or the directory does not exist.
+causes: wrong file permissions or a read-only filesystem. The directory itself is
+created automatically at startup.
 
 *Fix*:
 
 [source,bash]
 ----
-mkdir -p $DATA_DIR
 chmod 755 $DATA_DIR
 # Restart the service — it will create the file on first write
 ----
