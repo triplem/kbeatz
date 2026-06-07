@@ -50,11 +50,13 @@ jobs:
           severity: 'HIGH,CRITICAL'
           exit-code: '1'
           format: 'table'
-          skip-dirs: '.git,build,kbeatz-ui/node_modules'
-        # Scans build artifacts and dependency manifests for HIGH/CRITICAL CVEs.
-        # To accept a false-positive, add a .trivyignore file at the repo root with
-        # a comment-annotated CVE entry and document the reason in
-        # docs/security/accepted-risks.md.
+          skip-dirs: '.git,kbeatz-ui/node_modules'
+        # Scans compiled JARs from the build step above for CVEs in bundled JVM
+        # libraries, plus kbeatz-ui/package-lock.json for npm dependencies.
+        # The build/ directories are intentionally NOT excluded so Trivy can
+        # inspect resolved dependency JARs (the most reliable signal for JVM).
+        # To accept a false-positive, add a .trivyignore file at the repo root
+        # and document the reason in docs/security/accepted-risks.md.
 
       - name: Run E2E tests
         run: ./gradlew :kbeatz-catalog:e2eTest --no-daemon
