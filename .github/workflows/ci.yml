@@ -37,12 +37,11 @@ jobs:
         run: ./gradlew buildBackends check --no-daemon --no-parallel
         env:
           CATALOG_LIBRARY_ROOT: /tmp/kbeatz-test-library
-        # TODO(#167): OWASP Dependency Check (./gradlew dependencyCheckAnalyze) is not yet
-        # configured. The org.owasp.dependencycheck Gradle plugin is absent from build-logic/
-        # and all build.gradle.kts files. Adding it without a pre-seeded NVD cache causes a
-        # 10-20 min first-run download that makes CI unusable. Track this as a MAJOR gap:
-        # add the plugin with GitHub Actions cache for ~/.gradle/dependency-check-data/ before
-        # enabling the task here.
+
+      # TODO(#192): Add OWASP Dependency Check (./gradlew dependencyCheckAnalyze).
+      # The org.owasp.dependencycheck Gradle plugin is not yet configured; adding it
+      # without a pre-seeded NVD cache would add 10-20 min to every CI run.
+      # See issue #192 for the plan: add the plugin + cache ~/.gradle/dependency-check-data/.
 
       - name: Upload test reports on failure
         if: failure()
@@ -71,6 +70,15 @@ jobs:
         working-directory: kbeatz-ui
         run: npm ci
 
+      - name: Audit npm dependencies
+        working-directory: kbeatz-ui
+        run: npm audit --audit-level=high
+        # Fails the job when any HIGH or CRITICAL CVE is found in npm dependencies
+        # (including dev dependencies — intentional, as devDep toolchain CVEs can
+        # affect CI build pipelines and developer machines). To accept a specific
+        # false-positive, document the reason in docs/security/accepted-risks.md
+        # and add an npm audit override to package.json.
+
       - name: Lint
         working-directory: kbeatz-ui
         run: npm run lint
@@ -82,10 +90,3 @@ jobs:
       - name: Test
         working-directory: kbeatz-ui
         run: npm run test
-
-      - name: Audit npm dependencies
-        working-directory: kbeatz-ui
-        run: npm audit --audit-level=high
-        # Fails the job when any HIGH or CRITICAL CVE is found in transitive dependencies.
-        # To accept a specific false-positive, add it to .npmrc with audit-level overrides
-        # and document the reason in docs/security/accepted-risks.md.
