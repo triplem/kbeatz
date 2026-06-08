@@ -52,7 +52,10 @@ jobs:
         run: |
           mkdir -p detekt-reports
           for module in kbeatz-catalog kbeatz-cli kbeatz-common kbeatz-sources kbeatz-tagger; do
-            report="$module/build/reports/detekt/main.html"
+            # The check task runs the base :detekt task (not :detektMain), which
+            # outputs detekt.html. The :detektMain task (producing main.html) is
+            # not wired into the check task graph in this project.
+            report="$module/build/reports/detekt/detekt.html"
             if [ -f "$report" ]; then
               cp "$report" "detekt-reports/${module}.html"
             fi
@@ -64,6 +67,10 @@ jobs:
           name: detekt-reports
           path: detekt-reports/
           retention-days: 1
+          # Fail the job immediately if no reports were collected; this surfaces
+          # path issues early instead of silently uploading an empty artifact that
+          # causes the downstream download step to fail with a confusing error.
+          if-no-files-found: error
 
   build-eslint:
     name: Generate ESLint HTML report
