@@ -1,4 +1,4 @@
-# kbeatz — Epics Index
+# kbeatz: Epics Index
 
 **Date**: 2026-06-06  
 **Status**: all epics approved
@@ -7,7 +7,7 @@
 
 | # | Epic | Milestone | Complexity | Priority | Status |
 |---|---|---|---|---|---|
-| [#13](https://github.com/triplem/kbeatz/issues/13) | Platform Foundation & Deployment | M1 | M | — | approved |
+| [#13](https://github.com/triplem/kbeatz/issues/13) | Platform Foundation & Deployment | M1 | M | - | approved |
 | [#14](https://github.com/triplem/kbeatz/issues/14) | Library Scan & Album Indexing | M1 | L | P0 | approved |
 | [#15](https://github.com/triplem/kbeatz/issues/15) | Album Browsing & Search | M2 | L | P0 | approved |
 | [#16](https://github.com/triplem/kbeatz/issues/16) | In-Place Tag Editing | M3 | M | P0 | approved |
@@ -48,4 +48,4 @@
 | H2 album index schema (denormalised vs normalised, multi-disc representation) | #14 | to be created before #14 stories |
 | Discogs rate-limiting strategy (token bucket vs sliding window) | #17 | to be created before #17 stories |
 
-Existing ADRs (ADR-001 through ADR-006) cover FLAC implementation, Kotlin File API, CLI framework, image handling, module structure, and database choice — no rework needed.
+Existing ADRs (ADR-001 through ADR-006) cover FLAC implementation, Kotlin File API, CLI framework, image handling, module structure, and database choice - no rework needed.

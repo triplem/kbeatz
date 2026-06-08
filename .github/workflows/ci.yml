@@ -65,7 +65,7 @@ jobs:
           CATALOG_LIBRARY_ROOT: /tmp/kbeatz-test-library
           DATA_DIR: /tmp/kbeatz-test-data
           CATALOG_JDBC_URL: jdbc:h2:mem:kbeatz_e2e;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
-        # E2E tests use Ktor's testApplication {} in-process engine — no real server
+        # E2E tests use Ktor's testApplication {} in-process engine - no real server
         # is started. Tests cover path traversal prevention, album listing contract,
         # library scan trigger/status, and X-Trace-Id header propagation.
 

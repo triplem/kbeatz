@@ -26,9 +26,9 @@ Two mature options were considered:
 
 | **Clikt** (https://github.com/ajalt/clikt)
 | Kotlin-first CLI framework by AJ Alt.
-  Uses Kotlin property delegation (`by option()`, `by argument()`) — no annotations.
+  Uses Kotlin property delegation (`by option()`, `by argument()`) - no annotations.
   `echo()` replaces `System.out.println` with testable output capturing.
-  `CliktCommand.run()` is a `Unit` function — no integer exit-code contract leaking into logic.
+  `CliktCommand.run()` is a `Unit` function - no integer exit-code contract leaking into logic.
   Subcommand composition via `subcommands()` is a single line.
   Multiplatform (JVM, Native, JS), active development, Kotlin-idiomatic API.
 |===
@@ -45,15 +45,15 @@ Use **Clikt 4.x** (`com.github.ajalt.clikt:clikt`) for CLI argument parsing in `
   Clikt's built-in `.path()` delegate was not used because it returns `java.nio.file.Path`,
   which conflicts with the no-Java-I/O-types policy (ADR-002).
 * `override fun run()` contains command logic; the framework handles help, errors, and exit codes.
-* `echo(msg, err = true)` writes to stderr; `echo(msg)` to stdout — both are captured in tests
+* `echo(msg, err = true)` writes to stderr; `echo(msg)` to stdout - both are captured in tests
   via `CliktCommand.test(args)`.
 * The main entry point is a one-liner:
   `KbeatzTaggerCli().subcommands(TagAlbumsCommand(), MigrateIdFilesCommand()).main(args)`
 
 == Consequences
 
-* No annotation processing at build time — faster incremental compilation.
-* Property delegation means options are always `val`, not `var` — immutable by default.
+* No annotation processing at build time - faster incremental compilation.
+* Property delegation means options are always `val`, not `var` - immutable by default.
 * Path arguments use `String` + manual `convert {}` rather than Clikt's `.path()` delegate;
   file-existence validation is explicit in the convert block via `SystemFileSystem.exists()`.
 * Testing is cleaner: `command.test("--dry-run /tmp/music")` without mocking stdout/stderr.

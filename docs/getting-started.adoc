@@ -64,7 +64,7 @@ the two `<OWNER>` / `<REPO>` placeholders with your actual GitHub organisation a
 
 [source,bash]
 ----
-# Quick replace — adjust owner and repo as needed
+# Quick replace: adjust owner and repo as needed
 sed -i 's|<OWNER>|your-org|g; s|<REPO>|kbeatz|g' \
   .claude/skills/create-pr/SKILL.md \
   .claude/skills/implement-epic/SKILL.md
@@ -149,10 +149,10 @@ Edit `.env`:
 
 [source,bash]
 ----
-# Required — absolute path to your music library on the host
+# Required: absolute path to your music library on the host
 CATALOG_LIBRARY_ROOT=/home/you/Music
 
-# Optional — get a token at https://www.discogs.com/settings/developers
+# Optional: get a token at https://www.discogs.com/settings/developers
 DISCOGS_TOKEN=your_token_here
 ----
 
@@ -214,7 +214,7 @@ sync will be unavailable.
 == CI Status Checks
 
 All PRs must pass the GitHub Actions *CI / Build, test, and verify* status check before they can
-be merged. Branch protection is configured on `main` — direct pushes are blocked.
+be merged. Branch protection is configured on `main` - direct pushes are blocked.
 
 To run the same checks locally before opening a PR:
 
@@ -227,5 +227,5 @@ cd kbeatz-ui && npm run lint && npm test # frontend: ESLint + Vitest
 == Adding Your First Real Service
 
 See xref:adding-a-service.adoc[Adding a Service] for the step-by-step guide.
-The `kbeatz-service` skeleton in this repo is a working starting point — rename its directories
+The `kbeatz-service` skeleton in this repo is a working starting point - rename its directories
 and package paths, then register it in `settings.gradle.kts`.
