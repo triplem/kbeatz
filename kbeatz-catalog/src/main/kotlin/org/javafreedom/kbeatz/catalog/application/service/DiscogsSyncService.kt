@@ -8,6 +8,7 @@ import kotlinx.io.files.Path as KtPath
 import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.model.SyncResult
 import org.javafreedom.kbeatz.catalog.domain.model.WRITE_LOCK_FILENAME
+import org.javafreedom.kbeatz.catalog.domain.port.SyncProvider
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 import org.javafreedom.kbeatz.common.BusinessValidationException
 import org.javafreedom.kbeatz.common.ImageQuotaExhaustedException
@@ -25,10 +26,13 @@ private const val ROLE_ORCHESTRA = "Orchestra"
 /**
  * Orchestrates a full Discogs metadata sync for a single album.
  *
+ * Implements [SyncProvider] so it can be registered as the active sync provider at wiring time.
+ * A future MusicBrainz or other provider would be a separate implementation of [SyncProvider].
+ *
  * ## Sync sequence
  * 1. Load album from repository — throws [ResourceNotFoundException] if not found.
  * 2. Validate `discogsId` is present — throws [BusinessValidationException] if absent.
- * 3. Fetch Discogs release via [metadataSource] (rate-limited, returns null → warning, no-op).
+ * 3. Fetch Discogs release via [metadataSource] (rate-limited, returns null -> warning, no-op).
  * 4. Write `.kbeatz-write.lock` to album directory.
  * 5. Write tags to all FLAC files atomically.
  * 6. Optionally: download + embed cover art via [imageService] (quota warning on exhaustion).
@@ -49,7 +53,9 @@ class DiscogsSyncService(
     private val metadataSource: MetadataSource,
     private val imageService: DiscogsImageService?,
     private val libraryRoot: Path,
-) {
+) : SyncProvider {
+
+    override val name: String = "discogs"
 
     /**
      * Syncs a single album from Discogs.
@@ -60,16 +66,16 @@ class DiscogsSyncService(
      * @throws ResourceNotFoundException when the album is not found.
      * @throws BusinessValidationException when the album has no `discogsId`.
      */
-    suspend fun sync(albumId: Uuid, downloadImages: Boolean): SyncResult {
+    override suspend fun sync(albumId: Uuid, downloadImages: Boolean): SyncResult {
         val album = albumRepository.findById(albumId)
             ?: throw ResourceNotFoundException("Album", albumId.toString())
 
         val discogsId = album.discogsId
-            ?: throw BusinessValidationException("Album '${albumId}' has no Discogs ID set — cannot sync")
+            ?: throw BusinessValidationException("Album '${albumId}' has no Discogs ID set - cannot sync")
 
         val release = metadataSource.fetchRelease(discogsId)
         if (release == null) {
-            log.warn { "Discogs release $discogsId not found — skipping sync for album $albumId" }
+            log.warn { "Discogs release $discogsId not found - skipping sync for album $albumId" }
             return SyncResult(
                 fieldsWritten = emptyList(),
                 warnings = listOf("Discogs release $discogsId not found"),
@@ -112,7 +118,7 @@ class DiscogsSyncService(
         try {
             service.downloadAndWrite(discogsId, albumDir, downloadImages)
         } catch (ex: ImageQuotaExhaustedException) {
-            log.warn { "Image quota exhausted for $discogsId — sync continues with metadata only" }
+            log.warn { "Image quota exhausted for $discogsId - sync continues with metadata only" }
             warnings += "Image quota exhausted. Resets at ${ex.resetAt}"
         }
     }

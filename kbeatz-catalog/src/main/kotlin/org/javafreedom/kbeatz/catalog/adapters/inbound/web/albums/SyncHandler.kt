@@ -11,8 +11,8 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlin.uuid.Uuid
 import org.javafreedom.kbeatz.catalog.api.models.Album as ApiAlbum
 import org.javafreedom.kbeatz.catalog.api.models.ErrorResponse
-import org.javafreedom.kbeatz.catalog.application.service.DiscogsSyncService
 import org.javafreedom.kbeatz.catalog.domain.model.Album
+import org.javafreedom.kbeatz.catalog.domain.port.SyncProvider
 import org.javafreedom.kbeatz.common.BusinessValidationException
 import org.javafreedom.kbeatz.common.ImageQuotaExhaustedException
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
@@ -22,22 +22,22 @@ private val log = KotlinLogging.logger {}
 /**
  * Ktor route handler for `POST /albums/{albumId}/sync`.
  *
- * Triggers a Discogs metadata sync for the specified album.
- * Delegates all business logic to [DiscogsSyncService].
+ * Triggers a metadata sync for the specified album via the configured [SyncProvider].
+ * Delegates all business logic to the provider.
  *
  * ## Response codes
  * - 200: sync completed successfully; returns updated [ApiAlbum]
  * - 400: invalid UUID in path
  * - 404: album not found
- * - 422: album has no `discogsId` — cannot sync
- * - 429: Discogs image quota exhausted (only when `downloadImages=true`)
- * - 503: Discogs API unavailable (network error)
+ * - 422: album has no source ID - cannot sync
+ * - 429: image quota exhausted (only when `downloadImages=true`)
+ * - 503: provider API unavailable (network error)
  *
  * @param libraryRoot Used to compute relative [directoryPath] in API responses.
  * No auth in v1 (trusted LAN deployment).
  */
 @Suppress("TooGenericExceptionCaught") // Ktor route must catch all errors to return structured responses
-fun Route.syncRoutes(syncService: DiscogsSyncService, libraryRoot: Path) {
+fun Route.syncRoutes(syncService: SyncProvider, libraryRoot: Path) {
     post("/albums/{albumId}/sync") {
         val albumIdStr = call.parameters["albumId"]
         val albumId = albumIdStr?.let { runCatching { Uuid.parse(it) }.getOrNull() }
@@ -56,10 +56,10 @@ fun Route.syncRoutes(syncService: DiscogsSyncService, libraryRoot: Path) {
     }
 }
 
-@Suppress("TooGenericExceptionCaught") // catch-all for network/codec errors → 503
+@Suppress("TooGenericExceptionCaught") // catch-all for network/codec errors -> 503
 private suspend fun handleSync(
     call: ApplicationCall,
-    syncService: DiscogsSyncService,
+    syncService: SyncProvider,
     albumId: Uuid,
     libraryRoot: Path,
 ) {
@@ -83,7 +83,7 @@ private suspend fun handleSync(
     } catch (ex: CancellationException) {
         throw ex
     } catch (ex: Exception) {
-        log.error(ex) { "Discogs sync failed albumId=$albumId" }
+        log.error(ex) { "Sync failed albumId=$albumId provider=${syncService.name}" }
         call.respond(HttpStatusCode.ServiceUnavailable,
             ErrorResponse(code = "SYNC_FAILED", message = "Discogs sync failed — check server logs for details"))
     }
