@@ -389,22 +389,20 @@ performance-review, pr-reviewer, qa-review, react-patterns, release, requirement
 security-review, ship, technical-writer-review, ux-review, write-epics, write-stories,
 write-tests
 
-|Simplify
+|Simplified
 |2
-|create-pr (reduce to post-merge cleanup only), typescript-patterns (merge unique content
-into typescript-style.md rule)
+|create-pr (reduced to post-merge cleanup only in #281), typescript-patterns (unique content
+merged into typescript-style.md in #282)
 
-|Remove
+|Removed
 |5
-|angular-patterns (wrong framework), kotlin-patterns (covered by kotlin-style.md rule),
-logging-kotlin (covered by logging.md rule), logging-typescript (covered by logging.md
-rule), openapi-patterns (covered by openapi.md and api-design.md rules)
+|angular-patterns (#276), kotlin-patterns (#277), logging-kotlin (#278),
+logging-typescript (#279), openapi-patterns (#280)
 |===
 
-NOTE: "Remove" means the skill file can be deleted. The behaviour it described is either
-not applicable to kbeatz (angular-patterns) or is already enforced by a rule file that
-auto-loads every session. Deleting these skills reduces context-window noise without
-changing Claude's behaviour on kbeatz tasks.
+NOTE: All "Remove" and "Simplify" actions have been completed. Unique content from each
+deleted skill was migrated to the appropriate rule file before deletion. Rule files
+auto-load every session, so no guidance was lost.
 
 == 3. Rules vs. Skills: The Right Tool
 

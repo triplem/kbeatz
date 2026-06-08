@@ -1,6 +1,6 @@
 # Rule: API Design
 
-All REST APIs must follow these rules. See `/openapi-patterns` for OpenAPI spec implementation.
+All REST APIs must follow these rules. See `openapi.md` for spec implementation details including standard schemas, operation templates, and Spectral config.
 
 ## Spec-First
 

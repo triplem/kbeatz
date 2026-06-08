@@ -41,7 +41,7 @@ Required sections:
 ### 2 — API-first check
 
 For any story that touches an API:
-1. Draft the OpenAPI spec change first (see `/openapi-patterns`)
+1. Draft the OpenAPI spec change first (see `.claude/rules/openapi.md`)
 2. Attach snippet to the story body
 3. `/challenge ArchitectAgent "Review API contract for story $epic_id"`
 

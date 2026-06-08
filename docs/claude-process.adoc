@@ -504,7 +504,7 @@ on complexity:
   null safety patterns, which imports to avoid. Example: `.claude/rules/kotlin-style.md`.
 * *Pattern skill* - reference material with worked examples that a developer invokes
   explicitly when they need guidance: coroutine patterns, complex Exposed ORM queries,
-  React hook composition. Example: `.claude/skills/kotlin-patterns/SKILL.md`.
+  React hook composition. Example: `.claude/skills/react-patterns/SKILL.md`.
 
 == 6. Agent Types
 
