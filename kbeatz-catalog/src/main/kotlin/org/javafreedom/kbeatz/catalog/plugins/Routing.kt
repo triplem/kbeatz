@@ -12,16 +12,16 @@ import org.javafreedom.kbeatz.catalog.adapters.inbound.web.health.healthRoutes
 import org.javafreedom.kbeatz.catalog.adapters.inbound.web.library.libraryRoutes
 import org.javafreedom.kbeatz.catalog.application.service.AlbumService
 import org.javafreedom.kbeatz.catalog.application.service.CoverArtService
-import org.javafreedom.kbeatz.catalog.application.service.DiscogsSyncService
 import org.javafreedom.kbeatz.catalog.application.service.LibraryScanService
 import org.javafreedom.kbeatz.catalog.application.service.TagWriteService
+import org.javafreedom.kbeatz.catalog.domain.port.SyncProvider
 
-@Suppress("LongParameterList") // wiring function — all parameters are service/config dependencies
+@Suppress("LongParameterList") // wiring function - all parameters are service/config dependencies
 fun Application.configureRouting(
     scanService: LibraryScanService,
     albumService: AlbumService,
     coverArtService: CoverArtService,
-    syncService: DiscogsSyncService,
+    syncService: SyncProvider,
     tagWriteService: TagWriteService,
     healthConfig: HealthConfig,
 ) {
