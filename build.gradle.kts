@@ -67,6 +67,14 @@ tasks.named("clean") {
 }
 
 // -- AsciiDoc docs -------------------------------------------------------------
+// AsciidoctorJ 4.x is not compatible with the Gradle configuration cache:
+// its AsciidoctorJExtension holds a DefaultDependencyScopeConfiguration that
+// cannot be serialized. Mark the task explicitly so Gradle degrades gracefully
+// instead of failing the cache-write step.
+tasks.withType<org.asciidoctor.gradle.jvm.AsciidoctorTask>().configureEach {
+    notCompatibleWithConfigurationCache("AsciidoctorJ Gradle plugin does not support the configuration cache")
+}
+
 tasks.named<org.asciidoctor.gradle.jvm.AsciidoctorTask>("asciidoctor") {
     sourceDir(file("docs"))
     setOutputDir(file("build/docs/asciidoc"))
