@@ -16,19 +16,19 @@ src/features/albums/
 Export components as named exports, not default exports:
 
 ```typescript
-// GOOD — named export; importable without aliasing
+// GOOD - named export; importable without aliasing
 export function AlbumGrid({ albums }: AlbumGridProps) { ... }
 
-// BAD — default export; import name can diverge from file name
+// BAD - default export; import name can diverge from file name
 export default function AlbumGrid({ albums }: AlbumGridProps) { ... }
 ```
 
 ## Custom Hook Design and Naming
 
-Hooks must start with `use`. Extract all data-fetching and non-trivial business logic into custom hooks — keep components as thin renderers.
+Hooks must start with `use`. Extract all data-fetching and non-trivial business logic into custom hooks; keep components as thin renderers.
 
 ```typescript
-// GOOD — hook owns the fetch; component receives clean state
+// GOOD - hook owns the fetch; component receives clean state
 function useAlbum(id: string) {
   return useQuery({
     queryKey: ['album', id],
@@ -43,7 +43,7 @@ function AlbumDetail({ id }: { id: string }) {
   return <AlbumView album={album} />;
 }
 
-// BAD — component mixes fetching with rendering
+// BAD - component mixes fetching with rendering
 function AlbumDetail({ id }: { id: string }) {
   const [album, setAlbum] = useState<Album | null>(null);
   useEffect(() => {
@@ -58,13 +58,13 @@ function AlbumDetail({ id }: { id: string }) {
 Return an object from hooks with more than one value, not a tuple. Object destructuring scales better when the hook grows:
 
 ```typescript
-// GOOD — named fields; callers pick what they need
+// GOOD - named fields; callers pick what they need
 function useAlbumSearch() {
   return { results, query, setQuery, isPending };
 }
 const { results, isPending } = useAlbumSearch();
 
-// BAD — positional tuple; breaks on extension
+// BAD - positional tuple; breaks on extension
 function useAlbumSearch(): [Album[], string, (q: string) => void, boolean] { ... }
 const [results, , , isPending] = useAlbumSearch();
 ```
@@ -74,7 +74,7 @@ const [results, , , isPending] = useAlbumSearch();
 A hook should do one thing. Compose small hooks rather than writing one large hook:
 
 ```typescript
-// GOOD — composed from focused hooks
+// GOOD - composed from focused hooks
 function useAlbumEditPage(id: string) {
   const album = useAlbum(id);
   const form = useAlbumForm(album.data);
@@ -82,7 +82,7 @@ function useAlbumEditPage(id: string) {
   return { album, form, save };
 }
 
-// BAD — one hook managing fetch, form, validation, and submit
+// BAD - one hook managing fetch, form, validation, and submit
 function useAlbumEditPage(id: string) {
   // 80 lines mixing server state, local form state, and validation
 }
@@ -97,7 +97,7 @@ Use Context for values that are truly global within a subtree: theme, current us
 Always co-locate the context definition, provider, and consumer hook in one file:
 
 ```typescript
-// GOOD — single file; consumer hook hides context internals
+// GOOD - single file; consumer hook hides context internals
 interface LibraryContextValue {
   root: string;
   scanStatus: ScanStatus;
@@ -120,7 +120,7 @@ export function useLibrary(): LibraryContextValue {
   return ctx;
 }
 
-// BAD — context exported raw; consumers call useContext directly and forget the null guard
+// BAD - context exported raw; consumers call useContext directly and forget the null guard
 export const LibraryContext = createContext<LibraryContextValue | null>(null);
 // ... somewhere else ...
 const ctx = useContext(LibraryContext); // null if provider is missing - silent bug
@@ -135,7 +135,7 @@ const ctx = useContext(LibraryContext); // null if provider is missing - silent 
 | Shared subtree configuration | React Context |
 | Local ephemeral UI state | `useState` |
 
-Do not use Context to share server state — that is TanStack Query's job.
+Do not use Context to share server state; use TanStack Query for that instead.
 
 ## Component Composition and Prop Typing
 
@@ -144,7 +144,7 @@ Do not use Context to share server state — that is TanStack Query's job.
 Split a complex component into focused sub-components instead of adding boolean flags:
 
 ```typescript
-// GOOD — composable; each part can vary independently
+// GOOD - composable; each part can vary independently
 function AlbumCard({ album }: { album: Album }) {
   return (
     <Card>
@@ -154,7 +154,7 @@ function AlbumCard({ album }: { album: Album }) {
   );
 }
 
-// BAD — boolean flags grow unbounded
+// BAD - boolean flags grow unbounded
 function AlbumCard({ album, showCover, compact, editable }: AlbumCardProps) {
   return (
     <div>
@@ -181,7 +181,7 @@ interface AlbumMetaProps {
 
 function AlbumMeta({ title, artist, year, className }: AlbumMetaProps) { ... }
 
-// BAD — inline anonymous type
+// BAD - inline anonymous type
 function AlbumMeta({ title, artist, year }: { title: string; artist: string; year: number }) { ... }
 ```
 
@@ -218,11 +218,11 @@ interface ActionButtonProps {
 Choose the narrowest state scope that satisfies the requirement.
 
 ```
-useState         — local ephemeral UI state (open/closed, current page, input value)
-useReducer       — local state with multiple sub-values or complex transitions
-React Context    — shared subtree config that changes infrequently
-TanStack Query   — any data fetched from the server
-Zustand          — global client state that is not server state (e.g. selected track)
+useState         - local ephemeral UI state (open/closed, current page, input value)
+useReducer       - local state with multiple sub-values or complex transitions
+React Context    - shared subtree config that changes infrequently
+TanStack Query   - any data fetched from the server
+Zustand          - global client state that is not server state (e.g. selected track)
 ```
 
 ### Local state first
@@ -230,7 +230,7 @@ Zustand          — global client state that is not server state (e.g. selected
 Start with `useState`. Lift only when two sibling components need the same value:
 
 ```typescript
-// GOOD — state lives in the lowest common ancestor
+// GOOD - state lives in the lowest common ancestor
 function AlbumPage({ id }: { id: string }) {
   const [selectedTrackIndex, setSelectedTrackIndex] = useState(0);
   return (
@@ -241,7 +241,7 @@ function AlbumPage({ id }: { id: string }) {
   );
 }
 
-// BAD — global store used for ephemeral page-level selection
+// BAD - global store used for ephemeral page-level selection
 const useStore = create(set => ({
   selectedTrackIndex: 0,
   setSelectedTrackIndex: (i: number) => set({ selectedTrackIndex: i }),
@@ -253,13 +253,13 @@ const useStore = create(set => ({
 Compute derived values inline or with `useMemo`. Never store a value that can be derived from existing state:
 
 ```typescript
-// GOOD — filteredAlbums is computed, not stored
+// GOOD - filteredAlbums is computed, not stored
 const filteredAlbums = useMemo(
   () => albums.filter(a => a.artist.toLowerCase().includes(query.toLowerCase())),
   [albums, query],
 );
 
-// BAD — filteredAlbums duplicates albums + query into a third state variable
+// BAD - filteredAlbums duplicates albums + query into a third state variable
 const [filteredAlbums, setFilteredAlbums] = useState<Album[]>([]);
 useEffect(() => {
   setFilteredAlbums(albums.filter(a => a.artist.toLowerCase().includes(query.toLowerCase())));
@@ -290,9 +290,9 @@ useEffect(() => {
 
 ## Anti-patterns
 
-- No business logic in JSX — move conditional transformations to the hook or a helper function.
-- No prop drilling beyond 2 levels — lift state or use Context.
-- No `index` as `key` in dynamic lists — use a stable, unique id from the data.
-- No inline object or function literals as props on frequently re-rendered components — they create a new reference every render and defeat `memo()`.
-- No `useEffect` for data fetching — use TanStack Query.
-- No `useCallback` / `useMemo` by default — add them only after profiling confirms a performance problem.
+- No business logic in JSX: move conditional transformations to the hook or a helper function.
+- No prop drilling beyond 2 levels: lift state or use Context.
+- No `index` as `key` in dynamic lists: use a stable, unique id from the data.
+- No inline object or function literals as props on frequently re-rendered components: they create a new reference every render and defeat `memo()`.
+- No `useEffect` for data fetching: use TanStack Query.
+- No `useCallback` / `useMemo` by default: add them only after profiling confirms a performance problem.
