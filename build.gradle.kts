@@ -78,5 +78,9 @@ tasks.withType<org.asciidoctor.gradle.jvm.AsciidoctorTask>().configureEach {
 tasks.named<org.asciidoctor.gradle.jvm.AsciidoctorTask>("asciidoctor") {
     sourceDir(file("docs"))
     setOutputDir(file("build/docs/asciidoc"))
-    attributes(mapOf("project-version" to (project.findProperty("version") ?: "dev")))
+    attributes(mapOf(
+        "project-version" to (project.findProperty("project-version") as String?
+            ?: project.findProperty("version") as String?
+            ?: "dev")
+    ))
 }

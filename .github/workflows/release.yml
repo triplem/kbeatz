@@ -4,23 +4,33 @@ on:
   push:
     branches: [main]
 
-permissions:
-  contents: write
-
+# Guard against concurrent release runs.
 concurrency:
   group: release
   cancel-in-progress: false
 
+permissions:
+  contents: write
+  packages: write
+  issues: write
+  pull-requests: write
+
 jobs:
+  # ---------------------------------------------------------------------------
+  # Job 1: Determine next version and create GitHub release + tag
+  # ---------------------------------------------------------------------------
   release:
-    name: Determine version and publish release
+    name: Semantic release
     runs-on: ubuntu-latest
-    # Skip if the push is itself a version-bump commit to avoid infinite loops.
-    if: "!startsWith(github.event.head_commit.message, 'chore(scaffold): bump version to')"
+    if: "!startsWith(github.event.head_commit.message, 'chore(release):')"
+    outputs:
+      released: ${{ steps.semantic.outputs.new_release_published }}
+      version: ${{ steps.semantic.outputs.new_release_version }}
+      tag: ${{ steps.semantic.outputs.new_release_git_tag }}
 
     steps:
-      - name: Checkout (full history for tag detection)
-        uses: actions/checkout@v6
+      - name: Checkout (full history for semantic-release)
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           fetch-depth: 0
           # RELEASE_TOKEN must be a PAT with repo scope belonging to the repository
@@ -31,12 +41,197 @@ jobs:
           # named RELEASE_TOKEN under Settings > Secrets and variables > Actions.
           token: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
 
-      - name: Configure git identity
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 'lts/*'
 
-      - name: Run release script
+      - name: Run semantic-release
+        id: semantic
+        uses: cycjimmy/semantic-release-action@16ca923e6ccbb50770c415a0ccd43709a8c5f7a4 # v4.2.2
+        with:
+          semantic_version: 24
+          extra_plugins: |
+            @semantic-release/commit-analyzer@13
+            @semantic-release/release-notes-generator@14
+            @semantic-release/github@11
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bash .github/scripts/release.sh
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ---------------------------------------------------------------------------
+  # Job 2: Publish library JARs and fat JAR to GitHub Packages
+  # ---------------------------------------------------------------------------
+  publish-jars:
+    name: Publish JARs to GitHub Packages
+    runs-on: ubuntu-latest
+    needs: release
+    if: needs.release.outputs.released == 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Cache Gradle
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('**/*.gradle.kts', '**/libs.versions.toml', '**/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - name: Stamp version into build files (no commit needed)
+        env:
+          VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          find . -name "build.gradle.kts" -not -path "*/build-logic/*" \
+            -exec grep -l 'version = "' {} \; | \
+            xargs sed -i "s/version = \"[^\"]*\"/version = \"${VERSION}\"/"
+
+      - name: Create test directories
+        run: mkdir -p /tmp/kbeatz-test-library /tmp/kbeatz-test-data
+
+      - name: Build and verify all modules
+        run: ./gradlew buildBackends check --no-daemon --no-parallel
+        env:
+          CATALOG_LIBRARY_ROOT: /tmp/kbeatz-test-library
+          DATA_DIR: /tmp/kbeatz-test-data
+
+      - name: Publish library JARs and fat JAR to GitHub Packages
+        # Publishes kbeatz-common, kbeatz-sources, kbeatz-tagger (library JARs)
+        # and kbeatz-cli (shadow/fat JAR). kbeatz-catalog is published as a Docker image only.
+        run: |
+          ./gradlew \
+            :kbeatz-common:publish \
+            :kbeatz-sources:publish \
+            :kbeatz-tagger:publish \
+            :kbeatz-cli:publish \
+            --no-daemon
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ---------------------------------------------------------------------------
+  # Job 3: Build and push Docker images to GHCR
+  # ---------------------------------------------------------------------------
+  publish-docker:
+    name: Push Docker images to GHCR
+    runs-on: ubuntu-latest
+    needs: [release, publish-jars]
+    if: needs.release.outputs.released == 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Stamp version into build files (no commit needed)
+        env:
+          VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          find . -name "build.gradle.kts" -not -path "*/build-logic/*" \
+            -exec grep -l 'version = "' {} \; | \
+            xargs sed -i "s/version = \"[^\"]*\"/version = \"${VERSION}\"/"
+
+      - name: Build and push kbeatz-catalog image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: kbeatz-catalog/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/triplem/kbeatz-catalog:${{ needs.release.outputs.version }}
+            ghcr.io/triplem/kbeatz-catalog:latest
+          labels: |
+            org.opencontainers.image.source=https://github.com/triplem/kbeatz
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ needs.release.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test catalog image
+        run: |
+          docker run --rm \
+            -e CATALOG_LIBRARY_ROOT=/tmp \
+            -e DATA_DIR=/tmp \
+            --entrypoint /bin/sh \
+            ghcr.io/triplem/kbeatz-catalog:${{ needs.release.outputs.version }} \
+            -c "exit 0"
+
+      - name: Build and push kbeatz-cli image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: kbeatz-cli/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/triplem/kbeatz-cli:${{ needs.release.outputs.version }}
+            ghcr.io/triplem/kbeatz-cli:latest
+          labels: |
+            org.opencontainers.image.source=https://github.com/triplem/kbeatz
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ needs.release.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ---------------------------------------------------------------------------
+  # Job 4: Build and publish AsciiDoc documentation to GitHub Pages
+  # ---------------------------------------------------------------------------
+  publish-docs:
+    name: Build and publish AsciiDoc docs
+    runs-on: ubuntu-latest
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Cache Gradle
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('**/*.gradle.kts', '**/libs.versions.toml', '**/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - name: Build AsciiDoc docs with release version
+        env:
+          VERSION: ${{ needs.release.outputs.version }}
+        run: ./gradlew asciidoctor --no-daemon -Pproject-version=${VERSION}
+
+      - name: Publish docs to gh-pages
+        uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453 # v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build/docs/asciidoc
+          destination_dir: docs
+          publish_branch: gh-pages
+          force_orphan: false
+          commit_message: "ci(scaffold): publish docs for ${{ needs.release.outputs.tag }}"
