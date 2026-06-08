@@ -2,11 +2,12 @@ name: Publish
 
 on:
   push:
-    branches: [main]
+    # Only publish when the release script pushes a semver tag. At that point
+    # all version files have already been bumped, so there are no 409 conflicts
+    # from re-publishing the same version on every commit to main.
+    tags:
+      - 'v*.*.*'
 
-# Prevent concurrent publish runs on the same branch. If a new push arrives
-# while a publish is in progress, cancel the older run to keep artifacts
-# consistent with the latest commit.
 concurrency:
   group: publish-${{ github.ref }}
   cancel-in-progress: false
