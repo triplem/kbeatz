@@ -10,19 +10,25 @@ servers:
     description: Local development
 tags:
   - name: Health
-    description: Service health
+    description: Service health and readiness probes
   - name: Albums
     description: Album browsing and tag management
   - name: Library
     description: Library scan operations
 
 paths:
-  /health:
+  /healthz:
     get:
       operationId: healthCheck
-      summary: Liveness and readiness probe
+      summary: Combined health probe (deprecated)
+      description: |
+        Deprecated since Kubernetes v1.16. Retained for backwards compatibility.
+        Use /livez and /readyz instead for Kubernetes deployments.
       tags: [Health]
       security: []
+      servers:
+        - url: "http://localhost:8080"
+          description: Direct server access (health probes are at the HTTP root, not under /api/v1)
       responses:
         "200":
           description: Service is healthy
@@ -36,6 +42,62 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthResponse"
+
+  /livez:
+    get:
+      operationId: livenessProbe
+      summary: Liveness probe
+      description: |
+        Returns 200 whenever the process is running, regardless of database state.
+        This endpoint performs no I/O and is guaranteed to respond within 100 ms.
+        Use as a Kubernetes livenessProbe target. Supports the --livez-grace-period
+        startup grace window when combined with a Kubernetes startupProbe.
+        Note: K8s-idiomatic path names (/livez, /readyz) are used instead of
+        /health/live and /health/ready per implementation decision for issue #293.
+      tags: [Health]
+      security: []
+      servers:
+        - url: "http://localhost:8080"
+          description: Direct server access (health probes are at the HTTP root, not under /api/v1)
+      responses:
+        "200":
+          description: Process is alive
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LivenessResponse"
+
+  /readyz:
+    get:
+      operationId: readinessProbe
+      summary: Readiness probe
+      description: |
+        Returns 200 when the database connection is available.
+        Returns 503 with an ErrorResponse body when the database is unreachable.
+        The probe uses a short circuit-break (single lightweight query) and is
+        guaranteed to respond within 100 ms.
+        Use as a Kubernetes readinessProbe target. Pair with --shutdown-delay-duration
+        for graceful shutdown.
+        Note: K8s-idiomatic path names (/livez, /readyz) are used instead of
+        /health/live and /health/ready per implementation decision for issue #293.
+      tags: [Health]
+      security: []
+      servers:
+        - url: "http://localhost:8080"
+          description: Direct server access (health probes are at the HTTP root, not under /api/v1)
+      responses:
+        "200":
+          description: Service is ready to accept traffic
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadinessResponse"
+        "503":
+          description: Service is not ready - database is unreachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /albums:
     get:
@@ -534,6 +596,26 @@ components:
         errorMessage:
           type: string
           description: "Set when state=FAILED"
+
+    LivenessResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [UP]
+          description: "Always UP when the process is running"
+          example: "UP"
+
+    ReadinessResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [UP]
+          description: "Always UP when the service is ready to accept traffic"
+          example: "UP"
 
     HealthResponse:
       type: object

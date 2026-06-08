@@ -13,7 +13,10 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.serialization.json.Json
+import org.javafreedom.kbeatz.catalog.api.models.ErrorResponse
 import org.javafreedom.kbeatz.catalog.api.models.HealthResponse
+import org.javafreedom.kbeatz.catalog.api.models.LivenessResponse
+import org.javafreedom.kbeatz.catalog.api.models.ReadinessResponse
 
 class HealthHandlerTest {
 
@@ -32,7 +35,7 @@ class HealthHandlerTest {
         }
 
         val client = createClient { install(ClientContentNegotiation) { json(json) } }
-        val response = client.get("/health")
+        val response = client.get("/healthz")
 
         assertEquals(HttpStatusCode.OK, response.status)
         val body = response.body<HealthResponse>()
@@ -54,7 +57,7 @@ class HealthHandlerTest {
         }
 
         val client = createClient { install(ClientContentNegotiation) { json(json) } }
-        val response = client.get("/health")
+        val response = client.get("/healthz")
 
         assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
         val body = response.body<HealthResponse>()
@@ -76,12 +79,72 @@ class HealthHandlerTest {
         }
 
         val client = createClient { install(ClientContentNegotiation) { json(json) } }
-        val response = client.get("/health")
+        val response = client.get("/healthz")
 
         assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
         val body = response.body<HealthResponse>()
         assertEquals(HealthResponse.Status.DOWN, body.status)
         assertEquals("UP", body.details?.get("database"))
         assertEquals("DOWN", body.details?.get("filesystem"))
+    }
+
+    @Test
+    fun `liveness probe should return 200 UP regardless of db state`() = testApplication {
+        val existingDir = Files.createTempDirectory("health-live-test")
+
+        install(ContentNegotiation) { json(json) }
+        routing {
+            healthRoutes(
+                dbProbe = { throw RuntimeException("DB connection refused") },
+                libraryRoot = existingDir,
+            )
+        }
+
+        val client = createClient { install(ClientContentNegotiation) { json(json) } }
+        val response = client.get("/livez")
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val body = response.body<LivenessResponse>()
+        assertEquals(LivenessResponse.Status.UP, body.status)
+    }
+
+    @Test
+    fun `readiness probe should return 200 UP when db is reachable`() = testApplication {
+        val existingDir = Files.createTempDirectory("health-ready-test")
+
+        install(ContentNegotiation) { json(json) }
+        routing {
+            healthRoutes(
+                dbProbe = { true },
+                libraryRoot = existingDir,
+            )
+        }
+
+        val client = createClient { install(ClientContentNegotiation) { json(json) } }
+        val response = client.get("/readyz")
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val body = response.body<ReadinessResponse>()
+        assertEquals(ReadinessResponse.Status.UP, body.status)
+    }
+
+    @Test
+    fun `readiness probe should return 503 with error body when db is unreachable`() = testApplication {
+        val existingDir = Files.createTempDirectory("health-ready-test")
+
+        install(ContentNegotiation) { json(json) }
+        routing {
+            healthRoutes(
+                dbProbe = { throw RuntimeException("DB connection refused") },
+                libraryRoot = existingDir,
+            )
+        }
+
+        val client = createClient { install(ClientContentNegotiation) { json(json) } }
+        val response = client.get("/readyz")
+
+        assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
+        val body = response.body<ErrorResponse>()
+        assertEquals("DATABASE_UNAVAILABLE", body.code)
     }
 }
