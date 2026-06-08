@@ -285,6 +285,7 @@ All rules live in `.claude/rules/` and are automatically applied.
 - `agent-context.md` — CLAUDE.md convention, hook patterns
 - `github-issue-management.md` — Sub-issues, epic body structure
 - `writing-style.md` — No em-dashes; plain ASCII punctuation in all artifacts
+- `react-patterns.md` — React hooks, Context, component composition, state management
 
 ## Skills Index
 
