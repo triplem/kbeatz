@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="kbeatz logo">
+  <title>kbeatz</title>
+  <defs>
+    <!-- Background gradient: deep purple to near-black -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a0a2e;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#0d0618;stop-opacity:1"/>
+    </linearGradient>
+    <!-- Kotlin K gradient: purple to magenta (Kotlin brand palette) -->
+    <linearGradient id="kGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7f52ff;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#c811e1;stop-opacity:1"/>
+    </linearGradient>
+    <!-- Lamp glow gradient: warm yellow-orange -->
+    <radialGradient id="lampGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#ffe066;stop-opacity:0.9"/>
+      <stop offset="60%" style="stop-color:#ff9900;stop-opacity:0.5"/>
+      <stop offset="100%" style="stop-color:#ff6600;stop-opacity:0"/>
+    </radialGradient>
+    <!-- Lamp bulb fill -->
+    <radialGradient id="bulbFill" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" style="stop-color:#fffbe6;stop-opacity:1"/>
+      <stop offset="50%" style="stop-color:#ffe066;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#e07b00;stop-opacity:1"/>
+    </radialGradient>
+    <!-- Glow filter for the bulb -->
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- Subtle shadow for depth on K shape -->
+    <filter id="kShadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="2" dy="2" stdDeviation="4" flood-color="#7f52ff" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="248" fill="url(#bgGrad)"/>
+
+  <!-- Outer ring accent -->
+  <circle cx="256" cy="256" r="248" fill="none" stroke="#7f52ff" stroke-width="4" stroke-opacity="0.4"/>
+
+  <!-- Lamp glow halo (behind the K) positioned at upper-right where upper arm of K meets the lamp -->
+  <circle cx="340" cy="172" r="72" fill="url(#lampGlow)"/>
+
+  <!-- ============================================================
+       Kotlin-inspired K shape
+       - Vertical stem (left)
+       - Upper arm (diagonal top-right)
+       - Lower arm (diagonal bottom-right)
+       ============================================================ -->
+
+  <!-- Vertical stem of the K -->
+  <rect x="128" y="112" width="72" height="288"
+        rx="12" ry="12"
+        fill="url(#kGrad)"
+        filter="url(#kShadow)"/>
+
+  <!-- Upper arm of K: diagonal polygon from centre-left to upper-right -->
+  <polygon points="200,256 200,148 308,112 308,228"
+           fill="url(#kGrad)"
+           filter="url(#kShadow)"/>
+
+  <!-- Lower arm of K: diagonal polygon from centre-left to lower-right -->
+  <polygon points="200,256 200,364 308,400 308,284"
+           fill="url(#kGrad)"
+           filter="url(#kShadow)"/>
+
+  <!-- ============================================================
+       Lamp / light bulb motif
+       Placed at the top-right tip of the upper K arm.
+       Represents the "beatz lamps" motif.
+       ============================================================ -->
+
+  <!-- Bulb glow corona -->
+  <circle cx="336" cy="152" r="52" fill="url(#lampGlow)" filter="url(#glow)"/>
+
+  <!-- Bulb body -->
+  <circle cx="336" cy="148" r="32"
+          fill="url(#bulbFill)"
+          filter="url(#glow)"/>
+
+  <!-- Bulb base collar -->
+  <rect x="320" y="176" width="32" height="9" rx="4" ry="4" fill="#c8a000"/>
+  <rect x="322" y="185" width="28" height="8" rx="3" ry="3" fill="#a07800"/>
+  <rect x="324" y="193" width="24" height="7" rx="3" ry="3" fill="#886400"/>
+
+  <!-- Filament detail inside bulb -->
+  <line x1="336" y1="132" x2="336" y2="162" stroke="#fffbe6" stroke-width="2" stroke-opacity="0.7"/>
+  <line x1="321" y1="147" x2="351" y2="147" stroke="#fffbe6" stroke-width="2" stroke-opacity="0.5"/>
+
+  <!-- Light rays from bulb -->
+  <line x1="336" y1="108" x2="336" y2="94"  stroke="#ffe066" stroke-width="3" stroke-linecap="round" stroke-opacity="0.8"/>
+  <line x1="365" y1="120" x2="375" y2="110" stroke="#ffe066" stroke-width="3" stroke-linecap="round" stroke-opacity="0.7"/>
+  <line x1="376" y1="148" x2="392" y2="148" stroke="#ffe066" stroke-width="3" stroke-linecap="round" stroke-opacity="0.7"/>
+  <line x1="365" y1="176" x2="375" y2="186" stroke="#ffe066" stroke-width="3" stroke-linecap="round" stroke-opacity="0.6"/>
+  <line x1="307" y1="120" x2="297" y2="110" stroke="#ffe066" stroke-width="3" stroke-linecap="round" stroke-opacity="0.6"/>
+  <line x1="296" y1="148" x2="280" y2="148" stroke="#ffe066" stroke-width="3" stroke-linecap="round" stroke-opacity="0.5"/>
+
+  <!-- ============================================================
+       "kbeatz" wordmark at bottom
+       ============================================================ -->
+  <text x="256" y="456"
+        font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"
+        font-size="52"
+        font-weight="700"
+        letter-spacing="4"
+        text-anchor="middle"
+        fill="url(#kGrad)">kbeatz</text>
+</svg>

@@ -1,5 +1,9 @@
 # kbeatz
 
+<p align="center">
+  <img src="docs/assets/kbeatz-logo.svg" alt="kbeatz logo" width="128" height="128"/>
+</p>
+
 [![CI](https://github.com/triplem/kbeatz/actions/workflows/ci.yml/badge.svg)](https://github.com/triplem/kbeatz/actions/workflows/ci.yml)
 
 kbeatz is a self-hosted music collection management platform for FLAC libraries. It reads and writes
