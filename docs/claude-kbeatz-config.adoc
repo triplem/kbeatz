@@ -232,7 +232,7 @@ as a Kotlin subsection.
 |`logging-typescript`
 |Pattern
 |`.claude/rules/logging.md`
-|Remove
+|Removed
 |`user-invocable: false` with `paths: **/*.ts,**/*.js`. The general logging standards in
 `logging.md` auto-load every session. TypeScript-specific Pino details belong in `logging.md`
 as a TypeScript subsection rather than a separate auto-firing skill.
