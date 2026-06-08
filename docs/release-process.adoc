@@ -1,0 +1,326 @@
+= Release Process
+:toc: left
+:toclevels: 3
+:icons: font
+:source-highlighter: rouge
+
+This document describes how kbeatz releases work: what triggers a release, how the
+version is determined, what gets published, and how to write commits that produce
+useful release notes.
+
+== Overview
+
+Releases are fully automated. No manual version bumps, no branch merges to trigger
+publishing. The pipeline is:
+
+----
+PR merged to main
+    |
+    v
+semantic-release analyses commits since last tag
+    |
+    +-- no releasable commits --> stops (no release)
+    |
+    +-- releasable commits found
+            |
+            v
+        creates git tag  vX.Y.Z
+        creates GitHub release with generated notes
+            |
+            +--------+--------+
+            |                 |
+            v                 v
+      publish JARs      publish docs
+      publish Docker    to GitHub Pages
+      images
+----
+
+All published artifacts carry the same version. No version-bump commits are
+pushed to `main`.
+
+== Commit conventions
+
+kbeatz follows https://www.conventionalcommits.org[Conventional Commits] with the
+Angular preset. The commit subject determines whether a release is produced and what
+the version bump is.
+
+=== Commit format
+
+----
+<type>(<scope>): <issue-number> <summary>
+
+[optional body]
+
+[optional footer: BREAKING CHANGE: ..., Closes #N]
+----
+
+=== Version bump rules
+
+[cols="1,1,2"]
+|===
+|Commit type |Version bump |Example
+
+|`feat`
+|Minor (0.**1**.0)
+|`feat(catalog): #42 add album search by year`
+
+|`fix`
+|Patch (0.1.**1**)
+|`fix(tagger): #77 handle empty VorbisComment block`
+
+|`perf`
+|Patch (0.1.**1**)
+|`perf(catalog): #99 add index on albumDir column`
+
+|`feat!` or `BREAKING CHANGE:` in footer
+|Major (**1**.0.0)
+|`feat(api)!: #100 rename /albums to /collection`
+
+|`refactor`, `test`, `docs`, `chore`, `ci`, `style`, `build`
+|(no release)
+|`refactor(tagger): extract FlacWriter`
+
+|===
+
+If multiple commits since the last tag would each trigger a bump, the highest bump
+wins. A single breaking change produces a major bump regardless of other commits in
+the range.
+
+=== Writing commits for good release notes
+
+semantic-release groups the generated changelog by type. Write the summary line to be
+meaningful on its own:
+
+----
+# Good - readable in a changelog without context
+feat(catalog): #42 add paginated album search filtered by year and genre
+fix(tagger): #77 handle empty VorbisComment block in FLAC files from certain rippers
+
+# Poor - too vague
+feat(catalog): update stuff
+fix(tagger): fix bug
+----
+
+For breaking changes, put the `BREAKING CHANGE:` footer on a line by itself after a
+blank line:
+
+----
+feat(api)!: #100 rename /albums to /collection endpoint
+
+BREAKING CHANGE: The /api/v1/albums path is removed. All clients must update
+to /api/v1/collection. The response schema is unchanged.
+
+Closes #100
+----
+
+== What gets released
+
+=== JARs - GitHub Packages (Maven)
+
+The following library and CLI modules are published to
+`https://maven.pkg.github.com/triplem/kbeatz`:
+
+[cols="1,2"]
+|===
+|Artifact |Group:Artifact
+
+|kbeatz-common
+|`org.javafreedom.kbeatz:kbeatz-common`
+
+|kbeatz-sources
+|`org.javafreedom.kbeatz:kbeatz-sources`
+
+|kbeatz-tagger
+|`org.javafreedom.kbeatz:kbeatz-tagger`
+
+|kbeatz-cli (fat JAR)
+|`org.javafreedom.kbeatz:kbeatz-cli`
+
+|===
+
+`kbeatz-catalog` is a runnable service and is only published as a Docker image.
+
+=== Docker images - GHCR
+
+Two images are pushed to the GitHub Container Registry:
+
+[cols="1,2"]
+|===
+|Image |Tags
+
+|`ghcr.io/triplem/kbeatz-catalog`
+|`:1.2.3` (version), `:latest`
+
+|`ghcr.io/triplem/kbeatz-cli`
+|`:1.2.3` (version), `:latest`
+
+|===
+
+Pull a specific version for reproducible deployments:
+
+[source,bash]
+----
+docker pull ghcr.io/triplem/kbeatz-catalog:1.2.3
+docker pull ghcr.io/triplem/kbeatz-cli:1.2.3
+----
+
+=== Documentation - GitHub Pages
+
+The AsciiDoc documentation site is published to GitHub Pages at the repository's
+Pages URL. The `project-version` attribute in every page reflects the release version.
+
+== Release workflow in detail
+
+=== Trigger
+
+The release workflow runs on every push to `main`. If semantic-release finds no
+releasable commits since the last tag it exits silently with no release produced.
+
+The workflow is skipped for commits whose message starts with
+`chore(release):` to prevent infinite loops if a release job ever commits back.
+
+=== Job: release
+
+Runs `semantic-release` with the Angular preset. If a new version is warranted it:
+
+1. Creates and pushes a git tag (`vX.Y.Z`) on the current HEAD of `main`.
+2. Creates a GitHub release with auto-generated notes grouped by type
+   (Breaking Changes, Features, Bug Fixes, Performance, Other Changes).
+
+No file changes are committed to `main`. The tag is the only artifact written to
+the repository.
+
+=== Job: publish-jars (runs if release was created)
+
+Temporarily sets the release version in all `build.gradle.kts` files (no commit),
+then runs:
+
+[source,bash]
+----
+./gradlew :kbeatz-common:publish :kbeatz-sources:publish \
+          :kbeatz-tagger:publish :kbeatz-cli:publish --no-daemon
+----
+
+JARs are pushed to GitHub Packages under the release version.
+
+=== Job: publish-docker (runs after publish-jars)
+
+Builds multi-layer Docker images for `kbeatz-catalog` and `kbeatz-cli` using the
+`Dockerfile` in each module directory. Both images are tagged with the release version
+and with `:latest`. A smoke test verifies the catalog image starts without crashing
+before it is promoted.
+
+=== Job: publish-docs (runs in parallel with publish-docker)
+
+Builds the AsciiDoc documentation site with the release version baked in as the
+`project-version` attribute, then deploys to GitHub Pages via the `gh-pages` branch.
+
+== Versioning scheme
+
+kbeatz uses a single monorepo-wide version. All modules, all images, and the
+documentation site share the same version string derived from the git tag.
+
+[cols="1,3"]
+|===
+|Format |Meaning
+
+|`0.y.z` (major = 0)
+|Public API not yet stable. Breaking changes are allowed with a major bump to the
+minor segment. Minor and patch bumps have their usual meanings.
+
+|`1.0.0`
+|First stable public release. Semver guarantees apply: breaking changes require a
+major bump.
+
+|===
+
+== Verifying a release
+
+After a merge to `main`:
+
+[source,bash]
+----
+# Check the release workflow result
+gh run list --workflow release.yml --branch main --limit 5
+
+# View generated release notes
+gh release view $(gh release list --limit 1 --json tagName --jq '.[0].tagName')
+
+# Confirm JARs are published
+gh api "repos/triplem/kbeatz/packages?package_type=maven" --jq '.[].name'
+
+# Confirm Docker images are tagged
+gh api "orgs/triplem/packages/container/kbeatz-catalog/versions" \
+  --jq '.[0].metadata.container.tags' 2>/dev/null || \
+gh api "users/triplem/packages/container/kbeatz-catalog/versions" \
+  --jq '.[0].metadata.container.tags'
+----
+
+== Troubleshooting
+
+=== No release produced after a merge
+
+semantic-release found no commits of type `feat`, `fix`, or `perf` since the last
+tag. Check which commits landed:
+
+[source,bash]
+----
+git log $(git describe --tags --abbrev=0)..HEAD --oneline
+----
+
+If the commits are there but use the wrong type (e.g., `feature:` instead of `feat:`),
+squash and fix the commit message in a follow-up PR.
+
+=== Publish fails with 409 Conflict
+
+A JAR or Docker image for this version already exists in the registry from a
+previous partial run. Delete the conflicting version via the GitHub Packages UI
+or the API, then re-run the workflow manually:
+
+[source,bash]
+----
+gh workflow run release.yml --ref main
+----
+
+=== Docker smoke test fails
+
+The `kbeatz-catalog` container exited non-zero during the smoke test step. Check
+the Docker build logs in the failed workflow run. Common causes: missing `ENV`
+defaults, changed entrypoint, or a startup-time dependency on `CATALOG_LIBRARY_ROOT`
+being a real path.
+
+=== Release tag created but docs not updated
+
+The `publish-docs` job may have failed independently of the `publish-jars` job.
+Check the job log in the failed run. Re-trigger manually:
+
+[source,bash]
+----
+gh workflow run release.yml --ref main
+----
+
+The idempotency check in semantic-release will detect the existing tag and skip
+version creation, but the publish jobs will still run.
+
+== Local simulation
+
+To check which version semantic-release would assign without creating a release:
+
+[source,bash]
+----
+# Install semantic-release locally
+npm install -g semantic-release \
+  @semantic-release/commit-analyzer \
+  @semantic-release/release-notes-generator
+
+# Dry run - prints the next version and changelog, creates nothing
+GITHUB_TOKEN=<token> npx semantic-release --dry-run --no-ci
+----
+
+To preview the changelog for a range of commits:
+
+[source,bash]
+----
+# Show commits since last tag
+git log $(git describe --tags --abbrev=0)..HEAD --format="%s"
+----
