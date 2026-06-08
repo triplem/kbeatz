@@ -172,15 +172,21 @@ done
 # Commit version bump
 # ---------------------------------------------------------------------------
 
+PACKAGE_JSON="kbeatz-ui/package.json"
+if [[ -f "$PACKAGE_JSON" ]]; then
+    log "  Updating $PACKAGE_JSON"
+    sed -i "s/\"version\": \"[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\"/\"version\": \"${NEXT_VERSION}\"/" "$PACKAGE_JSON"
+    git add "$PACKAGE_JSON"
+fi
+
 git add "${GRADLE_FILES[@]}"
 git commit -m "chore(scaffold): bump version to ${NEXT_VERSION} for release ${NEXT_TAG}"
 
 # ---------------------------------------------------------------------------
-# Create tag
+# Create tag locally
 # ---------------------------------------------------------------------------
 
 git tag "$NEXT_TAG"
-git push origin HEAD --tags
 
 # ---------------------------------------------------------------------------
 # Build changelog grouped by commit type
@@ -278,9 +284,18 @@ CHANGELOG=$(build_changelog "$LAST_TAG")
 
 log "Creating GitHub release $NEXT_TAG"
 
+# Push the version-bump commit first (without the tag).
+# The tag is pushed separately after gh release create succeeds, so that a
+# failed release creation does not leave an orphaned remote tag that would
+# block retries via the idempotency check above.
+git push origin HEAD
+
 gh release create "$NEXT_TAG" \
     --title "Release $NEXT_TAG" \
     --notes "$CHANGELOG" \
-    --verify-tag
+    --target "$(git rev-parse HEAD)"
+
+# Push only the new tag - not all local tags.
+git push origin "refs/tags/${NEXT_TAG}"
 
 log "Release $NEXT_TAG created successfully"
