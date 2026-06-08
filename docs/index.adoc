@@ -6,6 +6,13 @@
 :doctype: book
 :revnumber: {project-version}
 
+[NOTE]
+====
+Quality reports (Detekt static analysis, Kover coverage, ESLint, Trivy container scan)
+are published alongside this documentation.
+link:../index.html[Quality Reports (Detekt, ESLint, Trivy)]
+====
+
 == Overview
 
 *kbeatz* is a Kotlin/Ktor + React monorepo skeleton pre-configured for AI-assisted development
