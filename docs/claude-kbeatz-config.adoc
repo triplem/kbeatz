@@ -241,7 +241,7 @@ as a TypeScript subsection rather than a separate auto-firing skill.
 |`openapi-patterns`
 |Pattern
 |`.claude/rules/openapi.md`, `.claude/rules/api-design.md`
-|Remove
+|Removed
 |`user-invocable: false` with `paths: **/openapi.yaml,**/*Controller.kt`. The `openapi.md`
 and `api-design.md` rule files auto-load every session and cover spec-first design, naming
 conventions, mandatory fields, and CI enforcement. No unique value over the existing rules.
