@@ -26,6 +26,9 @@ paths:
         Use /livez and /readyz instead for Kubernetes deployments.
       tags: [Health]
       security: []
+      servers:
+        - url: "http://localhost:8080"
+          description: Direct server access (health probes are at the HTTP root, not under /api/v1)
       responses:
         "200":
           description: Service is healthy
@@ -49,8 +52,13 @@ paths:
         This endpoint performs no I/O and is guaranteed to respond within 100 ms.
         Use as a Kubernetes livenessProbe target. Supports the --livez-grace-period
         startup grace window when combined with a Kubernetes startupProbe.
+        Note: K8s-idiomatic path names (/livez, /readyz) are used instead of
+        /health/live and /health/ready per implementation decision for issue #293.
       tags: [Health]
       security: []
+      servers:
+        - url: "http://localhost:8080"
+          description: Direct server access (health probes are at the HTTP root, not under /api/v1)
       responses:
         "200":
           description: Process is alive
@@ -70,15 +78,20 @@ paths:
         guaranteed to respond within 100 ms.
         Use as a Kubernetes readinessProbe target. Pair with --shutdown-delay-duration
         for graceful shutdown.
+        Note: K8s-idiomatic path names (/livez, /readyz) are used instead of
+        /health/live and /health/ready per implementation decision for issue #293.
       tags: [Health]
       security: []
+      servers:
+        - url: "http://localhost:8080"
+          description: Direct server access (health probes are at the HTTP root, not under /api/v1)
       responses:
         "200":
           description: Service is ready to accept traffic
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LivenessResponse"
+                $ref: "#/components/schemas/ReadinessResponse"
         "503":
           description: Service is not ready - database is unreachable
           content:
@@ -592,6 +605,16 @@ components:
           type: string
           enum: [UP]
           description: "Always UP when the process is running"
+          example: "UP"
+
+    ReadinessResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [UP]
+          description: "Always UP when the service is ready to accept traffic"
           example: "UP"
 
     HealthResponse:

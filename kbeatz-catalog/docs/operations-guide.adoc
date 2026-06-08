@@ -15,7 +15,10 @@ troubleshooting common errors.
 
 == Health Probes
 
-kbeatz-catalog exposes three health endpoints under `/api/v1/health`:
+kbeatz-catalog exposes three health endpoints at the HTTP root (not under `/api/v1`).
+K8s-idiomatic path names (`/livez`, `/readyz`) are used per the implementation decision
+for issue #293, rather than the `/health/live` and `/health/ready` paths originally
+described in the acceptance criteria.
 
 [cols="2,1,3", options="header"]
 |===
@@ -29,7 +32,7 @@ kbeatz-catalog exposes three health endpoints under `/api/v1/health`:
 | Readiness
 | `readinessProbe` - 200 when DB is reachable; 503 with `ErrorResponse` body when not.
 
-| `GET /api/v1/health`
+| `GET /healthz`
 | Combined (legacy)
 | Not recommended for new deployments; retained for backwards compatibility.
 |===

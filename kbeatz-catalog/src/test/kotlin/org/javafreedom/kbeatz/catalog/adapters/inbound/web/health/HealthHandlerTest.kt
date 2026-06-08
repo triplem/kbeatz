@@ -16,6 +16,7 @@ import kotlinx.serialization.json.Json
 import org.javafreedom.kbeatz.catalog.api.models.ErrorResponse
 import org.javafreedom.kbeatz.catalog.api.models.HealthResponse
 import org.javafreedom.kbeatz.catalog.api.models.LivenessResponse
+import org.javafreedom.kbeatz.catalog.api.models.ReadinessResponse
 
 class HealthHandlerTest {
 
@@ -123,8 +124,8 @@ class HealthHandlerTest {
         val response = client.get("/readyz")
 
         assertEquals(HttpStatusCode.OK, response.status)
-        val body = response.body<LivenessResponse>()
-        assertEquals(LivenessResponse.Status.UP, body.status)
+        val body = response.body<ReadinessResponse>()
+        assertEquals(ReadinessResponse.Status.UP, body.status)
     }
 
     @Test

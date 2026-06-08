@@ -7,6 +7,7 @@ import java.nio.file.Path
 import org.javafreedom.kbeatz.catalog.api.models.ErrorResponse
 import org.javafreedom.kbeatz.catalog.api.models.HealthResponse
 import org.javafreedom.kbeatz.catalog.api.models.LivenessResponse
+import org.javafreedom.kbeatz.catalog.api.models.ReadinessResponse
 
 /**
  * Ktor route handlers for health probes.
@@ -49,7 +50,7 @@ fun Route.healthRoutes(
     get("/readyz") {
         val dbUp = runCatching { dbProbe() }.getOrDefault(false)
         if (dbUp) {
-            call.respond(HttpStatusCode.OK, LivenessResponse(status = LivenessResponse.Status.UP))
+            call.respond(HttpStatusCode.OK, ReadinessResponse(status = ReadinessResponse.Status.UP))
         } else {
             call.respond(
                 HttpStatusCode.ServiceUnavailable,
