@@ -6,7 +6,7 @@
 == API-First Design
 
 The OpenAPI specification at `<service>/api/openapi.yaml` is the single source of truth for every
-service. Code on both sides is generated from it — the spec is never derived from the code.
+service. Code on both sides is generated from it - the spec is never derived from the code.
 
 [plantuml, api-first, svg]
 ....
@@ -71,9 +71,9 @@ The domain layer has no framework dependencies. Infrastructure implements domain
 
 JWT-based via Keycloak. The `kbeatz-common` library provides:
 
-* `UserPrincipal` — extracted from JWT claims on every request
-* `configureSecurity()` — Ktor plugin that validates the JWT and populates the principal
-* `configureStatusPages()` — maps `DomainException` subtypes to HTTP status codes
+* `UserPrincipal` - extracted from JWT claims on every request
+* `configureSecurity()` - Ktor plugin that validates the JWT and populates the principal
+* `configureStatusPages()` - maps `DomainException` subtypes to HTTP status codes
 
 === JWT Claims
 
@@ -132,7 +132,7 @@ Throw domain exceptions from the service layer. Never throw from routes or repos
 
 [source,kotlin]
 ----
-// Repository interface (domain layer — no Exposed types)
+// Repository interface (domain layer - no Exposed types)
 interface ItemRepository {
     suspend fun findById(id: Uuid): Item?
     suspend fun save(item: Item): Item
@@ -166,10 +166,10 @@ Log entries include `correlationId` automatically via the logback JSON appender.
 
 Each service is an independent Gradle composite build with its own:
 
-* `settings.gradle.kts` — references `../build-logic` and `../gradle/libs.versions.toml`
-* `build.gradle.kts` — applies the `kbeatz.ktor-service` convention plugin
-* `api/openapi.yaml` — its own contract
-* `config/detekt/` — can override or extend the root detekt config
+* `settings.gradle.kts` - references `../build-logic` and `../gradle/libs.versions.toml`
+* `build.gradle.kts` - applies the `kbeatz.ktor-service` convention plugin
+* `api/openapi.yaml` - its own contract
+* `config/detekt/` - can override or extend the root detekt config
 
 The root `settings.gradle.kts` glues them together via `includeBuild()`. Adding a new service
 requires one `includeBuild` entry there and one entry in the `serviceBuilds` list in `build.gradle.kts`.

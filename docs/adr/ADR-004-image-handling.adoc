@@ -1,4 +1,4 @@
-= ADR-004: Dual Image Storage — Embedded FLAC PICTURE Block and External folder.jpg
+= ADR-004: Dual Image Storage - Embedded FLAC PICTURE Block and External folder.jpg
 :toc: left
 :icons: font
 :revdate: 2026-06-04
@@ -14,9 +14,9 @@ A music collection includes album cover art and, less frequently, additional ima
 (back cover, inner sleeve, media label).
 These images appear in two forms in a typical FLAC library:
 
-* **Embedded** — stored inside the FLAC file as a `METADATA_BLOCK_PICTURE` (RFC 9639 §9.6).
+* **Embedded** - stored inside the FLAC file as a `METADATA_BLOCK_PICTURE` (RFC 9639 §9.6).
   Per-track, always travels with the audio file.
-* **External** — stored as `folder.jpg` / `image-NN.jpg` files alongside the FLAC tracks.
+* **External** - stored as `folder.jpg` / `image-NN.jpg` files alongside the FLAC tracks.
   Directory-level, used by media players and file managers for fast browsing.
 
 Several questions must be answered:
@@ -36,7 +36,7 @@ The most relevant for a music collection:
 | Type | Label | Typical content
 
 | 0 | Other | Generic image
-| 3 | Cover (front) | Primary album art — what media players display
+| 3 | Cover (front) | Primary album art - what media players display
 | 4 | Cover (back) | Back sleeve
 | 5 | Leaflet page | Booklet / inner sleeve scans
 | 6 | Media | Label side of a disc
@@ -81,7 +81,7 @@ Use **dual storage** for the front cover:
 . **Write** the same image as `folder.jpg` in the album directory.
 
 Additional Discogs images (back cover, leaflet, etc.) are written as external files only
-(`image-01.jpg`, `image-02.jpg`, …) — they are **not** embedded in FLAC files.
+(`image-01.jpg`, `image-02.jpg`, …) - they are **not** embedded in FLAC files.
 
 Only **one** PICTURE block of each type is kept per FLAC file.
 If an embedded PICTURE type 3 already exists and a re-sync is triggered, the existing
@@ -119,7 +119,7 @@ It must never appear in source code, committed config files, or application logs
   and log a `WARN` with the expected reset time (UTC midnight).
 * `kbeatz-tagger tag --download-images` (default: `false`) controls whether images
   are fetched on a given run. The default is `false` because most albums in a mature
-  collection already have `folder.jpg` files from previous tagging runs — re-downloading
+  collection already have `folder.jpg` files from previous tagging runs - re-downloading
   the same images would burn the daily quota unnecessarily. Pass `--download-images`
   explicitly only for newly added albums that have no cover art yet.
 * `DiscogsMetadataSource` in `kbeatz-sources` enforces the quota on every `fetchImage()` call
@@ -127,7 +127,7 @@ It must never appear in source code, committed config files, or application logs
 
 === Image Quota Counter Persistence
 
-The daily download counter **must survive service restarts** — an in-memory counter resets
+The daily download counter **must survive service restarts** - an in-memory counter resets
 to zero on restart, allowing the full 1 000-image quota to be consumed again.
 
 The counter is persisted as a JSON file at a configured path (default: the service's
@@ -151,7 +151,7 @@ The catalog service already depends on H2 for the album index (see ADR-006);
 that same H2 file could store the quota counter if operational state grows beyond a
 single integer, but the JSON file is sufficient for v1.
 
-=== Catalog API — Cover Art Serving
+=== Catalog API: Cover Art Serving
 
 `kbeatz-catalog` serves cover art at:
 
@@ -171,12 +171,12 @@ a personal-scale collection.
 
 == Consequences
 
-* Every FLAC file in an album always contains the same embedded front cover — per-track
+* Every FLAC file in an album always contains the same embedded front cover - per-track
   tagging runs must include the PICTURE block update.
 * The `FlacMetadataBlock.Picture` class in `kbeatz-tagger` is already in the sealed hierarchy
-  and the reader/writer already handles PICTURE blocks — no library changes needed for v1.
+  and the reader/writer already handles PICTURE blocks - no library changes needed for v1.
 * Disk usage for a typical album: one 500 KB JPEG × N tracks ≈ N × 500 KB overhead.
-  For a 10-track album this is ~5 MB extra per album — acceptable for a personal collection
+  For a 10-track album this is ~5 MB extra per album - acceptable for a personal collection
   on modern storage, but worth noting.
 * The 1 000 images/day Discogs quota limits bulk operations.
   A full re-tag of a large collection (e.g. 2 000 albums) must be spread across multiple days

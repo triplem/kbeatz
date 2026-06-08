@@ -1,8 +1,8 @@
-# kbeatz — Milestone Plan
+# kbeatz: Milestone Plan
 
 **Version**: 1.0  
 **Date**: 2026-06-06  
-**Status**: Draft — epics approved, stories pending decomposition
+**Status**: Draft - epics approved, stories pending decomposition
 
 ---
 
@@ -12,13 +12,13 @@ Milestones are ordered by: hard dependencies first, then business priority (P0 b
 
 ---
 
-## M1 — Foundation (prerequisite for all user-visible work)
+## M1: Foundation (prerequisite for all user-visible work)
 
 **Goal:** A deployable skeleton with a complete album index. No UI yet, but the catalog API returns real data and the CI pipeline is green.
 
 | Epic | Issue | Complexity | Priority |
 |---|---|---|---|
-| Platform Foundation & Deployment | #13 | M | — |
+| Platform Foundation & Deployment | #13 | M | - |
 | Library Scan & Album Indexing | #14 | L | P0 |
 
 **Exit criteria:**
@@ -27,11 +27,11 @@ Milestones are ordered by: hard dependencies first, then business priority (P0 b
 - `POST /api/v1/library/scan` triggers a rescan; new albums appear in subsequent API response
 - CI pipeline green (build + tests + Detekt + Kover ≥ 80 %)
 
-**Risk:** Album grouping algorithm and H2 schema are new domain logic — highest design risk in the whole project. Placing this in M1 surfaces any modelling errors before UI work begins.
+**Risk:** Album grouping algorithm and H2 schema are new domain logic - highest design risk in the whole project. Placing this in M1 surfaces any modelling errors before UI work begins.
 
 ---
 
-## M2 — Browsable collection (first user-visible milestone)
+## M2: Browsable collection (first user-visible milestone)
 
 **Goal:** The user can open a browser, see all albums in a visual grid, filter and search client-side, and view cover art.
 
@@ -46,13 +46,13 @@ Milestones are ordered by: hard dependencies first, then business priority (P0 b
 - Classical albums display composer as primary attribution
 - `GET /api/v1/albums/{albumId}/cover` resolves embedded PICTURE → `folder.jpg` → 404
 
-**Risk:** Client-side filter performance at 2 000 albums — validate early with realistic fixture data.
+**Risk:** Client-side filter performance at 2 000 albums - validate early with realistic fixture data.
 
 ---
 
-## M3 — Core editing workflow (v1 switch trigger)
+## M3: Core editing workflow (v1 switch trigger)
 
-**Goal:** The user can sync album tags from Discogs and fix mistakes in-place — the complete replacement for the discogstagger + file-manager workflow.
+**Goal:** The user can sync album tags from Discogs and fix mistakes in-place - the complete replacement for the discogstagger + file-manager workflow.
 
 | Epic | Issue | Complexity | Priority |
 |---|---|---|---|
@@ -68,11 +68,11 @@ Milestones are ordered by: hard dependencies first, then business priority (P0 b
 
 **Note:** #16 and #17 can be developed in parallel once M2 is merged. #16 does not depend on #17.
 
-**Risk:** Atomic write + lock manifest interaction across two epics (#16 and #17) — integration test covering a sync-killed-mid-write scenario is mandatory before M3 ships.
+**Risk:** Atomic write + lock manifest interaction across two epics (#16 and #17) - integration test covering a sync-killed-mid-write scenario is mandatory before M3 ships.
 
 ---
 
-## M4 — CLI tagger (P1 feature, parallelisable)
+## M4: CLI tagger (P1 feature, parallelisable)
 
 **Goal:** The user can tag albums from the terminal and batch-migrate all ~1 400 INI id files to `metadata.yml` in one command.
 
@@ -80,7 +80,7 @@ Milestones are ordered by: hard dependencies first, then business priority (P0 b
 |---|---|---|---|
 | CLI Tagger & ID-File Migration | #18 | M | P1 |
 
-**Prerequisite:** issues #2 and #7 (kbeatz-sources library blockers) resolved — these are already open and are independent of the catalog HTTP service. M4 work can begin once #2 and #7 are closed, even while M3 is still in progress.
+**Prerequisite:** issues #2 and #7 (kbeatz-sources library blockers) resolved - these are already open and are independent of the catalog HTTP service. M4 work can begin once #2 and #7 are closed, even while M3 is still in progress.
 
 **Exit criteria:**
 - `kbeatz-tagger tag /path` tags a single album from `metadata.yml` or `id.txt`
@@ -110,5 +110,5 @@ Milestones are ordered by: hard dependencies first, then business priority (P0 b
 |---|---|---|---|
 | M1 | #13, #14 | M + L | Deployable foundation + album index |
 | M2 | #15 | L | Visual collection browsing |
-| M3 | #16, #17 | M + L | Tag editing + Discogs sync — v1 switch trigger |
+| M3 | #16, #17 | M + L | Tag editing + Discogs sync - v1 switch trigger |
 | M4 | #18 | M | CLI tagger + id-file migration |

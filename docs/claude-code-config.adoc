@@ -5,7 +5,7 @@
 :source-highlighter: rouge
 
 This project ships a complete Claude Code configuration in `.claude/`. It implements a full
-AI-assisted SDLC — from requirements gathering through release — with safety guardrails.
+AI-assisted SDLC - from requirements gathering through release - with safety guardrails.
 
 == Directory Layout
 

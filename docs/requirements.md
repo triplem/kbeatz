@@ -1,8 +1,8 @@
-# kbeatz — Requirements Document
+# kbeatz: Requirements Document
 
 **Version**: 1.0  
 **Date**: 2026-06-05  
-**Status**: Draft — pending approval  
+**Status**: Draft - pending approval  
 **Source**: RequirementsAgent elicitation (8 questions, 2 challenge cycles)
 
 ---
@@ -15,7 +15,7 @@ The user manages a personal FLAC music collection of ~2 000 albums (growing) on 
 - Cannot browse or search the collection visually
 - Cannot edit individual tags without re-running the full tagging pipeline
 - No cover art display or collection overview
-- CLI-only — not usable from other devices on the local network
+- CLI-only - not usable from other devices on the local network
 
 ---
 
@@ -48,7 +48,7 @@ The user manages a personal FLAC music collection of ~2 000 albums (growing) on 
 
 Requirements are listed in priority order. **P0** = must have for v1 switch; **P1** = important but not the switching trigger; **P2** = future phases.
 
-### P0 — Browse the collection
+### P0: Browse the collection
 
 **FR-01** The system shall display all albums in the collection as a visual grid.  
 Each album card shows: cover art (placeholder if absent), album title, primary artist or composer, release year, and genre.
@@ -61,7 +61,7 @@ Each album card shows: cover art (placeholder if absent), album title, primary a
 
 **FR-05** Filter and search operations on a loaded grid shall complete in < 200 ms p95 (client-side).
 
-### P0 — In-place tag editing
+### P0: In-place tag editing
 
 **FR-06** The user shall be able to open an album detail view showing all Vorbis Comment tags for that album.
 
@@ -69,7 +69,7 @@ Each album card shows: cover art (placeholder if absent), album title, primary a
 
 **FR-08** A save operation writes changes to disk immediately using the atomic write strategy (temp file + rename). No "pending changes" queue in v1.
 
-### P0 — Discogs sync
+### P0: Discogs sync
 
 **FR-09** Given an album directory containing a `metadata.yml` (or `id.txt` / `local_ids.txt`) file with a `discogs_id`, the system shall fetch the corresponding Discogs release and write all standard Vorbis Comment tags to every FLAC file in that album directory.
 
@@ -81,29 +81,29 @@ Each album card shows: cover art (placeholder if absent), album title, primary a
 
 **FR-13** Image download is **opt-in** for the CLI tagger (`--download-images` flag, default: off). Most albums in the existing collection already have `folder.jpg` from discogstagger; re-downloading would consume quota unnecessarily. The UI sync panel shall offer an explicit "also update cover art" checkbox, also defaulting to unchecked.
 
-### P0 — Library scan
+### P0: Library scan
 
 **FR-19** The system shall scan all FLAC files under the configured library root and build (or refresh) the metadata index. Scan is triggered: (a) automatically at service startup, (b) on demand via `POST /api/v1/library/scan` from the UI. Scan progress is available at `GET /api/v1/library/scan/status`.
 
 **FR-20** A multi-file album tag write shall be preceded by writing a `.kbeatz-write.lock` manifest in the album directory listing all target file paths. On startup, any orphaned lock file triggers a repair scan for that directory. Individual file writes remain atomic (temp file + rename).
 
-### P1 — Identity file migration
+### P1: Identity file migration
 
 **FR-14** The CLI tool (`kbeatz-tagger migrate-ids`) shall convert INI-style `id.txt` / `local_ids.txt` files to YAML `metadata.yml`. The original files are deleted after successful conversion unless `--keep-original` is specified.
 
 **FR-15** `kbeatz-tagger tag` shall accept both INI and YAML id files. File type is detected by extension (`.yml`/`.yaml` → YAML; all other → INI).
 
-### P1 — Classical music display
+### P1: Classical music display
 
 **FR-16** When `COMPOSER` is set on an album, the UI shall display the composer as the primary attribution and conductor / ensemble as secondary. Sort order is user-configurable (default: COMPOSER for classical, ALBUMARTIST otherwise).
 
 **FR-17** The user shall be able to change the primary sort key from a Settings panel. The preference persists in localStorage.
 
-### P1 — Cover art browsing
+### P1: Cover art browsing
 
 **FR-18** `GET /api/v1/albums/{albumId}/cover` returns the front cover image. Resolution order: embedded `METADATA_BLOCK_PICTURE` type 3 → `folder.jpg` → HTTP 404.
 
-### P2 — Future phases (out of scope for v1)
+### P2: Future phases (out of scope for v1)
 
 | Feature | Notes |
 |---|---|
@@ -146,7 +146,7 @@ An album is defined by the tuple `(ALBUMARTIST, ALBUM, DATE)` across FLAC files 
 An album maps to one filesystem directory (the **album root**), with optional immediate `disc1/`, `disc2/` subdirectories for multi-disc releases. The album root directory and all its immediate disc subdirectories are treated as a single album unit for all sync, tag-write, and cover-art operations.
 
 **Disambiguation rules (in precedence order):**
-1. Directory path is the primary grouping boundary — FLAC files in different directories are never merged into the same album, even if their tags match.
+1. Directory path is the primary grouping boundary - FLAC files in different directories are never merged into the same album, even if their tags match.
 2. `DISCNUMBER` distinguishes discs within the same album root.
 3. If `DATE` is absent, the album is grouped without it; two releases of the same album title in the same directory are treated as one album.
 4. `metadata.yml` in the album root applies to all FLAC files in the root and all disc subdirectories.
@@ -209,7 +209,7 @@ An album maps to one filesystem directory (the **album root**), with optional im
 | AC-01 | Album grid displays all albums in the configured library root | Count albums in UI vs `find /music -name "*.flac" -printf "%h\n" \| sort -u \| wc -l` |
 | AC-02 | Typing "Beethoven" in the search box returns only albums with COMPOSER or ALBUMARTIST containing "Beethoven" | Manual test + inspect filtered results |
 | AC-03 | Filter by genre "Jazz" returns only albums with GENRE=Jazz | Manual test |
-| AC-04 | Filter + search results update without page reload | Observe — no network request on keystroke |
+| AC-04 | Filter + search results update without page reload | Observe - no network request on keystroke |
 | AC-05 | Clicking an album tag field, editing, and saving updates the tag in the FLAC file on disk | `metaflac --list file.flac` before and after |
 | AC-06 | Album-level tag edit propagates to all tracks in the album | Inspect all FLAC files in directory with metaflac |
 | AC-07 | Discogs sync with a valid `metadata.yml` writes correct tags to all FLAC files | `metaflac --list` after sync; compare with Discogs website |
@@ -247,7 +247,7 @@ An album maps to one filesystem directory (the **album root**), with optional im
 | ID | Question | Default if not answered |
 |---|---|---|
 | ~~OQ-01~~ | ~~podman-compose availability~~ | **Resolved**: `podman-compose` is installed and is a hard deployment requirement. |
-| ~~OQ-02~~ | ~~Default ports~~ | **Resolved**: 8080 (kbeatz-catalog). kbeatz-sources is a library — no HTTP port. |
+| ~~OQ-02~~ | ~~Default ports~~ | **Resolved**: 8080 (kbeatz-catalog). kbeatz-sources is a library - no HTTP port. |
 | ~~OQ-03~~ | ~~kbeatz-tagger distribution~~ | **Resolved**: Both fat JAR (for CLI use on the collection machine) and container image (for compose context) are produced as build artefacts. |
 | ~~OQ-04~~ | ~~Database choice~~ | **Resolved**: H2 for v1 (pure-Java, zero-ops single file, in-memory test mode, `MODE=PostgreSQL` for dialect compatibility). PostgreSQL is the documented v2 migration target. Exposed ORM + Liquibase migrations apply to both. See ADR-006. |
 

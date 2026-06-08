@@ -40,7 +40,7 @@ Several existing options were considered:
 == Decision
 
 Implement a custom `kbeatz-tagger` library based on
-https://www.rfc-editor.org/rfc/rfc9639.html[RFC 9639 — The FLAC Audio Codec].
+https://www.rfc-editor.org/rfc/rfc9639.html[RFC 9639 - The FLAC Audio Codec].
 
 The SaltAudioTag `MetadataBlock` model was studied for idiomatic Kotlin structure (sealed class
 hierarchy, data classes per block type) but is **not used as a dependency**.
@@ -61,17 +61,17 @@ hierarchy, data classes per block type) but is **not used as a dependency**.
 * Byte-array fields in `FlacMetadataBlock` data classes use `kotlinx.io.bytestring.ByteString`
   (immutable, content-based equals) rather than `ByteArray`, which would break `equals()`/
   `hashCode()` in data classes.  `FlacParseResult` is a plain `class` (not `data class`) for
-  the same reason — its `audioFrames: ByteArray` is large and should not be copied into a
+  the same reason - its `audioFrames: ByteArray` is large and should not be copied into a
   `ByteString` on every parse.
-* We own the full byte-level behaviour — bugs in edge cases (e.g. multi-byte UTF-8 in tag
+* We own the full byte-level behaviour - bugs in edge cases (e.g. multi-byte UTF-8 in tag
   values, very large PADDING blocks) are our responsibility to test.
-* **Known limitation — streaming writes**: `FlacFile` currently loads the entire audio payload
+* **Known limitation - streaming writes**: `FlacFile` currently loads the entire audio payload
   (`audioFrames: ByteArray`) into heap memory.  For high-res 24-bit/96 kHz tracks this can be
   200–400 MB.  A streaming write mode (pipe audio directly from source to dest without loading)
   is the correct solution for bulk operations and should be addressed in a future epic before
   any mass-tagging feature is built.
 * Adding support for new block types (SEEKTABLE, APPLICATION, CUESHEET) requires extending
-  the sealed class and both reader/writer — low risk, incremental.
+  the sealed class and both reader/writer - low risk, incremental.
 * Other audio formats (MP3 ID3, AAC, OGG) are explicitly out of scope for v1.
 
 === Known Limitations

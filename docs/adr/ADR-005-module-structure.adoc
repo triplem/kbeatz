@@ -1,4 +1,4 @@
-= ADR-005: Module Structure — Codec Library, Metadata Library, and Tagger Engine
+= ADR-005: Module Structure - Codec Library, Metadata Library, and Tagger Engine
 :toc: left
 :icons: font
 :revdate: 2026-06-05
@@ -13,9 +13,9 @@ Accepted
 The initial scaffold had three modules whose naming and responsibility boundaries were reconsidered
 before any feature implementation began:
 
-* `kbeatz-flac` — FLAC-specific reader/writer
-* `kbeatz-sources-discogs` — Discogs integration originally designed as a standalone Ktor HTTP service with its own OpenAPI spec
-* `kbeatz-tagger` — CLI-only entry point with no shareable service API
+* `kbeatz-flac` - FLAC-specific reader/writer
+* `kbeatz-sources-discogs` - Discogs integration originally designed as a standalone Ktor HTTP service with its own OpenAPI spec
+* `kbeatz-tagger` - CLI-only entry point with no shareable service API
 
 Three questions arose:
 
@@ -36,30 +36,30 @@ The codec library (`kbeatz-flac`, later `kbeatz-filecodec`) is merged into `kbea
 The FLAC code moves to `org.javafreedom.kbeatz.tagger.codec.flac`.
 Future format support (MP3, AAC) adds sibling sub-packages under `tagger/codec/`.
 
-The CLI entry point (Clikt commands) is extracted to a new `kbeatz-cli` module — a pure
+The CLI entry point (Clikt commands) is extracted to a new `kbeatz-cli` module - a pure
 delivery vehicle that contains no business logic. This keeps the Clikt dependency out of
 `kbeatz-catalog`'s classpath.
 
 `kbeatz-tagger` (library) now contains:
 
-* `codec/flac/` — FLAC binary parser/writer
-* `service/` — `TaggerService` port interface
-* `idfile/` — `IdFileReader`, `IdFile`, `SourceConfig`
+* `codec/flac/` - FLAC binary parser/writer
+* `service/` - `TaggerService` port interface
+* `idfile/` - `IdFileReader`, `IdFile`, `SourceConfig`
 
 === 2. `kbeatz-metadata-discogs` → `kbeatz-sources` (library, not HTTP service)
 
 Replace the standalone HTTP service with a Kotlin library exposing two port interfaces:
 
-* `MetadataSource` — fetches release metadata by ID; v1 implementation in `discogs/`,
+* `MetadataSource` - fetches release metadata by ID; v1 implementation in `discogs/`,
   future `musicbrainz/` alongside it
-* `MetadataCache` — caches fetched releases; v1 in-memory implementation, future H2-backed
+* `MetadataCache` - caches fetched releases; v1 in-memory implementation, future H2-backed
 
 Both `kbeatz-catalog` and `kbeatz-tagger` depend on `kbeatz-sources` as a compile-time library
 and inject `MetadataSource` at wiring time. No inter-service HTTP call, no OpenAPI spec for this
 module, no second deployment unit.
 
 Rate-limit state (Discogs 60 req/min, 1 000 images/day) is managed inside `DiscogsMetadataSource`.
-For v1, in-process state is sufficient — the CLI tagger is short-lived and the catalog service is
+For v1, in-process state is sufficient - the CLI tagger is short-lived and the catalog service is
 the only long-running process. If concurrent rate-limit sharing is needed in v2, wrapping the library
 in a service is a contained change that does not affect the `MetadataSource` interface.
 
@@ -72,12 +72,12 @@ Clikt commands. No business logic is duplicated.
 === Dependency graph
 
 ```
-kbeatz-common   (shared domain exceptions — no auth in v1)
+kbeatz-common   (shared domain exceptions - no auth in v1)
 kbeatz-sources  (metadata library: discogs/*, musicbrainz/* future)
     └─ depends on: kbeatz-common
-kbeatz-tagger   (FLAC codec + TaggerService + idfile — library)
+kbeatz-tagger   (FLAC codec + TaggerService + idfile - library)
     └─ depends on: kbeatz-sources, kbeatz-common
-kbeatz-cli      (Clikt fat JAR — delivery only)
+kbeatz-cli      (Clikt fat JAR - delivery only)
     └─ depends on: kbeatz-tagger
 kbeatz-catalog  (Ktor HTTP service, port 8080)
     └─ depends on: kbeatz-tagger, kbeatz-common
@@ -108,4 +108,4 @@ No circular dependencies. No in-monorepo HTTP calls between backend modules.
 * **Tagging logic in `kbeatz-catalog`**: duplicates business logic between the Ktor service and the
   CLI tool; violates single-responsibility at the module level.
 * **Keep `kbeatz-flac` name**: acceptable for FLAC-only scope, but would require a rename when MP3
-  support is added — better to pay the rename cost once now at the scaffold stage.
+  support is added - better to pay the rename cost once now at the scaffold stage.

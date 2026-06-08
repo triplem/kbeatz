@@ -1,4 +1,4 @@
-= ADR-002: No Java I/O Types — kotlinx-io for All Binary and File Operations
+= ADR-002: No Java I/O Types - kotlinx-io for All Binary and File Operations
 :toc: left
 :icons: font
 :revdate: 2026-06-04
@@ -11,8 +11,8 @@ Accepted
 == Context
 
 kbeatz must parse and write binary FLAC files and navigate a local music library.
-The goal is zero reliance on `java.io.*` or `java.nio.*` types — not just in public APIs
-but throughout the implementation — using Kotlin-idiomatic abstractions instead.
+The goal is zero reliance on `java.io.*` or `java.nio.*` types - not just in public APIs
+but throughout the implementation - using Kotlin-idiomatic abstractions instead.
 
 The Java types originally present and their disposition:
 
@@ -122,10 +122,10 @@ never use continuation lines, unicode escapes, or other Properties edge cases.
 
 * **Zero Java I/O imports** anywhere in `kbeatz-tagger` or `kbeatz-tagger`.
 * `kbeatz-tagger` has one dependency: `kotlinx-io-core`.
-* `FlacWriter.write()` is a pure function — `ByteArray` in, `ByteArray` out — trivially
+* `FlacWriter.write()` is a pure function - `ByteArray` in, `ByteArray` out - trivially
   unit-testable without touching the filesystem.
 * `FlacReader.parse()` is likewise pure.
-* Write atomicity is provided by `SystemFileSystem.atomicMove()` — the original file
+* Write atomicity is provided by `SystemFileSystem.atomicMove()` - the original file
   is never left in a corrupt state.
 * The library is multiplatform-ready: `kotlinx-io` and `kotlinx.io.files` support
   JVM, Native, and JS targets. Upgrading kbeatz to KMP would require no I/O changes.
@@ -136,7 +136,7 @@ never use continuation lines, unicode escapes, or other Properties edge cases.
   every signature. The `kotlinx.io.files.Path` type is the clean replacement.
 * **Okio** (Square): would also eliminate Java types, but is a larger dependency with a
   different API style. `kotlinx-io` is the official JetBrains multiplatform library.
-* **`kotlinx-io` only for streams, keep `java.nio.file.Path` for paths**: half-measure —
+* **`kotlinx-io` only for streams, keep `java.nio.file.Path` for paths**: half-measure -
   the goal is zero Java I/O types.
 * **`java.util.Properties` for INI parsing**: unnecessary for the simple key=value format
   used in discogstagger id files; a 10-line Kotlin function covers all real-world cases.
