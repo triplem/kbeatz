@@ -474,6 +474,7 @@ Add a *skill* when:
 * It involves branching logic ("if the PR has no issues, merge; otherwise fix and re-push")
 * It is invoked explicitly by name, not automatically
 
+[[hooks]]
 == Hooks Architecture
 
 Hooks are shell scripts that Claude Code calls at specific lifecycle events. They enforce
@@ -693,6 +694,7 @@ The skill extracts the lesson, formats it as a `feedback_*.md` file, updates `ME
 and commits the file to the memory directory. The lesson will be automatically applied in
 future sessions.
 
+[[mcp]]
 == MCP Servers in Use
 
 Two Model Context Protocol (MCP) servers are configured in `.claude/settings.json` under
