@@ -1,0 +1,343 @@
+= Spike: Discogs Image API Alternatives
+:toc: left
+:icons: font
+:revdate: 2026-06-08
+:status: Draft
+
+== Purpose
+
+This spike evaluates alternatives to the Discogs image API for fetching album cover art.
+The goal is to produce a documented recommendation so that a future phase can adopt an
+alternative (or hybrid approach) if Discogs rate limits or licensing restrictions become
+a blocker.
+
+The current constraint in `kbeatz-sources`: the `DiscogsMetadataSource` enforces a
+1-request/second rate limit and a 1,000 images/day quota (see ADR-004).
+For a large collection this means a full image sync can take multiple days.
+
+== Evaluation Criteria
+
+Each candidate is assessed on five dimensions:
+
+[cols="1,3"]
+|===
+| Dimension | Description
+
+| *Data coverage*
+| What fraction of a typical music collection (mixed genres, including classical and jazz)
+  is likely to have images available.
+
+| *Rate limits*
+| Requests per second, requests per day, or other throttling.
+  Also whether a client-side throttle is needed.
+
+| *Authentication*
+| Whether an API key, OAuth token, or account registration is required.
+
+| *License / terms*
+| What the provider permits: personal use, redistribution, embedding in software.
+
+| *Image quality*
+| Maximum resolution typically available and file formats served.
+|===
+
+== Candidates
+
+=== Discogs (current baseline)
+
+==== Data coverage
+
+Discogs has the broadest coverage of any music database for physical releases.
+Community-submitted release data includes images for the vast majority of commercial
+albums across all genres.
+Coverage estimate: approximately 80-90% of a typical mixed collection.
+
+==== Rate limits
+
+- API requests: 60 per minute for authenticated users (personal token).
+- Image downloads: 1,000 images per day.
+- The kbeatz implementation already enforces a 950-image/day soft limit with a warn log.
+
+==== Authentication
+
+Personal access token passed as `Authorization: Discogs token=<token>`.
+Token is configured via the `DISCOGS_TOKEN` environment variable.
+
+==== License / terms
+
+Discogs images are user-submitted and subject to individual copyright.
+The Discogs API terms of service permit use of images for personal music management
+applications but prohibit redistribution or hosting images publicly.
+See: https://www.discogs.com/developers/#page:home,header:home-terms
+
+==== Image quality
+
+Primary release images are typically JPEG, 600x600 px to 1500x1500 px.
+Secondary images (back cover, sleeve, label) are also JPEG at similar resolutions.
+
+---
+
+=== Cover Art Archive (MusicBrainz)
+
+The Cover Art Archive (CAA) is a joint project of MusicBrainz and the Internet Archive.
+It provides free, openly licensed cover art for MusicBrainz releases.
+
+==== Data coverage
+
+The CAA covers releases indexed in MusicBrainz.
+MusicBrainz has strong coverage of major label releases and classical music, but
+community-submitted physical releases (especially regional pressings, limited editions,
+and older vinyl) may lack images in the CAA even when they exist on Discogs.
+Coverage estimate: approximately 50-65% of a typical mixed collection.
+For classical music specifically, CAA tends to have good coverage from large labels.
+
+A release can be looked up by MusicBrainz Release ID (MBID), which is not always
+available in the kbeatz id-file format.
+A Discogs release ID can be mapped to an MBID via the MusicBrainz lookup API, but
+this requires an additional network round trip.
+
+==== Rate limits
+
+The CAA and MusicBrainz APIs impose a 1-request/second rate limit per IP address
+(same as Discogs metadata) but there is no published per-day image download cap.
+Burst requests above 1/second will receive HTTP 503 with a `Retry-After` header.
+Reference: https://musicbrainz.org/doc/MusicBrainz_API/Rate_Limiting
+
+==== Authentication
+
+No authentication required for read-only access to the CAA.
+The MusicBrainz lookup API requires a descriptive `User-Agent` header
+(`kbeatz/1.0 (contact@example.com)`).
+No API key registration is needed.
+
+==== License / terms
+
+All images in the Cover Art Archive are contributed under open licenses.
+Each image carries a specific Creative Commons license (most commonly CC0, CC BY, or CC BY-SA)
+stored in the API response.
+Personal and redistribution use is permitted under those licenses.
+This is a significant advantage over Discogs, which restricts redistribution.
+Reference: https://coverartarchive.org/
+
+==== Image quality
+
+Images are stored by the Internet Archive at original upload resolution.
+Thumbnails are available at 250px and 500px.
+Original images vary: many are 600x600 px to 1500x1500 px JPEG.
+Some community uploads are low-resolution scans (250-400 px).
+
+---
+
+=== Fanart.tv
+
+Fanart.tv provides high-quality fan-contributed artwork including album art,
+artist backgrounds, and disc art for music releases.
+
+==== Data coverage
+
+Fanart.tv uses MusicBrainz artist and release IDs as its primary identifier.
+Coverage is strong for popular and mainstream artists but sparse for classical,
+jazz, and non-English language releases.
+Coverage estimate: approximately 40-55% of a typical mixed collection,
+with lower coverage for classical music.
+
+==== Rate limits
+
+The Fanart.tv API imposes rate limits that vary by account tier:
+
+[cols="1,1,1"]
+|===
+| Tier | Requests per hour | Notes
+
+| No API key
+| Not permitted
+| Key is mandatory
+
+| Free (personal)
+| 300 requests per hour
+| Suitable for personal use, not batch operations
+
+| Project key (free registration)
+| 3,000 requests per hour
+| Recommended for any automated use
+|===
+
+There is no published per-day image download cap, but aggressive downloading may
+trigger IP-level throttling.
+
+==== Authentication
+
+An API key is required for all requests.
+Keys are obtained by registering a free account at https://fanart.tv/get-an-api-key/.
+The key is passed as a query parameter: `?api_key=<key>`.
+
+==== License / terms
+
+Fanart.tv content is user-contributed under a permissive custom license that permits
+personal use in media management applications.
+Commercial redistribution requires a separate agreement.
+The license explicitly states that images may be used in software that manages a
+personal media library.
+Reference: https://fanart.tv/api-docs/
+
+==== Image quality
+
+Fanart.tv images are generally high quality:
+- Album covers (cdart): circular disc art PNG at 1000px, with transparent background.
+- Album thumbs: JPEG at 1000x1000 px.
+- Artist thumbs: JPEG at 1000x1000 px.
+- Artist backgrounds: JPEG at 1920x1080 px.
+
+The disc art format (cdart) is unique to Fanart.tv and not available elsewhere.
+
+---
+
+=== Last.fm
+
+Last.fm provides music metadata and user scrobbling data.
+It exposes album art via its API, sourced primarily from a mix of user submissions
+and licensed data.
+
+==== Data coverage
+
+Last.fm has broad coverage through its large user base, but image data quality is
+inconsistent.
+Many entries have only small or low-quality images.
+Coverage estimate: approximately 70-80% of a typical collection for having *some* image,
+but significantly lower for high-quality images.
+
+==== Rate limits
+
+The Last.fm API allows 5 requests per second and does not publish a per-day cap
+for image URLs.
+However, Last.fm does not host images directly - the API returns URLs pointing to
+external CDN hosts (often Amazon S3 or Cloudinary), and fetching those images is
+subject to the CDN terms.
+
+==== Authentication
+
+An API key is required.
+Keys are obtained by registering a free account at https://www.last.fm/api/account/create.
+The key is passed as a query parameter: `?api_key=<key>`.
+
+==== License / terms
+
+Last.fm images are a mix of licensed and user-submitted content.
+The Last.fm API terms of service permit use of images in personal applications
+but explicitly prohibit redistribution, bulk downloading, or storing images
+server-side for public serving.
+Reference: https://www.last.fm/api/tos
+
+The terms also note that image URLs may change without notice, making cached URLs
+unreliable over time.
+
+==== Image quality
+
+Last.fm images are served in multiple sizes (small 34px, medium 64px, large 174px,
+extralarge 300px, mega 600px).
+The mega (600px) size is adequate for display but below the quality available from
+Discogs or the CAA for the same release.
+Images may be missing or return a generic placeholder for lesser-known releases.
+
+---
+
+== Comparison Summary
+
+[cols="1,1,1,1,1,1"]
+|===
+| Source | Coverage (est.) | Rate limit | Auth required | License | Max quality
+
+| *Discogs* (current)
+| 80-90%
+| 1,000 imgs/day
+| Personal token
+| Personal use only; no redistribution
+| 1500x1500 px JPEG
+
+| *Cover Art Archive*
+| 50-65%
+| 1 req/sec, no daily cap
+| None (User-Agent only)
+| Open (CC0 / CC BY / CC BY-SA per image)
+| 1500x1500 px JPEG (varies)
+
+| *Fanart.tv*
+| 40-55%
+| 3,000 req/hr (project key)
+| API key (free)
+| Personal use; no commercial redistribution
+| 1000x1000 px JPEG; disc art PNG
+
+| *Last.fm*
+| 70-80% (low quality)
+| 5 req/sec, no daily cap
+| API key (free)
+| Personal use only; URLs may change
+| 600px JPEG; unreliable
+|===
+
+== Recommendation
+
+=== Phase 2 recommendation: Hybrid approach - CAA primary, Discogs fallback
+
+The recommended strategy for phase 2 is to adopt a *hybrid source chain* with the following
+resolution order:
+
+. *Cover Art Archive (CAA)* - attempt first, using the MusicBrainz Release ID if available.
+  No daily quota, open license, and adequate quality for the majority of releases.
+. *Discogs* - fall back to Discogs when the CAA has no image for the release.
+  Preserves the existing implementation and its high coverage.
+
+Fanart.tv and Last.fm are not recommended as primary or secondary sources for the following
+reasons:
+
+- *Fanart.tv*: Coverage is significantly lower than Discogs or CAA for classical and jazz.
+  Its strongest value (disc art, artist backgrounds) is not relevant to the current kbeatz
+  use case (album cover art for FLAC tagging). Can be revisited if artist artwork becomes
+  a feature requirement.
+- *Last.fm*: Image quality is insufficient for embedding in FLAC PICTURE blocks (max 600px).
+  The URL instability and redistribution restrictions make it unsuitable for a caching use case.
+
+=== Rationale
+
+The CAA first approach addresses both known blockers:
+
+*Rate limit*: The 1,000 images/day Discogs cap is the binding constraint for bulk operations.
+The CAA has no daily cap, so a large collection can be synced in a single run by using the
+CAA for releases that have an MBID.
+
+*Licensing*: CAA images are CC-licensed and explicitly permit the use case (embedding in
+personal media management software). Discogs images are restricted to personal use and
+prohibit redistribution, which creates risk if kbeatz ever exposes a cover art proxy endpoint
+to multiple users on a LAN.
+
+*Implementation fit*: The `kbeatz-sources` module already defines a `MetadataSource` port.
+Adding a `CoverArtArchiveImageSource` implementation follows the same pattern as
+`DiscogsMetadataSource`. A `CompositeImageSource` that tries CAA then falls back to Discogs
+would not require changes to the tagger or catalog modules.
+
+=== Pre-conditions for phase 2 implementation
+
+Before implementing the hybrid source chain, the following pre-conditions should be met:
+
+. *MBID availability in id-file*: The id-file format (`id.txt`, `metadata.yml`) must be
+  extended to store the MusicBrainz Release ID alongside the Discogs release ID.
+  Without an MBID, a Discogs ID to MBID mapping step is required (extra network round trip
+  per release).
+
+. *CAA HTTP client*: A new `CoverArtArchiveImageSource` must be added to `kbeatz-sources`
+  implementing the `MetadataSource` image fetch contract, with:
+  - 1 req/sec throttle (same discipline as Discogs)
+  - `User-Agent` header (`kbeatz/<version> contact=...`)
+  - Graceful handling of HTTP 404 (release not in CAA) so the fallback chain proceeds
+
+. *Composite source*: A `CompositeMetadataSource` (or similar) that tries each source in
+  priority order and returns the first successful result.
+
+=== Deferred items
+
+- Fanart.tv artist/disc artwork can be evaluated separately when artist-level metadata
+  (artist images, disc art, backgrounds) becomes a product requirement.
+- MusicBrainz full metadata (not just images) could replace or supplement Discogs metadata
+  for classical music, where Discogs coverage is weaker.
+  This is a larger scope and should be its own spike.
