@@ -12,7 +12,7 @@ xref:claude-kbeatz-config.adoc[kbeatz Claude Code Configuration].
 *Audience:* A developer unfamiliar with Claude Code who wants to understand and replicate
 the setup, or who wants to use the AI-assisted workflow on an existing project.
 
-== 1. Overview
+== Overview
 
 === What is AI-assisted SDLC?
 
@@ -72,7 +72,7 @@ Learn (extract lessons, update memory)
 The `/ship` skill automates everything from "Implement" through "Ship" for a batch of
 approved stories, running agents in parallel where dependency order allows.
 
-== 2. Claude Code Setup
+== Claude Code Setup
 
 === CLAUDE.md files: hierarchical project context
 
@@ -229,7 +229,7 @@ To create a new memory entry after completing a story or fixing a recurring prob
 The `/learn` skill extracts the lesson, writes a `feedback_*.md` file, and updates
 `MEMORY.md`. Future sessions load this context automatically.
 
-== 3. SDLC Workflow Step by Step
+== SDLC Workflow Step by Step
 
 [cols="1,2,2,2"]
 |===
@@ -298,7 +298,7 @@ gh issue edit <story-number> --add-label "approved"
 # /implement and /ship check for this label before starting work.
 ----
 
-== 4. Skills Catalog
+== Skills Catalog
 
 Skills are invoked with `/skill-name` inside Claude Code. Each skill is a `SKILL.md` file
 in `.claude/skills/` with embedded instructions. The slash command name matches the
@@ -438,7 +438,7 @@ configuration against official best practices. Invoke with a focus area:
 glossary and entity relationship description.
 |===
 
-== 5. Built-in vs. Custom Skills
+== Built-in vs. Custom Skills
 
 === Claude Code built-in skills
 
@@ -506,7 +506,7 @@ on complexity:
   explicitly when they need guidance: coroutine patterns, complex Exposed ORM queries,
   React hook composition. Example: `.claude/skills/react-patterns/SKILL.md`.
 
-== 6. Agent Types
+== Agent Types
 
 === Foreground vs. background agents
 
@@ -568,7 +568,7 @@ Some stories cannot start until another is merged. The most common dependency pa
 Build a dependency graph before starting parallel work. Stories with no overlapping
 dependencies can run in parallel. Stories with dependencies must run in sequence.
 
-== 7. Quality Gates
+== Quality Gates
 
 Quality gates are mandatory checks that must pass before a PR is opened and before it
 is merged. They exist to catch defects before they reach main where they affect all
@@ -634,7 +634,7 @@ npm run test              # Vitest
 gh pr checks <pr-number>
 ----
 
-== 8. Memory System
+== Memory System
 
 === Purpose
 
@@ -705,7 +705,7 @@ The concrete action to take.
 When this lesson should be recalled and applied.
 ----
 
-== 9. Hooks Reference
+== Hooks Reference
 
 === Hooks in use
 
@@ -808,7 +808,7 @@ exit 0
 . Test by triggering the event and checking the hook output. Hook stdout is parsed as
   JSON by Claude Code.
 
-== 10. Common Patterns and Pitfalls
+== Common Patterns and Pitfalls
 
 === Worktree cleanup: double-force required
 

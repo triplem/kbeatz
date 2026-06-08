@@ -9,7 +9,7 @@ an endpoint, or extend the frontend without reading the full project CLAUDE.md. 
 the module map, hexagonal architecture in practice, a complete end-to-end feature walkthrough,
 Gradle composite build structure, domain conventions, frontend development, and CLI commands.
 
-== 1. Module Map
+== Module Map
 
 kbeatz is a Gradle composite build (includeBuild). Each module is a self-contained Gradle root
 with its own `settings.gradle.kts` and `build.gradle.kts`.
@@ -110,7 +110,7 @@ Maven repository during the build and consumed by the other Kotlin modules.
 |`kbeatz-common` - `DomainExceptions.kt`
 |===
 
-== 2. kbeatz-catalog Hexagonal Architecture in Practice
+== kbeatz-catalog Hexagonal Architecture in Practice
 
 The catalog module follows strict hexagonal architecture (ports and adapters). The dependency
 direction is inward: adapters depend on the application layer; the application layer depends
@@ -211,7 +211,7 @@ kbeatz-catalog/api/openapi.yaml
 The generated stubs appear in `kbeatz-catalog/build/generated/api/`. Do not edit them
 manually - they are regenerated on every build.
 
-== 3. End-to-End Feature Walkthrough: Adding GET /api/v1/albums/{albumId}/track-listing
+== End-to-End Feature Walkthrough: Adding GET /api/v1/albums/{albumId}/track-listing
 
 This section walks through every step required to add a new endpoint. Follow these steps
 exactly and a developer unfamiliar with the codebase can add an endpoint without reading
@@ -517,7 +517,7 @@ dependency, regenerate the lockfiles:
 
 See section 4 for details.
 
-== 4. Composite Gradle Build Structure
+== Composite Gradle Build Structure
 
 === Why includeBuild instead of subprojects
 
@@ -618,7 +618,7 @@ mkdir -p new-module/config/detekt
 cp kbeatz-catalog/config/detekt/detekt.yml new-module/config/detekt/detekt.yml
 ----
 
-== 5. Domain Conventions
+== Domain Conventions
 
 === Date and time types
 
@@ -723,7 +723,7 @@ suspend fun getAlbum(id: Uuid): Album =
         ?: throw ResourceNotFoundException("Album $id not found")
 ----
 
-== 6. Frontend: Adding a UI Feature
+== Frontend: Adding a UI Feature
 
 === Setup
 
@@ -821,7 +821,7 @@ TypeScript strict mode is enforced (`noUnusedLocals: true`, `noUnusedParameters:
 `strictNullChecks: true`). The build fails on any type error. Fix all errors before
 opening a PR.
 
-== 7. CLI: Adding a Command
+== CLI: Adding a Command
 
 The CLI module (`kbeatz-cli`) uses Clikt for command-line argument parsing. It is distributed
 as a fat JAR built by the Gradle Shadow plugin.
