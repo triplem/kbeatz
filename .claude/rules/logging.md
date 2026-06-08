@@ -93,6 +93,98 @@ Add `durationMs` to all external calls (DB queries, HTTP calls, message sends).
 
 All services write JSON to stdout. Log aggregation is handled by the infrastructure layer (Loki, Elasticsearch, Datadog, CloudWatch). Agents do not configure log shipping — that is infrastructure.
 
+## TypeScript/Node.js Implementation
+
+### Dependencies
+
+```bash
+npm install pino pino-http
+npm install -D pino-pretty  # local only
+```
+
+### Logger singleton
+
+```typescript
+// src/logger.ts - one instance, imported everywhere
+export const logger = pino({
+  level: process.env.LOG_LEVEL ?? 'info',
+  ...(process.env.NODE_ENV === 'development' ? { transport: { target: 'pino-pretty' } } : {}),
+  base: { service: process.env.SERVICE_NAME, env: process.env.NODE_ENV },
+  redact: {
+    paths: ['*.password', '*.token', '*.secret', '*.authorization', '*.email'],
+    censor: '[REDACTED]',
+  },
+});
+```
+
+### Structured fields
+
+```typescript
+// WRONG - unstructured string interpolation
+logger.info(`User ${userId} logged in`);
+
+// RIGHT - structured object first, message second
+logger.info({ userId, ip }, 'user_login');
+
+// ERROR - pass err as first argument or in context object
+logger.error({ err, orderId }, 'payment_failed');
+```
+
+### Child loggers per request
+
+```typescript
+req.log = logger.child({ requestId: req.headers['x-request-id'] ?? crypto.randomUUID() });
+```
+
+Pass child logger down the call chain rather than the root logger.
+
+### Express middleware
+
+```typescript
+import pinoHttp from 'pino-http';
+app.use(pinoHttp({
+  logger,
+  customLogLevel: (_req, res) => res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info',
+  serializers: {
+    req: (req) => ({ method: req.method, url: req.url, id: req.id }),
+    res: (res) => ({ statusCode: res.statusCode }),
+  },
+}));
+```
+
+### Service pattern
+
+```typescript
+class UserService {
+  constructor(private readonly repo: UserRepository, private readonly log: pino.Logger) {}
+
+  async createUser(dto: CreateUserDto): Promise<User> {
+    this.log.info({ email: dto.email }, 'createUser_start');
+    try {
+      const user = await this.repo.create(dto);
+      this.log.info({ userId: user.id }, 'createUser_success');
+      return user;
+    } catch (err) {
+      this.log.error({ err, email: dto.email }, 'createUser_failed');
+      throw err;
+    }
+  }
+}
+```
+
+### React frontend logging
+
+```typescript
+// src/lib/logger.ts
+export const logger = {
+  warn: (ctx: object, msg: string) => console.warn(JSON.stringify({ level: 'warn', ...ctx, msg })),
+  error: (ctx: object, msg: string) => {
+    console.error(JSON.stringify({ level: 'error', ...ctx, msg }));
+    // Send to observability endpoint (Sentry, Datadog, etc.)
+  },
+};
+```
+
 ## Sensitive Field Masking
 
 Models that may appear in logs must mask sensitive fields in `toString()`:
