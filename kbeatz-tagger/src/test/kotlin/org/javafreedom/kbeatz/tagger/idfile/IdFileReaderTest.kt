@@ -48,10 +48,9 @@ class IdFileReaderTest {
         val dir = Path(System.getProperty("java.io.tmpdir"), "kbeatz-fixture-${System.nanoTime()}")
         SystemFileSystem.createDirectories(dir)
         fileNames.forEach { name ->
-            val url = checkNotNull(this::class.java.classLoader.getResource("fixtures/$name")) {
+            val fileContent = checkNotNull(this::class.java.classLoader.getResourceAsStream("fixtures/$name")) {
                 "Fixture not found on classpath: fixtures/$name"
-            }
-            val fileContent = java.io.File(url.toURI()).readText(Charsets.UTF_8)
+            }.bufferedReader(Charsets.UTF_8).readText()
             val dest = Path(dir, name)
             SystemFileSystem.sink(dest).buffered().use { it.writeString(fileContent) }
             filesToDelete.add(dest)

@@ -1,5 +1,9 @@
 package org.javafreedom.kbeatz.tagger.idfile
 
+import io.github.oshai.kotlinlogging.KotlinLogging
+
+private val logger = KotlinLogging.logger {}
+
 /**
  * Parses INI-style id.txt and local_ids.txt files used by discogstagger.
  *
@@ -25,6 +29,7 @@ class IniIdFileParser {
         return if (sources.keys.any { it.equals("discogs_id", ignoreCase = true) }) {
             IdFile(sources)
         } else {
+            logger.warn { "parse_missing_field field=discogs_id" }
             null
         }
     }
