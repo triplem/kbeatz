@@ -37,7 +37,7 @@ class FlacReader {
      */
     @Suppress("TooGenericExceptionCaught", "SwallowedException")
     // kotlinx.io raises various RuntimeException subtypes (EOFException, IllegalStateException)
-    // on truncated data — catching the base type is intentional so all truncation scenarios are
+    // on truncated data - catching the base type is intentional so all truncation scenarios are
     // wrapped in FlacParseException with the original cause preserved.
     fun parse(data: ByteArray): FlacParseResult {
         val source = Buffer().apply { write(data) }
@@ -49,12 +49,14 @@ class FlacReader {
         val blocks = mutableListOf<FlacMetadataBlock>()
         var isLast = false
         var blockIndex = 0
+        var lastKnownBlockType = -1
 
         try {
             while (!isLast) {
                 val firstByte = source.readByte().toInt() and BYTE_MASK
                 isLast = (firstByte and LAST_BLOCK_FLAG) != 0
                 val blockType = firstByte and BLOCK_TYPE_MASK
+                lastKnownBlockType = blockType
                 val length = source.readInt24Be()
                 val blockData = source.readByteArray(length)
 
@@ -71,8 +73,8 @@ class FlacReader {
             throw e
         } catch (e: Exception) {
             throw FlacParseException(
-                "Truncated or malformed FLAC file: failed reading block at index $blockIndex " +
-                    "(cause: ${e.message})",
+                "Truncated or malformed FLAC file: failed reading block " +
+                    "type=$lastKnownBlockType at index=$blockIndex (cause: ${e.message})",
                 e,
             )
         }
@@ -99,7 +101,7 @@ class FlacReader {
         val channels = (((b2 and 0x0E) shr 1) + 1).toInt()
         val bitsPerSample = ((((b2 and 0x01) shl 4) or (b3 shr 4)) + 1).toInt()
         val totalSamples = ((b3 and 0x0F) shl 32) or (b4 shl 24) or (b5 shl 16) or (b6 shl 8) or b7
-        val md5 = p.readByteString(MD5_SIZE)   // ByteString — value-semantic MD5
+        val md5 = p.readByteString(MD5_SIZE)   // ByteString - value-semantic MD5
         return FlacMetadataBlock.StreamInfo(
             minBlockSize, maxBlockSize, minFrameSize, maxFrameSize,
             sampleRate, channels, bitsPerSample, totalSamples, md5,
@@ -123,7 +125,7 @@ class FlacReader {
         val height = p.readInt()
         val colorDepth = p.readInt()
         val colorCount = p.readInt()
-        val picData = p.readByteString(p.readInt())   // ByteString — value-semantic image data
+        val picData = p.readByteString(p.readInt())   // ByteString - value-semantic image data
         return FlacMetadataBlock.Picture(
             pictureType, mimeType, description, width, height, colorDepth, colorCount, picData,
         )
@@ -133,7 +135,7 @@ class FlacReader {
 /**
  * Parsed FLAC content: the metadata blocks and the raw audio frames that follow them.
  *
- * Intentionally a plain class (not data class) — [audioFrames] is a large [ByteArray]
+ * Intentionally a plain class (not data class) - [audioFrames] is a large [ByteArray]
  * and auto-generated equals/hashCode on arrays uses reference equality, which is wrong.
  * Test assertions should compare [blocks] and [audioFrames] fields individually.
  */

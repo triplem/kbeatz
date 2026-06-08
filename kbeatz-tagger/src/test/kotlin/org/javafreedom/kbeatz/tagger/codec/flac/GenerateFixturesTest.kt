@@ -1,6 +1,7 @@
 package org.javafreedom.kbeatz.tagger.codec.flac
 
 import java.io.File
+import org.junit.jupiter.api.Tag
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
@@ -12,7 +13,11 @@ import kotlin.test.assertTrue
  *
  * The test also acts as a sanity check: it regenerates the fixtures in a temp directory
  * and verifies the resulting files are non-empty and start with the fLaC marker.
+ *
+ * Tagged "generators" so it is excluded from the default test run (which reads committed
+ * fixtures) and only runs when explicitly requested.
  */
+@Tag("generators")
 class GenerateFixturesTest {
 
     @Test

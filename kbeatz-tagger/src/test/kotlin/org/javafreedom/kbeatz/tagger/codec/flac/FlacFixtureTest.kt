@@ -272,8 +272,12 @@ class FlacFixtureTest {
             FlacReader().parse(corruptedBytes)
         }
         assertTrue(
-            exception.message?.isNotBlank() == true,
-            "Exception message should be descriptive, got: ${exception.message}",
+            exception.message?.contains("index=0") == true,
+            "Exception message should identify the block index, got: ${exception.message}",
+        )
+        assertTrue(
+            exception.message?.contains("type=") == true,
+            "Exception message should identify the block type, got: ${exception.message}",
         )
     }
 
