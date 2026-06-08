@@ -12,7 +12,7 @@ SDLC Process].
 The generic configuration skeleton lives in `docs/claude-code-config.adoc`. This document
 covers the actual implemented configuration for the kbeatz monorepo.
 
-== 1. CLAUDE.md Hierarchy
+== CLAUDE.md Hierarchy
 
 Claude Code reads CLAUDE.md files hierarchically. When working inside a module directory it
 loads all three levels in order, with lower levels adding context rather than replacing it.
@@ -76,7 +76,7 @@ A module CLAUDE.md is warranted when:
 |Future: kbeatz-catalog Liquibase changelog format; kbeatz-sources rate-limiting rules
 |===
 
-== 2. Skills Audit
+== Skills Audit
 
 This section audits all 32 custom skills in `.claude/skills/` against Claude Code's built-in
 capabilities and the rule files in `.claude/rules/`. The goal is to identify which custom skills
@@ -404,7 +404,7 @@ NOTE: All "Remove" and "Simplify" actions have been completed. Unique content fr
 deleted skill was migrated to the appropriate rule file before deletion. Rule files
 auto-load every session, so no guidance was lost.
 
-== 3. Rules vs. Skills: The Right Tool
+== Rules vs. Skills: The Right Tool
 
 Rules and skills both influence Claude's behaviour, but they serve different purposes.
 
@@ -474,7 +474,7 @@ Add a *skill* when:
 * It involves branching logic ("if the PR has no issues, merge; otherwise fix and re-push")
 * It is invoked explicitly by name, not automatically
 
-== 4. Hooks Architecture
+== Hooks Architecture
 
 Hooks are shell scripts that Claude Code calls at specific lifecycle events. They enforce
 project policy without relying on Claude's memory - the enforcement is in the infrastructure,
@@ -623,7 +623,7 @@ ls -t ~/.claude/kbeatz-sessions/*.jsonl | head -1 | xargs tail -f
 |Command text (bash) or file path (write/edit). Truncated at 300 chars.
 |===
 
-== 5. Memory System in Practice
+== Memory System in Practice
 
 The memory system stores lessons learned, project context, and recurring feedback in
 `~/.claude/projects/-home-triplem-projects-kbeatz/memory/`. Each file is a Markdown
@@ -693,7 +693,7 @@ The skill extracts the lesson, formats it as a `feedback_*.md` file, updates `ME
 and commits the file to the memory directory. The lesson will be automatically applied in
 future sessions.
 
-== 6. MCP Servers in Use
+== MCP Servers in Use
 
 Two Model Context Protocol (MCP) servers are configured in `.claude/settings.json` under
 the `mcpServers` key. These give Claude Code structured access to GitHub and the project
@@ -785,9 +785,9 @@ Set the token in `.env` (which is gitignored):
 GITHUB_TOKEN=ghp_your_token_here
 ----
 
-== 7. Recommended Workflows for Common kbeatz Tasks
+== Recommended Workflows for Common kbeatz Tasks
 
-=== 7.1 Adding a new API endpoint
+=== Adding a new API endpoint
 
 [source,bash]
 ----
@@ -831,7 +831,7 @@ EOF
 )"
 ----
 
-=== 7.2 Implementing a story with the /implement skill
+=== Implementing a story with the /implement skill
 
 [source]
 ----
@@ -858,7 +858,7 @@ gh pr merge <PR_NUMBER> --squash --delete-branch
 gh issue close NNN --comment "Fixed in PR #PR_NUMBER."
 ----
 
-=== 7.3 Implementing a full epic in dependency order
+=== Implementing a full epic in dependency order
 
 [source]
 ----
@@ -878,7 +878,7 @@ gh pr list --state all | grep "feature/"
 gh issue list --label "In Progress"
 ----
 
-=== 7.4 Running a full ship pipeline
+=== Running a full ship pipeline
 
 [source]
 ----
@@ -897,7 +897,7 @@ Key things to know before running `/ship`:
 * Group stories that touch the same files so they are assigned to the same agent
 * A GITHUB_TOKEN with `repo`, `issues`, and `packages` scopes is required
 
-=== 7.5 Recovering from a failed parallel agent
+=== Recovering from a failed parallel agent
 
 When a parallel agent session fails partway through (network timeout, OOM, etc.):
 
@@ -930,7 +930,7 @@ git worktree remove -f -f /path/to/worktree
 The `feedback_ship_skill_lessons.md` memory file documents the full recovery procedure
 based on real incidents from the kbeatz project.
 
-=== 7.6 Adding a new hook
+=== Adding a new hook
 
 [source,bash]
 ----
@@ -958,7 +958,7 @@ by writing a JSON object to stdout. The key output fields are:
 * `additionalContext` - to inject information into Claude's context
 * `systemMessage` - to display a message in the Claude Code UI
 
-=== 7.7 Running a skills audit
+=== Running a skills audit
 
 [source]
 ----
