@@ -1,7 +1,7 @@
 # kbeatz
 
 <p align="center">
-  <img src="docs/assets/kbeatz-logo.svg" alt="kbeatz logo" width="128" height="128"/>
+  <img src="docs/assets/kbeatz-logo.jpg" alt="kbeatz logo" width="300"/>
 </p>
 
 [![CI](https://github.com/triplem/kbeatz/actions/workflows/ci.yml/badge.svg)](https://github.com/triplem/kbeatz/actions/workflows/ci.yml)
