@@ -71,9 +71,9 @@ Always `await` Promises. Never ignore with `void` without an explicit comment. A
 // BAD
 doSomethingAsync(); // fire and forget without tracking
 
-// GOOD — fire and forget with explicit intent
+// GOOD - fire and forget with explicit intent
 void sendAnalyticsEvent(event).catch(err =>
-  logger.warn({ err }, 'analytics event failed — non-critical'));
+  logger.warn({ err }, 'analytics event failed - non-critical'));
 ```
 
 ## Immutability

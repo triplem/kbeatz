@@ -4,7 +4,7 @@
 
 Claude Code reads `CLAUDE.md` files hierarchically: when working inside a service directory it
 loads **both** the root `CLAUDE.md` and the service's own `CLAUDE.md`. Per-service files ADD
-focused context — they do not replace the shared root.
+focused context - they do not replace the shared root.
 
 **Structure:**
 
@@ -36,7 +36,7 @@ across both levels.
 
 ## Hook Audit Logging
 
-Use a **PostToolUse hook** for real-time agent action logging — do not rely on Stop hook transcript parsing.
+Use a **PostToolUse hook** for real-time agent action logging - do not rely on Stop hook transcript parsing.
 
 **Why**: The Stop hook receives a session transcript, but tool_use entries are nested inside `content` arrays rather than top-level objects. Parsing them is fragile and always produces empty results. A PostToolUse hook fires immediately after each tool call with structured `tool_input` data that is trivial to extract.
 

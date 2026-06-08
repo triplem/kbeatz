@@ -7,7 +7,7 @@
 | `main` | Production-ready code | Protected: require PR, CI green, squash rebase only |
 | `develop` | Integration branch (optional, for large teams) | Protected: require PR, CI green |
 
-**Direct commits to `main` are blocked by a git hook — this is enforced, not just a convention.**
+**Direct commits to `main` are blocked by a git hook - this is enforced, not just a convention.**
 Never commit directly to `main` or `develop`.
 
 ## Creating a Feature Branch
@@ -33,7 +33,7 @@ git stash pop
 git push -u origin <branch>
 ```
 
-Do **not** attempt to commit on `main` and then move the commit — always create the branch first.
+Do **not** attempt to commit on `main` and then move the commit - always create the branch first.
 
 ## Feature Branches
 
@@ -67,7 +67,7 @@ git worktree add ../worktree-42-impl feature/42-user-jwt-auth
 git worktree add ../worktree-42-tests feature/42-user-jwt-auth
 ```
 
-Each agent commits to the same branch via its own worktree. Coordinate via the feature branch — rebase frequently.
+Each agent commits to the same branch via its own worktree. Coordinate via the feature branch - rebase frequently.
 
 ## Rebase Policy
 
@@ -98,7 +98,7 @@ git checkout main
 git branch -D <branch-name>
 ```
 
-Do this as the last step of every `gh pr merge --squash` flow — stale branches clutter `git branch` output and confuse future work. Do not rely on GitHub's "Delete branch on merge" auto-delete alone; always delete the local branch too.
+Do this as the last step of every `gh pr merge --squash` flow - stale branches clutter `git branch` output and confuse future work. Do not rely on GitHub's "Delete branch on merge" auto-delete alone; always delete the local branch too.
 
 ## Stale Branches
 
@@ -111,7 +111,7 @@ git branch -vv | grep ': gone]'      # shows local branches whose remote is dele
 
 ## Worktree Cleanup: Double-Force Required for Locked Worktrees
 
-Claude agent worktrees are locked with a lock reason. A single `git worktree remove --force` is not enough — it fails with `"cannot remove a locked working tree, use 'remove -f -f' to override"`. Always use double-force:
+Claude agent worktrees are locked with a lock reason. A single `git worktree remove --force` is not enough - it fails with `"cannot remove a locked working tree, use 'remove -f -f' to override"`. Always use double-force:
 
 ```bash
 git worktree remove -f -f /path/to/worktree

@@ -45,7 +45,7 @@ Add contextual fields per event (e.g., `userId`, `orderId`, `durationMs`).
 ### Never
 
 - Passwords, secrets, tokens, API keys
-- Full PII (name, email, phone, SSN, card number) — log IDs instead
+- Full PII (name, email, phone, SSN, card number) - log IDs instead
 - Full request/response bodies (except gated behind DEBUG + PII scrubbing)
 - Binary data or base64-encoded blobs
 
@@ -74,7 +74,7 @@ logger.error({ err, orderId: order.id }, 'Payment processing failed');
 _logger.LogError(ex, "Payment processing failed {OrderId}", order.Id);
 ```
 
-Log the exception **once** at the point where you have full context — do not re-log as it bubbles up.
+Log the exception **once** at the point where you have full context - do not re-log as it bubbles up.
 
 ## Performance Logging
 
@@ -91,7 +91,7 @@ Add `durationMs` to all external calls (DB queries, HTTP calls, message sends).
 
 ## Log Aggregation
 
-All services write JSON to stdout. Log aggregation is handled by the infrastructure layer (Loki, Elasticsearch, Datadog, CloudWatch). Agents do not configure log shipping — that is infrastructure.
+All services write JSON to stdout. Log aggregation is handled by the infrastructure layer (Loki, Elasticsearch, Datadog, CloudWatch). Agents do not configure log shipping - that is infrastructure.
 
 ## TypeScript/Node.js Implementation
 
@@ -213,7 +213,7 @@ implementation("net.logstash.logback:logstash-logback-encoder:8.0")
 private val logger = KotlinLogging.logger {}
 ```
 
-Never use `LoggerFactory.getLogger(...)` directly — always use `KotlinLogging.logger {}`.
+Never use `LoggerFactory.getLogger(...)` directly - always use `KotlinLogging.logger {}`.
 
 ### Structured key=value format
 

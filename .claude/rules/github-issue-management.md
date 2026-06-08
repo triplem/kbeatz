@@ -2,11 +2,11 @@
 
 ## Sub-issues
 
-Use GitHub's native sub-issue API to link child issues to an epic. This surfaces a progress tracker directly on the parent issue — do not rely on text cross-references alone.
+Use GitHub's native sub-issue API to link child issues to an epic. This surfaces a progress tracker directly on the parent issue - do not rely on text cross-references alone.
 
 ### Pattern
 
-**Step 1 — get node IDs** for all child issues in a single GraphQL query:
+**Step 1 - get node IDs** for all child issues in a single GraphQL query:
 
 ```bash
 gh api graphql -f query='
@@ -18,7 +18,7 @@ gh api graphql -f query='
 }'
 ```
 
-**Step 2 — add each child** as a sub-issue of the parent:
+**Step 2 - add each child** as a sub-issue of the parent:
 
 ```bash
 PARENT_ID="I_kwDO..."
@@ -33,7 +33,7 @@ for child_id in "I_kwDO..." "I_kwDO..."; do
 done
 ```
 
-Do this immediately after creating the child issues — not as a separate step later.
+Do this immediately after creating the child issues - not as a separate step later.
 
 ---
 
@@ -42,10 +42,10 @@ Do this immediately after creating the child issues — not as a separate step l
 **Do not assign issues at creation time.** Assign the issue to the developer (`@me` or a specific username) only when work on the issue actively begins.
 
 ```bash
-# At creation — no assignee
+# At creation - no assignee
 gh issue create --title "..." --body "..."
 
-# When starting work — add assignee and In Progress label
+# When starting work - add assignee and In Progress label
 gh issue edit <number> --add-assignee "@me"
 gh issue edit <number> --add-label "In Progress"
 ```
@@ -108,7 +108,7 @@ An epic that introduces a new service typically needs all four. An epic that add
 | kdiab-nightscout | `NSC` |
 | kdiab-users | `USR` |
 
-Service ADRs live either in `docs/adr/<service>/` (subdirs of platform ADR dir) or directly in `<service>/docs/adr/`. Never use a bare number alone — always include the prefix so no two ADRs in the whole monorepo share the same effective ID.
+Service ADRs live either in `docs/adr/<service>/` (subdirs of platform ADR dir) or directly in `<service>/docs/adr/`. Never use a bare number alone - always include the prefix so no two ADRs in the whole monorepo share the same effective ID.
 
 ### What belongs in an ADR
 
@@ -132,18 +132,18 @@ When a setting is backed by a Keycloak user attribute (i.e. it appears as a JWT 
 ## User Stories
 
 **<group>**
-- [ ] #NNN — short description
+- [ ] #NNN - short description
 ...
 
 **documentation**
-- [ ] #NNN — ADR: <decision slug>
-- [ ] #NNN — <developer reference title>
-- [ ] #NNN — Operations guide
-- [ ] #NNN — User and admin guide
+- [ ] #NNN - ADR: <decision slug>
+- [ ] #NNN - <developer reference title>
+- [ ] #NNN - Operations guide
+- [ ] #NNN - User and admin guide
 
 ---
 
 ## Acceptance Criteria
 ```
 
-Update the epic body with real issue numbers immediately after creating the stories — never leave `#TBD` in a merged epic.
+Update the epic body with real issue numbers immediately after creating the stories - never leave `#TBD` in a merged epic.

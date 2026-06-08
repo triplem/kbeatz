@@ -2,9 +2,9 @@
 
 ## Tooling
 
-**Gradle (Kotlin DSL — preferred for Kotlin projects):**
+**Gradle (Kotlin DSL - preferred for Kotlin projects):**
 ```kotlin
-// build.gradle.kts — required plugins
+// build.gradle.kts - required plugins
 id("io.gitlab.artefacts.detekt") version "1.23.7"
 id("org.jlleitschuh.gradle.ktlint") version "12.1.2"
 ```
@@ -33,13 +33,13 @@ CI must fail on any detekt or ktlint violation.
 
 - Prefer `val` over `var`. A `var` requires justification.
 - Prefer `@JvmInline value class` for single-field primitives to eliminate primitive obsession.
-- Use sealed classes for domain results — never throw for expected outcomes.
+- Use sealed classes for domain results - never throw for expected outcomes.
 - Prefer `when` over `if-else if` chains.
-- Use `apply`, `let`, `run`, `also`, `with` for scope functions — use the right one:
-  - `let` — transform a nullable value
-  - `apply` — configure an object, return itself
-  - `also` — side effect, return the receiver
-  - `run` — compute a result within a lambda
+- Use `apply`, `let`, `run`, `also`, `with` for scope functions - use the right one:
+  - `let` - transform a nullable value
+  - `apply` - configure an object, return itself
+  - `also` - side effect, return the receiver
+  - `run` - compute a result within a lambda
 - Use `object` for singletons, not companion objects with a private constructor.
 - Use `companion object` only for factory methods and constants.
 
@@ -71,10 +71,10 @@ fun findUser(id: UserId): UserResult = when (val user = repo.findById(id)) {
 
 ## Anti-patterns
 
-- No `!!` in production code — use `?: throw` with a descriptive message or `requireNotNull`.
+- No `!!` in production code - use `?: throw` with a descriptive message or `requireNotNull`.
 - No `lateinit var` except for framework injection (e.g., Spring `@Autowired`).
-- No mutable `var` in data classes — use `copy()`.
-- No Java-style checked exception patterns — use sealed results.
+- No mutable `var` in data classes - use `copy()`.
+- No Java-style checked exception patterns - use sealed results.
 - No blocking I/O without `Dispatchers.IO`.
 
 ## Null Safety
@@ -139,12 +139,12 @@ Follow the standard Kotlin coding conventions. Key points:
 
 ## Gradle: Configuration-cache-safe `doLast` blocks
 
-Never capture Gradle mutable objects (`ProjectLayout`, `Property<T>`, `Project`, `DirectoryProperty`) inside a `doLast` closure — the configuration cache serialises lambdas and fails if they capture non-serialisable Gradle types.
+Never capture Gradle mutable objects (`ProjectLayout`, `Property<T>`, `Project`, `DirectoryProperty`) inside a `doLast` closure - the configuration cache serialises lambdas and fails if they capture non-serialisable Gradle types.
 
-**Pattern**: resolve all paths and values to plain `String` or `java.io.File` at configuration time (inside the task config block, before `doLast`), then capture only those in the closure. Use `java.io.File` directly for filesystem operations — not `project.fileTree()`, which resolves via `Project`.
+**Pattern**: resolve all paths and values to plain `String` or `java.io.File` at configuration time (inside the task config block, before `doLast`), then capture only those in the closure. Use `java.io.File` directly for filesystem operations - not `project.fileTree()`, which resolves via `Project`.
 
 ```kotlin
-// Good — captures a String, not a Gradle object
+// Good - captures a String, not a Gradle object
 val generatedKtSrcDir = outputDir.get() + "/src/main/kotlin"
 doLast {
     java.io.File(generatedKtSrcDir).walkTopDown()
@@ -152,7 +152,7 @@ doLast {
         .forEach { /* ... */ }
 }
 
-// Bad — captures layout (ProjectLayout), not serialisable
+// Bad - captures layout (ProjectLayout), not serialisable
 doLast {
     fileTree("${layout.buildDirectory.get()}/generated/...")
         .forEach { /* ... */ }
@@ -169,7 +169,7 @@ plugins {
     id("org.asciidoctor.jvm.convert") version "4.0.5"
 }
 
-repositories {        // ← required — subproject repos do not apply here
+repositories {        // ← required - subproject repos do not apply here
     mavenCentral()
 }
 ```

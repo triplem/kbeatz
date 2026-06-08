@@ -60,7 +60,7 @@ Tests must follow the test pyramid: many fast unit tests at the base, fewer slow
 - Test the full system from the user's perspective.
 - Use Playwright (web), REST API calls, or Cucumber scenarios.
 - Slow: each test may take 5–30s.
-- Keep the count small — test the golden path + top 2–3 critical edge cases.
+- Keep the count small - test the golden path + top 2-3 critical edge cases.
 - Must map 1:1 to story acceptance criteria.
 
 **What to test:**

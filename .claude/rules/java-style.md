@@ -109,9 +109,9 @@ Follow [Google Java Style Guide](https://google.github.io/styleguide/javaguide.h
 
 ## Modern Java Idioms
 
-- **Records** for value objects and DTOs — no Lombok `@Data` needed
-- **Sealed classes** for domain result types — never throw for expected outcomes
-- **Pattern matching** for `switch` and `instanceof` — no unchecked casts
+- **Records** for value objects and DTOs - no Lombok `@Data` needed
+- **Sealed classes** for domain result types - never throw for expected outcomes
+- **Pattern matching** for `switch` and `instanceof` - no unchecked casts
 - **`var`** for local variables where the type is obvious from the right-hand side
 - **Text blocks** for multi-line strings (JSON, SQL, XML fragments)
 - **Virtual threads** (Spring Boot 3.2+: `spring.threads.virtual.enabled=true`) for I/O-bound work
@@ -119,20 +119,20 @@ Follow [Google Java Style Guide](https://google.github.io/styleguide/javaguide.h
 ## Lombok Policy
 
 Use Lombok only for:
-- `@Slf4j` — logger declaration
-- `@RequiredArgsConstructor` — constructor injection in Spring beans
+- `@Slf4j` - logger declaration
+- `@RequiredArgsConstructor` - constructor injection in Spring beans
 
-Do **not** use `@Data`, `@Getter`, `@Setter` on mutable objects — use records or explicit accessors. Do not use `@Builder` when records with `with` patterns suffice.
+Do **not** use `@Data`, `@Getter`, `@Setter` on mutable objects - use records or explicit accessors. Do not use `@Builder` when records with `with` patterns suffice.
 
 ## Forbidden patterns
 
-- `null` returns from public methods — use `Optional<T>` or sealed results
+- `null` returns from public methods - use `Optional<T>` or sealed results
 - Raw types (unparameterised generics)
 - `instanceof` without pattern matching (Java 16+)
-- Checked exceptions for business logic — use unchecked domain exceptions or sealed results
-- `System.out.println` in production code — use SLF4J
-- Magic numbers and strings — extract to named constants
-- `new ArrayList<>()` when the list will be immutable — use `List.of()`
+- Checked exceptions for business logic - use unchecked domain exceptions or sealed results
+- `System.out.println` in production code - use SLF4J
+- Magic numbers and strings - extract to named constants
+- `new ArrayList<>()` when the list will be immutable - use `List.of()`
 
 ## Checkstyle config
 
