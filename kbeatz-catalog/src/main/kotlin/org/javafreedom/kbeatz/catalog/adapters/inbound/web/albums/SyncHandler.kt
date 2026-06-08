@@ -72,7 +72,7 @@ private suspend fun handleSync(
             ErrorResponse(code = "RESOURCE_NOT_FOUND", message = ex.message ?: "Album not found"))
     } catch (ex: BusinessValidationException) {
         call.respond(HttpStatusCode.UnprocessableEntity,
-            ErrorResponse(code = "NO_DISCOGS_ID", message = ex.message ?: "No Discogs ID"))
+            ErrorResponse(code = "NO_SOURCE_ID", message = ex.message ?: "No source ID"))
     } catch (ex: ImageQuotaExhaustedException) {
         call.respond(HttpStatusCode.TooManyRequests,
             ErrorResponse(
@@ -85,7 +85,7 @@ private suspend fun handleSync(
     } catch (ex: Exception) {
         log.error(ex) { "Sync failed albumId=$albumId provider=${syncService.name}" }
         call.respond(HttpStatusCode.ServiceUnavailable,
-            ErrorResponse(code = "SYNC_FAILED", message = "Discogs sync failed — check server logs for details"))
+            ErrorResponse(code = "SYNC_FAILED", message = "Sync failed - check server logs for details"))
     }
 }
 

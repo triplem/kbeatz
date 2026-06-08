@@ -20,11 +20,11 @@ import kotlin.test.assertFalse
 import kotlin.uuid.Uuid
 import kotlinx.serialization.json.Json
 import org.javafreedom.kbeatz.catalog.api.models.ErrorResponse
-import org.javafreedom.kbeatz.catalog.application.service.DiscogsSyncService
+import org.javafreedom.kbeatz.catalog.domain.port.SyncProvider
 
 class SyncHandlerTest {
 
-    private val syncService: DiscogsSyncService = mockk()
+    private val syncService: SyncProvider = mockk()
     private val albumId = Uuid.random()
     private val libraryRoot = Path.of("/music")
 
@@ -32,7 +32,7 @@ class SyncHandlerTest {
 
     @Test
     fun `should return 503 with generic message when sync throws unexpected exception`() = testApplication {
-        coEvery { syncService.sync(albumId, any()) } throws RuntimeException("DB connection timeout — secrets leaked here")
+        coEvery { syncService.sync(albumId, any()) } throws RuntimeException("DB connection timeout - secrets leaked here")
 
         install(ContentNegotiation) { json(json) }
         routing { syncRoutes(syncService, libraryRoot) }
@@ -78,6 +78,6 @@ class SyncHandlerTest {
         assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
         val body = response.body<ErrorResponse>()
         assertFalse(body.message.isNullOrBlank(), "Response message should not be blank")
-        assertEquals("Discogs sync failed — check server logs for details", body.message)
+        assertEquals("Sync failed - check server logs for details", body.message)
     }
 }
