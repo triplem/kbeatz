@@ -1,6 +1,7 @@
 plugins {
     id("kbeatz.cli-app")
     id("com.gradleup.shadow") version "9.4.2"
+    `maven-publish`
 }
 
 group = "org.javafreedom.kbeatz"
@@ -20,6 +21,25 @@ tasks.shadowJar {
     archiveVersion.set("")
     archiveClassifier.set("all")
     mergeServiceFiles()
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            // Publish the shadow (fat) JAR so consumers get a self-contained artifact.
+            artifact(tasks.shadowJar)
+        }
+    }
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/triplem/kbeatz")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR")
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
 }
 
 kover {
