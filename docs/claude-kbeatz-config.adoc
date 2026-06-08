@@ -155,10 +155,10 @@ No built-in equivalent.
 |`create-pr`
 |SDLC
 |None
-|Simplify
+|Simplified
 |Most PR guidance is already in `CLAUDE.md` (PR title format, body template, CI green check,
-branch delete). The skill adds post-merge cleanup (close linked issues, close epic if done)
-which is genuinely unique. Consider reducing the skill to only the post-merge cleanup steps.
+branch delete). Skill rewritten to only the unique post-merge cleanup steps: delete branches,
+close linked issues via GraphQL, close parent epic when all sub-issues are closed.
 |#281
 
 |`devops-review`

@@ -297,7 +297,7 @@ Invoke with `/skill-name`. All skills live in `.claude/skills/`.
 - `/implement` — implement a story on a feature branch
 - `/implement-epic` — implement all stories under an epic in dependency order
 - `/write-tests` — write tests for an implementation
-- `/create-pr` — open a guided PR with post-merge cleanup
+- `/create-pr` — post-merge cleanup: delete branches, close issues, close epic if done
 - `/pr-reviewer` — review a PR; auto-posts findings and fixes them
 - `/release` — tag, changelog, GitHub release
 - `/create-adr` — document an architecture decision
