@@ -9,7 +9,7 @@ on:
 # consistent with the latest commit.
 concurrency:
   group: publish-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -22,16 +22,16 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
         with:
           java-version: '21'
           distribution: 'temurin'
 
       - name: Cache Gradle
-        uses: actions/cache@v5
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: |
             ~/.gradle/caches
@@ -70,24 +70,30 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set up JDK 21 for version extraction
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
       - name: Extract version from kbeatz-catalog build.gradle.kts
         id: version
         run: |
-          VERSION=$(grep -m1 '^version\s*=' kbeatz-catalog/build.gradle.kts \
-            | sed 's/.*"\(.*\)".*/\1/')
+          VERSION=$(./gradlew :kbeatz-catalog:properties -q --no-daemon 2>/dev/null \
+            | grep "^version:" | awk '{print $2}' | tr -d '[:space:]')
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push kbeatz-catalog image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           file: kbeatz-catalog/Dockerfile
@@ -101,16 +107,27 @@ jobs:
             org.opencontainers.image.source=https://github.com/triplem/kbeatz
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.version=${{ steps.version.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test catalog image
+        run: |
+          docker run --rm \
+            -e CATALOG_LIBRARY_ROOT=/tmp \
+            -e DATA_DIR=/tmp \
+            --entrypoint /bin/sh \
+            ghcr.io/triplem/kbeatz-catalog:${{ github.sha }} \
+            -c "exit 0"
 
       - name: Extract version from kbeatz-cli build.gradle.kts
         id: cli-version
         run: |
-          VERSION=$(grep -m1 '^version\s*=' kbeatz-cli/build.gradle.kts \
-            | sed 's/.*"\(.*\)".*/\1/')
+          VERSION=$(./gradlew :kbeatz-cli:properties -q --no-daemon 2>/dev/null \
+            | grep "^version:" | awk '{print $2}' | tr -d '[:space:]')
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push kbeatz-cli image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           file: kbeatz-cli/Dockerfile
@@ -122,3 +139,5 @@ jobs:
             org.opencontainers.image.source=https://github.com/triplem/kbeatz
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.version=${{ steps.cli-version.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

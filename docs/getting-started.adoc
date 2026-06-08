@@ -123,6 +123,36 @@ Once running:
 This section covers running the full kbeatz stack as containers using `podman-compose`
 (or `docker compose`). Both tools consume the same `compose.yml` at the project root.
 
+=== Using Pre-built Images from GHCR
+
+Pre-built images are published to the GitHub Container Registry on every merge to `main`.
+You can pull them directly instead of building from source:
+
+[source,bash]
+----
+docker pull ghcr.io/triplem/kbeatz-catalog:latest
+docker pull ghcr.io/triplem/kbeatz-cli:latest
+----
+
+Pin to a specific version for reproducible deployments:
+
+[source,bash]
+----
+# Use a version tag (e.g. 0.1.0)
+docker pull ghcr.io/triplem/kbeatz-catalog:0.1.0
+
+# Or pin to a commit SHA for maximum immutability
+docker pull ghcr.io/triplem/kbeatz-catalog:<git-sha>
+----
+
+See the https://github.com/triplem/kbeatz/pkgs/container/kbeatz-catalog[GitHub Packages page]
+for all available tags.
+
+NOTE: GHCR does not enforce an automatic retention policy. Stale versioned tags accumulate
+over time. To list and delete old images, use:
+`gh api user/packages/container/kbeatz-catalog/versions --jq '.[].id'`
+then `gh api -X DELETE user/packages/container/kbeatz-catalog/versions/<id>`.
+
 === Prerequisites
 
 [cols="1,2"]
