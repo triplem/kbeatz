@@ -64,7 +64,7 @@ Document all filter parameters in the OpenAPI spec.
 
 Path versioning only: `/api/v1/`, `/api/v2/`.
 
-Never version individual endpoints — version the whole API. Maintain n-1 versions in production (v1 while v2 is current).
+Never version individual endpoints - version the whole API. Maintain n-1 versions in production (v1 while v2 is current).
 
 ## Security
 

@@ -22,12 +22,12 @@ No test may be skipped, ignored, or commented out to make the gate pass.
 ### 2. Unit Test Coverage ≥ 80%
 
 ```bash
-# Kotlin — Kover (this project uses Kover, NOT JaCoCo)
-# ./gradlew check already runs koverVerify — do NOT use jacocoTestCoverageVerification
+# Kotlin - Kover (this project uses Kover, NOT JaCoCo)
+# ./gradlew check already runs koverVerify - do NOT use jacocoTestCoverageVerification
 ./gradlew check
 # Configuration in build.gradle.kts: minValue = 80 inside koverReport {}
 
-# TypeScript — Jest / Vitest
+# TypeScript - Jest / Vitest
 npm run test:coverage
 # jest.config.ts: coverageThreshold: { global: { lines: 80, branches: 80 } }
 
@@ -38,7 +38,7 @@ dotnet test --collect:"XPlat Code Coverage"
 
 Coverage is measured on **new and modified code only** in brownfield projects (use diff coverage tools: `diff-cover`, `jacoco-diff`).
 
-> **kdiab-specific**: All Kotlin services use **Kover** enforced via `./gradlew check`. The `koverVerify` task fails the build when line coverage drops below 80%. Never call `jacocoTestCoverageVerification` — it does not exist in this project.
+> **kdiab-specific**: All Kotlin services use **Kover** enforced via `./gradlew check`. The `koverVerify` task fails the build when line coverage drops below 80%. Never call `jacocoTestCoverageVerification` - it does not exist in this project.
 
 ### 3. Linting Passes
 
@@ -56,7 +56,7 @@ dotnet format --verify-no-changes
 
 No linting warning may be silenced with `@Suppress`, `eslint-disable`, or `#pragma warning` without a comment explaining why.
 
-### 4. SAST Scan — No Unmitigated HIGH or CRITICAL
+### 4. SAST Scan - No Unmitigated HIGH or CRITICAL
 
 ```bash
 # Universal (open source)
@@ -94,11 +94,11 @@ Every TODO must be linked to a tracker issue: `// TODO(#42): extract to service`
 
 ```bash
 ./gradlew build -x test    # Kotlin
-npm run build              # TypeScript/React/Angular — REQUIRED even for minor UI changes
+npm run build              # TypeScript/React/Angular - REQUIRED even for minor UI changes
 dotnet build -c Release    # .NET
 ```
 
-> **TypeScript strict mode**: `npm run build` must pass with zero errors. `tsconfig.json` enforces `noUnusedLocals: true` — unused type aliases, imports, or variables cause `TS6196`/`TS6133` errors that fail the Docker image build even when `tsc --noEmit` is skipped.
+> **TypeScript strict mode**: `npm run build` must pass with zero errors. `tsconfig.json` enforces `noUnusedLocals: true` - unused type aliases, imports, or variables cause `TS6196`/`TS6133` errors that fail the Docker image build even when `tsc --noEmit` is skipped.
 
 ### 8. Docker Build Succeeds (if applicable)
 

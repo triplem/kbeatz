@@ -7,11 +7,11 @@ Every story touching user input, auth, or data access must be reviewed against:
 ### A01 Broken Access Control
 
 - Verify authorisation on every endpoint (not just authentication).
-- Use attribute-based or role-based access control — never manual `if (user.role == "admin")` checks scattered across the code.
+- Use attribute-based or role-based access control - never manual `if (user.role == "admin")` checks scattered across the code.
 - Deny by default: endpoints are private unless explicitly made public.
 
 ```kotlin
-// Spring Security — explicitly declare public endpoints
+// Spring Security - explicitly declare public endpoints
 http.authorizeHttpRequests {
     it.requestMatchers("/api/v1/health", "/api/v1/auth/login").permitAll()
     it.anyRequest().authenticated()
@@ -20,14 +20,14 @@ http.authorizeHttpRequests {
 
 ### A02 Cryptographic Failures
 
-- Never store passwords in plain text or reversible encryption — use bcrypt/argon2.
-- TLS everywhere — no HTTP for sensitive data.
-- No secrets in environment variables committed to source — use secrets manager (Vault, AWS Secrets Manager).
+- Never store passwords in plain text or reversible encryption - use bcrypt/argon2.
+- TLS everywhere - no HTTP for sensitive data.
+- No secrets in environment variables committed to source - use secrets manager (Vault, AWS Secrets Manager).
 - JWTs: sign with RS256 (asymmetric), not HS256 in multi-service environments.
 
 ### A03 Injection
 
-- Use parameterised queries — never string concatenation in SQL.
+- Use parameterised queries - never string concatenation in SQL.
 - Validate and sanitise all user inputs at the boundary.
 - Use ORM (JPA, EF Core, Prisma) where possible.
 
@@ -78,7 +78,7 @@ npm audit --audit-level=high
 dotnet list package --vulnerable
 ```
 
-Treat HIGH/CRITICAL CVEs as bugs — fix within 1 sprint.
+Treat HIGH/CRITICAL CVEs as bugs - fix within 1 sprint.
 
 ## SAST
 

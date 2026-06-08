@@ -19,14 +19,14 @@ Open for extension, closed for modification. Add behaviour by adding code, not c
 **Pattern:** Strategy, Decorator, Extension functions (Kotlin), extension methods (C#).
 
 ```kotlin
-// BAD — must modify this to add new discount type
+// BAD - must modify this to add new discount type
 fun calculateDiscount(order: Order, type: String): BigDecimal = when (type) {
     "SEASONAL" -> order.total * 0.1.toBigDecimal()
     "LOYALTY" -> order.total * 0.15.toBigDecimal()
     else -> BigDecimal.ZERO
 }
 
-// GOOD — add new types without modifying existing code
+// GOOD - add new types without modifying existing code
 interface DiscountStrategy { fun calculate(order: Order): BigDecimal }
 class SeasonalDiscount : DiscountStrategy { override fun calculate(order: Order) = order.total * BigDecimal("0.10") }
 class LoyaltyDiscount : DiscountStrategy { override fun calculate(order: Order) = order.total * BigDecimal("0.15") }
@@ -52,10 +52,10 @@ Clients should not depend on interfaces they don't use.
 High-level modules depend on abstractions, not concretions.
 
 ```kotlin
-// BAD — UserService depends on the concrete class
+// BAD - UserService depends on the concrete class
 class UserService(private val repo: PostgresUserRepository)
 
-// GOOD — UserService depends on the abstraction
+// GOOD - UserService depends on the abstraction
 class UserService(private val repo: UserRepository)
 interface UserRepository { fun findById(id: UserId): User? }
 class PostgresUserRepository : UserRepository { ... }
@@ -71,7 +71,7 @@ Always inject interfaces, not concrete classes. Register implementations in DI c
 - Max 20 lines. If longer, extract.
 - Parameters: max 3. If more, use a parameter object.
 - No side effects from a function named like a query (`getUser` should not write to the DB).
-- Boolean parameters are a design smell — split into two methods.
+- Boolean parameters are a design smell - split into two methods.
 
 ### Naming
 
@@ -80,18 +80,18 @@ Always inject interfaces, not concrete classes. Register implementations in DI c
 - Booleans: `is`, `has`, `can`, `should` prefix (`isActive`, `hasPermission`).
 - Constants: SCREAMING_SNAKE_CASE.
 - No abbreviations unless universally known (`id`, `url`, `http`, `dto`).
-- Names should be self-documenting — avoid `temp`, `data`, `info`, `result` as sole names.
+- Names should be self-documenting - avoid `temp`, `data`, `info`, `result` as sole names.
 
 ### Comments
 
 Only write a comment when the WHY is non-obvious. The code says what; the comment says why.
 
 ```kotlin
-// BAD — obvious what, no why
+// BAD - obvious what, no why
 // increment the counter
 count++
 
-// GOOD — explains a non-obvious business rule
+// GOOD - explains a non-obvious business rule
 // Retry limit is 3 per PCI-DSS requirement 6.4.2
 val MAX_AUTH_RETRIES = 3
 ```
@@ -101,7 +101,7 @@ val MAX_AUTH_RETRIES = 3
 - Use domain-specific exceptions (`UserNotFoundException` not `RuntimeException("user not found")`).
 - Catch at the boundary (controller, message consumer), not deep in business logic.
 - Never swallow exceptions silently.
-- Never return null from a method that should always return a value — use `Optional`, `Result`, or sealed types.
+- Never return null from a method that should always return a value - use `Optional`, `Result`, or sealed types.
 
 ### Magic Numbers / Strings
 

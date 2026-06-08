@@ -7,7 +7,7 @@ All commits must follow [Conventional Commits](https://www.conventionalcommits.o
 ```
 <type>(<scope>): <short summary>
 
-[optional body — wrap at 72 chars]
+[optional body - wrap at 72 chars]
 
 [optional footer: BREAKING CHANGE: ..., Closes #N, Refs #N]
 ```
@@ -19,13 +19,13 @@ All commits must follow [Conventional Commits](https://www.conventionalcommits.o
 | `feat` | New feature | minor |
 | `fix` | Bug fix | patch |
 | `perf` | Performance improvement | patch |
-| `refactor` | Code change (no feature/fix) | — |
-| `test` | Tests only | — |
-| `docs` | Documentation only | — |
-| `style` | Formatting, whitespace | — |
-| `build` | Build system, dependencies | — |
-| `ci` | CI/CD configuration | — |
-| `chore` | Other (release scripts, etc.) | — |
+| `refactor` | Code change (no feature/fix) | none |
+| `test` | Tests only | none |
+| `docs` | Documentation only | none |
+| `style` | Formatting, whitespace | none |
+| `build` | Build system, dependencies | none |
+| `ci` | CI/CD configuration | none |
+| `chore` | Other (release scripts, etc.) | none |
 | `revert` | Revert a prior commit | patch |
 
 Breaking change: append `!` to type or add `BREAKING CHANGE:` in footer → major bump.

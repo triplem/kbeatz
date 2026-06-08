@@ -7,15 +7,15 @@ Spring Boot 3.4+, Java 21+ or Kotlin 2.x. Use virtual threads (Project Loom) for
 ## Application Properties
 
 Use YAML (`application.yml`). Split into profiles:
-- `application.yml` — shared non-sensitive config
-- `application-local.yml` — local development overrides (gitignored if it contains secrets)
-- `application-test.yml` — test overrides (Testcontainers URLs, reduced pool sizes)
+- `application.yml` - shared non-sensitive config
+- `application-local.yml` - local development overrides (gitignored if it contains secrets)
+- `application-test.yml` - test overrides (Testcontainers URLs, reduced pool sizes)
 
 Never commit secrets. Use Spring Cloud Config or Kubernetes secrets for production values.
 
 ## Bean Configuration
 
-Prefer constructor injection over field injection. Never use `@Autowired` on fields in Kotlin — use constructor injection or `@Autowired` on the constructor (implicit with single-constructor data class):
+Prefer constructor injection over field injection. Never use `@Autowired` on fields in Kotlin - use constructor injection or `@Autowired` on the constructor (implicit with single-constructor data class):
 
 ```kotlin
 @Service
@@ -65,7 +65,7 @@ class SecurityConfig {
     @Bean
     fun filterChain(http: HttpSecurity): SecurityFilterChain =
         http
-            .csrf { it.disable() }  // stateless JWT — no CSRF needed
+            .csrf { it.disable() }  // stateless JWT - no CSRF needed
             .sessionManagement { it.sessionCreationPolicy(STATELESS) }
             .authorizeHttpRequests {
                 it.requestMatchers("/api/v1/auth/**", "/actuator/health").permitAll()
@@ -123,4 +123,4 @@ Prefer Kotlin coroutines over `@Async` in new Kotlin services.
 
 See `test-pyramid.md` and `/spring-boot-patterns` for integration test patterns.
 
-Always use `@Testcontainers` for integration tests — never use an embedded H2 database (it hides SQL dialect differences).
+Always use `@Testcontainers` for integration tests - never use an embedded H2 database (it hides SQL dialect differences).
