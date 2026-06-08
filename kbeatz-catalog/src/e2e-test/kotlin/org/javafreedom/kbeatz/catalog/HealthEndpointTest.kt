@@ -7,6 +7,7 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.testing.*
 import org.javafreedom.kbeatz.catalog.api.models.HealthResponse
+import org.javafreedom.kbeatz.catalog.api.models.LivenessResponse
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -21,6 +22,30 @@ class HealthEndpointTest {
         assertEquals(HttpStatusCode.OK, response.status)
         val body = response.body<HealthResponse>()
         assertEquals(HealthResponse.Status.UP, body.status)
+    }
+
+    @Test
+    fun `GET health live returns 200 UP`() = testApplication {
+        application { module() }
+        val client = createClient {
+            install(ContentNegotiation) { json() }
+        }
+        val response = client.get("/api/v1/health/live")
+        assertEquals(HttpStatusCode.OK, response.status)
+        val body = response.body<LivenessResponse>()
+        assertEquals(LivenessResponse.Status.UP, body.status)
+    }
+
+    @Test
+    fun `GET health ready returns 200 UP when database is available`() = testApplication {
+        application { module() }
+        val client = createClient {
+            install(ContentNegotiation) { json() }
+        }
+        val response = client.get("/api/v1/health/ready")
+        assertEquals(HttpStatusCode.OK, response.status)
+        val body = response.body<LivenessResponse>()
+        assertEquals(LivenessResponse.Status.UP, body.status)
     }
 
     @Test

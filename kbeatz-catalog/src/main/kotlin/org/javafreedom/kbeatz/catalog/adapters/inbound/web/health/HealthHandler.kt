@@ -4,13 +4,16 @@ import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import java.nio.file.Path
+import org.javafreedom.kbeatz.catalog.api.models.ErrorResponse
 import org.javafreedom.kbeatz.catalog.api.models.HealthResponse
+import org.javafreedom.kbeatz.catalog.api.models.LivenessResponse
 
 /**
- * Ktor route handler for `GET /health`.
+ * Ktor route handlers for health probes.
  *
- * Performs a lightweight DB connectivity probe and filesystem root check.
- * Returns 200 UP when both are healthy; 503 DOWN with per-component detail otherwise.
+ * - GET /health      - combined legacy probe (DB + filesystem).
+ * - GET /health/live - liveness probe: always 200 when the process is running.
+ * - GET /health/ready - readiness probe: 200 when DB is reachable, 503 when not.
  *
  * @param dbProbe Suspending function that returns true when the database is reachable.
  * @param libraryRoot Filesystem path to the music library root.
@@ -35,5 +38,23 @@ fun Route.healthRoutes(
                 ),
             ),
         )
+    }
+
+    // Liveness: always 200 - no I/O, just confirms the process is alive.
+    get("/health/live") {
+        call.respond(HttpStatusCode.OK, LivenessResponse(status = LivenessResponse.Status.UP))
+    }
+
+    // Readiness: 200 when DB is up, 503 with ErrorResponse when DB is down.
+    get("/health/ready") {
+        val dbUp = runCatching { dbProbe() }.getOrDefault(false)
+        if (dbUp) {
+            call.respond(HttpStatusCode.OK, LivenessResponse(status = LivenessResponse.Status.UP))
+        } else {
+            call.respond(
+                HttpStatusCode.ServiceUnavailable,
+                ErrorResponse(code = "DATABASE_UNAVAILABLE", message = "Database is not reachable"),
+            )
+        }
     }
 }
