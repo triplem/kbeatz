@@ -43,7 +43,7 @@ jobs:
         run: ./gradlew asciidoctor --no-daemon
 
       - name: Upload AsciiDoc output
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: asciidoc
           path: build/docs/asciidoc/
@@ -93,7 +93,7 @@ jobs:
           done
 
       - name: Upload Detekt reports
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: detekt-reports
           path: detekt-reports/
@@ -128,7 +128,7 @@ jobs:
             --format html --output-file ../eslint-report.html || true
 
       - name: Upload ESLint report
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: eslint-report
           path: eslint-report.html
@@ -185,7 +185,7 @@ jobs:
 
       - name: Upload Trivy report
         if: steps.pull.outputs.available == 'true'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: trivy-report
           path: trivy-report.html

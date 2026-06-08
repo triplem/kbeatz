@@ -195,12 +195,12 @@ git tag "$NEXT_TAG"
 build_changelog() {
     local range_start="$1"
 
-    declare -A GROUPS
-    GROUPS["breaking"]=""
-    GROUPS["feat"]=""
-    GROUPS["fix"]=""
-    GROUPS["perf"]=""
-    GROUPS["other"]=""
+    declare -A COMMIT_GROUPS
+    COMMIT_GROUPS["breaking"]=""
+    COMMIT_GROUPS["feat"]=""
+    COMMIT_GROUPS["fix"]=""
+    COMMIT_GROUPS["perf"]=""
+    COMMIT_GROUPS["other"]=""
 
     local log_args
     if [[ -z "$range_start" ]]; then
@@ -234,43 +234,43 @@ build_changelog() {
 
         if echo "$full_msg" | grep -qE "^BREAKING CHANGE:" || \
            echo "$subject" | grep -qE "^[a-z]+(\([^)]+\))?!:"; then
-            GROUPS["breaking"]+="${entry}"$'\n'
+            COMMIT_GROUPS["breaking"]+="${entry}"$'\n'
         elif echo "$subject" | grep -qE "^feat(\([^)]+\))?:"; then
-            GROUPS["feat"]+="${entry}"$'\n'
+            COMMIT_GROUPS["feat"]+="${entry}"$'\n'
         elif echo "$subject" | grep -qE "^fix(\([^)]+\))?:"; then
-            GROUPS["fix"]+="${entry}"$'\n'
+            COMMIT_GROUPS["fix"]+="${entry}"$'\n'
         elif echo "$subject" | grep -qE "^perf(\([^)]+\))?:"; then
-            GROUPS["perf"]+="${entry}"$'\n'
+            COMMIT_GROUPS["perf"]+="${entry}"$'\n'
         else
-            GROUPS["other"]+="${entry}"$'\n'
+            COMMIT_GROUPS["other"]+="${entry}"$'\n'
         fi
     done <<< "$all_commits"
 
     local changelog=""
 
-    if [[ -n "${GROUPS["breaking"]}" ]]; then
+    if [[ -n "${COMMIT_GROUPS["breaking"]}" ]]; then
         changelog+=$'## Breaking Changes\n\n'
-        changelog+="${GROUPS["breaking"]}"$'\n'
+        changelog+="${COMMIT_GROUPS["breaking"]}"$'\n'
     fi
 
-    if [[ -n "${GROUPS["feat"]}" ]]; then
+    if [[ -n "${COMMIT_GROUPS["feat"]}" ]]; then
         changelog+=$'## Features\n\n'
-        changelog+="${GROUPS["feat"]}"$'\n'
+        changelog+="${COMMIT_GROUPS["feat"]}"$'\n'
     fi
 
-    if [[ -n "${GROUPS["fix"]}" ]]; then
+    if [[ -n "${COMMIT_GROUPS["fix"]}" ]]; then
         changelog+=$'## Bug Fixes\n\n'
-        changelog+="${GROUPS["fix"]}"$'\n'
+        changelog+="${COMMIT_GROUPS["fix"]}"$'\n'
     fi
 
-    if [[ -n "${GROUPS["perf"]}" ]]; then
+    if [[ -n "${COMMIT_GROUPS["perf"]}" ]]; then
         changelog+=$'## Performance\n\n'
-        changelog+="${GROUPS["perf"]}"$'\n'
+        changelog+="${COMMIT_GROUPS["perf"]}"$'\n'
     fi
 
-    if [[ -n "${GROUPS["other"]}" ]]; then
+    if [[ -n "${COMMIT_GROUPS["other"]}" ]]; then
         changelog+=$'## Other Changes\n\n'
-        changelog+="${GROUPS["other"]}"$'\n'
+        changelog+="${COMMIT_GROUPS["other"]}"$'\n'
     fi
 
     echo "$changelog"
