@@ -32,8 +32,13 @@ class FlacReader {
      * Parses all metadata blocks from [data] (the full FLAC file content).
      * Returns the parsed blocks and the raw audio frames that follow.
      *
-     * @throws FlacParseException if [data] does not start with a valid FLAC marker.
+     * @throws FlacParseException if [data] does not start with a valid FLAC marker,
+     *   or if the file is truncated or otherwise malformed.
      */
+    @Suppress("TooGenericExceptionCaught", "SwallowedException")
+    // kotlinx.io raises various RuntimeException subtypes (EOFException, IllegalStateException)
+    // on truncated data — catching the base type is intentional so all truncation scenarios are
+    // wrapped in FlacParseException with the original cause preserved.
     fun parse(data: ByteArray): FlacParseResult {
         val source = Buffer().apply { write(data) }
 
@@ -43,21 +48,33 @@ class FlacReader {
 
         val blocks = mutableListOf<FlacMetadataBlock>()
         var isLast = false
+        var blockIndex = 0
 
-        while (!isLast) {
-            val firstByte = source.readByte().toInt() and BYTE_MASK
-            isLast = (firstByte and LAST_BLOCK_FLAG) != 0
-            val blockType = firstByte and BLOCK_TYPE_MASK
-            val length = source.readInt24Be()
-            val blockData = source.readByteArray(length)
+        try {
+            while (!isLast) {
+                val firstByte = source.readByte().toInt() and BYTE_MASK
+                isLast = (firstByte and LAST_BLOCK_FLAG) != 0
+                val blockType = firstByte and BLOCK_TYPE_MASK
+                val length = source.readInt24Be()
+                val blockData = source.readByteArray(length)
 
-            blocks += when (blockType) {
-                BLOCK_TYPE_STREAMINFO -> parseStreamInfo(blockData)
-                BLOCK_TYPE_PADDING -> FlacMetadataBlock.Padding(length)
-                BLOCK_TYPE_VORBIS_COMMENT -> parseVorbisComment(blockData)
-                BLOCK_TYPE_PICTURE -> parsePicture(blockData)
-                else -> FlacMetadataBlock.Unknown(blockType, ByteString(blockData))
+                blocks += when (blockType) {
+                    BLOCK_TYPE_STREAMINFO -> parseStreamInfo(blockData)
+                    BLOCK_TYPE_PADDING -> FlacMetadataBlock.Padding(length)
+                    BLOCK_TYPE_VORBIS_COMMENT -> parseVorbisComment(blockData)
+                    BLOCK_TYPE_PICTURE -> parsePicture(blockData)
+                    else -> FlacMetadataBlock.Unknown(blockType, ByteString(blockData))
+                }
+                blockIndex++
             }
+        } catch (e: FlacParseException) {
+            throw e
+        } catch (e: Exception) {
+            throw FlacParseException(
+                "Truncated or malformed FLAC file: failed reading block at index $blockIndex " +
+                    "(cause: ${e.message})",
+                e,
+            )
         }
 
         return FlacParseResult(blocks, source.readByteArray())
@@ -125,7 +142,7 @@ class FlacParseResult(
     val audioFrames: ByteArray,
 )
 
-class FlacParseException(message: String) : RuntimeException(message)
+class FlacParseException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
 
 @Suppress("MagicNumber") // 24-bit big-endian read: bit-shift constants are defined by the format
 private fun Source.readInt24Be(): Int {
