@@ -306,7 +306,6 @@ Invoke with `/skill-name`. All skills live in `.claude/skills/`.
 - `/typescript-patterns` — TS strict patterns
 - `/react-patterns` — hooks, context, component design
 - `/openapi-patterns` — spec-first API design
-- `/logging-kotlin` — structured logging with kotlin-logging
 - `/logging-typescript` — structured logging with pino/winston
 
 ### Specialist Reviews

@@ -222,7 +222,7 @@ workflow.
 |`logging-kotlin`
 |Pattern
 |`.claude/rules/logging.md`
-|Remove
+|Removed
 |`user-invocable: false` with `paths: **/*.kt,**/logback*.xml`. The general logging
 standards in `logging.md` auto-load every session and cover the same level-policy, MDC,
 and structured-field requirements. Kotlin-specific Logback details belong in `logging.md`
