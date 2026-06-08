@@ -1,0 +1,278 @@
+= Claude Code Rules Reference
+:toc: left
+:toclevels: 3
+:icons: font
+:source-highlighter: rouge
+
+Rules in `.claude/rules/` are plain Markdown files that Claude Code loads automatically
+at the start of every session. They define constraints, coding patterns, and process
+requirements that apply to all work in the kbeatz monorepo without requiring explicit
+invocation.
+
+For the decision boundary between rules and skills, see
+xref:claude-kbeatz-config.adoc[kbeatz Claude Code Configuration Guide - Section 3].
+
+== Branching Strategy
+
+*File:* `.claude/rules/branching-strategy.md`
+
+Defines the branch naming format, merge policy, and worktree patterns for parallel agents.
+
+Key requirements:
+
+- Branch naming: `<type>/<issue-number>-<short-description>` (e.g., `feature/42-user-jwt-auth`)
+- Direct commits to `main` are blocked by a git hook (enforced, not a convention)
+- Squash rebase policy: PRs are squashed onto main; one commit per story
+- Worktrees: each parallel agent uses `git worktree add` to get an isolated working copy
+- Post-merge cleanup: always delete both remote and local branches after merge
+- Locked worktrees (Claude agent worktrees) require double-force removal: `git worktree remove -f -f`
+
+Valid branch types: `feature`, `fix`, `bug`, `chore`, `docs`, `refactor`
+
+== Commit Conventions
+
+*File:* `.claude/rules/commit-conventions.md`
+
+Enforces https://www.conventionalcommits.org/[Conventional Commits] (Angular preset).
+
+Format: `<type>(<scope>): <issue-number> <summary>`
+
+[cols="1,2,1"]
+|===
+|Type |When |Version bump
+
+|`feat` |New feature |minor
+|`fix` |Bug fix |patch
+|`perf` |Performance improvement |patch
+|`refactor` |Code change (no feature/fix) |-
+|`test` |Tests only |-
+|`docs` |Documentation only |-
+|`build` |Build system, dependencies |-
+|`ci` |CI/CD configuration |-
+|`chore` |Other (release scripts, etc.) |-
+|===
+
+Project scopes for kbeatz: `catalog`, `sources`, `tagger`, `cli`, `ui`, `common`,
+`discogs`, `idfile`, `library`, `api`, `db`, `config`, `ci`, `scaffold`.
+
+Breaking change: append `!` to type or add `BREAKING CHANGE:` in footer.
+
+== Quality Gates
+
+*File:* `.claude/rules/quality-gates.md`
+
+Mandatory checklist that must pass before any PR is opened:
+
+. All tests pass (`./gradlew test` / `npm test`)
+. Unit test coverage >= 80% (`./gradlew check` runs `koverVerify`)
+. Linting passes (`./gradlew detektMain` for Kotlin; `npm run lint` for TypeScript)
+. SAST scan - no unmitigated HIGH or CRITICAL findings
+. OpenAPI spec valid if changed (`spectral lint`)
+. No untracked TODO/FIXME in changed files
+. Build succeeds (`./gradlew build` / `npm run build`)
+
+NOTE: Coverage is enforced by Kover (not JaCoCo). Never call `jacocoTestCoverageVerification`
+in this project.
+
+== SOLID and Clean Code
+
+*File:* `.claude/rules/solid-principles.md`
+
+Defines Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation,
+and Dependency Inversion principles with Kotlin examples.
+
+Key clean code rules:
+
+- Functions: one thing, max 20 lines, max 3 parameters
+- Classes: max 5 public methods, imports from max 3 different domains
+- Boolean parameters are a design smell - split into two methods
+- Names: classes are nouns, methods are verbs, booleans use `is`/`has`/`can` prefix
+- Comments: only explain WHY, not WHAT
+- Magic values: must be named constants
+
+== API Design
+
+*File:* `.claude/rules/api-design.md`
+
+REST API conventions for kbeatz-catalog:
+
+- Spec-first: write OpenAPI before writing code
+- Resource naming: plural nouns, kebab-case, hierarchical for ownership
+- All list endpoints support pagination (`page`, `size`, `sort` query params, max page size 100)
+- Consistent error body: `{ "code": "DOMAIN_ERROR", "message": "...", "details": [...] }`
+- Path versioning only: `/api/v1/`, `/api/v2/`
+- Breaking changes require a major version bump
+
+== OpenAPI Spec
+
+*File:* `.claude/rules/openapi.md`
+
+OpenAPI 3.1 specification requirements for all APIs:
+
+- Every spec must have `openapi`, `info`, `servers`, and `tags` sections
+- Every operation must have `operationId`, `summary`, `tags`, `responses`, and `security`
+- All schemas must define `required` arrays and property `description` fields
+- Standard reusable schemas: `ErrorResponse`, `PagedResponse`
+- CI enforcement: Spectral lint on every PR; `oasdiff` for breaking change detection
+- Generated code is committed to source control so diffs are visible in PRs
+
+== Security
+
+*File:* `.claude/rules/security.md`
+
+OWASP Top 10 checklist with Kotlin and TypeScript examples:
+
+- A01 (Broken Access Control): deny by default, ABAC/RBAC over manual role checks
+- A02 (Cryptographic Failures): bcrypt/argon2 for passwords, TLS everywhere, RS256 JWT
+- A03 (Injection): parameterised queries only, never string concatenation in SQL
+- A07 (Authentication): account lockout, session invalidation on logout, JWT expiry <= 15 min
+- A09 (Logging): log all auth events, never log credentials/tokens/PII
+
+Secret hygiene: secrets never in source code; `gitleaks` pre-commit hook; `.env` gitignored.
+
+== Kotlin Style
+
+*File:* `.claude/rules/kotlin-style.md`
+
+Kotlin idioms and tooling for the kbeatz backend:
+
+- Prefer `val` over `var`; `var` requires justification
+- Use `@JvmInline value class` to eliminate primitive obsession
+- Use sealed classes for domain results (never throw for expected outcomes)
+- Anti-patterns: no `!!`, no `lateinit var` except framework injection, no mutable `var` in data classes
+- Detekt configuration: MagicNumber ignores `-1`/`0`/`1`/`2`; max line length 120; LongMethod threshold 20
+- Gradle config-cache safety: resolve paths to plain `String`/`File` before `doLast` closures
+- Root `build.gradle.kts` that applies plugins directly must declare its own `repositories` block
+
+== TypeScript Style
+
+*File:* `.claude/rules/typescript-style.md`
+
+TypeScript configuration for `kbeatz-ui`:
+
+- `tsconfig.json` enforces `strict`, `noUncheckedIndexedAccess`, `noUnusedLocals`, `noUnusedParameters`
+- ESLint extends `plugin:@typescript-eslint/strict-type-checked`
+- Prefer named imports; no default exports
+- Async: always `await` Promises; never ignore with `void` without an explicit comment
+- Prefer `readonly` for interfaces and arrays
+- Use branded types to prevent primitive substitution errors
+- Use `Result<T, E>` sealed type for expected business outcomes (not throwing)
+- Discriminated unions for state variants over class hierarchies
+
+== Test Pyramid
+
+*File:* `.claude/rules/test-pyramid.md`
+
+Test ratios per story: 20-100+ unit tests, 5-15 integration tests, 1-3 E2E tests.
+
+[cols="1,2,2"]
+|===
+|Layer |Characteristics |Tools (Kotlin)
+
+|Unit
+|Single class, all deps mocked, no I/O, < 10ms each
+|JUnit 5 + Mockk
+
+|Integration
+|2+ real components, real DB via Testcontainers, < 2s each
+|SpringBootTest + Testcontainers
+
+|E2E/Acceptance
+|Full system, golden path + critical edge cases, 5-30s each
+|Playwright / REST Assured
+|===
+
+Test naming: `should_<expected>_when_<condition>`
+
+Coverage targets: >= 80% line, >= 75% branch.
+
+Never use embedded H2 for integration tests - always Testcontainers.
+
+== Logging
+
+*File:* `.claude/rules/logging.md`
+
+Structured logging standards for both Kotlin (kotlin-logging + Logback JSON) and
+TypeScript (Pino):
+
+Mandatory structured fields: `timestamp`, `level`, `service`, `traceId`, `spanId`, `message`, `env`
+
+Log level policy:
+
+- ERROR: system cannot proceed
+- WARN: unexpected but recoverable
+- INFO: normal significant events (default in production)
+- DEBUG: developer troubleshooting (default in local dev)
+- TRACE: never enable in production
+
+Never log: passwords, secrets, tokens, full PII, full request/response bodies.
+
+Kotlin pattern: `private val logger = KotlinLogging.logger {}` (never `LoggerFactory.getLogger`)
+
+== Agent Context
+
+*File:* `.claude/rules/agent-context.md`
+
+Rules for the CLAUDE.md hierarchy and hook audit logging:
+
+- CLAUDE.md is hierarchical: global (`~/.claude/`) -> project root -> per-module
+- Per-module CLAUDE.md adds focused context; it never replaces the root
+- Use a PostToolUse hook for real-time audit logging (not the Stop hook transcript)
+- PostToolUse fires immediately after each tool call with structured `tool_input` data
+- Skip read-only commands (`cat`, `grep`, `find`, `ls`) from audit logs
+
+== GitHub Issue Management
+
+*File:* `.claude/rules/github-issue-management.md`
+
+Patterns for managing epics and stories in GitHub Issues:
+
+- Use the native sub-issue API (GraphQL) to link child issues to epics
+- Never assign issues at creation time; assign only when work actively begins
+- Apply "In Progress" label when a branch is created and work begins
+- Every epic must include documentation stories (ADR, developer reference, operations guide, user guide)
+- Epic body structure: `## User Stories` with grouped checklists, then `## Acceptance Criteria`
+- Never leave `#TBD` in a merged epic body - update with real issue numbers immediately
+
+ADR naming: `ADR-NNN-<slug>.adoc` for platform; `ADR-{SVC}-NNN-<slug>.adoc` for services.
+
+== Writing Style
+
+*File:* `.claude/rules/writing-style.md`
+
+Plain ASCII punctuation in all written artifacts:
+
+- Never use em-dash (U+2014) in any artifact (GitHub issues, PR descriptions, commit messages,
+  AsciiDoc docs, code comments)
+- Replace em-dashes with: plain hyphen-minus `-`, colon `:`, or reword with parentheses
+
+Applies to: issue bodies, PR descriptions, commit messages, AsciiDoc docs, Markdown files,
+code comments, and all other written output.
+
+== Java Style
+
+*File:* `.claude/rules/java-style.md`
+
+Java 21+ conventions (for any Java files in the monorepo):
+
+- Follow Google Java Style Guide
+- Records for value objects and DTOs (no Lombok `@Data`)
+- Sealed classes for domain result types
+- Pattern matching for `switch` and `instanceof`
+- Lombok policy: only `@Slf4j` and `@RequiredArgsConstructor`
+- Forbidden: `null` returns from public methods, raw types, `System.out.println`
+
+== Spring Boot
+
+*File:* `.claude/rules/spring-boot.md`
+
+Spring Boot 3.4+ patterns (for any Spring services):
+
+- Constructor injection everywhere (never field injection with `@Autowired`)
+- Transactions on the service layer only (never controller or repository)
+- Flyway for all DB migrations (never modify an existing migration)
+- Virtual threads enabled for I/O-bound work (Spring Boot 3.2+)
+- Actuator: expose `health,info,metrics,prometheus,loggers`
+
+NOTE: kbeatz-catalog uses Ktor, not Spring Boot. This rule applies to any Spring Boot
+services added to the monorepo in the future.

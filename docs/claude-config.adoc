@@ -1,0 +1,280 @@
+= Claude Code Configuration Files
+:toc: left
+:toclevels: 3
+:icons: font
+:source-highlighter: rouge
+
+This page describes all CLAUDE.md configuration files used in the kbeatz monorepo. CLAUDE.md
+files are the primary way to give Claude Code persistent project context. They are loaded
+hierarchically: global first, then project root, then per-module (when working inside a module
+directory).
+
+For hooks architecture, memory system, MCP servers, and recommended workflows, see
+xref:claude-kbeatz-config.adoc[kbeatz Claude Code Configuration Guide].
+
+== The CLAUDE.md Hierarchy
+
+Claude Code reads CLAUDE.md files in a defined order. Each level adds context without
+replacing the level above:
+
+[source]
+----
+~/.claude/CLAUDE.md                   (1) global user rules
+kbeatz/CLAUDE.md                      (2) project root - overview, stack, commands, conventions
+kbeatz/kbeatz-<module>/CLAUDE.md      (3) per-module (add when a module is complex enough)
+----
+
+The effective context for any conversation is the union of all three levels.
+
+== Level 1: Global User Rules
+
+*File:* `~/.claude/CLAUDE.md` (not checked into this repository)
+
+The global file defines patterns that apply to every Kotlin/Gradle project on the
+workstation, not just kbeatz. Key content for kbeatz developers:
+
+=== Composite Build Detekt Quirk
+
+When a Gradle monorepo uses `includeBuild`, Detekt resolves `config/detekt/detekt.yml`
+relative to each module's own directory (not the monorepo root). Every new `includeBuild`
+module needs:
+
+[source,bash]
+----
+mkdir -p <module>/config/detekt
+cp kbeatz-common/config/detekt/detekt.yml <module>/config/detekt/detekt.yml
+----
+
+Run Detekt per module:
+
+[source,bash]
+----
+./gradlew :kbeatz-catalog:detektMain :kbeatz-cli:detektMain :kbeatz-common:detektMain \
+          :kbeatz-sources:detektMain :kbeatz-tagger:detektMain
+----
+
+=== Common Detekt False Positives
+
+The global file documents idiomatic Kotlin alternatives for patterns Detekt flags
+incorrectly:
+
+- `UnreachableCode` on multi-line Elvis with `return` - use expression body with `?.let`
+- `UnreachableCode` on `?: return@label` inside lambda - use `?.let { }` instead
+- `LoopWithTooManyJumpStatements` (2+ `continue`) - extract loop body to a private function
+- `ReturnCount` exceeded - use expression body to reduce explicit returns
+- `MagicNumber` in RFC-defined binary format constants - use `@Suppress("MagicNumber")` with a spec comment
+
+=== Quality Gate Mandate
+
+Before every PR:
+
+[source,bash]
+----
+./gradlew check          # tests + Detekt + Kover
+npm run build            # TypeScript strict mode (if frontend changed)
+----
+
+=== CI Green Before Merge
+
+Never merge a PR unless all GitHub Actions checks are green. Always verify:
+
+[source,bash]
+----
+gh pr checks <number>
+gh pr merge <number> --squash    # only when all checks show green
+----
+
+== Level 2: Project Root
+
+*File:* `kbeatz/CLAUDE.md` (checked into the repository)
+
+The project root CLAUDE.md provides shared context for all six modules. It covers:
+
+=== Module Map
+
+[cols="1,1,1,3"]
+|===
+|Module |Directory |Port |Purpose
+
+|kbeatz-common
+|`kbeatz-common/`
+|-
+|Shared library: domain exceptions
+
+|kbeatz-sources
+|`kbeatz-sources/`
+|-
+|Metadata library: MetadataSource/MetadataCache ports; Discogs and future MusicBrainz impls
+
+|kbeatz-tagger
+|`kbeatz-tagger/`
+|-
+|FLAC codec + TaggerService + id-file parser; library consumed by catalog and CLI
+
+|kbeatz-cli
+|`kbeatz-cli/`
+|CLI
+|Fat JAR CLI: `tag` and `migrate-ids` commands (Clikt entry point only)
+
+|kbeatz-catalog
+|`kbeatz-catalog/`
+|8080
+|Music collection catalog - browse albums, edit tags, Discogs sync
+
+|kbeatz-ui
+|`kbeatz-ui/`
+|3005
+|React SPA
+|===
+
+=== Common Tech Stack
+
+- Backend: Kotlin + Ktor, Gradle Kotlin DSL
+- Frontend: React 19 + TypeScript + Vite
+- API contract: OpenAPI spec at `kbeatz-catalog/api/openapi.yaml`
+- Persistence: H2 + Exposed ORM + Liquibase migrations (v1); PostgreSQL is the v2 target
+- Tooling: Detekt, Kover (>= 80% coverage), CycloneDX SBOM, AsciiDoc docs
+
+=== Build Commands
+
+[source,bash]
+----
+./gradlew build              # All backends + kbeatz-ui frontend
+./gradlew check              # Build + tests + Detekt + Kover
+./gradlew buildBackends      # Gradle only (no frontend)
+./gradlew buildFrontend      # npm build only
+./gradlew build --no-parallel  # Sequential (saves RAM on <= 8 GB machines)
+----
+
+=== Domain Conventions
+
+- Use `kotlin.uuid.Uuid` and `kotlinx.datetime.Instant`/`LocalDate` in domain code
+- No `java.time.*` or `java.util.UUID` in `domain/` or `application/`
+- No authentication in v1 (trusted LAN); Keycloak JWT/OIDC is the v2 target
+
+=== Hexagonal Architecture (kbeatz-catalog)
+
+[source]
+----
+adapters/inbound/web/       HTTP: Ktor route handlers + mapper (API <-> domain)
+application/service/        Business logic
+domain/model/               Pure domain model
+domain/repository/          Port interfaces
+domain/exception/           Domain exceptions
+infrastructure/persistence/ Exposed ORM + H2 adapter (v1)
+plugins/                    Ktor plugin config (StatusPages, Logging)
+----
+
+=== Module-Specific Notes in Root CLAUDE.md
+
+The root CLAUDE.md also documents:
+
+*kbeatz-sources:*
+
+- Discogs rate limiting: 1 request/second enforced in the Discogs adapter
+- Image download quota tracked in the `data/` directory (`DATA_DIR` env var)
+
+*kbeatz-tagger:*
+
+- Sub-packages: `codec/flac/` (FLAC binary reader/writer, RFC 9639), `idfile/` (id.txt parser),
+  `service/` (TaggerService)
+
+*kbeatz-catalog env vars:*
+
+- `CATALOG_LIBRARY_ROOT` (required) - absolute path to the music library root directory
+- `DATA_DIR` (default: `./data`) - image download quota tracking
+- `CATALOG_JDBC_URL` (default: in-memory H2) - JDBC connection string
+- `DISCOGS_TOKEN` (optional) - Discogs API token
+
+=== LSP Setup
+
+Both the Kotlin and TypeScript language servers are enabled project-wide via
+`enabledPlugins` in `.claude/settings.json`:
+
+[source,json]
+----
+"enabledPlugins": {
+  "kotlin-lsp@claude-plugins-official": true,
+  "typescript-lsp@claude-plugins-official": true
+}
+----
+
+Required binaries: `kotlin-language-server` (Kotlin) and `typescript-language-server`
+(TypeScript) must be on `$PATH`.
+
+== Level 3: Per-Module CLAUDE.md Files
+
+As of this writing, no kbeatz module has its own CLAUDE.md. The project root covers all
+current modules adequately.
+
+A per-module CLAUDE.md is warranted when:
+
+- The module has a non-obvious state machine (e.g., multi-step sync workflow)
+- Domain constraints differ meaningfully from the root (e.g., a service with its own auth rules)
+- The module's schema or domain model is large enough to bloat the root file
+
+When adding a per-module file, follow the hierarchy rule: the module file ADDS focused
+context - it does not replace or duplicate the root.
+
+Template structure for a new per-module CLAUDE.md:
+
+[source,markdown]
+----
+# <Module Name> - Service Context
+
+## Root Package
+
+`org.javafreedom.kbeatz.<module>`
+
+## Package Structure
+
+(list sub-packages with one-line purpose)
+
+## Key Env Vars
+
+(list any env vars specific to this module)
+
+## Key Behaviours
+
+(document state machines, access restrictions, safety guardrails, or non-obvious rules
+that differ from the project root)
+
+## Related ADRs
+
+(link to any ADRs that affect this module)
+----
+
+== Settings and Hooks
+
+The `.claude/settings.json` file wires together permissions, hooks, MCP servers, and
+plugin configuration. Key sections:
+
+=== Permissions
+
+Bash permissions allow Claude to run build tools and git commands without prompting:
+
+[source,json]
+----
+"permissions": {
+  "allow": [
+    "Bash(./gradlew *)",
+    "Bash(npm *)",
+    "Bash(git *)",
+    "Bash(gh *)",
+    ...
+  ]
+}
+----
+
+=== Hooks
+
+Ten hooks enforce project policy at lifecycle events. See
+xref:claude-kbeatz-config.adoc#hooks[Hooks Architecture in the kbeatz Configuration Guide]
+for the full hooks reference.
+
+=== MCP Servers
+
+Two MCP servers are configured: `github` (for issue/PR management) and `filesystem`
+(for structured file access). See
+xref:claude-kbeatz-config.adoc#mcp[MCP Servers in Use in the kbeatz Configuration Guide]
+for setup and required token scopes.

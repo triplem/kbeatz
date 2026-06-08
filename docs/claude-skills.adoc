@@ -1,0 +1,368 @@
+= Claude Skills Reference
+:toc: left
+:toclevels: 3
+:icons: font
+:source-highlighter: rouge
+
+Skills are invocable slash commands backed by `.claude/skills/<name>/SKILL.md` files.
+Each skill is a structured prompt that Claude executes when you type `/skill-name [args]`
+inside Claude Code.
+
+For the decision boundary between rules and skills, and the skills-audit rationale, see
+xref:claude-kbeatz-config.adoc[kbeatz Claude Code Configuration Guide].
+
+== SDLC Workflow Skills
+
+These skills implement the end-to-end AI-assisted development pipeline.
+
+=== /gather-requirements
+
+*Trigger condition:* Use when describing a system to build, starting a new project, or
+when a user says "I need a system that...".
+
+*Expected output:* A `docs/requirements.md` file containing elicited functional and
+non-functional requirements, structured through a dialogue (one question at a time).
+The file follows the project requirements template.
+
+*Invocation example:*
+[source]
+----
+/gather-requirements
+----
+
+---
+
+=== /write-epics
+
+*Trigger condition:* Use after `docs/requirements.md` is approved to decompose it into
+implementation epics.
+
+*Expected output:* One GitHub issue per epic, each with a goal statement, user stories
+checklist (including documentation stories), acceptance criteria, and sub-issue links.
+Epic body follows the standard structure from `github-issue-management.md`.
+
+*Invocation example:*
+[source]
+----
+/write-epics
+----
+
+---
+
+=== /write-stories
+
+*Trigger condition:* Use after an epic is approved in the issue tracker to decompose it
+into implementable user stories.
+
+*Expected output:* One GitHub issue per user story, each with Given/When/Then acceptance
+criteria. Sub-issues are linked to the parent epic via the GitHub sub-issue API immediately
+after creation.
+
+*Invocation example:*
+[source]
+----
+/write-stories #42
+----
+
+---
+
+=== /implement
+
+*Trigger condition:* Use when a story is approved and ready for implementation. Can be run
+in a dedicated worktree for parallel multi-story development.
+
+*Expected output:* A feature branch named `<type>/<issue>-<slug>`, implementation code
+following hexagonal architecture, passing quality gates (`./gradlew check` and
+`npm run build`), and an open PR with a conventional commit message.
+
+*Invocation example:*
+[source]
+----
+/implement 123
+----
+
+---
+
+=== /implement-epic
+
+*Trigger condition:* Use when all stories under an epic are approved and you want to
+implement them in dependency order without manual orchestration.
+
+*Expected output:* Each story implemented in dependency-ordered waves (stories with no
+dependencies first, then those depending on earlier stories). One PR per story, each
+challenged from specialist perspectives, fixed, and merged.
+
+*Invocation example:*
+[source]
+----
+/implement-epic #42
+----
+
+---
+
+=== /write-tests
+
+*Trigger condition:* Use after an implementation is complete but needs a test suite, or
+to augment an existing test suite to reach the 80% coverage gate.
+
+*Expected output:* Unit tests (Mockk), integration tests (Testcontainers), and E2E tests
+following the test pyramid ratios. Coverage verification confirms >= 80% via
+`./gradlew koverVerify`.
+
+*Invocation example:*
+[source]
+----
+/write-tests 123 feature/123-my-feature
+----
+
+---
+
+=== /create-pr
+
+*Trigger condition:* Use after a PR is merged to main to perform post-merge cleanup.
+
+*Expected output:* Feature branch deleted (remote and local), linked issues closed via
+GitHub API, parent epic closed if all sub-issues are done.
+
+*Invocation example:*
+[source]
+----
+/create-pr 456
+----
+
+---
+
+=== /pr-reviewer
+
+*Trigger condition:* Use to review an open pull request. Combines nine specialist
+perspectives and auto-fixes findings on the PR branch.
+
+*Expected output:* A PR comment with classified findings (BLOCKER/MAJOR/MINOR/NIT),
+then all BLOCKER and MAJOR findings fixed on the PR branch and pushed.
+
+*Invocation example:*
+[source]
+----
+/pr-reviewer 456
+----
+
+---
+
+=== /release
+
+*Trigger condition:* Use after a PR is merged to bump the version, generate a changelog,
+and create a GitHub release.
+
+*Expected output:* Semantic version bump (major/minor/patch determined from conventional
+commits), `CHANGELOG.md` entry, GitHub release with tag and release notes.
+
+*Invocation example:*
+[source]
+----
+/release 456
+----
+
+---
+
+=== /create-adr
+
+*Trigger condition:* Use before making a significant technology or architecture decision.
+Run before writing any code for non-trivial choices (data split, external API adoption,
+framework selection).
+
+*Expected output:* An AsciiDoc ADR file at `docs/adr/ADR-NNN-<slug>.adoc` (or
+`<service>/docs/adr/ADR-{SVC}-NNN-<slug>.adoc` for service-scoped decisions). The ADR
+documents context, decision, alternatives considered, and consequences.
+
+*Invocation example:*
+[source]
+----
+/create-adr "choice of FLAC parsing library"
+----
+
+---
+
+=== /ship
+
+*Trigger condition:* Use when all approved stories are ready and you want to run the
+full parallel SDLC pipeline in one command.
+
+*Expected output:* All approved stories implemented, each PR challenged from nine
+specialist perspectives, BLOCKER/MAJOR findings fixed, all PRs merged (CI green), then
+the main branch challenged and GitHub issues opened for remaining findings.
+
+*Invocation examples:*
+[source]
+----
+/ship
+/ship epic 42
+/ship story 123 124 125
+----
+
+---
+
+== Specialist Review Skills
+
+These skills each embody a domain expert who reviews a target with their specific lens.
+All accept the same argument format: a PR number, issue number, or inline text to review.
+
+Run all nine at once with `/challenge-all <target>`.
+
+[cols="2,3,3"]
+|===
+|Skill |Specialist persona |Key checks
+
+|`/architect-review`
+|Software architect
+|Hexagonal architecture fitness, SOLID principles, coupling, scalability, long-term maintainability
+
+|`/security-review`
+|Security specialist
+|OWASP Top 10, auth/authorisation, secrets hygiene, input validation, dependency risks
+
+|`/qa-review`
+|QA/QS engineer
+|Test coverage, acceptance criteria completeness, edge cases, regression risk
+
+|`/devops-review`
+|DevSecOps engineer
+|CI/CD pipeline safety, container hygiene, environment config, secret management
+
+|`/ux-review`
+|UI/UX and accessibility specialist
+|Ease of use, visual clarity, interaction design, WCAG 2.1 AA compliance
+
+|`/performance-review`
+|Performance engineer
+|Query efficiency, frontend bundle size, API response times, memory/CPU usage
+
+|`/operations-review`
+|SRE/operations
+|Runbook completeness, observability, incident recovery, backup/restore, upgrade paths
+
+|`/technical-writer-review`
+|Technical writer
+|Documentation clarity, completeness, structure, and audience fit
+
+|`/requirements-review`
+|Requirements engineer
+|Completeness, testability, consistency, non-functional requirement coverage
+|===
+
+*Invocation examples:*
+[source]
+----
+/architect-review 456
+/security-review #123
+/challenge-all 456
+----
+
+---
+
+== Meta and Utility Skills
+
+=== /challenge
+
+*Trigger condition:* Internal skill used by other skills (ship, pr-reviewer, challenge-all)
+for agent-to-agent quality control. Not directly user-invocable.
+
+*Expected output:* A structured ACCEPT/REVISE/REJECT verdict with supporting rationale.
+
+---
+
+=== /challenge-all
+
+*Trigger condition:* Use before merging a significant feature or finalising an epic. Runs
+all nine specialist reviewer perspectives against a single target.
+
+*Expected output:* A consolidated challenge report with findings from all nine
+perspectives, classified by severity.
+
+*Invocation example:*
+[source]
+----
+/challenge-all 456
+/challenge-all #123
+----
+
+---
+
+=== /learn
+
+*Trigger condition:* Use after completing a story or resolving a non-obvious problem to
+capture the lesson for future sessions. Also invoked internally by other skills.
+
+*Expected output:* A `feedback_*.md` file written to the project memory directory
+(`~/.claude/projects/.../memory/`), with `MEMORY.md` index updated.
+
+*Invocation example:*
+[source]
+----
+/learn
+----
+
+---
+
+=== /domain-model
+
+*Trigger condition:* Use when starting a new project, after an epic completes, or when
+domain drift is detected between code and requirements.
+
+*Expected output:* An updated domain model document covering aggregates, entities, value
+objects, and domain events, generated from Kotlin source files, DB migrations, and
+requirements docs.
+
+*Invocation example:*
+[source]
+----
+/domain-model
+----
+
+---
+
+=== /react-patterns
+
+*Trigger condition:* Fires automatically on `.tsx` and `.jsx` file edits (path matcher:
+`**/*.tsx,**/*.jsx`). Not directly invocable.
+
+*Expected output:* In-context guidance on React 19 hooks, component design, TanStack
+Query, and Zustand patterns applied during the current edit.
+
+---
+
+== Skill Source Files
+
+All skill source files live in `.claude/skills/`. Each skill directory contains a
+`SKILL.md` file with YAML frontmatter (name, description, argument-hint, allowed-tools)
+and the skill instructions.
+
+[source,bash]
+----
+.claude/skills/
+├── architect-review/SKILL.md
+├── challenge/SKILL.md
+├── challenge-all/SKILL.md
+├── claude-code-expert/SKILL.md
+├── create-adr/SKILL.md
+├── create-pr/SKILL.md
+├── devops-review/SKILL.md
+├── domain-model/SKILL.md
+├── gather-requirements/SKILL.md
+├── implement/SKILL.md
+├── implement-epic/SKILL.md
+├── learn/SKILL.md
+├── operations-review/SKILL.md
+├── performance-review/SKILL.md
+├── pr-reviewer/SKILL.md
+├── qa-review/SKILL.md
+├── react-patterns/SKILL.md
+├── release/SKILL.md
+├── requirements-review/SKILL.md
+├── security-review/SKILL.md
+├── ship/SKILL.md
+├── technical-writer-review/SKILL.md
+├── ux-review/SKILL.md
+├── write-epics/SKILL.md
+├── write-stories/SKILL.md
+└── write-tests/SKILL.md
+----

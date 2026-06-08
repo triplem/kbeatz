@@ -18,6 +18,9 @@ This documentation covers:
 * xref:claude-code-config.adoc[Claude Code Configuration] - skills, rules, hooks, and the SDLC workflow
 * xref:claude-process.adoc[Claude Code SDLC Process] - generic AI-assisted SDLC: skills catalog, agents, hooks, memory, quality gates, common patterns
 * xref:claude-kbeatz-config.adoc[kbeatz Claude Code Configuration] - kbeatz-specific CLAUDE.md hierarchy, hooks, memory, MCP servers, and recommended workflows
+* xref:claude-skills.adoc[Claude Skills Reference] - each skill with trigger condition, expected output, and invocation example
+* xref:claude-rules.adoc[Claude Rules Reference] - all rule files with full content summaries
+* xref:claude-config.adoc[Claude Configuration Files] - CLAUDE.md hierarchy: global, project root, and per-module
 * xref:adding-a-service.adoc[Adding a Service] - step-by-step guide for new backend services
 
 == Services
