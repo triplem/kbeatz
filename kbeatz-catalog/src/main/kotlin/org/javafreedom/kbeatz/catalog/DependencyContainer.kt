@@ -3,22 +3,18 @@ package org.javafreedom.kbeatz.catalog
 import java.nio.file.Path
 import org.javafreedom.kbeatz.catalog.application.service.AlbumService
 import org.javafreedom.kbeatz.catalog.application.service.CoverArtService
-import org.javafreedom.kbeatz.catalog.application.service.DiscogsImageService
-import org.javafreedom.kbeatz.catalog.application.service.DiscogsSyncService
 import org.javafreedom.kbeatz.catalog.application.service.LibraryScanService
 import org.javafreedom.kbeatz.catalog.application.service.LibraryWalker
 import org.javafreedom.kbeatz.catalog.application.service.TagWriteService
+import org.javafreedom.kbeatz.catalog.domain.port.SyncProvider
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 import org.javafreedom.kbeatz.catalog.infrastructure.persistence.AlbumsTable
 import org.javafreedom.kbeatz.catalog.infrastructure.persistence.DbFactory
 import org.javafreedom.kbeatz.catalog.infrastructure.persistence.ExposedAlbumRepository
 import org.javafreedom.kbeatz.catalog.infrastructure.persistence.ExposedTrackRepository
+import org.javafreedom.kbeatz.catalog.infrastructure.sync.buildDiscogsSyncProvider
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
-import org.javafreedom.kbeatz.sources.MetadataSource
-import org.javafreedom.kbeatz.sources.discogs.DiscogsImageQuota
-import org.javafreedom.kbeatz.sources.discogs.DiscogsMetadataSource
-import org.javafreedom.kbeatz.sources.discogs.DiscogsTokenBucket
 
 /**
  * Wires all outbound adapters (infrastructure) to their port interfaces and constructs
@@ -41,7 +37,7 @@ class DependencyContainer(config: AppConfig, libraryRootPath: Path, dataDirPath:
         walker = LibraryWalker(),
         albumRepository = albumRepository,
     )
-    val syncService = buildSyncService(config, albumRepository, libraryRootPath, dataDirPath)
+    val syncService: SyncProvider = buildDiscogsSyncProvider(config, albumRepository, libraryRootPath, dataDirPath)
     val tagWriteService = TagWriteService(albumRepository, trackRepository, libraryRootPath)
 
     /**
@@ -51,48 +47,4 @@ class DependencyContainer(config: AppConfig, libraryRootPath: Path, dataDirPath:
     val dbProbe: suspend () -> Boolean = {
         suspendTransaction { AlbumsTable.selectAll().limit(1).count() >= 0 }
     }
-}
-
-/** Placeholder used when DISCOGS_TOKEN is not configured. All calls throw immediately. */
-private object UnavailableMetadataSource : MetadataSource {
-    override val name = "discogs"
-    override suspend fun fetchRelease(releaseId: String) =
-        error("Discogs sync unavailable - DISCOGS_TOKEN is not configured")
-
-    override suspend fun fetchImage(releaseId: String, index: Int) =
-        error("Discogs sync unavailable - DISCOGS_TOKEN is not configured")
-}
-
-private fun buildSyncService(
-    config: AppConfig,
-    albumRepository: AlbumRepository,
-    libraryRootPath: Path,
-    dataDir: Path,
-): DiscogsSyncService {
-    val token = config.discogsToken
-    if (token == null) {
-        return DiscogsSyncService(
-            albumRepository = albumRepository,
-            metadataSource = UnavailableMetadataSource,
-            imageService = null,
-            libraryRoot = libraryRootPath,
-        )
-    }
-    val quotaFile = dataDir.resolve("discogs-image-quota.json")
-    val imageQuota = DiscogsImageQuota(quotaFile = quotaFile)
-    val metadataSource = DiscogsMetadataSource(
-        token = token,
-        imageQuota = imageQuota,
-        tokenBucket = DiscogsTokenBucket(),
-    )
-    val imageService = DiscogsImageService(
-        metadataSource = metadataSource,
-        imageQuota = imageQuota,
-    )
-    return DiscogsSyncService(
-        albumRepository = albumRepository,
-        metadataSource = metadataSource,
-        imageService = imageService,
-        libraryRoot = libraryRootPath,
-    )
 }
