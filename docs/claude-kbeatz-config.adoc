@@ -103,7 +103,7 @@ If the answer is no, the skill is a removal or simplification candidate.
 |`angular-patterns`
 |Pattern
 |None
-|Remove
+|Removed
 |kbeatz-ui uses React 19 (`.tsx` files only); no Angular `.component.ts` files exist in the
 repo. The path matcher never fires. The skill adds no value and may confuse future contributors.
 |#276
