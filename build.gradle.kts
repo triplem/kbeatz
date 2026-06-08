@@ -84,7 +84,13 @@ tasks.named<org.asciidoctor.gradle.jvm.AsciidoctorTask>("asciidoctor") {
     attributes(mapOf(
         // {project-version} can be referenced in AsciiDoc source
         "project-version" to resolvedVersion,
-        // revnumber is the standard AsciiDoc revision attribute displayed in the doc header
+        // revnumber is the standard AsciiDoc revision attribute displayed in the doc header and footer
         "revnumber" to resolvedVersion,
+        // revdate is the build date; shown in the footer via docinfo-footer.html
+        "revdate" to java.time.LocalDate.now().toString(),
+        // shared docinfo: Asciidoctor reads docs/docinfo-footer.html and injects it before </body>
+        "docinfo" to "shared",
+        // explicit docinfo directory so the Gradle plugin resolves files against docs/ not the project root
+        "docinfodir" to file("docs").absolutePath,
     ))
 }
