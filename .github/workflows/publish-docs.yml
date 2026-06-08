@@ -270,4 +270,5 @@ jobs:
           publish_dir: ./site
           publish_branch: gh-pages
           force_orphan: false
+          keep_files: true
           commit_message: "ci(scaffold): publish quality reports from ${{ github.sha }}"
