@@ -205,7 +205,7 @@ to `/implement` in order. No built-in equivalent for dependency-ordered epic exe
 |`kotlin-patterns`
 |Pattern
 |`.claude/rules/kotlin-style.md`
-|Remove
+|Removed
 |`user-invocable: false` with a `paths: **/*.kt` matcher. The same ground is covered by
 `kotlin-style.md` which auto-loads every session. Keeping both causes duplicate guidance.
 |#277

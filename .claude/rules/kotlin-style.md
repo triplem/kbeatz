@@ -32,6 +32,8 @@ CI must fail on any detekt or ktlint violation.
 ## Idioms
 
 - Prefer `val` over `var`. A `var` requires justification.
+- Prefer `@JvmInline value class` for single-field primitives to eliminate primitive obsession.
+- Use sealed classes for domain results — never throw for expected outcomes.
 - Prefer `when` over `if-else if` chains.
 - Use `apply`, `let`, `run`, `also`, `with` for scope functions — use the right one:
   - `let` — transform a nullable value
@@ -40,6 +42,40 @@ CI must fail on any detekt or ktlint violation.
   - `run` — compute a result within a lambda
 - Use `object` for singletons, not companion objects with a private constructor.
 - Use `companion object` only for factory methods and constants.
+
+## Value Objects
+
+```kotlin
+@JvmInline value class UserId(val value: Long)
+@JvmInline value class Email(val value: String) {
+    init { require(value.contains("@")) { "Invalid email: $value" } }
+}
+```
+
+## Sealed Results
+
+Use sealed classes instead of exceptions for expected outcomes:
+
+```kotlin
+sealed class UserResult {
+    data class Found(val user: User) : UserResult()
+    data class NotFound(val id: UserId) : UserResult()
+    data class ValidationError(val message: String) : UserResult()
+}
+
+fun findUser(id: UserId): UserResult = when (val user = repo.findById(id)) {
+    null -> UserResult.NotFound(id)
+    else -> UserResult.Found(user)
+}
+```
+
+## Anti-patterns
+
+- No `!!` in production code — use `?: throw` with a descriptive message or `requireNotNull`.
+- No `lateinit var` except for framework injection (e.g., Spring `@Autowired`).
+- No mutable `var` in data classes — use `copy()`.
+- No Java-style checked exception patterns — use sealed results.
+- No blocking I/O without `Dispatchers.IO`.
 
 ## Null Safety
 
