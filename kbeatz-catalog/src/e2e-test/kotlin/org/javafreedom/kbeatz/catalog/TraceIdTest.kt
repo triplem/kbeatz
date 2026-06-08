@@ -11,7 +11,7 @@ class TraceIdTest {
     @Test
     fun `response echoes X-Trace-Id from request`() = testApplication {
         application { module() }
-        val response = client.get("/api/v1/health") {
+        val response = client.get("/healthz") {
             header("X-Trace-Id", "test-trace-123")
         }
         assertEquals("test-trace-123", response.headers["X-Trace-Id"])
@@ -20,7 +20,7 @@ class TraceIdTest {
     @Test
     fun `response generates UUID when X-Trace-Id absent`() = testApplication {
         application { module() }
-        val response = client.get("/api/v1/health")
+        val response = client.get("/healthz")
         val traceId = response.headers["X-Trace-Id"]
         assertNotNull(traceId)
         // UUID format: 8-4-4-4-12 hex chars

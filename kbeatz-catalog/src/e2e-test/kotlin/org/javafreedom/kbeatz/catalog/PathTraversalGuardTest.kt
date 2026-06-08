@@ -40,7 +40,7 @@ class PathTraversalGuardTest {
     @Test
     fun `normal health request is not blocked`() = testApplication {
         setupApp()
-        val response = client.get("/api/v1/health")
+        val response = client.get("/healthz")
         assertEquals(HttpStatusCode.OK, response.status)
     }
 

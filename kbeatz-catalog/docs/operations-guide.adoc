@@ -21,11 +21,11 @@ kbeatz-catalog exposes three health endpoints under `/api/v1/health`:
 |===
 | Endpoint | Purpose | Use as
 
-| `GET /api/v1/health/live`
+| `GET /livez`
 | Liveness
 | `livenessProbe` - always 200 while the process is running; never checks the DB.
 
-| `GET /api/v1/health/ready`
+| `GET /readyz`
 | Readiness
 | `readinessProbe` - 200 when DB is reachable; 503 with `ErrorResponse` body when not.
 
@@ -76,7 +76,7 @@ containers:
     startupProbe:
       # Allow up to 5 minutes for JVM cold-start before liveness kicks in.
       httpGet:
-        path: /api/v1/health/live
+        path: /livez
         port: 8080
       initialDelaySeconds: 10
       periodSeconds: 10
@@ -86,7 +86,7 @@ containers:
     livenessProbe:
       # Restart the pod only when the process is truly unresponsive.
       httpGet:
-        path: /api/v1/health/live
+        path: /livez
         port: 8080
       periodSeconds: 15
       failureThreshold: 3
@@ -95,14 +95,14 @@ containers:
     readinessProbe:
       # Remove from load balancer when the DB is unreachable.
       httpGet:
-        path: /api/v1/health/ready
+        path: /readyz
         port: 8080
       periodSeconds: 10
       failureThreshold: 2
       timeoutSeconds: 2
 ----
 
-NOTE: The `startupProbe` and `livenessProbe` both use `/health/live` intentionally.
+NOTE: The `startupProbe` and `livenessProbe` both use `/livez` intentionally.
 The liveness probe must not check the database - if the DB is down the pod should remain
 running (so it can reconnect) rather than be restarted.
 

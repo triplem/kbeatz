@@ -11,9 +11,9 @@ import org.javafreedom.kbeatz.catalog.api.models.LivenessResponse
 /**
  * Ktor route handlers for health probes.
  *
- * - GET /health      - combined legacy probe (DB + filesystem).
- * - GET /health/live - liveness probe: always 200 when the process is running.
- * - GET /health/ready - readiness probe: 200 when DB is reachable, 503 when not.
+ * - GET /healthz - combined legacy probe (DB + filesystem), deprecated since K8s v1.16.
+ * - GET /livez   - liveness probe: always 200 when the process is running.
+ * - GET /readyz  - readiness probe: 200 when DB is reachable, 503 when not.
  *
  * @param dbProbe Suspending function that returns true when the database is reachable.
  * @param libraryRoot Filesystem path to the music library root.
@@ -22,7 +22,7 @@ fun Route.healthRoutes(
     dbProbe: suspend () -> Boolean,
     libraryRoot: Path,
 ) {
-    get("/health") {
+    get("/healthz") {
         val dbUp = runCatching { dbProbe() }.getOrDefault(false)
         val fsUp = libraryRoot.toFile().exists()
         val allUp = dbUp && fsUp
@@ -41,12 +41,12 @@ fun Route.healthRoutes(
     }
 
     // Liveness: always 200 - no I/O, just confirms the process is alive.
-    get("/health/live") {
+    get("/livez") {
         call.respond(HttpStatusCode.OK, LivenessResponse(status = LivenessResponse.Status.UP))
     }
 
     // Readiness: 200 when DB is up, 503 with ErrorResponse when DB is down.
-    get("/health/ready") {
+    get("/readyz") {
         val dbUp = runCatching { dbProbe() }.getOrDefault(false)
         if (dbUp) {
             call.respond(HttpStatusCode.OK, LivenessResponse(status = LivenessResponse.Status.UP))

@@ -13,36 +13,36 @@ import kotlin.test.assertEquals
 
 class HealthEndpointTest {
     @Test
-    fun `GET health returns 200 UP`() = testApplication {
+    fun `GET healthz returns 200 UP`() = testApplication {
         application { module() }
         val client = createClient {
             install(ContentNegotiation) { json() }
         }
-        val response = client.get("/api/v1/health")
+        val response = client.get("/healthz")
         assertEquals(HttpStatusCode.OK, response.status)
         val body = response.body<HealthResponse>()
         assertEquals(HealthResponse.Status.UP, body.status)
     }
 
     @Test
-    fun `GET health live returns 200 UP`() = testApplication {
+    fun `GET livez returns 200 UP`() = testApplication {
         application { module() }
         val client = createClient {
             install(ContentNegotiation) { json() }
         }
-        val response = client.get("/api/v1/health/live")
+        val response = client.get("/livez")
         assertEquals(HttpStatusCode.OK, response.status)
         val body = response.body<LivenessResponse>()
         assertEquals(LivenessResponse.Status.UP, body.status)
     }
 
     @Test
-    fun `GET health ready returns 200 UP when database is available`() = testApplication {
+    fun `GET readyz returns 200 UP when database is available`() = testApplication {
         application { module() }
         val client = createClient {
             install(ContentNegotiation) { json() }
         }
-        val response = client.get("/api/v1/health/ready")
+        val response = client.get("/readyz")
         assertEquals(HttpStatusCode.OK, response.status)
         val body = response.body<LivenessResponse>()
         assertEquals(LivenessResponse.Status.UP, body.status)

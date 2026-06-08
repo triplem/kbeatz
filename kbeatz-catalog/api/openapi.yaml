@@ -17,13 +17,13 @@ tags:
     description: Library scan operations
 
 paths:
-  /health:
+  /healthz:
     get:
       operationId: healthCheck
-      summary: Combined health probe (legacy)
+      summary: Combined health probe (deprecated)
       description: |
-        Legacy combined probe retained for backwards compatibility.
-        Prefer /health/live and /health/ready for Kubernetes deployments.
+        Deprecated since Kubernetes v1.16. Retained for backwards compatibility.
+        Use /livez and /readyz instead for Kubernetes deployments.
       tags: [Health]
       security: []
       responses:
@@ -40,14 +40,15 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthResponse"
 
-  /health/live:
+  /livez:
     get:
       operationId: livenessProbe
       summary: Liveness probe
       description: |
         Returns 200 whenever the process is running, regardless of database state.
         This endpoint performs no I/O and is guaranteed to respond within 100 ms.
-        Use as a Kubernetes livenessProbe target.
+        Use as a Kubernetes livenessProbe target. Supports the --livez-grace-period
+        startup grace window when combined with a Kubernetes startupProbe.
       tags: [Health]
       security: []
       responses:
@@ -58,7 +59,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/LivenessResponse"
 
-  /health/ready:
+  /readyz:
     get:
       operationId: readinessProbe
       summary: Readiness probe
@@ -67,7 +68,8 @@ paths:
         Returns 503 with an ErrorResponse body when the database is unreachable.
         The probe uses a short circuit-break (single lightweight query) and is
         guaranteed to respond within 100 ms.
-        Use as a Kubernetes readinessProbe target.
+        Use as a Kubernetes readinessProbe target. Pair with --shutdown-delay-duration
+        for graceful shutdown.
       tags: [Health]
       security: []
       responses:

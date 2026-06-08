@@ -34,7 +34,7 @@ class HealthHandlerTest {
         }
 
         val client = createClient { install(ClientContentNegotiation) { json(json) } }
-        val response = client.get("/health")
+        val response = client.get("/healthz")
 
         assertEquals(HttpStatusCode.OK, response.status)
         val body = response.body<HealthResponse>()
@@ -56,7 +56,7 @@ class HealthHandlerTest {
         }
 
         val client = createClient { install(ClientContentNegotiation) { json(json) } }
-        val response = client.get("/health")
+        val response = client.get("/healthz")
 
         assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
         val body = response.body<HealthResponse>()
@@ -78,7 +78,7 @@ class HealthHandlerTest {
         }
 
         val client = createClient { install(ClientContentNegotiation) { json(json) } }
-        val response = client.get("/health")
+        val response = client.get("/healthz")
 
         assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
         val body = response.body<HealthResponse>()
@@ -100,7 +100,7 @@ class HealthHandlerTest {
         }
 
         val client = createClient { install(ClientContentNegotiation) { json(json) } }
-        val response = client.get("/health/live")
+        val response = client.get("/livez")
 
         assertEquals(HttpStatusCode.OK, response.status)
         val body = response.body<LivenessResponse>()
@@ -120,7 +120,7 @@ class HealthHandlerTest {
         }
 
         val client = createClient { install(ClientContentNegotiation) { json(json) } }
-        val response = client.get("/health/ready")
+        val response = client.get("/readyz")
 
         assertEquals(HttpStatusCode.OK, response.status)
         val body = response.body<LivenessResponse>()
@@ -140,7 +140,7 @@ class HealthHandlerTest {
         }
 
         val client = createClient { install(ClientContentNegotiation) { json(json) } }
-        val response = client.get("/health/ready")
+        val response = client.get("/readyz")
 
         assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
         val body = response.body<ErrorResponse>()
