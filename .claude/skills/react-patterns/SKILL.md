@@ -6,7 +6,7 @@ user-invocable: false
 paths: "**/*.tsx,**/*.jsx"
 ---
 
-Apply these patterns when writing React code.
+Apply these patterns when writing React code. The enforceable subset with GOOD/BAD examples is in `.claude/rules/react-patterns.md`.
 
 ## Component hierarchy
 
