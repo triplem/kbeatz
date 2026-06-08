@@ -78,9 +78,13 @@ tasks.withType<org.asciidoctor.gradle.jvm.AsciidoctorTask>().configureEach {
 tasks.named<org.asciidoctor.gradle.jvm.AsciidoctorTask>("asciidoctor") {
     sourceDir(file("docs"))
     setOutputDir(file("build/docs/asciidoc"))
+    val resolvedVersion = (project.findProperty("project-version") as String?
+        ?: project.findProperty("version") as String?
+        ?: "dev")
     attributes(mapOf(
-        "project-version" to (project.findProperty("project-version") as String?
-            ?: project.findProperty("version") as String?
-            ?: "dev")
+        // {project-version} can be referenced in AsciiDoc source
+        "project-version" to resolvedVersion,
+        // revnumber is the standard AsciiDoc revision attribute displayed in the doc header
+        "revnumber" to resolvedVersion,
     ))
 }
