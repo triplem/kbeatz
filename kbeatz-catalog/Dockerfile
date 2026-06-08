@@ -11,6 +11,7 @@ COPY build-logic build-logic
 COPY kbeatz-common kbeatz-common
 COPY kbeatz-sources kbeatz-sources
 COPY kbeatz-tagger kbeatz-tagger
+COPY kbeatz-cli kbeatz-cli
 COPY kbeatz-catalog kbeatz-catalog
 
 RUN ./gradlew :kbeatz-catalog:installDist --no-daemon -q
