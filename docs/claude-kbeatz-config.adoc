@@ -334,12 +334,11 @@ and audience fit. No built-in skill matches this perspective.
 |`typescript-patterns`
 |Pattern
 |`.claude/rules/typescript-style.md`
-|Simplify
+|Simplified
 |`user-invocable: false` with `paths: **/*.ts,**/*.tsx`. The `typescript-style.md` rule file
 auto-loads every session and covers strict-mode config, ESLint rules, naming, imports, and
-immutability. The custom skill adds branded types and Result types which are not in the rule
-file. Consider merging the branded-type and Result-type patterns into `typescript-style.md`
-and removing the skill.
+immutability. Branded types, Result types, and discriminated unions migrated into
+`typescript-style.md`; skill deleted.
 |#282
 
 |`ux-review`
