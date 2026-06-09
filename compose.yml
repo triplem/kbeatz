@@ -32,7 +32,7 @@ services:
       context: kbeatz-ui
       dockerfile: Dockerfile
     ports:
-      - "3005:80"
+      - "3005:8080"
     depends_on:
       catalog:
         condition: service_healthy
