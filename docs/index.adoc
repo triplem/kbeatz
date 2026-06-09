@@ -4,7 +4,6 @@
 :icons: font
 :source-highlighter: rouge
 :doctype: book
-:revnumber: {project-version}
 
 [NOTE]
 ====
