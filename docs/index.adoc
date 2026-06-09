@@ -30,6 +30,8 @@ This documentation covers:
 * xref:claude-rules.adoc[Claude Rules Reference] - all rule files with full content summaries
 * xref:claude-config.adoc[Claude Configuration Files] - CLAUDE.md hierarchy: global, project root, and per-module
 * xref:adding-a-service.adoc[Adding a Service] - step-by-step guide for new backend services
+* xref:kbeatz-metadata-pipeline.adoc[Metadata Pipeline Developer Reference] - .kbeatz/ directory layout, KbeatzMetadata JSON schema, multi-disc matching rules, and localPath image convention
+* xref:write-lock-lifecycle.adoc[Write-Lock Lifecycle] - .kbeatz-write.lock sentinel: create, delete, startup repair, and failure modes
 
 == Services
 
