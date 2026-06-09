@@ -11,11 +11,15 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.uuid.Uuid
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import org.javafreedom.kbeatz.catalog.domain.model.Album
+import org.javafreedom.kbeatz.catalog.domain.model.WRITE_LOCK_FILENAME
 import org.javafreedom.kbeatz.catalog.domain.model.Track
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 import org.javafreedom.kbeatz.catalog.domain.repository.TrackRepository
+import org.javafreedom.kbeatz.common.ConflictException
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
 
 /**
@@ -285,6 +289,59 @@ class TagWriteServiceTest {
                 "ARTIST" -> assertEquals(value, result.artist)
             }
         }
+    }
+
+    // ──────────────────────────────────────────────
+    // Concurrency: Mutex serialisation (issue #385)
+    // ──────────────────────────────────────────────
+
+    @Test
+    fun `writeAlbumTags throws ConflictException when write-lock file exists (CLI conflict)`() = runTest {
+        val album = buildAlbum()
+        coEvery { albumRepository.findById(albumId) } returns album
+
+        // Simulate CLI holding the write-lock file
+        Files.writeString(albumDir.resolve(WRITE_LOCK_FILENAME), "cli-write-in-progress")
+
+        try {
+            assertFailsWith<ConflictException> {
+                service.writeAlbumTags(albumId, "GENRE", "Jazz")
+            }
+        } finally {
+            // Clean up lock file
+            Files.deleteIfExists(albumDir.resolve(WRITE_LOCK_FILENAME))
+        }
+    }
+
+    @Test
+    fun `writeAlbumTags serialises concurrent requests for the same album`() = runTest {
+        val executionOrder = mutableListOf<String>()
+        val album = buildAlbum()
+
+        // First call records "start-1", delays briefly, then records "end-1"
+        var callCount = 0
+        coEvery { albumRepository.findById(albumId) } returns album
+        coEvery { albumRepository.save(any()) } coAnswers {
+            callCount++
+            val n = callCount
+            executionOrder.add("start-$n")
+            @Suppress("MagicNumber") // 10ms delay to simulate concurrent writes overlapping
+            delay(10L)
+            executionOrder.add("end-$n")
+            firstArg()
+        }
+
+        // Launch two concurrent writes to the same album
+        val first = async { service.writeAlbumTags(albumId, "GENRE", "Jazz") }
+        val second = async { service.writeAlbumTags(albumId, "GENRE", "Rock") }
+        first.await()
+        second.await()
+
+        // Verify serialisation: end-1 must come before start-2 (or end-2 before start-1)
+        val end1 = executionOrder.indexOf("end-1")
+        val start2 = executionOrder.indexOf("start-2")
+        assertTrue(end1 < start2 || executionOrder.indexOf("end-2") < executionOrder.indexOf("start-1"),
+            "Concurrent writes must be serialised: observed order $executionOrder")
     }
 
     // ──────────────────────────────────────────────

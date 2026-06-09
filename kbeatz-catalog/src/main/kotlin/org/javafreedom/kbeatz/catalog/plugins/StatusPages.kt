@@ -6,6 +6,7 @@ import io.ktor.server.application.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import org.javafreedom.kbeatz.catalog.api.models.ErrorResponse
+import org.javafreedom.kbeatz.common.ConflictException
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
 
 private val logger = KotlinLogging.logger {}
@@ -18,6 +19,14 @@ fun Application.configureStatusPages() {
             call.respond(
                 HttpStatusCode.NotFound,
                 ErrorResponse(code = "RESOURCE_NOT_FOUND", message = "Resource not found")
+            )
+        }
+        exception<ConflictException> { call, ex ->
+            val traceId = call.attributes.getOrNull(TraceIdKey)
+            logger.warn { "Write conflict traceId=$traceId message=${ex.message}" }
+            call.respond(
+                HttpStatusCode.Conflict,
+                ErrorResponse(code = "WRITE_IN_PROGRESS", message = "Album write in progress, retry later")
             )
         }
         exception<Throwable> { call, ex ->

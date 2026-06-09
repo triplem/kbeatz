@@ -3,13 +3,17 @@ package org.javafreedom.kbeatz.catalog.application.service
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.uuid.Uuid
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.io.files.Path as KtPath
 import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.model.Track
 import org.javafreedom.kbeatz.catalog.domain.model.WRITE_LOCK_FILENAME
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 import org.javafreedom.kbeatz.catalog.domain.repository.TrackRepository
+import org.javafreedom.kbeatz.common.ConflictException
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
 import org.javafreedom.kbeatz.tagger.codec.flac.FlacFile
 
@@ -27,14 +31,28 @@ val TRACK_LEVEL_FIELDS: Set<String> = setOf("TITLE", "TRACKNUMBER", "ARTIST")
 /**
  * Writes individual Vorbis Comment tag fields to FLAC files on disk.
  *
+ * ## Concurrency model (issue #385)
+ *
+ * Two simultaneous HTTP PATCH requests for the same album are serialised using a
+ * per-album [Mutex] from [albumLocks]. The Mutex is acquired before any FLAC file
+ * is touched and released after the repository save completes. A second PATCH for
+ * the same album waits until the first write (including lock-file lifecycle) finishes.
+ *
+ * The `.kbeatz-write.lock` file is a cross-process guard for catalog-vs-CLI conflicts:
+ * if a lock file is already present when this service tries to write, it throws
+ * [ConflictException] so the HTTP handler can return 409. The in-memory Mutex and the
+ * file-based lock file are complementary: acquire the Mutex first, then check the file.
+ *
  * ## Album-level write sequence
- * 1. Look up album via [albumRepository] — throws [ResourceNotFoundException] if absent.
- * 2. Validate [field] is in [ALBUM_LEVEL_FIELDS] — throws [IllegalArgumentException] if invalid.
- * 3. Validate album directory is within [libraryRoot] (path traversal guard).
- * 4. Write `.kbeatz-write.lock` to album directory listing all target FLAC paths.
- * 5. For each FLAC file: [FlacFile.writeTo] performs temp-file → atomic rename.
- * 6. Delete `.kbeatz-write.lock`.
- * 7. Persist updated [Album] record via [albumRepository].
+ * 1. Acquire in-memory [Mutex] for the [albumId] (serialises concurrent HTTP requests).
+ * 2. Look up album via [albumRepository] — throws [ResourceNotFoundException] if absent.
+ * 3. Validate [field] is in [ALBUM_LEVEL_FIELDS] — throws [IllegalArgumentException] if invalid.
+ * 4. Validate album directory is within [libraryRoot] (path traversal guard).
+ * 5. Check for existing `.kbeatz-write.lock` — throw [ConflictException] if present (CLI conflict).
+ * 6. Write `.kbeatz-write.lock` to album directory listing all target FLAC paths.
+ * 7. For each FLAC file: [FlacFile.writeTo] performs temp-file → atomic rename.
+ * 8. Delete `.kbeatz-write.lock`.
+ * 9. Persist updated [Album] record via [albumRepository].
  *
  * ## Track-level write sequence
  * Same steps but targets a single FLAC file; no write-lock manifest is written
@@ -51,6 +69,15 @@ class TagWriteService(
     private val trackRepository: TrackRepository,
     private val libraryRoot: Path,
 ) {
+    /**
+     * Per-album in-memory mutexes that serialise concurrent HTTP PATCH requests.
+     *
+     * One [Mutex] is created per album UUID on first access and retained for the lifetime
+     * of the service. At 10,000 albums this is negligible memory (one object per album).
+     * Entries are never evicted; the map is only as large as the number of distinct albums
+     * that have received at least one write since the service started.
+     */
+    private val albumLocks = ConcurrentHashMap<Uuid, Mutex>()
 
     /**
      * Writes a single [field]=[value] tag to all FLAC files in the album directory.
@@ -69,23 +96,35 @@ class TagWriteService(
             "Unknown album-level tag field: '$field'. Allowed: ${ALBUM_LEVEL_FIELDS.sorted()}"
         }
 
-        val album = albumRepository.findById(albumId)
-            ?: throw ResourceNotFoundException("Album", albumId.toString())
+        val mutex = albumLocks.getOrPut(albumId) { Mutex() }
+        return mutex.withLock {
+            val album = albumRepository.findById(albumId)
+                ?: throw ResourceNotFoundException("Album", albumId.toString())
 
-        val albumDir = Path.of(album.directoryPath)
-        validatePath(albumDir)
+            val albumDir = Path.of(album.directoryPath)
+            validatePath(albumDir)
 
-        val flacFiles = findFlacFiles(albumDir)
-        writeLockFile(albumDir, flacFiles)
+            // Reject immediately if a write-lock file already exists; this means the
+            // CLI (kbeatz-cli) is currently writing to the same album directory.
+            // The client should retry after a short delay.
+            if (Files.exists(albumDir.resolve(WRITE_LOCK_FILENAME))) {
+                throw ConflictException(
+                    "Album write in progress, retry later (write lock found in $albumDir)"
+                )
+            }
 
-        writeTagToFiles(flacFiles, normalised, value, albumId)
+            val flacFiles = findFlacFiles(albumDir)
+            writeLockFile(albumDir, flacFiles)
 
-        deleteLockFile(albumDir)
+            writeTagToFiles(flacFiles, normalised, value, albumId)
 
-        val updatedAlbum = album.applyAlbumField(normalised, value)
-        albumRepository.save(updatedAlbum)
-        log.info { "Album tag write complete albumId=$albumId field=$normalised" }
-        return updatedAlbum
+            deleteLockFile(albumDir)
+
+            val updatedAlbum = album.applyAlbumField(normalised, value)
+            albumRepository.save(updatedAlbum)
+            log.info { "Album tag write complete albumId=$albumId field=$normalised" }
+            updatedAlbum
+        }
     }
 
     /**
