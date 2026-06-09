@@ -36,6 +36,7 @@ class DependencyContainer(config: AppConfig, libraryRootPath: Path, dataDirPath:
         libraryRoot = libraryRootPath,
         walker = LibraryWalker(),
         albumRepository = albumRepository,
+        repairTimeoutSeconds = config.repairTimeoutSeconds,
     )
     val syncService: SyncProvider = buildDiscogsSyncProvider(config, albumRepository, libraryRootPath, dataDirPath)
     val tagWriteService = TagWriteService(albumRepository, trackRepository, libraryRootPath)

@@ -22,6 +22,7 @@ class AppConfigTest {
         dbUser = dbUser,
         dbPassword = dbPassword,
         dataDir = dataDir,
+        repairTimeoutSeconds = 60L,
         discogsRateLimitPerMinute = 60,
         discogsImageDailyQuota = 1000,
     )
@@ -129,6 +130,7 @@ class AppConfigTest {
               dbPassword = ""
               libraryRoot = "${System.getProperty("java.io.tmpdir")}"
               dataDir = "./data"
+              repair { timeoutSeconds = 60 }
               discogs { token = "", rateLimitPerMinute = 60, imageDailyQuota = 1000 }
             }
             """.trimIndent()
@@ -149,6 +151,7 @@ class AppConfigTest {
               dbPassword = ""
               libraryRoot = ""
               dataDir = "./data"
+              repair { timeoutSeconds = 60 }
               discogs { token = "", rateLimitPerMinute = 60, imageDailyQuota = 1000 }
             }
             """.trimIndent()
@@ -168,6 +171,7 @@ class AppConfigTest {
               dbPassword = ""
               libraryRoot = "${System.getProperty("java.io.tmpdir")}"
               dataDir = "./data"
+              repair { timeoutSeconds = 60 }
               discogs { token = "my-token", rateLimitPerMinute = 60, imageDailyQuota = 1000 }
             }
             """.trimIndent()
@@ -186,11 +190,13 @@ class AppConfigTest {
               dbPassword = ""
               libraryRoot = "${System.getProperty("java.io.tmpdir")}"
               dataDir = "./data"
+              repair { timeoutSeconds = 30 }
               discogs { token = "", rateLimitPerMinute = 30, imageDailyQuota = 500 }
             }
             """.trimIndent()
         )
         val config = AppConfig.fromConf(hocon)
+        assertEquals(30L, config.repairTimeoutSeconds)
         assertEquals(30, config.discogsRateLimitPerMinute)
         assertEquals(500, config.discogsImageDailyQuota)
     }

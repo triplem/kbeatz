@@ -10,6 +10,7 @@ import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.javafreedom.kbeatz.catalog.domain.model.AlbumGroup
@@ -27,7 +28,11 @@ class RepairOnStartupTest {
     private val walker: LibraryWalker = mockk()
     private val albumRepository: AlbumRepository = mockk()
 
-    private fun withTempLibrary(block: suspend (Path, LibraryScanService) -> Unit) {
+    @Suppress("MagicNumber") // default 60s timeout for the test helper
+    private fun withTempLibrary(
+        repairTimeoutSeconds: Long = 60L,
+        block: suspend (Path, LibraryScanService) -> Unit,
+    ) {
         val root = Files.createTempDirectory("repair-test")
         try {
             val svc = LibraryScanService(
@@ -35,6 +40,7 @@ class RepairOnStartupTest {
                 walker = walker,
                 albumRepository = albumRepository,
                 scanDispatcher = UnconfinedTestDispatcher(),
+                repairTimeoutSeconds = repairTimeoutSeconds,
             )
             runTest { block(root, svc) }
         } finally {
@@ -125,6 +131,25 @@ class RepairOnStartupTest {
             svc.repairOnStartup()
 
             assertTrue(svc.isRepairComplete(), "Repair complete flag must be set even after partial failure")
+        }
+
+    @Test
+    fun `repairOnStartup marks repair complete after timeout when saveAll is slow`() =
+        withTempLibrary(repairTimeoutSeconds = 1L) { root, svc ->
+            val dir = Files.createDirectories(root.resolve("slow-album"))
+            Files.writeString(dir.resolve(WRITE_LOCK_FILENAME), "")
+
+            // Walker returns an album group quickly; saveAll is artificially slow
+            every { walker.walk(dir) } returns listOf(albumGroup(dir))
+            coEvery { albumRepository.saveAll(any()) } coAnswers {
+                @Suppress("MagicNumber") // 5000ms delay to exceed the 1-second timeout
+                delay(5_000L)
+            }
+
+            svc.repairOnStartup()
+
+            // Repair must be marked complete even after the timeout fires
+            assertTrue(svc.isRepairComplete(), "isRepairComplete must be true after timeout")
         }
 
     @Test

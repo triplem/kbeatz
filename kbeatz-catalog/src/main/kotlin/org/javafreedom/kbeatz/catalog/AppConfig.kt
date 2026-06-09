@@ -13,6 +13,7 @@ data class AppConfig(
     val dbUser: String,
     val dbPassword: String,
     val dataDir: String,
+    val repairTimeoutSeconds: Long,
     val discogsRateLimitPerMinute: Int,
     val discogsImageDailyQuota: Int,
 ) {
@@ -20,6 +21,8 @@ data class AppConfig(
         private const val DEFAULT_JDBC_URL =
             "jdbc:h2:file:./data/kbeatz;DB_CLOSE_DELAY=-1;MODE=PostgreSQL"
         private const val DEFAULT_DATA_DIR = "./data"
+        @Suppress("MagicNumber") // default repair scan timeout in seconds per issue #372 ops spec
+        private const val DEFAULT_REPAIR_TIMEOUT_SECONDS = 60L
         @Suppress("MagicNumber") // default rate-limit matching Discogs API cap
         private const val DEFAULT_RATE_LIMIT = 60
         @Suppress("MagicNumber") // default daily image-download quota
@@ -50,6 +53,7 @@ data class AppConfig(
             val dbUser = config.getString("catalog.dbUser")
             val dbPassword = config.getString("catalog.dbPassword")
             val dataDir = config.getString("catalog.dataDir").ifBlank { DEFAULT_DATA_DIR }
+            val repairTimeout = config.getLong("catalog.repair.timeoutSeconds")
             val rateLimit = config.getInt("catalog.discogs.rateLimitPerMinute")
             val imageQuota = config.getInt("catalog.discogs.imageDailyQuota")
             return AppConfig(
@@ -59,6 +63,7 @@ data class AppConfig(
                 dbUser = dbUser,
                 dbPassword = dbPassword,
                 dataDir = dataDir,
+                repairTimeoutSeconds = repairTimeout,
                 discogsRateLimitPerMinute = rateLimit,
                 discogsImageDailyQuota = imageQuota,
             )
@@ -87,6 +92,7 @@ data class AppConfig(
                 dbUser = dbUser,
                 dbPassword = dbPassword,
                 dataDir = dataDir,
+                repairTimeoutSeconds = DEFAULT_REPAIR_TIMEOUT_SECONDS,
                 discogsRateLimitPerMinute = DEFAULT_RATE_LIMIT,
                 discogsImageDailyQuota = DEFAULT_IMAGE_QUOTA,
             )
@@ -103,7 +109,7 @@ data class AppConfig(
     override fun toString(): String =
         "AppConfig(catalogLibraryRoot=$catalogLibraryRoot, " +
             "jdbcUrl=$jdbcUrl, dbUser=$dbUser, dbPassword=****, " +
-            "dataDir=$dataDir, " +
+            "dataDir=$dataDir, repairTimeoutSeconds=$repairTimeoutSeconds, " +
             "discogsToken=${if (discogsToken != null) "****" else "null"}, " +
             "discogsRateLimitPerMinute=$discogsRateLimitPerMinute, " +
             "discogsImageDailyQuota=$discogsImageDailyQuota)"
