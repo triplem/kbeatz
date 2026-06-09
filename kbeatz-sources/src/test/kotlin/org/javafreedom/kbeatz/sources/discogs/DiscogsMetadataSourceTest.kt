@@ -12,6 +12,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
+import kotlin.time.measureTime
 
 /**
  * Unit tests for [DiscogsMetadataSource] using a Ktor mock engine.
@@ -177,6 +179,33 @@ class DiscogsMetadataSourceTest {
 
         // Only one HTTP request should have been made — the second call returns the cached value
         assertEquals(1, requests.size)
+    }
+
+    // --- NFR-04: Discogs fetch latency ---
+
+    /**
+     * NFR-04 acceptance test: a Discogs release fetch (mock, no network or token-wait)
+     * must complete within 5 000 ms.
+     *
+     * This guards against inadvertent blocking calls, deadlocks, or unbounded waits
+     * being introduced in the fetch path. The mock engine responds instantly, so
+     * the measured time reflects only local processing overhead.
+     *
+     * Threshold: 5 000 ms (NFR-04, exclusive of real network and token-bucket wait time).
+     */
+    @Test
+    fun `NFR-04 fetchRelease completes within 5000 ms against a no-delay mock`() = runBlocking {
+        val source = buildSource()
+
+        val elapsed = measureTime {
+            val release = source.fetchRelease("12345")
+            assertNotNull(release)
+        }
+
+        assertTrue(
+            elapsed.inWholeMilliseconds < 5_000,
+            "Expected fetchRelease to complete within 5000 ms but took ${elapsed.inWholeMilliseconds} ms"
+        )
     }
 
     @Test
