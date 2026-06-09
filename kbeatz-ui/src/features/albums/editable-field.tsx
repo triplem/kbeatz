@@ -1,10 +1,35 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { CancelledByUserError } from './cancelled-by-user-error'
 
 // Pencil edit icon (U+270E) - used as a visual affordance for click-to-edit fields
 // Defined as a module constant to avoid i18next lint warnings on JSX string literals
 const EDIT_ICON = '✎'
+
+/**
+ * Classify a tag-write error into a user-friendly message.
+ *
+ * - Network error (TypeError: Failed to fetch): "could not reach kbeatz-catalog"
+ * - HTTP 500 or 503: "server error"
+ * - AbortError / timeout: "request timed out"
+ * - Other: generic "save failed"
+ */
+function classifyTagWriteError(err: unknown, t: TFunction): string {
+  if (err instanceof TypeError && err.message.toLowerCase().includes('fetch')) {
+    return t('editableField.saveFailedUnreachable')
+  }
+  if (err instanceof DOMException && err.name === 'AbortError') {
+    return t('editableField.saveFailedTimeout')
+  }
+  // API client errors have a `status` property
+  const apiErr = err as { status?: number }
+  if (apiErr.status === 500 || apiErr.status === 503) {
+    return t('editableField.saveFailedServer')
+  }
+  if (err instanceof Error) return err.message
+  return t('editableField.saveFailed')
+}
 
 interface EditableFieldProps {
   readonly label: string
@@ -103,7 +128,7 @@ export function EditableField({
       if (err instanceof CancelledByUserError) {
         setError(null)
       } else {
-        setError(err instanceof Error ? err.message : t('editableField.saveFailed'))
+        setError(classifyTagWriteError(err, t))
       }
       // Return focus to the display button even on error
       setTimeout(() => { displayButtonRef.current?.focus() }, 0)
