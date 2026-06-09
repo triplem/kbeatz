@@ -885,3 +885,44 @@ The output JAR is at `kbeatz-cli/build/libs/kbeatz-cli-<version>-all.jar`. Run i
 ----
 java -jar kbeatz-cli/build/libs/kbeatz-cli-*-all.jar --help
 ----
+
+== GitHub Pages: Clean Deploy and Stale File Cleanup
+
+=== How the clean deploy works
+
+The AsciiDoc documentation is published to GitHub Pages by the `release.yml` workflow using
+`force_orphan: true`. This setting recreates the `gh-pages` branch from scratch on every
+release so that renamed or deleted `.adoc` source files do not leave stale HTML pages
+accessible indefinitely.
+
+Quality reports (Detekt, ESLint, Trivy) are published by `publish-docs.yml` on every push to
+`main`. That workflow uses `keep_files: true` so that the quality reports are overlaid on top
+of the existing docs without wiping them. Because report files use fixed names
+(`detekt/${module}.html`, `eslint/eslint-report.html`), no stale report files accumulate.
+
+=== What happens when a page is renamed
+
+. Rename `docs/old-name.adoc` to `docs/new-name.adoc` and merge to `main`.
+. When the next release is cut, `release.yml` runs `asciidoctor` and deploys with
+  `force_orphan: true`.
+. The `gh-pages` branch is recreated with only the current HTML output. `old-name.html`
+  no longer exists; `new-name.html` is present.
+. `publish-docs.yml` runs on the same push and overlays the quality reports back onto the
+  branch.
+
+=== Manual fallback: resetting gh-pages
+
+If the `gh-pages` branch ever accumulates unwanted files outside of a release cycle, reset
+it manually:
+
+[source,bash]
+----
+# Delete the remote gh-pages branch
+git push origin --delete gh-pages
+
+# Then trigger a re-publish in one of two ways:
+# Option A - re-run the release workflow from the GitHub Actions UI
+# Option B - push a commit to main (publish-docs.yml runs on every push and will
+#             recreate the branch with quality reports; docs are restored on the
+#             next release)
+----

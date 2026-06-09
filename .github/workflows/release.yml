@@ -234,11 +234,18 @@ jobs:
         run: ./gradlew asciidoctor --no-daemon -Pproject-version=${VERSION}
 
       - name: Publish docs to gh-pages
+        # force_orphan: true recreates the gh-pages branch from scratch on every
+        # release. This ensures renamed or deleted .adoc pages do not leave stale
+        # HTML behind indefinitely. Quality reports (reports/) are preserved by the
+        # publish-docs.yml workflow which runs on every push to main and uses
+        # keep_files: true; reports are restored within minutes of any release push.
+        # Manual fallback if gh-pages ever needs a hard reset:
+        #   git push origin --delete gh-pages
+        # then re-run this workflow or push a commit to main.
         uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453 # v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./build/docs/asciidoc
           publish_branch: gh-pages
-          force_orphan: false
-          keep_files: true
+          force_orphan: true
           commit_message: "ci(scaffold): publish docs for ${{ needs.release.outputs.tag }}"
