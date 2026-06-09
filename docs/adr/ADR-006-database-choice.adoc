@@ -116,3 +116,9 @@ No Exposed DSL changes and no Liquibase migration rewrites are expected.
   compose); unnecessary for a single-user personal tool on a LAN. Documented as v2 target.
 * **Derby / HSQLDB**: lower community activity, fewer modern features, less PostgreSQL
   dialect compatibility than H2.
+
+== See Also
+
+* link:ADR-008-h2-auto-server-security.adoc[ADR-008: H2 AUTO_SERVER=TRUE Security Assessment
+  and Risk Acceptance] - detailed security analysis of enabling H2's automatic mixed mode for
+  concurrent CLI and catalog access.
