@@ -7,6 +7,7 @@ import io.mockk.mockk
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -99,6 +100,31 @@ class RepairOnStartupTest {
             assertTrue(!Files.exists(lock1), "Lock 1 should be deleted")
             assertTrue(!Files.exists(lock2), "Lock 2 should be deleted")
             coVerify(exactly = 2) { albumRepository.saveAll(any()) }
+        }
+
+    @Test
+    fun `isRepairComplete returns false before repairOnStartup is called`() =
+        withTempLibrary { _, svc ->
+            assertFalse(svc.isRepairComplete(), "Repair should not be complete before repairOnStartup runs")
+        }
+
+    @Test
+    fun `isRepairComplete returns true after repairOnStartup when no lock files exist`() =
+        withTempLibrary { _, svc ->
+            svc.repairOnStartup()
+            assertTrue(svc.isRepairComplete(), "Repair should be marked complete after repairOnStartup")
+        }
+
+    @Test
+    fun `isRepairComplete returns true after repairOnStartup even when a directory repair fails`() =
+        withTempLibrary { root, svc ->
+            val dir = Files.createDirectories(root.resolve("broken-album"))
+            Files.writeString(dir.resolve(WRITE_LOCK_FILENAME), "")
+            every { walker.walk(dir) } throws RuntimeException("Read error")
+
+            svc.repairOnStartup()
+
+            assertTrue(svc.isRepairComplete(), "Repair complete flag must be set even after partial failure")
         }
 
     @Test

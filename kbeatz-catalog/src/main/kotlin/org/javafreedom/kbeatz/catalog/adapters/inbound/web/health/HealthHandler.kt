@@ -14,14 +14,17 @@ import org.javafreedom.kbeatz.catalog.api.models.ReadinessResponse
  *
  * - GET /healthz - combined legacy probe (DB + filesystem), deprecated since K8s v1.16.
  * - GET /livez   - liveness probe: always 200 when the process is running.
- * - GET /readyz  - readiness probe: 200 when DB is reachable, 503 when not.
+ * - GET /readyz  - readiness probe: 200 when DB is reachable and startup repair is complete.
  *
- * @param dbProbe Suspending function that returns true when the database is reachable.
- * @param libraryRoot Filesystem path to the music library root.
+ * @param dbProbe suspending function that returns true when the database is reachable.
+ * @param repairReadyProbe function that returns true when the startup write-lock repair
+ *   has completed. Returns 503 REPAIR_IN_PROGRESS until repair finishes.
+ * @param libraryRoot filesystem path to the music library root.
  */
 fun Route.healthRoutes(
     dbProbe: suspend () -> Boolean,
     libraryRoot: Path,
+    repairReadyProbe: () -> Boolean = { true },
 ) {
     get("/healthz") {
         val dbUp = runCatching { dbProbe() }.getOrDefault(false)
@@ -46,8 +49,16 @@ fun Route.healthRoutes(
         call.respond(HttpStatusCode.OK, LivenessResponse(status = LivenessResponse.Status.UP))
     }
 
-    // Readiness: 200 when DB is up, 503 with ErrorResponse when DB is down.
+    // Readiness: 200 only when DB is up and startup repair has completed.
     get("/readyz") {
+        val repairDone = repairReadyProbe()
+        if (!repairDone) {
+            call.respond(
+                HttpStatusCode.ServiceUnavailable,
+                ErrorResponse(code = "REPAIR_IN_PROGRESS", message = "Startup write-lock repair is running"),
+            )
+            return@get
+        }
         val dbUp = runCatching { dbProbe() }.getOrDefault(false)
         if (dbUp) {
             call.respond(HttpStatusCode.OK, ReadinessResponse(status = ReadinessResponse.Status.UP))

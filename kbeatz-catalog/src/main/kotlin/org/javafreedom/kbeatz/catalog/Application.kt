@@ -49,7 +49,11 @@ fun Application.module() {
         deps.dataSource.close()
     }
 
-    val healthConfig = HealthConfig(dbProbe = deps.dbProbe, libraryRoot = libraryRootPath)
+    val healthConfig = HealthConfig(
+        dbProbe = deps.dbProbe,
+        repairReadyProbe = deps.scanService::isRepairComplete,
+        libraryRoot = libraryRootPath,
+    )
 
     configurePathTraversalGuard()
     configureLogging()
