@@ -10,10 +10,10 @@ const POLL_INTERVAL_MS = 2000
  * Scan progress banner.
  *
  * Polls `GET /api/v1/library/scan/status` every 2 seconds while state is RUNNING.
- * Displays a banner with the current progress count.
- * Disappears when the scan completes or was never started (IDLE).
+ * Displays a banner with the current progress count and started-at timestamp.
+ * When COMPLETED shows the completed-at timestamp. When IDLE, renders nothing.
  * Shows an error message when state is FAILED.
- * Does not render at all when state is IDLE or COMPLETED.
+ * Does not render when state is IDLE.
  */
 export function ScanProgress() {
   const { t } = useTranslation()
@@ -49,8 +49,16 @@ export function ScanProgress() {
     return stopPolling
   }, [fetchStatus, stopPolling])
 
-  if (status === null || status.state === 'IDLE' || status.state === 'COMPLETED') {
+  if (status === null || status.state === 'IDLE') {
     return null
+  }
+
+  if (status.state === 'COMPLETED') {
+    return status.completedAt ? (
+      <div className="scan-progress scan-progress--completed" role="status">
+        {t('scanProgress.completedAt', { time: formatDateTime(status.completedAt) })}
+      </div>
+    ) : null
   }
 
   if (status.state === 'FAILED') {

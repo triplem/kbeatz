@@ -40,13 +40,39 @@ describe('ScanProgress', () => {
     expect(container.firstChild).toBeNull()
   })
 
-  it('renders nothing when status is COMPLETED', async () => {
+  it('renders nothing when status is COMPLETED without completedAt', async () => {
     mockGetStatus.mockResolvedValue(makeStatus('COMPLETED'))
     const { container } = render(<ScanProgress />)
     await act(async () => {
       await Promise.resolve()
     })
     expect(container.firstChild).toBeNull()
+  })
+
+  it('renders completed timestamp when status is COMPLETED with completedAt', async () => {
+    mockGetStatus.mockResolvedValue(
+      makeStatus('COMPLETED', { completedAt: '2026-06-09T20:31:20Z' }),
+    )
+    render(<ScanProgress />)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    const banner = screen.getByRole('status')
+    expect(banner).toBeInTheDocument()
+    // Should contain the year from the formatted timestamp
+    expect(banner.textContent).toContain('2026')
+  })
+
+  it('renders startedAt timestamp in running banner when present', async () => {
+    mockGetStatus.mockResolvedValue(
+      makeStatus('RUNNING', { scannedAlbums: 10, totalAlbums: 100, startedAt: '2026-06-09T20:00:00Z' }),
+    )
+    render(<ScanProgress />)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    const banner = screen.getByRole('status')
+    expect(banner.textContent).toContain('2026')
   })
 
   it('renders progress banner when status is RUNNING', async () => {

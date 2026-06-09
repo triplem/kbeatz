@@ -1,6 +1,23 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, afterEach } from 'vitest'
 import i18n, { formatDate, formatDateTime } from './i18n'
 import en from '../locales/en.json'
+
+/**
+ * Override navigator.language for locale-sensitive tests.
+ * Returns a cleanup function that restores the original descriptor.
+ */
+function withLocale(locale: string): () => void {
+  const originalDescriptor = Object.getOwnPropertyDescriptor(navigator, 'language')
+  Object.defineProperty(navigator, 'language', {
+    get: () => locale,
+    configurable: true,
+  })
+  return () => {
+    if (originalDescriptor) {
+      Object.defineProperty(navigator, 'language', originalDescriptor)
+    }
+  }
+}
 
 /**
  * Recursively collect all leaf key paths from an object.
@@ -117,6 +134,54 @@ describe('formatDate', () => {
     const result = formatDate('2023-07-14T00:00:00Z')
     expect(result).toContain('2023')
     expect(result).not.toBe('2023-07-14T00:00:00Z')
+  })
+
+  describe('locale-specific formatting', () => {
+    let restoreLocale: () => void
+
+    afterEach(() => {
+      restoreLocale()
+    })
+
+    it('formats full date "2023-07-14" in en-GB locale (day first)', () => {
+      restoreLocale = withLocale('en-GB')
+      const result = formatDate('2023-07-14')
+      // en-GB: "14 Jul 2023"
+      expect(result).toContain('2023')
+      expect(result).toContain('14')
+      expect(result).not.toBe('2023-07-14')
+    })
+
+    it('formats full date "2023-07-14" in de-DE locale', () => {
+      restoreLocale = withLocale('de-DE')
+      const result = formatDate('2023-07-14')
+      // de-DE: "14. Juli 2023" or "14.07.2023"
+      expect(result).toContain('2023')
+      expect(result).not.toBe('2023-07-14')
+    })
+
+    it('formats year-month "1978-06" in de-DE locale without day', () => {
+      restoreLocale = withLocale('de-DE')
+      const result = formatDate('1978-06')
+      // de-DE: "Juni 1978" - no day component
+      expect(result).toContain('1978')
+      expect(result).not.toBe('1978-06')
+      // Should not contain a standalone day number
+      expect(result).not.toMatch(/\b\d{1,2}\.\s/)
+    })
+
+    it('formats year-month "1978-06" in fr-FR locale without day', () => {
+      restoreLocale = withLocale('fr-FR')
+      const result = formatDate('1978-06')
+      // fr-FR: "juin 1978" - no day component
+      expect(result).toContain('1978')
+      expect(result).not.toBe('1978-06')
+    })
+
+    it('bare year "1978" is unchanged in any locale', () => {
+      restoreLocale = withLocale('de-DE')
+      expect(formatDate('1978')).toBe('1978')
+    })
   })
 })
 
