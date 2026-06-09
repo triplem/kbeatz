@@ -1,0 +1,150 @@
+= ADR-008: H2 AUTO_SERVER=TRUE Security Assessment and Risk Acceptance
+:toc: left
+:icons: font
+:revdate: 2026-06-09
+:status: Accepted
+
+== Status
+
+Accepted
+
+== Context
+
+`kbeatz-catalog` uses H2 as its embedded database (see ADR-006). The default JDBC URL is:
+
+----
+jdbc:h2:file:./data/kbeatz;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+----
+
+`kbeatz-cli` needs to read the same H2 database file while `kbeatz-catalog` is running - for
+example to tag FLAC files based on catalog metadata or to run the `migrate-ids` command while
+the catalog service serves the UI.
+
+Without special configuration, H2 enforces exclusive file locking. Attempting to open the same
+`.mv.db` file from a second JVM process results in:
+
+----
+org.h2.jdbc.JdbcSQLException: Database may be already in use: null. Possible solutions:
+close all other connection(s); use the server mode [90020-200]
+----
+
+`AUTO_SERVER=TRUE` is H2's "automatic mixed mode": the first process to open the file starts an
+embedded TCP server. Subsequent processes connect to that TCP server rather than opening the file
+directly. This allows `kbeatz-cli` and `kbeatz-catalog` to share the database file without a
+separately managed H2 server process.
+
+=== What AUTO_SERVER=TRUE does
+
+When the first JVM (normally `kbeatz-catalog`) opens the database with `AUTO_SERVER=TRUE`:
+
+. H2 starts an embedded TCP listener on a random port chosen from the OS ephemeral range.
+. The port number is written to the `.lock.db` file alongside the database file.
+. Subsequent JVMs that open the same file path discover the port via `.lock.db` and connect
+  as TCP clients.
+. H2 uses its own simple authentication (username/password) over this TCP channel; however the
+  default H2 user (`sa`) has a blank password, so the channel provides no meaningful credential
+  check.
+. The TCP listener is bound to `0.0.0.0` (all interfaces) by default. There is no built-in
+  option to restrict it to loopback only from the JDBC URL alone.
+
+=== Security exposure
+
+The TCP server accepts connections from any host that can reach the machine on the chosen port.
+An attacker on the same network who discovers the port can connect to the H2 database with the
+default blank password and read or modify the entire album index.
+
+Mitigating factors for this deployment:
+
+* `AUTO_SERVER=TRUE` is opt-in. The default `CATALOG_JDBC_URL` does not include it. It must be
+  set explicitly via the environment variable.
+* The catalog service runs on a trusted private LAN (home network). No authentication is
+  implemented in v1 per NFR-07 - the whole service is trusted-network-only.
+* The album index contains no personal health data, financial data, or credentials. The worst
+  realistic outcome of an attacker connecting to the H2 TCP server is reading album metadata
+  or corrupting the index (which can be rebuilt by re-scanning the music library).
+* PostgreSQL is the documented v2 migration target (ADR-006). When deployed on a shared home
+  server, the operator is expected to switch to PostgreSQL, which provides proper role-based
+  authentication and can be bound to a specific interface.
+
+== Decision
+
+Accept `AUTO_SERVER=TRUE` as the supported mechanism for concurrent CLI and catalog access in
+v1 LAN deployments.
+
+The risk is accepted on the following conditions:
+
+. `AUTO_SERVER=TRUE` remains **opt-in** via `CATALOG_JDBC_URL` - it is never enabled by default.
+. The operations guide documents the exposure and recommends firewall rules for multi-user LANs.
+. PostgreSQL migration (ADR-006) remains the v2 path; this decision is re-evaluated at that point.
+
+.Recommended firewall rule (Linux/iptables) if AUTO_SERVER is enabled
+[source,bash]
+----
+# Block external access to H2 AUTO_SERVER ephemeral ports
+# H2 uses ports in the OS ephemeral range; restrict to loopback
+iptables -A INPUT -p tcp --dport 9000:65535 -s 127.0.0.1 -j ACCEPT
+iptables -A INPUT -p tcp --dport 9000:65535 -j DROP
+----
+
+NOTE: The port is chosen randomly and written to the `.lock.db` file. A more targeted rule
+requires reading the actual port from that file or pinning it with `AUTO_SERVER_PORT=<port>` in
+the JDBC URL.
+
+== Consequences
+
+* `kbeatz-cli` and `kbeatz-catalog` can share the same H2 file when both are running, using
+  `AUTO_SERVER=TRUE` in `CATALOG_JDBC_URL`.
+* The H2 TCP server binds to all interfaces on a random port when `AUTO_SERVER=TRUE` is active.
+  On a trusted single-user LAN this is acceptable.
+* On a network where untrusted devices may be present, the operator must either:
+  - Add a firewall rule to block external access to the H2 port, OR
+  - Migrate to PostgreSQL (the v2 path) and not use `AUTO_SERVER=TRUE`.
+* The `.lock.db` file written by H2 reveals the TCP port in plaintext. This is a minor
+  information-disclosure that is acceptable given the LAN-only deployment context.
+* If `kbeatz-catalog` is stopped while `kbeatz-cli` is connected, H2 will cleanly
+  transfer the server role to the CLI process (H2 mixed-mode behaviour). On restart of
+  the catalog service it reconnects as a client. This is transparent to both applications.
+
+== Alternatives Considered
+
+=== H2 file-locking only (exclusive embedded mode)
+
+Use the default `DB_CLOSE_DELAY=-1` without `AUTO_SERVER`. The CLI must be run only when the
+catalog is stopped.
+
+* Rejected because the primary use case (tag files while browsing in the UI) requires both
+  processes to run concurrently.
+
+=== H2 TCP server mode (explicit `jdbc:h2:tcp://localhost/...`)
+
+Run a standalone `org.h2.tools.Server` process as a sidecar, and have both catalog and CLI
+connect to it as TCP clients.
+
+* Provides a more controlled server lifecycle, but adds operational complexity: a third process
+  must be started and monitored.
+* Exposes the same TCP port (default 9092) with the same blank-password default. The security
+  exposure is equivalent but requires a separate compose service.
+* Rejected in favour of `AUTO_SERVER=TRUE` which achieves the same sharing with zero extra
+  infrastructure.
+
+=== Catalog exposes an HTTP endpoint for CLI access
+
+The CLI calls the catalog REST API instead of connecting to the database directly.
+
+* Would avoid shared database access entirely and provide proper auth (when auth is added in v2).
+* Requires significant additional implementation: new endpoints for every CLI operation, plus
+  the CLI becomes network-dependent.
+* Deferred to a post-v1 refactor. Documented as the preferred long-term direction for the CLI
+  once auth is in place.
+
+=== PostgreSQL from day 1
+
+Removes the shared-file problem entirely.
+
+* Rejected in ADR-006 for v1 (see that ADR for rationale). Re-evaluated at v2.
+
+== References
+
+* ADR-006: H2 as the Embedded Database (v1); PostgreSQL as the v2 Migration Target
+* https://h2database.com/html/advanced.html#auto_mixed_mode[H2 Automatic Mixed Mode documentation]
+* NFR-07: No authentication in v1; Keycloak JWT/OIDC is the v2 target
