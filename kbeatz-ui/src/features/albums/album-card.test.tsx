@@ -131,4 +131,25 @@ describe('AlbumCard', () => {
     fireEvent.click(card)
     expect(mockNavigate).toHaveBeenCalledWith('/albums/550e8400-e29b-41d4-a716-446655440000')
   })
+
+  // ──────────────────────────────────────────────
+  // Path traversal guard - cover art endpoint (#378)
+  // ──────────────────────────────────────────────
+
+  it('shows placeholder and does not crash when cover art returns 400 (path traversal blocked by backend)', async () => {
+    // The backend blocks path-traversal albumIds with HTTP 400.
+    // The UI must handle any image load error gracefully by showing the placeholder.
+    // This test simulates the network error that follows a 400 response on the img src.
+    render(<MemoryRouter><AlbumCard album={makeAlbum({ hasCoverArt: true })} /></MemoryRouter>)
+    const img = screen.getByRole('img', { name: 'Cover art for Kind of Blue' })
+
+    // Simulate the img onError triggered when the backend returns 400
+    await act(async () => {
+      img.dispatchEvent(new Event('error'))
+    })
+
+    // The UI must fall back to the placeholder - no crash, no raw error message
+    expect(screen.getByRole('img', { name: 'Album cover not available' })).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
 })
