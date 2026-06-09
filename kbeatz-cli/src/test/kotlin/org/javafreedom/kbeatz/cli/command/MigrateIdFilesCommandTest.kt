@@ -117,4 +117,40 @@ class MigrateIdFilesCommandTest {
         assertContains(result.output, "DRY")
         assertFalse(Files.exists(album.resolve("metadata.yml")))
     }
+
+    // --- Exit code tests ---
+
+    @Test
+    fun `resolveExitCode returns normally when no errors occurred`() {
+        val cmd = MigrateIdFilesCommand()
+        // Should not throw ProgramResult
+        cmd.resolveExitCode(migrated = 1, errors = 0)
+        cmd.resolveExitCode(migrated = 0, errors = 0)
+    }
+
+    @Test
+    fun `resolveExitCode throws ProgramResult with code 1 when all operations fail`() {
+        val cmd = MigrateIdFilesCommand()
+        val ex = kotlin.test.assertFailsWith<com.github.ajalt.clikt.core.ProgramResult> {
+            cmd.resolveExitCode(migrated = 0, errors = 2)
+        }
+        assertTrue(ex.statusCode == ExitCodes.FAILURE, "Expected exit code 1 but got ${ex.statusCode}")
+    }
+
+    @Test
+    fun `resolveExitCode throws ProgramResult with code 3 for partial failure`() {
+        val cmd = MigrateIdFilesCommand()
+        val ex = kotlin.test.assertFailsWith<com.github.ajalt.clikt.core.ProgramResult> {
+            cmd.resolveExitCode(migrated = 5, errors = 2)
+        }
+        assertTrue(ex.statusCode == ExitCodes.PARTIAL_FAILURE, "Expected exit code 3 but got ${ex.statusCode}")
+    }
+
+    @Test
+    fun `should exit with code 0 when all albums migrated successfully`(@TempDir tempDir: java.nio.file.Path) {
+        val album = Files.createDirectory(tempDir.resolve("album"))
+        Files.writeString(album.resolve("id.txt"), "[source]\ndiscogs_id=11\n")
+        val result = MigrateIdFilesCommand().test("$tempDir")
+        assertTrue(result.statusCode == ExitCodes.SUCCESS, "Expected exit code 0 but got ${result.statusCode}")
+    }
 }
