@@ -115,7 +115,7 @@ function AlbumListPage() {
             </div>
             {loading && <p>{t('albumGrid.loading')}</p>}
             {error && <p role="alert">{t('albumGrid.errorPrefix')}{error}</p>}
-            {!loading && !error && <AlbumGrid albums={visibleAlbums} />}
+            {!loading && !error && <AlbumGrid albums={visibleAlbums} totalCount={albums.length} />}
           </div>
         </div>
       </main>

@@ -14,12 +14,14 @@
     "noResults": "No albums found. Trigger a library scan to index your collection.",
     "loading": "Loading albums...",
     "collectionLabel": "Album collection - {{count}} albums",
-    "errorPrefix": "Error: "
+    "errorPrefix": "Error: ",
+    "showingFiltered": "Showing {{visible}} of {{total}} albums",
+    "showingAll": "Showing all {{count}} albums"
   },
   "albumCard": {
     "viewDetails": "View details for {{album}} by {{artist}}",
     "coverAlt": "Cover art for {{album}}",
-    "noCoverAria": "No cover art",
+    "noCoverAria": "Album cover not available",
     "noCoverLabel": "No cover"
   },
   "albumDetail": {
