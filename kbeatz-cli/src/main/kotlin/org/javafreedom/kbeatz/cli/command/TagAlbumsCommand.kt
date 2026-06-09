@@ -89,6 +89,9 @@ class TagAlbumsCommand(
         var tagged = 0
         var skipped = 0
         var errors = 0
+        // noIdFileDirs collects directories with no usable id file so they can be summarised
+        // at the end. Each entry also produces TagOutcome.ERROR so it is counted in `errors`
+        // and feeds into resolveExitCode. The two counters are intentionally linked.
         val noIdFileDirs = mutableListOf<Pair<Path, String>>()
 
         targets.forEachIndexed { idx, dir ->
@@ -263,9 +266,17 @@ class TagAlbumsCommand(
      * Returns true if the directory has no subdirectories - i.e., it is a leaf node.
      * Leaf directories are included even when they contain no id files so that albums
      * with FLAC files but a missing id file receive an error rather than a silent skip.
+     *
+     * Known limitation: an intermediate directory (e.g. an empty Artist/ directory) that
+     * contains no subdirectories at scan time is also treated as a leaf and will be
+     * reported as "no id file". This is an edge case in partial or empty library trees.
+     *
+     * If listing the directory fails due to a permissions error, the directory is treated
+     * as a leaf (conservative: it will be included and reported via an error message).
      */
     private fun isLeafDirectory(dir: Path): Boolean =
         runCatching { SystemFileSystem.list(dir) }
+            .onFailure { logger.warn(it) { "cannot list dir=$dir - treating as leaf" } }
             .getOrElse { emptyList() }
             .none { SystemFileSystem.metadataOrNull(it)?.isDirectory == true }
 }
