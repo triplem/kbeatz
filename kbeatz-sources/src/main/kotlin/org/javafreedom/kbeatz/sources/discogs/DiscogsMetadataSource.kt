@@ -35,6 +35,13 @@ private const val DEFAULT_RETRY_AFTER_SECONDS = 60L
 private const val MS_PER_SECOND = 1_000L
 
 /**
+ * Pattern that only allows alphanumeric characters and hyphens in a Discogs release ID.
+ * Discogs release IDs are numeric (e.g. "12345678") but we allow hyphens for future compatibility.
+ * Any other character (dots, slashes, etc.) would indicate a malformed or crafted ID.
+ */
+private val SAFE_RELEASE_ID_PATTERN = Regex("""^[a-zA-Z0-9\-]+$""")
+
+/**
  * Discogs REST API adapter for [MetadataSource].
  *
  * Authentication: Personal Access Token via DISCOGS_TOKEN environment variable.
@@ -138,8 +145,11 @@ class DiscogsMetadataSource private constructor(
      *   [SyncResult.RateLimitExceeded] / [SyncResult.Error] on failure.
      */
     @Suppress("TooGenericExceptionCaught") // network, IO, and serialization errors are all fatal for this call
-    suspend fun syncAlbum(discogsId: String, albumDir: Path): SyncResult =
-        try {
+    suspend fun syncAlbum(discogsId: String, albumDir: Path): SyncResult {
+        require(SAFE_RELEASE_ID_PATTERN.matches(discogsId)) {
+            "discogsId must contain only alphanumeric characters and hyphens: $discogsId"
+        }
+        return try {
             tokenBucket.acquire()
             log.info { "discogs_sync_start releaseId=$discogsId albumDir=$albumDir" }
 
@@ -171,6 +181,7 @@ class DiscogsMetadataSource private constructor(
             log.error(ex) { "discogs_sync_error releaseId=$discogsId" }
             SyncResult.Error(ex)
         }
+    }
 
     private fun writeAtomically(target: Path, content: String) {
         val tmp = target.resolveSibling(target.fileName.toString() + ".tmp")

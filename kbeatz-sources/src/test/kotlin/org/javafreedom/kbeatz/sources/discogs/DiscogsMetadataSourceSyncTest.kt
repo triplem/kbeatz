@@ -212,4 +212,31 @@ class DiscogsMetadataSourceSyncTest {
         assertIs<SyncResult.RateLimitExceeded>(result)
         assertTrue(result.retryAfterMs > 0)
     }
+
+    // --- input validation ---
+
+    @Test
+    fun `syncAlbum rejects discogsId with path traversal characters`() = runBlocking {
+        val albumDir = Files.createTempDirectory("kbeatz-sync-invalid")
+        val source = buildSource()
+
+        var exceptionThrown = false
+        try {
+            source.syncAlbum("../../etc/cron.d/evil", albumDir)
+        } catch (ex: IllegalArgumentException) {
+            exceptionThrown = true
+        }
+
+        assertTrue(exceptionThrown, "syncAlbum must reject discogsId containing path traversal chars")
+    }
+
+    @Test
+    fun `syncAlbum accepts numeric discogsId`() = runBlocking {
+        val albumDir = Files.createTempDirectory("kbeatz-sync-numeric")
+        val source = buildSource()
+
+        val result = source.syncAlbum("12345", albumDir)
+
+        assertIs<SyncResult.Success>(result)
+    }
 }
