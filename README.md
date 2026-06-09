@@ -1,6 +1,7 @@
 # kbeatz
 
 [![CI](https://github.com/triplem/kbeatz/actions/workflows/ci.yml/badge.svg)](https://github.com/triplem/kbeatz/actions/workflows/ci.yml)
+[![Documentation](https://img.shields.io/badge/docs-github%20pages-blue)](https://triplem.github.io/kbeatz/)
 
 kbeatz is a self-hosted music collection management platform for FLAC libraries. It reads and writes
 FLAC metadata (Vorbis Comment tags), fetches release information from Discogs, and exposes a web UI
