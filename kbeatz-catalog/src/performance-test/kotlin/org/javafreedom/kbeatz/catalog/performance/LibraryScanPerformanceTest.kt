@@ -33,7 +33,7 @@ class LibraryScanPerformanceTest {
          * This is the minimum structure that [LibraryWalker] needs to read tags from a FLAC file.
          */
         @Suppress("MagicNumber") // FLAC binary format constants per RFC 9639 section 9
-        fun buildMinimalFlac(
+        private fun buildMinimalFlac(
             albumArtist: String = "Perf Artist",
             album: String = "Perf Album",
             date: String = "2000",

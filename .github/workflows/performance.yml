@@ -13,11 +13,6 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      album_count:
-        description: 'Number of albums to use in the scan fixture (default: 2000)'
-        required: false
-        default: '2000'
 
 jobs:
   backend-scan-performance:
