@@ -78,10 +78,13 @@ mapper (in `kbeatz-sources`) and read by `TaggerService`. The tagger never write
 
 | 3  | Front cover | `folder.jpg`
 | 4  | Back cover  | `back.jpg`
-| 5  | Leaflet / booklet page | `booklet-<index>.jpg`
-| 6  | Media / disc label     | `disc-<index>.jpg`
-| 0 (other) | Any other image | `image-<index>.jpg`
+| 5  | Leaflet / booklet page | `5-0.jpg`, `5-1.jpg`, ...
+| 6  | Media / disc label     | `6-0.jpg`, `6-1.jpg`, ...
+| 0 (other) | Any other image | `0-0.jpg`, `0-1.jpg`, ...
 |===
+
+NOTE: The convention for types other than 3 and 4 is `<pictureType>-<index>.jpg` where
+`<index>` is a zero-based counter for images of that type.
 
 The `.kbeatz/` directory (see developer reference, issue #365) is the storage location for
 source JSON files. `localPath` values in `KbeatzMetadata` are relative to the album root

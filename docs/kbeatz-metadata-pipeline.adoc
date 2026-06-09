@@ -138,10 +138,14 @@ ID per album directory at any given time.
 
 | 3 | Front cover | `folder.jpg`
 | 4 | Back cover  | `back.jpg`
-| 5 | Leaflet / booklet page | `booklet-<index>.jpg`
-| 6 | Media / disc label     | `disc-<index>.jpg`
-| 0 | Other                  | `image-<index>.jpg`
+| 5 | Leaflet / booklet page | `5-0.jpg`, `5-1.jpg`, ...
+| 6 | Media / disc label     | `6-0.jpg`, `6-1.jpg`, ...
+| 0 | Other                  | `0-0.jpg`, `0-1.jpg`, ...
 |===
+
+NOTE: The convention for types other than 3 and 4 is `<pictureType>-<index>.jpg` where
+`<index>` is a zero-based counter for images of that type. This matches the pattern in
+`KbeatzMetadata.Image` KDoc (`"<type>-<index>.jpg"`).
 
 == Example: 2-Disc Album
 
@@ -220,7 +224,8 @@ When `TaggerService` processes a multi-disc album:
 
 The FLAC file count in the subdirectory must equal the track count for that disc in
 `metadata.json`. A mismatch is a hard error: the entire album write is aborted and no FLAC
-files are modified. See `FlacTrackCountMismatchException` in `kbeatz-tagger`.
+files are modified. A domain exception is thrown with structured fields including the album
+directory, disc number, expected track count, and actual FLAC file count.
 
 == Adding a New Provider
 
