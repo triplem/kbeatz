@@ -109,6 +109,9 @@ export function SyncPanel({ album, onSyncComplete }: SyncPanelProps) {
         onClick={() => { void handleSync() }}
         disabled={syncState.status === 'loading'}
         aria-disabled={syncState.status === 'loading'}
+        aria-label={syncState.status === 'loading'
+          ? t('syncPanel.syncButtonLoading')
+          : t('syncPanel.syncButton')}
         data-testid="sync-button"
         className="sync-button"
       >
