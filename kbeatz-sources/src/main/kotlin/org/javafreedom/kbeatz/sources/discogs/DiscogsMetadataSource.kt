@@ -7,8 +7,11 @@ import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
+import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlin.time.Clock
 import kotlinx.io.bytestring.ByteString
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.javafreedom.kbeatz.common.metadata.KbeatzMetadata
 import org.javafreedom.kbeatz.common.metadata.KbeatzMetadata.Image as KbeatzImage
@@ -23,6 +26,13 @@ import java.nio.file.StandardCopyOption
 private val log = KotlinLogging.logger {}
 
 private val metadataJson = Json { ignoreUnknownKeys = true }
+private val prettyJson = Json { prettyPrint = true }
+
+/** Default Discogs rate-limit retry interval in seconds when the Retry-After header is absent. */
+private const val DEFAULT_RETRY_AFTER_SECONDS = 60L
+
+/** Milliseconds per second - used to convert Retry-After (seconds) to milliseconds. */
+private const val MS_PER_SECOND = 1_000L
 
 /**
  * Discogs REST API adapter for [MetadataSource].
@@ -112,6 +122,61 @@ class DiscogsMetadataSource private constructor(
                     ImageResult(bytes, mimeType)
                 }
         }
+
+    /**
+     * Fetches a Discogs release by [discogsId], persists the raw API JSON to
+     * `<albumDir>/.kbeatz/source_discogs_<discogsId>.json`, transforms it to
+     * [KbeatzMetadata] via [DiscogsToKbeatzMapper], and writes the result to
+     * `<albumDir>/.kbeatz/metadata.json`.
+     *
+     * Both files are overwritten on re-sync so callers always get the freshest data.
+     * The `.kbeatz/` directory is created if it does not exist.
+     *
+     * @param discogsId Discogs release identifier (e.g. "12345678").
+     * @param albumDir Path to the album directory that will receive the `.kbeatz/` files.
+     * @return [SyncResult.Success] with the path to the written `metadata.json`, or
+     *   [SyncResult.RateLimitExceeded] / [SyncResult.Error] on failure.
+     */
+    @Suppress("TooGenericExceptionCaught") // network, IO, and serialization errors are all fatal for this call
+    suspend fun syncAlbum(discogsId: String, albumDir: Path): SyncResult =
+        try {
+            tokenBucket.acquire()
+            log.info { "discogs_sync_start releaseId=$discogsId albumDir=$albumDir" }
+
+            val response = client.get("https://api.discogs.com/releases/$discogsId")
+            if (response.status == HttpStatusCode.TooManyRequests) {
+                val retryAfterSec = response.headers["Retry-After"]?.toLongOrNull() ?: DEFAULT_RETRY_AFTER_SECONDS
+                val retryAfterMs = retryAfterSec * MS_PER_SECOND
+                log.warn { "discogs_sync_rate_limited releaseId=$discogsId retryAfterMs=$retryAfterMs" }
+                return SyncResult.RateLimitExceeded(retryAfterMs)
+            }
+
+            val rawBytes = response.body<ByteArray>()
+            val rawJson = rawBytes.toString(Charsets.UTF_8)
+            val discogsRelease = metadataJson.decodeFromString(DiscogsRelease.serializer(), rawJson)
+
+            val kbeatzDir = albumDir.resolve(".kbeatz")
+            Files.createDirectories(kbeatzDir)
+
+            writeAtomically(kbeatzDir.resolve("source_discogs_$discogsId.json"), rawJson)
+
+            val metadata = DiscogsToKbeatzMapper.map(discogsRelease, Clock.System.now())
+            val metadataContent = prettyJson.encodeToString(metadata)
+            val metadataFile = kbeatzDir.resolve("metadata.json")
+            writeAtomically(metadataFile, metadataContent)
+
+            log.info { "discogs_sync_done releaseId=$discogsId metadataPath=$metadataFile" }
+            SyncResult.Success(metadataFile)
+        } catch (ex: Exception) {
+            log.error(ex) { "discogs_sync_error releaseId=$discogsId" }
+            SyncResult.Error(ex)
+        }
+
+    private fun writeAtomically(target: Path, content: String) {
+        val tmp = target.resolveSibling(target.fileName.toString() + ".tmp")
+        Files.writeString(tmp, content)
+        Files.move(tmp, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+    }
 
     /**
      * Downloads images listed in `<albumDir>/.kbeatz/metadata.json` for the requested picture types.
