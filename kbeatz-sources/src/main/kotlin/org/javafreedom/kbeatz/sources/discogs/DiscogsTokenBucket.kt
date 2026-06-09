@@ -24,6 +24,15 @@ private const val MAX_TOKENS = 60
  * allowed immediately after startup before throttling begins.
  *
  * All state mutations are protected by a [Mutex] to support concurrent callers.
+ *
+ * ## Observability
+ *
+ * When the bucket is empty and a caller must wait, a WARN log entry is emitted:
+ * ```
+ * discogs_rate_limit_wait waitMs=<ms> requestCount=<total requests this bucket lifetime>
+ * ```
+ * This indicates the Discogs quota window is being exhausted and aids production diagnosis
+ * of slow sync operations.
  */
 class DiscogsTokenBucket(
     private val maxTokens: Int = MAX_TOKENS,
@@ -33,9 +42,11 @@ class DiscogsTokenBucket(
     private val mutex = Mutex()
     private var tokens = maxTokens
     private var lastRefillMs = nowMs()
+    private var requestCount = 0
 
     /**
-     * Acquires one token. If no token is available, suspends until the next refill tick.
+     * Acquires one token. If no token is available, suspends until the next refill tick
+     * and emits a WARN log entry with the wait duration and cumulative request count.
      *
      * This is the only public API: call before every Discogs API request.
      */
@@ -46,13 +57,14 @@ class DiscogsTokenBucket(
                 refill()
                 if (tokens > 0) {
                     tokens--
+                    requestCount++
                     0L
                 } else {
                     refillIntervalMs
                 }
             }
             if (waitMs == 0L) return
-            log.debug { "Discogs token-bucket exhausted — waiting ${waitMs}ms for next refill" }
+            log.warn { "discogs_rate_limit_wait waitMs=$waitMs requestCount=$requestCount" }
             delay(waitMs)
         }
     }
