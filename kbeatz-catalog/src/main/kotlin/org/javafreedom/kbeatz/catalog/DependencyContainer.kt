@@ -1,6 +1,7 @@
 package org.javafreedom.kbeatz.catalog
 
 import java.nio.file.Path
+import kotlinx.coroutines.Dispatchers
 import org.javafreedom.kbeatz.catalog.application.service.AlbumService
 import org.javafreedom.kbeatz.catalog.application.service.CoverArtService
 import org.javafreedom.kbeatz.catalog.application.service.LibraryScanService
@@ -32,11 +33,17 @@ class DependencyContainer(config: AppConfig, libraryRootPath: Path, dataDirPath:
 
     val albumService = AlbumService(albumRepository, trackRepository)
     val coverArtService = CoverArtService(albumRepository, libraryRootPath)
+    // Concurrency model (issue #374): the entire scan pipeline (filesystem walk +
+    // FLAC tag reads + H2 writes) runs on a single coroutine dispatched to
+    // Dispatchers.IO.limitedParallelism(N), where N = catalog.scan.parallelism.
+    // Default N=4 prevents seek contention on spinning-disk libraries.
+    // Increase N for SSD libraries; set N=1 for fully sequential reads.
     val scanService = LibraryScanService(
         libraryRoot = libraryRootPath,
         walker = LibraryWalker(),
         albumRepository = albumRepository,
         repairTimeoutSeconds = config.repairTimeoutSeconds,
+        scanDispatcher = Dispatchers.IO.limitedParallelism(config.scanParallelism),
     )
     val syncService: SyncProvider = buildDiscogsSyncProvider(config, albumRepository, libraryRootPath, dataDirPath)
     val tagWriteService = TagWriteService(albumRepository, trackRepository, libraryRootPath)
