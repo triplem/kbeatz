@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Album } from '../../api/generated'
+import { formatDate } from '../../lib/i18n'
 
 interface AlbumCardProps {
   readonly album: Album
@@ -92,7 +93,7 @@ export function AlbumCard({ album }: AlbumCardProps) {
         </p>
         <div className="album-card__meta">
           {album.date && (
-            <span className="album-card__year">{album.date}</span>
+            <span className="album-card__year">{formatDate(album.date)}</span>
           )}
           {album.genre && (
             <span className="album-card__genre">{album.genre}</span>

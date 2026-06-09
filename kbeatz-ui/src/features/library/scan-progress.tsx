@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ScanStatus } from '../../api/generated'
 import { LibraryService } from '../../api/generated'
+import { formatDateTime } from '../../lib/i18n'
 
 const POLL_INTERVAL_MS = 2000
 
@@ -73,6 +74,11 @@ export function ScanProgress() {
       aria-atomic="true"
     >
       {t('scanProgress.running', { progress: progressText })}
+      {status.startedAt && (
+        <span className="scan-progress__timestamp">
+          {' '}{t('scanProgress.startedAt', { time: formatDateTime(status.startedAt) })}
+        </span>
+      )}
     </div>
   )
 }

@@ -73,13 +73,50 @@ describe('formatDate', () => {
     expect(formatDate('not-a-date')).toBe('not-a-date')
   })
 
-  it('returns formatted date string for valid ISO date', () => {
-    const result = formatDate('2023-05-15')
+  it('returns the raw string for malformed input without throwing', () => {
+    expect(() => formatDate('circa 1970')).not.toThrow()
+    expect(formatDate('circa 1970')).toBe('circa 1970')
+  })
+
+  it('returns bare year unchanged (no month or day artefacts)', () => {
+    expect(formatDate('1978')).toBe('1978')
+    expect(formatDate('2023')).toBe('2023')
+  })
+
+  it('formats year-month without day component', () => {
+    const result = formatDate('1978-06')
+    // The formatted result must contain the year
+    expect(result).toContain('1978')
+    // It must not be the raw ISO string
+    expect(result).not.toBe('1978-06')
+    // It must not contain a day number (no "-06" or "06" appearing as a day)
+    expect(result).not.toMatch(/\b0?6\b.*\b1978\b.*\b\d{1,2}\b/)
+  })
+
+  it('formats full ISO date in locale-aware form', () => {
+    const result = formatDate('2023-07-14')
     // Should not return the raw input or empty
     expect(result).not.toBe('')
-    expect(result).not.toBe('2023-05-15')
+    expect(result).not.toBe('2023-07-14')
     // Should contain the year
     expect(result).toContain('2023')
+  })
+
+  it('formats full ISO date - year always present', () => {
+    const result2 = formatDate('1978-07-14')
+    expect(result2).toContain('1978')
+    expect(result2).not.toBe('1978-07-14')
+  })
+
+  it('formats year-month "1978-06" - year present in result', () => {
+    const result = formatDate('1978-06')
+    expect(result).toContain('1978')
+  })
+
+  it('returns formatted date+time for ISO datetime string', () => {
+    const result = formatDate('2023-07-14T00:00:00Z')
+    expect(result).toContain('2023')
+    expect(result).not.toBe('2023-07-14T00:00:00Z')
   })
 })
 
@@ -96,6 +133,11 @@ describe('formatDateTime', () => {
     expect(formatDateTime('not-a-datetime')).toBe('not-a-datetime')
   })
 
+  it('returns the raw string for malformed input without throwing', () => {
+    expect(() => formatDateTime('bad-ts')).not.toThrow()
+    expect(formatDateTime('bad-ts')).toBe('bad-ts')
+  })
+
   it('returns formatted date+time string for valid ISO datetime', () => {
     const result = formatDateTime('2023-05-15T10:30:00Z')
     // Should not return the raw input or empty
@@ -103,5 +145,11 @@ describe('formatDateTime', () => {
     expect(result).not.toBe('2023-05-15T10:30:00Z')
     // Should contain the year
     expect(result).toContain('2023')
+  })
+
+  it('formats UTC timestamp - year always present', () => {
+    const result = formatDateTime('2026-06-09T20:31:20Z')
+    expect(result).toContain('2026')
+    expect(result).not.toBe('2026-06-09T20:31:20Z')
   })
 })

@@ -108,7 +108,9 @@
   "scanProgress": {
     "running": "Scanning: {{progress}} albums",
     "failed": "Scan failed: {{message}}",
-    "unknownError": "Unknown error"
+    "unknownError": "Unknown error",
+    "startedAt": "Started: {{time}}",
+    "completedAt": "Completed: {{time}}"
   },
   "syncPanel": {
     "heading": "Sync from Discogs",

@@ -43,6 +43,9 @@ interface EditableFieldProps {
   /** Optional ID of an element that describes the editing scope (e.g. "all N files").
    *  Used by the input's aria-describedby. */
   readonly scopeDescribedBy?: string
+  /** Optional formatted value shown in display mode. When omitted, `value` is shown.
+   *  The edit input always uses the raw `value` so the tag is not corrupted on save. */
+  readonly displayValue?: string
 }
 
 /**
@@ -70,6 +73,7 @@ export function EditableField({
   testIdPrefix = '',
   disabled = false,
   scopeDescribedBy,
+  displayValue,
 }: EditableFieldProps) {
   const { t } = useTranslation()
   const [editing, setEditing] = useState(false)
@@ -200,7 +204,7 @@ export function EditableField({
             disabled={disabled}
             aria-disabled={disabled}
           >
-            {value ?? <span className="editable-field__empty">{t('common.empty')}</span>}
+            {(displayValue ?? value) ?? <span className="editable-field__empty">{t('common.empty')}</span>}
             {/* Pencil affordance - hidden from screen readers since aria-label already describes the action */}
             <span className="editable-field__edit-icon" aria-hidden="true">{EDIT_ICON}</span>
           </button>
