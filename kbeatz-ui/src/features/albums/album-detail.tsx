@@ -54,6 +54,8 @@ export function AlbumDetail() {
   const [error, setError] = useState<string | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  /** True after any album-level tag has been successfully saved since the last sync. */
+  const [hasLocalEdits, setHasLocalEdits] = useState(false)
   const pendingSaveRef = useRef<PendingSave | null>(null)
 
   useEffect(() => {
@@ -120,6 +122,7 @@ export function AlbumDetail() {
         requestBody: { field: pending.field, value: pending.value },
       })
       setAlbum(updated)
+      setHasLocalEdits(true)
       pending.resolve()
     } catch (err) {
       pending.reject(err)
@@ -175,6 +178,8 @@ export function AlbumDetail() {
         hasCoverArt: updated.hasCoverArt,
       }
     })
+    // Sync completed - local edits are now overwritten by Discogs data
+    setHasLocalEdits(false)
   }, [])
 
   if (loading) return <p>{t('albumDetail.loading')}</p>
@@ -310,7 +315,7 @@ export function AlbumDetail() {
 
       {album.discogsId !== undefined && (
         <section aria-label={t('albumDetail.discogsSection')}>
-          <SyncPanel album={album} onSyncComplete={handleSyncComplete} />
+          <SyncPanel album={album} onSyncComplete={handleSyncComplete} hasLocalEdits={hasLocalEdits} />
         </section>
       )}
 

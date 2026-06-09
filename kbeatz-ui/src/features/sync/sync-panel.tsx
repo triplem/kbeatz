@@ -25,6 +25,7 @@ function countChangedFields(before: Album, after: Album): number {
 
 type SyncState =
   | { status: 'idle' }
+  | { status: 'confirmOverwrite' }
   | { status: 'loading' }
   | { status: 'success'; fieldsWritten: number }
   | { status: 'error'; message: string }
@@ -33,6 +34,9 @@ type SyncState =
 interface SyncPanelProps {
   readonly album: Album
   readonly onSyncComplete: (updated: Album) => void
+  /** When true the user has edited tags locally since the last sync; a confirmation
+   *  dialog is shown before the sync proceeds to prevent silent overwrites. */
+  readonly hasLocalEdits?: boolean
 }
 
 /**
@@ -41,15 +45,18 @@ interface SyncPanelProps {
  * Only rendered when the album has a `discogsId`.
  * Calls POST /api/v1/albums/{albumId}/sync and handles all response states.
  * Displays the number of tag fields updated after a successful sync.
+ *
+ * When `hasLocalEdits` is true, clicking "Sync from Discogs" first shows a
+ * confirmation dialog warning the user that local tag edits will be overwritten.
  */
-export function SyncPanel({ album, onSyncComplete }: SyncPanelProps) {
+export function SyncPanel({ album, onSyncComplete, hasLocalEdits = false }: SyncPanelProps) {
   const { t } = useTranslation()
   const [downloadImages, setDownloadImages] = useState(false)
   const [syncState, setSyncState] = useState<SyncState>({ status: 'idle' })
 
   if (!album.discogsId) return null
 
-  const handleSync = async () => {
+  const executeSync = async () => {
     setSyncState({ status: 'loading' })
     const controller = new AbortController()
     const timeoutId = setTimeout(() => { controller.abort() }, SYNC_TIMEOUT_MS)
@@ -84,6 +91,25 @@ export function SyncPanel({ album, onSyncComplete }: SyncPanelProps) {
     }
   }
 
+  const handleSyncClick = () => {
+    if (hasLocalEdits) {
+      // Show overwrite warning before proceeding
+      setSyncState({ status: 'confirmOverwrite' })
+    } else {
+      void executeSync()
+    }
+  }
+
+  const handleConfirmOverwrite = () => {
+    void executeSync()
+  }
+
+  const handleCancelOverwrite = () => {
+    setSyncState({ status: 'idle' })
+  }
+
+  const isLoading = syncState.status === 'loading'
+
   return (
     <section aria-label={t('syncPanel.ariaLabel')} className="sync-panel">
       <h3>{t('syncPanel.heading')}</h3>
@@ -97,7 +123,7 @@ export function SyncPanel({ album, onSyncComplete }: SyncPanelProps) {
           type="checkbox"
           checked={downloadImages}
           onChange={(e) => { setDownloadImages(e.target.checked) }}
-          disabled={syncState.status === 'loading'}
+          disabled={isLoading}
           data-testid="download-images-checkbox"
           aria-label={t('syncPanel.downloadImagesAriaLabel')}
         />
@@ -106,17 +132,50 @@ export function SyncPanel({ album, onSyncComplete }: SyncPanelProps) {
 
       <button
         type="button"
-        onClick={() => { void handleSync() }}
-        disabled={syncState.status === 'loading'}
-        aria-disabled={syncState.status === 'loading'}
-        aria-label={syncState.status === 'loading'
+        onClick={handleSyncClick}
+        disabled={isLoading}
+        aria-disabled={isLoading}
+        aria-label={isLoading
           ? t('syncPanel.syncButtonLoading')
           : t('syncPanel.syncButton')}
         data-testid="sync-button"
         className="sync-button"
       >
-        {syncState.status === 'loading' ? t('syncPanel.syncButtonLoading') : t('syncPanel.syncButton')}
+        {isLoading ? t('syncPanel.syncButtonLoading') : t('syncPanel.syncButton')}
       </button>
+
+      {/* Overwrite warning dialog */}
+      {syncState.status === 'confirmOverwrite' && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="sync-overwrite-title"
+          aria-describedby="sync-overwrite-body"
+          data-testid="sync-overwrite-dialog"
+          className="sync-overwrite-dialog"
+        >
+          <h4 id="sync-overwrite-title">{t('syncPanel.overwriteTitle')}</h4>
+          <p id="sync-overwrite-body">{t('syncPanel.overwriteBody')}</p>
+          <div className="sync-overwrite-dialog__actions">
+            <button
+              type="button"
+              onClick={handleCancelOverwrite}
+              data-testid="sync-overwrite-cancel"
+              className="sync-overwrite-dialog__cancel"
+            >
+              {t('common.cancel')}
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmOverwrite}
+              data-testid="sync-overwrite-confirm"
+              className="sync-overwrite-dialog__confirm"
+            >
+              {t('syncPanel.overwriteConfirm')}
+            </button>
+          </div>
+        </div>
+      )}
 
       {syncState.status === 'loading' && (
         <p role="status" aria-live="polite" data-testid="sync-loading">

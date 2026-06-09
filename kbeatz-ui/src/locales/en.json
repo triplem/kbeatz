@@ -122,7 +122,10 @@
     "successMessage_other": "Sync complete - {{count}} fields updated.",
     "quotaExhausted": "Image quota exhausted. Resets at {{resetAt}}.",
     "downloadImagesAriaLabel": "Download cover art",
-    "syncTimeout": "Sync timed out. Check the catalog logs for details."
+    "syncTimeout": "Sync timed out. Check the catalog logs for details.",
+    "overwriteTitle": "Overwrite local tag edits?",
+    "overwriteBody": "Syncing from Discogs will overwrite your local tag edits. Continue?",
+    "overwriteConfirm": "Continue sync"
   },
   "app": {
     "title": "kbeatz"
