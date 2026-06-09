@@ -6,6 +6,7 @@ import { CancelledByUserError } from './cancelled-by-user-error'
 import { ConfirmWriteDialog } from './confirm-write-dialog'
 import { EditableField } from './editable-field'
 import { SyncPanel } from '../sync/sync-panel'
+import { formatDate } from '../../lib/i18n'
 
 /**
  * AlbumDetail — shows all Vorbis Comment tag fields for a single album with inline editing.
@@ -250,6 +251,7 @@ export function AlbumDetail() {
           <EditableField
             label={t('albumDetail.fields.date')}
             value={album.date}
+            displayValue={album.date !== undefined ? formatDate(album.date) : undefined}
             fieldName="DATE"
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
