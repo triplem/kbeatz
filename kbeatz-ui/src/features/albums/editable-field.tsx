@@ -15,16 +15,26 @@ interface EditableFieldProps {
   /** When true, the field is in read-only display mode and cannot enter edit mode.
    *  Used to disable all fields while another field's PATCH is in flight. */
   readonly disabled?: boolean
+  /** Optional ID of an element that describes the editing scope (e.g. "all N files").
+   *  Used by the input's aria-describedby. */
+  readonly scopeDescribedBy?: string
 }
 
 /**
  * EditableField - click-to-edit inline text input for a single Vorbis Comment field.
  *
+ * Accessibility (WCAG AA):
+ * - Display button has aria-label describing both the field name and current value.
+ * - Input has aria-label; optionally aria-describedby for scope notice.
+ * - Escape key cancels edit and returns focus to the display button.
+ * - After save completes (or is cancelled), focus returns to the display button.
+ * - Pencil icon is aria-hidden (the aria-label already conveys edit affordance).
+ *
  * Behaviour:
  * - Click on value text - input appears pre-filled with current value
  * - Enter - calls onSave; triggers confirmation dialog before the PATCH is fired
  * - Blur (click away) - silently cancels edit, restores original value; no dialog, no API call
- * - Escape - cancels edit, restores original value; no API call made
+ * - Escape - cancels edit, restores original value; no API call made; focus returns to button
  * - On save error - rolls back to pre-edit value and sets error message
  */
 export function EditableField({
@@ -34,6 +44,7 @@ export function EditableField({
   onSave,
   testIdPrefix = '',
   disabled = false,
+  scopeDescribedBy,
 }: EditableFieldProps) {
   const { t } = useTranslation()
   const [editing, setEditing] = useState(false)
@@ -41,6 +52,7 @@ export function EditableField({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const displayButtonRef = useRef<HTMLButtonElement>(null)
 
   // Keep editValue in sync when value prop changes externally (e.g. after parent refreshes)
   useEffect(() => {
@@ -59,6 +71,8 @@ export function EditableField({
     setEditing(false)
     setEditValue(value ?? '')
     setError(null)
+    // Return focus to the display button so keyboard users can continue navigating
+    setTimeout(() => { displayButtonRef.current?.focus() }, 0)
   }, [value])
 
   const commitEdit = useCallback(async () => {
@@ -69,6 +83,7 @@ export function EditableField({
     // No change - just cancel
     if (newValue === originalValue) {
       setEditing(false)
+      setTimeout(() => { displayButtonRef.current?.focus() }, 0)
       return
     }
 
@@ -77,6 +92,8 @@ export function EditableField({
       await onSave(fieldName, newValue)
       setEditing(false)
       setError(null)
+      // Return focus to the display button after successful save
+      setTimeout(() => { displayButtonRef.current?.focus() }, 0)
     } catch (err) {
       // Rollback to original value
       setEditValue(originalValue)
@@ -88,6 +105,8 @@ export function EditableField({
       } else {
         setError(err instanceof Error ? err.message : t('editableField.saveFailed'))
       }
+      // Return focus to the display button even on error
+      setTimeout(() => { displayButtonRef.current?.focus() }, 0)
     } finally {
       setSaving(false)
     }
@@ -120,6 +139,7 @@ export function EditableField({
   }, [editing])
 
   const prefix = testIdPrefix ? `${testIdPrefix}-` : ''
+  const errorId = error !== null ? `${prefix}error-${fieldName.toLowerCase()}` : undefined
 
   return (
     <div className="editable-field" data-testid={`${prefix}field-${fieldName.toLowerCase()}`}>
@@ -135,16 +155,20 @@ export function EditableField({
             onBlur={handleBlur}
             disabled={saving}
             aria-label={t('editableField.editLabel', { label })}
+            aria-describedby={scopeDescribedBy}
+            aria-busy={saving}
             data-testid={`${prefix}input-${fieldName.toLowerCase()}`}
             className="editable-field__input"
           />
         ) : (
           <button
+            ref={displayButtonRef}
             type="button"
             onClick={disabled ? undefined : startEditing}
             aria-label={value
               ? t('editableField.editWithValue', { label, value })
               : t('editableField.editEmpty', { label })}
+            aria-describedby={errorId}
             data-testid={`${prefix}value-${fieldName.toLowerCase()}`}
             className="editable-field__display"
             title={disabled ? undefined : t('editableField.clickToEdit', { label })}
@@ -157,7 +181,12 @@ export function EditableField({
           </button>
         )}
         {error !== null && (
-          <p role="alert" className="editable-field__error" data-testid={`${prefix}error-${fieldName.toLowerCase()}`}>
+          <p
+            role="alert"
+            id={errorId}
+            className="editable-field__error"
+            data-testid={`${prefix}error-${fieldName.toLowerCase()}`}
+          >
             {error}
           </p>
         )}
