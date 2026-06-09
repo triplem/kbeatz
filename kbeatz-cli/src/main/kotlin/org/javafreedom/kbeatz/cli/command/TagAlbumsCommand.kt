@@ -1,6 +1,7 @@
 package org.javafreedom.kbeatz.cli.command
 
 import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.ProgramResult
 import com.github.ajalt.clikt.core.UsageError
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.convert
@@ -100,6 +101,24 @@ class TagAlbumsCommand(
             echo("Tagged $tagged albums, $skipped skipped, $errors errors")
             logger.info { "tag complete: tagged=$tagged skipped=$skipped errors=$errors" }
         }
+        resolveExitCode(isBatchMode = libraryRoot != null, tagged = tagged, errors = errors)
+    }
+
+    /**
+     * Resolves and throws the appropriate [ProgramResult] exit code when the run is not fully
+     * successful. Batch mode distinguishes a partial failure (exit 3) from a total failure
+     * (exit 1). Single-target mode uses exit 1 for any error.
+     *
+     * This function only throws when the exit code is non-zero; a clean run returns normally
+     * (Clikt then exits with 0).
+     */
+    internal fun resolveExitCode(isBatchMode: Boolean, tagged: Int, errors: Int) {
+        if (errors == 0) return
+        val code = when {
+            isBatchMode && tagged > 0 -> ExitCodes.PARTIAL_FAILURE
+            else -> ExitCodes.FAILURE
+        }
+        throw ProgramResult(code)
     }
 
     private fun tagAlbum(dir: Path, idReader: IdFileReader, lazyService: Lazy<TaggerService>): TagOutcome {
@@ -139,7 +158,7 @@ class TagAlbumsCommand(
                     TagOutcome.SKIPPED
                 }
                 is TagResult.Failed -> {
-                    echo("ERROR  $dir")
+                    echo("ERROR  $dir - ${result.cause.message ?: "unknown error"}", err = true)
                     logger.error(result.cause) { "ERROR  dir=$dir" }
                     TagOutcome.ERROR
                 }

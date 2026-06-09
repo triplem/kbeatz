@@ -77,14 +77,15 @@ class TagAlbumsCommandTest {
     }
 
     @Test
-    fun `should exit cleanly when service returns Failed`(@TempDir tempDir: java.nio.file.Path) {
+    fun `should exit with code 1 when service returns Failed for single target`(@TempDir tempDir: java.nio.file.Path) {
         Files.writeString(tempDir.resolve("id.txt"), "[source]\ndiscogs_id=42\n")
         val mockService = mockk<TaggerService>()
         coEvery { mockService.tagAlbum(any(), any()) } returns
             TagResult.Failed(Path(tempDir.toString()), RuntimeException("network error"))
         val result = TagAlbumsCommand(taggerServiceOverride = mockService).test("$tempDir")
-        assertTrue(result.statusCode == 0)
-        assertContains(result.output, "ERROR")
+        assertTrue(result.statusCode == ExitCodes.FAILURE, "Expected exit code 1 but got ${result.statusCode}")
+        assertContains(result.stderr, "ERROR")
+        assertContains(result.stderr, "network error")
     }
 
     @Test
@@ -196,5 +197,80 @@ class TagAlbumsCommandTest {
         assertContains(result.output, "DRY")
         assertContains(result.output, "discogs_id=55")
         assertTrue(noId.toFile().isDirectory) // directory still exists
+    }
+
+    // --- Exit code tests ---
+
+    @Test
+    fun `resolveExitCode returns normally when no errors occurred`() {
+        val cmd = TagAlbumsCommand()
+        // Should not throw ProgramResult
+        cmd.resolveExitCode(isBatchMode = false, tagged = 1, errors = 0)
+        cmd.resolveExitCode(isBatchMode = true, tagged = 5, errors = 0)
+    }
+
+    @Test
+    fun `resolveExitCode throws ProgramResult with code 1 for single-target failure`() {
+        val cmd = TagAlbumsCommand()
+        val ex = kotlin.test.assertFailsWith<com.github.ajalt.clikt.core.ProgramResult> {
+            cmd.resolveExitCode(isBatchMode = false, tagged = 0, errors = 1)
+        }
+        assertTrue(ex.statusCode == ExitCodes.FAILURE, "Expected exit code 1 but got ${ex.statusCode}")
+    }
+
+    @Test
+    fun `resolveExitCode throws ProgramResult with code 1 when all batch albums fail`() {
+        val cmd = TagAlbumsCommand()
+        val ex = kotlin.test.assertFailsWith<com.github.ajalt.clikt.core.ProgramResult> {
+            cmd.resolveExitCode(isBatchMode = true, tagged = 0, errors = 3)
+        }
+        assertTrue(ex.statusCode == ExitCodes.FAILURE, "Expected exit code 1 but got ${ex.statusCode}")
+    }
+
+    @Test
+    fun `resolveExitCode throws ProgramResult with code 3 for partial batch failure`() {
+        val cmd = TagAlbumsCommand()
+        val ex = kotlin.test.assertFailsWith<com.github.ajalt.clikt.core.ProgramResult> {
+            cmd.resolveExitCode(isBatchMode = true, tagged = 97, errors = 3)
+        }
+        assertTrue(ex.statusCode == ExitCodes.PARTIAL_FAILURE, "Expected exit code 3 but got ${ex.statusCode}")
+    }
+
+    @Test
+    fun `should exit with code 0 when all library albums tag successfully`(@TempDir tempDir: java.nio.file.Path) {
+        val album = Files.createDirectory(tempDir.resolve("album"))
+        Files.writeString(album.resolve("id.txt"), "[source]\ndiscogs_id=42\n")
+        val mockService = mockk<TaggerService>()
+        coEvery { mockService.tagAlbum(any(), any()) } returns
+            TagResult.Tagged(Path(album.toString()), "42", 2)
+        val result = TagAlbumsCommand(taggerServiceOverride = mockService).test("--library $tempDir")
+        assertTrue(result.statusCode == ExitCodes.SUCCESS, "Expected exit code 0 but got ${result.statusCode}")
+    }
+
+    @Test
+    fun `should exit with code 3 when some library albums fail in batch mode`(@TempDir tempDir: java.nio.file.Path) {
+        val album1 = Files.createDirectory(tempDir.resolve("album1"))
+        Files.writeString(album1.resolve("id.txt"), "[source]\ndiscogs_id=10\n")
+        val album2 = Files.createDirectory(tempDir.resolve("album2"))
+        Files.writeString(album2.resolve("id.txt"), "[source]\ndiscogs_id=20\n")
+        val mockService = mockk<TaggerService>()
+        coEvery { mockService.tagAlbum(Path(album1.toString()), any()) } returns
+            TagResult.Tagged(Path(album1.toString()), "10", 1)
+        coEvery { mockService.tagAlbum(Path(album2.toString()), any()) } returns
+            TagResult.Failed(Path(album2.toString()), RuntimeException("api error"))
+        val result = TagAlbumsCommand(taggerServiceOverride = mockService).test("--library $tempDir")
+        assertTrue(result.statusCode == ExitCodes.PARTIAL_FAILURE, "Expected exit code 3 but got ${result.statusCode}")
+        assertContains(result.stderr, "api error")
+    }
+
+    @Test
+    fun `should exit with code 1 when all library albums fail in batch mode`(@TempDir tempDir: java.nio.file.Path) {
+        val album = Files.createDirectory(tempDir.resolve("album"))
+        Files.writeString(album.resolve("id.txt"), "[source]\ndiscogs_id=10\n")
+        val mockService = mockk<TaggerService>()
+        coEvery { mockService.tagAlbum(any(), any()) } returns
+            TagResult.Failed(Path(album.toString()), RuntimeException("total failure"))
+        val result = TagAlbumsCommand(taggerServiceOverride = mockService).test("--library $tempDir")
+        assertTrue(result.statusCode == ExitCodes.FAILURE, "Expected exit code 1 but got ${result.statusCode}")
     }
 }

@@ -1,6 +1,7 @@
 package org.javafreedom.kbeatz.cli.command
 
 import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.ProgramResult
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.convert
 import com.github.ajalt.clikt.parameters.options.flag
@@ -68,6 +69,24 @@ class MigrateIdFilesCommand : CliktCommand(
 
         echo("Migrated $migrated files, $skipped skipped, $errors errors")
         logger.info { "migrate-ids complete: migrated=$migrated skipped=$skipped errors=$errors" }
+        resolveExitCode(migrated = migrated, errors = errors)
+    }
+
+    /**
+     * Resolves and throws the appropriate [ProgramResult] exit code when the run is not fully
+     * successful. Distinguishes a partial failure (exit 3, some succeeded) from a total failure
+     * (exit 1, none succeeded or unreadable directory).
+     *
+     * This function only throws when the exit code is non-zero; a clean run returns normally
+     * (Clikt then exits with 0).
+     */
+    internal fun resolveExitCode(migrated: Int, errors: Int) {
+        if (errors == 0) return
+        val code = when {
+            migrated > 0 -> ExitCodes.PARTIAL_FAILURE
+            else -> ExitCodes.FAILURE
+        }
+        throw ProgramResult(code)
     }
 
     private fun migrateDirectory(dir: Path, idReader: IdFileReader): MigrateOutcome {
@@ -86,7 +105,7 @@ class MigrateIdFilesCommand : CliktCommand(
     private fun migrateWithIdFile(dir: Path, idReader: IdFileReader): MigrateOutcome =
         runCatching { idReader.read(dir) }
             .getOrElse { e ->
-                echo("ERROR $dir")
+                echo("ERROR $dir - ${e.message ?: "unknown error"}", err = true)
                 logger.error(e) { "ERROR dir=$dir" }
                 return MigrateOutcome.ERROR
             }
