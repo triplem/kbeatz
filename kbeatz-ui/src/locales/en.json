@@ -68,6 +68,9 @@
     "editWithValue": "Edit {{label}}: {{value}}",
     "editEmpty": "Edit {{label}}: (empty)",
     "saveFailed": "Save failed",
+    "saveFailedTimeout": "Save failed: request timed out. Please try again.",
+    "saveFailedServer": "Save failed: server error. Check the catalog logs.",
+    "saveFailedUnreachable": "Save failed: could not reach kbeatz-catalog.",
     "clickToEdit": "Click to edit {{label}}"
   },
   "confirmDialog": {

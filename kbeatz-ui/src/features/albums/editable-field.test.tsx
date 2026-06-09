@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi } from 'vitest'
 import { EditableField } from './editable-field'
 
@@ -192,6 +193,61 @@ describe('EditableField', () => {
     await waitFor(() => {
       expect(onSave).not.toHaveBeenCalled()
       expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument()
+    })
+  })
+
+  // ──────────────────────────────────────────────
+  // Specific error messages (#384)
+  // ──────────────────────────────────────────────
+
+  it('shows timeout error message when save fails with AbortError', async () => {
+    const abortError = new DOMException('The operation was aborted', 'AbortError')
+    const onSave = vi.fn().mockRejectedValue(abortError)
+    render(<EditableField {...defaultProps} onSave={onSave} />)
+
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    await userEvent.clear(screen.getByTestId('album-input-genre'))
+    await userEvent.type(screen.getByTestId('album-input-genre'), 'NewValue')
+    fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('album-error-genre')).toHaveTextContent(
+        'Save failed: request timed out',
+      )
+    })
+  })
+
+  it('shows server error message when save fails with HTTP 500', async () => {
+    const serverError = { status: 500, message: 'Internal Server Error' }
+    const onSave = vi.fn().mockRejectedValue(serverError)
+    render(<EditableField {...defaultProps} onSave={onSave} />)
+
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    await userEvent.clear(screen.getByTestId('album-input-genre'))
+    await userEvent.type(screen.getByTestId('album-input-genre'), 'NewValue')
+    fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('album-error-genre')).toHaveTextContent(
+        'Save failed: server error',
+      )
+    })
+  })
+
+  it('shows unreachable error message when save fails with fetch TypeError', async () => {
+    const fetchError = new TypeError('Failed to fetch')
+    const onSave = vi.fn().mockRejectedValue(fetchError)
+    render(<EditableField {...defaultProps} onSave={onSave} />)
+
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    await userEvent.clear(screen.getByTestId('album-input-genre'))
+    await userEvent.type(screen.getByTestId('album-input-genre'), 'NewValue')
+    fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('album-error-genre')).toHaveTextContent(
+        'Save failed: could not reach kbeatz-catalog',
+      )
     })
   })
 })
