@@ -2,13 +2,19 @@ package org.javafreedom.kbeatz.sources.discogs
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.IOException
+import java.nio.channels.FileChannel
+import java.nio.channels.OverlappingFileLockException
 import java.nio.file.Files
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
+import java.nio.file.StandardOpenOption.CREATE
+import java.nio.file.StandardOpenOption.READ
+import java.nio.file.StandardOpenOption.WRITE
 import java.time.Clock
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -17,12 +23,30 @@ private val log = KotlinLogging.logger {}
 private const val DAILY_IMAGE_LIMIT = 1000
 
 /**
+ * Timeout in seconds to wait for the cross-process file lock before giving up.
+ * Matches the 5-second requirement from the issue acceptance criteria.
+ */
+private const val LOCK_TIMEOUT_SECONDS = 5L
+
+/**
  * Daily image download quota tracker for the Discogs API (1 000 images/day).
  *
  * When [quotaFile] is provided, the quota state is persisted atomically to a JSON file
  * so that the counter survives service restarts. The date is compared in UTC.
  *
  * Resets automatically when the UTC calendar date changes. Thread-safe.
+ *
+ * ## Cross-process safety
+ *
+ * Both the catalog service and the CLI can update the quota file simultaneously.
+ * Every read-modify-write cycle acquires an exclusive [java.nio.channels.FileLock] on
+ * the quota file so that concurrent JVM processes do not double-spend the quota.
+ * The lock is advisory (standard on Linux/macOS/Windows); direct file writes that
+ * bypass FileLock (e.g. a text editor) are not coordinated - this is acceptable for
+ * this use case.
+ *
+ * A caller that cannot acquire the lock within [LOCK_TIMEOUT_SECONDS] seconds fails
+ * with [QuotaLockTimeoutException] rather than blocking indefinitely.
  *
  * ## File format
  * ```json
@@ -45,16 +69,31 @@ class DiscogsImageQuota(
 
     /** Returns `true` if fewer than 1 000 images have been downloaded today (UTC). */
     fun canDownload(): Boolean = lock.withLock {
-        resetIfNewDay()
+        if (quotaFile != null) {
+            withFileLock(quotaFile) {
+                state = reloadState() ?: state
+                resetIfNewDay()
+            }
+        } else {
+            resetIfNewDay()
+        }
         state.downloaded < DAILY_IMAGE_LIMIT
     }
 
     /** Records one image download against today's quota. Persists to file if configured. */
     fun recordDownload() {
         lock.withLock {
-            resetIfNewDay()
-            state = state.copy(downloaded = state.downloaded + 1)
-            persist()
+            if (quotaFile != null) {
+                withFileLock(quotaFile) {
+                    state = reloadState() ?: state
+                    resetIfNewDay()
+                    state = state.copy(downloaded = state.downloaded + 1)
+                    persist()
+                }
+            } else {
+                resetIfNewDay()
+                state = state.copy(downloaded = state.downloaded + 1)
+            }
         }
     }
 
@@ -64,9 +103,49 @@ class DiscogsImageQuota(
      * Primarily used in tests and monitoring.
      */
     fun downloadedToday(): Int = lock.withLock {
-        resetIfNewDay()
+        if (quotaFile != null) {
+            withFileLock(quotaFile) {
+                state = reloadState() ?: state
+                resetIfNewDay()
+            }
+        } else {
+            resetIfNewDay()
+        }
         state.downloaded
     }
+
+    /**
+     * Acquires an exclusive cross-process FileLock on [file] and executes [block].
+     *
+     * The file is opened with CREATE so it is created if it does not yet exist.
+     * If the lock cannot be acquired within [LOCK_TIMEOUT_SECONDS] seconds,
+     * [QuotaLockTimeoutException] is thrown.
+     */
+    @Suppress("TooGenericExceptionCaught") // file-channel errors must not crash the caller silently
+    private fun withFileLock(file: Path, block: () -> Unit) {
+        Files.createDirectories(file.parent)
+        FileChannel.open(file, READ, WRITE, CREATE).use { channel ->
+            val deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(LOCK_TIMEOUT_SECONDS)
+            var fileLock = tryAcquireLock(channel)
+            while (fileLock == null) {
+                if (System.currentTimeMillis() >= deadline) {
+                    throw QuotaLockTimeoutException(
+                        "Could not acquire quota file lock within ${LOCK_TIMEOUT_SECONDS}s: $file"
+                    )
+                }
+                Thread.sleep(LOCK_POLL_MS)
+                fileLock = tryAcquireLock(channel)
+            }
+            fileLock.use { _ -> block() }
+        }
+    }
+
+    private fun tryAcquireLock(channel: FileChannel) =
+        try {
+            channel.tryLock()
+        } catch (_: OverlappingFileLockException) {
+            null
+        }
 
     private fun resetIfNewDay() {
         val today = LocalDate.now(clock)
@@ -76,6 +155,12 @@ class DiscogsImageQuota(
             persist()
         }
     }
+
+    /**
+     * Re-reads the quota file from disk. Called inside a FileLock to get the
+     * latest value written by another process.
+     */
+    private fun reloadState(): QuotaState? = quotaFile?.let { readFromFile(it) }
 
     @Suppress("TooGenericExceptionCaught") // filesystem errors during persist must not crash the caller
     private fun persist() {
@@ -87,7 +172,7 @@ class DiscogsImageQuota(
             Files.writeString(tmp, json)
             Files.move(tmp, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
         } catch (ex: Exception) {
-            log.warn(ex) { "Failed to persist Discogs image quota to $file — continuing in-memory" }
+            log.warn(ex) { "Failed to persist Discogs image quota to $file - continuing in-memory" }
         }
     }
 
@@ -103,17 +188,20 @@ class DiscogsImageQuota(
             val parsed = parseJson(json) ?: return null
             QuotaState(downloaded = parsed.first, date = parsed.second)
         } catch (ex: NoSuchFileException) {
-            log.debug(ex) { "Discogs image quota file not found: $file — starting fresh" }
+            log.debug(ex) { "Discogs image quota file not found: $file - starting fresh" }
             null
         } catch (ex: IOException) {
-            log.warn(ex) { "Failed to read Discogs image quota from $file — starting fresh" }
+            log.warn(ex) { "Failed to read Discogs image quota from $file - starting fresh" }
             null
         } catch (ex: DateTimeParseException) {
-            log.warn(ex) { "Corrupt date in Discogs image quota file $file — starting fresh" }
+            log.warn(ex) { "Corrupt date in Discogs image quota file $file - starting fresh" }
             null
         }
 
     companion object {
+        /** Polling interval in milliseconds when waiting for the cross-process file lock. */
+        internal const val LOCK_POLL_MS = 50L
+
         /**
          * Minimal JSON parser for the quota file format `{"downloaded":N,"date":"YYYY-MM-DD"}`.
          * Returns a `Pair(downloaded, date)` or null on parse failure.
@@ -130,3 +218,11 @@ class DiscogsImageQuota(
 
     private data class QuotaState(val downloaded: Int, val date: LocalDate)
 }
+
+/**
+ * Thrown when the cross-process file lock on the quota file cannot be acquired
+ * within the configured timeout.
+ *
+ * Error code for structured error responses: `QUOTA_LOCK_TIMEOUT`.
+ */
+class QuotaLockTimeoutException(message: String) : RuntimeException(message)

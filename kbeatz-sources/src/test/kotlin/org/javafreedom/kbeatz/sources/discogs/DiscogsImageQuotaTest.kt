@@ -4,10 +4,14 @@ import java.nio.file.Files
 import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneOffset
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 /**
  * Unit tests for [DiscogsImageQuota] covering in-memory, persistence, and day-reset behaviour.
@@ -116,7 +120,7 @@ class DiscogsImageQuotaTest {
         val yesterday = LocalDate.now(Clock.systemUTC()).minusDays(1)
         Files.writeString(file, """{"downloaded":900,"date":"$yesterday"}""")
 
-        // Load with today's clock — should reset
+        // Load with today's clock - should reset
         val quota = DiscogsImageQuota(quotaFile = file)
 
         assertTrue(quota.canDownload(), "Stale date should trigger reset")
@@ -199,5 +203,104 @@ class DiscogsImageQuotaTest {
 
         quota.recordDownload()
         assertFalse(quota.canDownload())
+    }
+
+    // --- concurrent access (cross-thread, simulates cross-process FileLock behaviour) ---
+
+    @Test
+    fun `concurrent recordDownload from two instances reflects exactly N increments`() {
+        val dir = Files.createTempDirectory("quota-concurrent-test")
+        val file = dir.resolve("discogs-image-quota.json")
+
+        val threadCount = 2
+        val downloadsPerThread = 10
+        val executor = Executors.newFixedThreadPool(threadCount)
+        val startLatch = CountDownLatch(1)
+        val errors = AtomicInteger(0)
+
+        val futures = (1..threadCount).map {
+            executor.submit {
+                val quota = DiscogsImageQuota(quotaFile = file)
+                startLatch.await() // all threads start simultaneously
+                repeat(downloadsPerThread) {
+                    try {
+                        quota.recordDownload()
+                    } catch (ex: Exception) {
+                        errors.incrementAndGet()
+                    }
+                }
+            }
+        }
+
+        startLatch.countDown() // release all threads at once
+        futures.forEach { it.get() }
+        executor.shutdown()
+
+        assertEquals(0, errors.get(), "No errors expected during concurrent access")
+
+        // Re-read from file to verify the persisted count
+        val finalQuota = DiscogsImageQuota(quotaFile = file)
+        val expected = threadCount * downloadsPerThread
+        assertEquals(
+            expected,
+            finalQuota.downloadedToday(),
+            "Expected exactly $expected downloads persisted (no double-spend, no lost updates)"
+        )
+    }
+
+    @Test
+    fun `recordDownload from two separate quota instances on the same file reflects both increments`() {
+        val dir = Files.createTempDirectory("quota-two-instance-test")
+        val file = dir.resolve("discogs-image-quota.json")
+
+        val quota1 = DiscogsImageQuota(quotaFile = file)
+        val quota2 = DiscogsImageQuota(quotaFile = file)
+
+        quota1.recordDownload()
+        quota2.recordDownload()
+
+        val finalQuota = DiscogsImageQuota(quotaFile = file)
+        assertEquals(
+            2,
+            finalQuota.downloadedToday(),
+            "Both increments should be persisted when two instances write sequentially"
+        )
+    }
+
+    // --- lock timeout ---
+
+    @Test
+    fun `QuotaLockTimeoutException is thrown when lock cannot be acquired`() {
+        val dir = Files.createTempDirectory("quota-lock-timeout-test")
+        val file = dir.resolve("discogs-image-quota.json")
+
+        // Hold the file lock in a background thread to force a timeout
+        val lockHeld = CountDownLatch(1)
+        val releaseLock = CountDownLatch(1)
+
+        val holder = Thread {
+            java.nio.channels.FileChannel.open(
+                file,
+                java.nio.file.StandardOpenOption.READ,
+                java.nio.file.StandardOpenOption.WRITE,
+                java.nio.file.StandardOpenOption.CREATE,
+            ).use { channel ->
+                channel.lock().use { _ ->
+                    lockHeld.countDown()
+                    releaseLock.await(10, java.util.concurrent.TimeUnit.SECONDS)
+                }
+            }
+        }
+        holder.isDaemon = true
+        holder.start()
+        lockHeld.await() // wait until the holder actually has the lock
+
+        val quota = DiscogsImageQuota(quotaFile = file)
+        assertFailsWith<QuotaLockTimeoutException> {
+            quota.recordDownload()
+        }
+
+        releaseLock.countDown()
+        holder.join()
     }
 }
