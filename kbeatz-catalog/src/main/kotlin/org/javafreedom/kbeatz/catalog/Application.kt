@@ -26,7 +26,7 @@ fun main() {
 
 @Suppress("TooGenericExceptionCaught") // startup failures should crash the application
 fun Application.module() {
-    val config = AppConfig.fromEnv()
+    val config = AppConfig.fromConf()
     attributes.put(AppConfigKey, config)
 
     val libraryRootPath = Path.of(config.catalogLibraryRoot)

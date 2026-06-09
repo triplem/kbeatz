@@ -6,7 +6,17 @@ services:
     ports:
       - "8080:8080"
     environment:
+      # Required: absolute path to the FLAC library root (mounted read-write at /library)
       CATALOG_LIBRARY_ROOT: /library
+      # Optional: override the JDBC connection URL (default: file-based H2)
+      CATALOG_JDBC_URL: ${CATALOG_JDBC_URL:-}
+      # Optional: database username (default: sa)
+      CATALOG_DB_USER: ${CATALOG_DB_USER:-sa}
+      # Optional: database password (default: empty)
+      CATALOG_DB_PASSWORD: ${CATALOG_DB_PASSWORD:-}
+      # Optional: runtime data directory for image quota tracking (default: ./data)
+      CATALOG_DATA_DIR: ${CATALOG_DATA_DIR:-}
+      # Optional: Discogs Personal Access Token; sync is unavailable without it
       DISCOGS_TOKEN: ${DISCOGS_TOKEN:-}
     volumes:
       - ${CATALOG_LIBRARY_ROOT:-/tmp/kbeatz-library}:/library:rw

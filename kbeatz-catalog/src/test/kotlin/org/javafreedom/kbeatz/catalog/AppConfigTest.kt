@@ -1,5 +1,6 @@
 package org.javafreedom.kbeatz.catalog
 
+import com.typesafe.config.ConfigFactory
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -11,8 +12,19 @@ class AppConfigTest {
         root: String = System.getProperty("java.io.tmpdir"),
         token: String? = null,
         jdbcUrl: String = "jdbc:h2:mem:test",
+        dbUser: String = "sa",
+        dbPassword: String = "",
         dataDir: String = "./data",
-    ) = AppConfig(catalogLibraryRoot = root, discogsToken = token, jdbcUrl = jdbcUrl, dataDir = dataDir)
+    ) = AppConfig(
+        catalogLibraryRoot = root,
+        discogsToken = token,
+        jdbcUrl = jdbcUrl,
+        dbUser = dbUser,
+        dbPassword = dbPassword,
+        dataDir = dataDir,
+        discogsRateLimitPerMinute = 60,
+        discogsImageDailyQuota = 1000,
+    )
 
     // --- fromEnv() tests using injected env provider ---
 
@@ -29,6 +41,16 @@ class AppConfigTest {
         val env = mapOf("CATALOG_LIBRARY_ROOT" to System.getProperty("java.io.tmpdir"))
         val config = AppConfig.fromEnv { key -> env[key] }
         assertEquals("./data", config.dataDir)
+    }
+
+    @Test
+    fun `fromEnv reads CATALOG_DATA_DIR from environment when set`() {
+        val env = mapOf(
+            "CATALOG_LIBRARY_ROOT" to System.getProperty("java.io.tmpdir"),
+            "CATALOG_DATA_DIR" to "/mnt/appdata",
+        )
+        val config = AppConfig.fromEnv { key -> env[key] }
+        assertEquals("/mnt/appdata", config.dataDir)
     }
 
     @Test
@@ -75,6 +97,104 @@ class AppConfigTest {
         assertEquals("jdbc:postgresql://localhost:5432/kbeatz", config.jdbcUrl)
     }
 
+    @Test
+    fun `fromEnv reads CATALOG_DB_USER when set`() {
+        val env = mapOf(
+            "CATALOG_LIBRARY_ROOT" to System.getProperty("java.io.tmpdir"),
+            "CATALOG_DB_USER" to "kbeatz_user",
+        )
+        val config = AppConfig.fromEnv { key -> env[key] }
+        assertEquals("kbeatz_user", config.dbUser)
+    }
+
+    @Test
+    fun `fromEnv reads CATALOG_DB_PASSWORD when set`() {
+        val env = mapOf(
+            "CATALOG_LIBRARY_ROOT" to System.getProperty("java.io.tmpdir"),
+            "CATALOG_DB_PASSWORD" to "s3cr3t",
+        )
+        val config = AppConfig.fromEnv { key -> env[key] }
+        assertEquals("s3cr3t", config.dbPassword)
+    }
+
+    // --- fromConf() tests using inline HOCON ---
+
+    @Test
+    fun `fromConf reads defaults from inline HOCON`() {
+        val hocon = ConfigFactory.parseString(
+            """
+            catalog {
+              jdbcUrl = "jdbc:h2:mem:test"
+              dbUser = "sa"
+              dbPassword = ""
+              libraryRoot = "${System.getProperty("java.io.tmpdir")}"
+              dataDir = "./data"
+              discogs { token = "", rateLimitPerMinute = 60, imageDailyQuota = 1000 }
+            }
+            """.trimIndent()
+        )
+        val config = AppConfig.fromConf(hocon)
+        assertEquals("./data", config.dataDir)
+        assertEquals("sa", config.dbUser)
+        assertNull(config.discogsToken)
+    }
+
+    @Test
+    fun `fromConf fails fast when libraryRoot is blank`() {
+        val hocon = ConfigFactory.parseString(
+            """
+            catalog {
+              jdbcUrl = "jdbc:h2:mem:test"
+              dbUser = "sa"
+              dbPassword = ""
+              libraryRoot = ""
+              dataDir = "./data"
+              discogs { token = "", rateLimitPerMinute = 60, imageDailyQuota = 1000 }
+            }
+            """.trimIndent()
+        )
+        assertFailsWith<IllegalStateException> {
+            AppConfig.fromConf(hocon)
+        }
+    }
+
+    @Test
+    fun `fromConf reads discogs token when non-empty`() {
+        val hocon = ConfigFactory.parseString(
+            """
+            catalog {
+              jdbcUrl = "jdbc:h2:mem:test"
+              dbUser = "sa"
+              dbPassword = ""
+              libraryRoot = "${System.getProperty("java.io.tmpdir")}"
+              dataDir = "./data"
+              discogs { token = "my-token", rateLimitPerMinute = 60, imageDailyQuota = 1000 }
+            }
+            """.trimIndent()
+        )
+        val config = AppConfig.fromConf(hocon)
+        assertEquals("my-token", config.discogsToken)
+    }
+
+    @Test
+    fun `fromConf reads rate limit and image quota`() {
+        val hocon = ConfigFactory.parseString(
+            """
+            catalog {
+              jdbcUrl = "jdbc:h2:mem:test"
+              dbUser = "sa"
+              dbPassword = ""
+              libraryRoot = "${System.getProperty("java.io.tmpdir")}"
+              dataDir = "./data"
+              discogs { token = "", rateLimitPerMinute = 30, imageDailyQuota = 500 }
+            }
+            """.trimIndent()
+        )
+        val config = AppConfig.fromConf(hocon)
+        assertEquals(30, config.discogsRateLimitPerMinute)
+        assertEquals(500, config.discogsImageDailyQuota)
+    }
+
     // --- AppConfig instance method tests ---
 
     @Test
@@ -105,5 +225,14 @@ class AppConfigTest {
     fun `dataDir reflects custom value when provided`() {
         val config = testConfig(dataDir = "/mnt/appdata")
         assertEquals("/mnt/appdata", config.dataDir)
+    }
+
+    @Test
+    fun `discogs token does not appear in toString`() {
+        val config = testConfig(token = "super-secret-token-12345")
+        val str = config.toString()
+        assert(!str.contains("super-secret-token-12345")) {
+            "Discogs token must not appear in toString output"
+        }
     }
 }

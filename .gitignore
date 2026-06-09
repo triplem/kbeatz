@@ -29,6 +29,10 @@ kbeatz-ui/coverage/
 .env.local
 .env.*.local
 
+# Local HOCON overrides (developer workstation settings, never committed)
+local.conf
+*/src/main/resources/local.conf
+
 # OS
 .DS_Store
 Thumbs.db
