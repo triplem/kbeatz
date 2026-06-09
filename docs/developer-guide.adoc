@@ -892,7 +892,7 @@ Examples from the existing codebase:
 |===
 |Key |Value
 
-|`albums.card.unknownArtist`
+|`albumCard.unknownArtist`
 |"Unknown Artist"
 
 |`albumGrid.noResults`
@@ -919,14 +919,15 @@ one resolves to a non-empty string. Run it with:
 [source,bash]
 ----
 cd kbeatz-ui
+
+# Run all tests (includes the missing-key test)
+npm run test
+
+# Run only the i18n test file by filename filter
+npm run test -- src/lib/i18n.test.ts
+
+# Or run with verbose output to see each key checked
 npm run test -- --reporter=verbose
-----
-
-Or target just the i18n tests:
-
-[source,bash]
-----
-npm run test -- i18n
 ----
 
 If you add a key to `en.json` but misspell it in the component (or vice versa), the test
@@ -1013,6 +1014,15 @@ aria-label decorations, which must be suppressed with an explicit comment:
 <text x="100" y="90" textAnchor="middle" fill="#666" fontSize="40">music</text>
 ----
 
+SVG `<text>` elements used as decorative icons are a common case where suppression is
+appropriate. The rule also fires on SVG content because JSX does not distinguish between
+HTML and SVG elements. Always add the `eslint-disable-next-line` comment immediately before
+the SVG element, not at the top of the file.
+
+If the lint output shows a `no-literal-string` error on a line you did not expect, check
+whether the string is truly non-translatable (icon glyph, number, punctuation). If it
+carries meaning for the user, move it to `en.json`.
+
 === Checklist before committing i18n changes
 
 - [ ] New key added to `src/locales/en.json` under the correct feature group
@@ -1020,7 +1030,7 @@ aria-label decorations, which must be suppressed with an explicit comment:
 - [ ] Component uses `const { t } = useTranslation()` and calls `t('key')`
 - [ ] Dates use `formatDate()` or `formatDateTime()` from `src/lib/i18n.ts`
 - [ ] `npm run lint` passes (no bare-string warnings)
-- [ ] `npm run test -- i18n` passes (no missing keys)
+- [ ] `npm run test -- src/lib/i18n.test.ts` passes (no missing keys)
 - [ ] `npm run build` passes (TypeScript strict mode)
 
 == CLI: Adding a Command
