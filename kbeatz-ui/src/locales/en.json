@@ -41,6 +41,7 @@
     "notFound": "Album not found.",
     "errorPrefix": "Error: ",
     "editScopeNotice": "Editing these tags will update all {{count}} files in this album's directory. Click any field to edit.",
+    "saving": "Saving tags...",
     "fields": {
       "album": "Album",
       "albumArtist": "Album Artist",
