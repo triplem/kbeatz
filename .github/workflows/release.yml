@@ -238,7 +238,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./build/docs/asciidoc
-          destination_dir: docs
           publish_branch: gh-pages
           force_orphan: false
+          keep_files: true
           commit_message: "ci(scaffold): publish docs for ${{ needs.release.outputs.tag }}"
