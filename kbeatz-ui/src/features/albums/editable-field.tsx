@@ -2,6 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CancelledByUserError } from './cancelled-by-user-error'
 
+// Pencil edit icon (U+270E) - used as a visual affordance for click-to-edit fields
+// Defined as a module constant to avoid i18next lint warnings on JSX string literals
+const EDIT_ICON = '✎'
+
 interface EditableFieldProps {
   readonly label: string
   readonly value: string | undefined
@@ -139,8 +143,11 @@ export function EditableField({
               : t('editableField.editEmpty', { label })}
             data-testid={`${prefix}value-${fieldName.toLowerCase()}`}
             className="editable-field__display"
+            title={t('editableField.clickToEdit', { label })}
           >
             {value ?? <span className="editable-field__empty">{t('common.empty')}</span>}
+            {/* Pencil affordance - hidden from screen readers since aria-label already describes the action */}
+            <span className="editable-field__edit-icon" aria-hidden="true">{EDIT_ICON}</span>
           </button>
         )}
         {error !== null && (

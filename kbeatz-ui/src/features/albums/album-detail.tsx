@@ -204,7 +204,14 @@ export function AlbumDetail() {
 
       <section aria-label={t('albumDetail.albumTagsSection')}>
         <h2 className="album-detail__section-title">{t('albumDetail.sectionTitle')}</h2>
-        <dl className="album-tags">
+        <p
+          className="album-detail__edit-scope-notice"
+          data-testid="edit-scope-notice"
+          aria-describedby="album-tags"
+        >
+          {t('albumDetail.editScopeNotice', { count: album.tracks.length })}
+        </p>
+        <dl id="album-tags" className="album-tags">
           <EditableField
             label={t('albumDetail.fields.album')}
             value={album.album}

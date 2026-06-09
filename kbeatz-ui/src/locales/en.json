@@ -40,7 +40,7 @@
     "loading": "Loading album...",
     "notFound": "Album not found.",
     "errorPrefix": "Error: ",
-    "editScopeNotice": "Editing tags updates all files in this album's directory.",
+    "editScopeNotice": "Editing these tags will update all {{count}} files in this album's directory. Click any field to edit.",
     "fields": {
       "album": "Album",
       "albumArtist": "Album Artist",
@@ -66,7 +66,8 @@
     "editLabel": "Edit {{label}}",
     "editWithValue": "Edit {{label}}: {{value}}",
     "editEmpty": "Edit {{label}}: (empty)",
-    "saveFailed": "Save failed"
+    "saveFailed": "Save failed",
+    "clickToEdit": "Click to edit {{label}}"
   },
   "confirmDialog": {
     "title": "Write tags to FLAC files?",
