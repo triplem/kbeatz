@@ -1,3 +1,5 @@
+import { useRef, useEffect, useState } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { useTranslation } from 'react-i18next'
 import { Album } from '../../api/generated'
 import { AlbumCard } from './album-card'
@@ -6,14 +8,61 @@ interface AlbumGridProps {
   readonly albums: Album[]
 }
 
+/** Minimum card width in px - matches the CSS minmax(200px, 1fr) grid definition. */
+const MIN_CARD_WIDTH_PX = 220
+/** Estimated row height in px for initial virtualizer estimate. */
+const ESTIMATED_ROW_HEIGHT_PX = 320
+/** Number of extra rows to render above/below the visible area. */
+const OVERSCAN_ROWS = 3
+
 /**
- * Responsive album grid.
+ * Calculate how many columns fit in the available width.
+ * Returns at least 1 to avoid division by zero.
+ */
+function calcColumns(containerWidth: number): number {
+  return Math.max(1, Math.floor(containerWidth / MIN_CARD_WIDTH_PX))
+}
+
+/**
+ * Responsive virtualised album grid.
  *
- * Uses CSS Grid with `auto-fill / minmax(200px, 1fr)` so cards wrap
- * naturally from 1 to N columns based on viewport width.
+ * Uses TanStack Virtual to render only the visible rows + overscan buffer,
+ * keeping the DOM node count low even with 5,000+ albums.
+ *
+ * Layout strategy: group albums into rows based on the container width,
+ * then virtualise at the row level. When the scroll container reports
+ * zero height (e.g. in tests or before layout), all rows are rendered
+ * so the content is accessible without layout constraints.
  */
 export function AlbumGrid({ albums }: AlbumGridProps) {
   const { t } = useTranslation()
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [columns, setColumns] = useState(1)
+
+  // Observe container width to recalculate column count on resize
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+
+    const measure = () => {
+      setColumns(calcColumns(el.offsetWidth))
+    }
+
+    measure()
+
+    const observer = new ResizeObserver(measure)
+    observer.observe(el)
+    return () => { observer.disconnect() }
+  }, [])
+
+  const rowCount = Math.ceil(albums.length / columns)
+
+  const virtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: () => document.documentElement,
+    estimateSize: () => ESTIMATED_ROW_HEIGHT_PX,
+    overscan: OVERSCAN_ROWS,
+  })
 
   if (albums.length === 0) {
     return (
@@ -23,14 +72,58 @@ export function AlbumGrid({ albums }: AlbumGridProps) {
     )
   }
 
+  const virtualRows = virtualizer.getVirtualItems()
+  const totalHeight = virtualizer.getTotalSize()
+
+  // When the scroll container has no height (jsdom / pre-layout), fall back
+  // to rendering all rows so the content is accessible.
+  const shouldFallback = totalHeight === 0 || virtualRows.length === 0
+
   return (
     <section
       className="album-grid"
       aria-label={t('albumGrid.collectionLabel', { count: albums.length })}
+      ref={containerRef}
+      data-testid="album-grid-section"
     >
-      {albums.map((album) => (
-        <AlbumCard key={album.id} album={album} />
-      ))}
+      {shouldFallback ? (
+        // Fallback: render all albums without virtualisation
+        albums.map((album) => (
+          <AlbumCard key={album.id} album={album} />
+        ))
+      ) : (
+        // Virtualised rendering: only visible rows + overscan
+        <div
+          style={{ height: `${totalHeight}px`, width: '100%', position: 'relative' }}
+          data-testid="album-grid-virtual-container"
+        >
+          {virtualRows.map((virtualRow) => {
+            const startIndex = virtualRow.index * columns
+            const rowAlbums = albums.slice(startIndex, startIndex + columns)
+
+            return (
+              <div
+                key={virtualRow.key}
+                data-index={virtualRow.index}
+                ref={virtualizer.measureElement}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                <div className="album-grid__row">
+                  {rowAlbums.map((album) => (
+                    <AlbumCard key={album.id} album={album} />
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </section>
   )
 }
