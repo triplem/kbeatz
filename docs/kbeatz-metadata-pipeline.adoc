@@ -1,0 +1,241 @@
+= kbeatz Metadata Pipeline Developer Reference
+:toc: left
+:icons: font
+:revdate: 2026-06-09
+
+== Overview
+
+Epic #358 (Discogs Sync Pipeline Architecture) introduces a two-phase metadata pipeline:
+
+1. A `MetadataSource` adapter (e.g. the Discogs adapter in `kbeatz-sources`) fetches release
+   data from an external provider and writes a canonical `metadata.json` file to the hidden
+   `.kbeatz/` directory inside each album folder.
+2. `TaggerService` (in `kbeatz-tagger`) reads `metadata.json` and writes Vorbis Comment tags
+   to all FLAC files in the album directory.
+
+The shared intermediate format is `KbeatzMetadata` (class
+`org.javafreedom.kbeatz.common.metadata.KbeatzMetadata` in `kbeatz-common`).
+
+Design decisions for this pipeline are documented in ADR-007
+(`docs/adr/ADR-007-kbeatz-metadata-pipeline.adoc`).
+
+== .kbeatz/ Directory Layout
+
+Each album directory may contain a hidden `.kbeatz/` subdirectory:
+
+----
+<album-dir>/
+  .kbeatz/
+    metadata.json               # canonical KbeatzMetadata JSON (overwritten on every sync)
+    source_discogs_<id>.json    # raw Discogs API response for release <id>
+    source_discogs_<old-id>.json  # preserved - see retention policy below
+----
+
+Files written by `kbeatz-sources`:
+
+* `metadata.json` - the canonical `KbeatzMetadata` JSON for the current sync. Overwritten on
+  every sync (same ID or new ID).
+* `source_discogs_<discogs_id>.json` - the raw Discogs API JSON response for the given release
+  ID. Overwritten if the same ID is re-synced.
+
+== Retention Policy for .kbeatz/ Source Files
+
+Source files (`source_discogs_*.json`) accumulate if the Discogs ID changes. This is
+intentional.
+
+When a user corrects `metadata.yml` to use a different Discogs ID and re-syncs, a new
+`source_discogs_<new_id>.json` is written. The old `source_discogs_<old_id>.json` file is
+*not deleted*. Old source files are preserved as a history of past syncs.
+
+*Why keep old files:*
+
+- Source files are small (typically less than 50 KB each).
+- Preserving them lets the user inspect what Discogs returned for previous IDs.
+- They aid debugging when metadata looks wrong after an ID correction.
+- Automatic deletion could silently destroy forensic evidence of a bad sync.
+
+*Re-syncing the same ID* overwrites the existing source file rather than creating a
+duplicate.
+
+*If disk space becomes a concern*, old source files can be deleted manually:
+
+[source,bash]
+----
+# Remove all but the most recent source file for an album
+ls <album-dir>/.kbeatz/source_discogs_*.json
+rm <album-dir>/.kbeatz/source_discogs_<old_id>.json
+----
+
+No automated cleanup runs. ID changes are rare in practice; a user typically has one release
+ID per album directory at any given time.
+
+== KbeatzMetadata JSON Schema
+
+=== Top-level fields
+
+|===
+| Field | Type | Description
+
+| `schemaVersion` | `Int` | Schema version. Currently 1. Increment when making
+  incompatible changes.
+| `source` | `String` | Provider identifier: `"discogs"`, `"musicbrainz"`, etc.
+| `sourceId` | `String` | Provider-specific release identifier (e.g. Discogs release ID).
+| `fetchedAt` | `String` (ISO 8601 UTC) | When the metadata was fetched from the provider.
+| `album` | `Object` | Album-level fields (see below).
+| `tracks` | `Array` | Ordered list of tracks (see below).
+| `images` | `Array` | Associated images (see below).
+|===
+
+=== Album object
+
+|===
+| Field | Type | Nullable | Description
+
+| `title` | `String` | No | Album title.
+| `albumArtist` | `String` | No | Primary album artist or compilation marker.
+| `date` | `String` | Yes | Release date as a string (e.g. `"1979"`, `"1979-11-30"`).
+| `genres` | `Array<String>` | No | Genre list; empty if unknown.
+| `styles` | `Array<String>` | No | Sub-genre / style list; empty if unknown.
+| `label` | `String` | Yes | Record label name.
+| `catalogNumber` | `String` | Yes | Label catalog number.
+| `barcode` | `String` | Yes | Barcode / UPC / EAN.
+| `composer` | `String` | Yes | Composer (classical music; maps to COMPOSER Vorbis field).
+| `conductor` | `String` | Yes | Conductor (classical music; maps to CONDUCTOR Vorbis field).
+| `ensemble` | `String` | Yes | Ensemble/orchestra (maps to ENSEMBLE Vorbis field).
+| `discTotal` | `Int` | No | Total number of discs. Default: 1.
+|===
+
+=== Track object
+
+|===
+| Field | Type | Nullable | Description
+
+| `discNumber` | `Int` | No | Disc this track belongs to. Default: 1 for single-disc albums.
+| `trackNumber` | `Int` | No | Track number on its disc.
+| `trackTotal` | `Int` | No | Total tracks on this disc.
+| `title` | `String` | No | Track title.
+| `artist` | `String` | Yes | Track artist if different from album artist.
+| `duration` | `String` | Yes | Duration string (e.g. `"4:33"`).
+| `discSubtitle` | `String` | Yes | Subtitle for this disc (e.g. `"The Wall Part 1"`).
+| `originalPosition` | `String` | Yes | Raw provider position (e.g. `"A1"`, `"2-03"`, `"B"`).
+|===
+
+=== Image object
+
+|===
+| Field | Type | Nullable | Description
+
+| `pictureType` | `Int` | No | RFC 9639 section 10.7 picture type integer. See table below.
+| `description` | `String` | Yes | Human-readable image description.
+| `mimeType` | `String` | Yes | MIME type (e.g. `"image/jpeg"`).
+| `sourceUri` | `String` | No | URL of the image at the provider.
+| `localPath` | `String` | No | Path relative to album directory. Set by mapper; never by tagger.
+|===
+
+.Picture type integers (RFC 9639 section 10.7)
+|===
+| pictureType | Description | localPath convention
+
+| 3 | Front cover | `folder.jpg`
+| 4 | Back cover  | `back.jpg`
+| 5 | Leaflet / booklet page | `5-0.jpg`, `5-1.jpg`, ...
+| 6 | Media / disc label     | `6-0.jpg`, `6-1.jpg`, ...
+| 0 | Other                  | `0-0.jpg`, `0-1.jpg`, ...
+|===
+
+NOTE: The convention for types other than 3 and 4 is `<pictureType>-<index>.jpg` where
+`<index>` is a zero-based counter for images of that type. This matches the pattern in
+`KbeatzMetadata.Image` KDoc (`"<type>-<index>.jpg"`).
+
+== Example: 2-Disc Album
+
+[source,json]
+----
+{
+  "schemaVersion": 1,
+  "source": "discogs",
+  "sourceId": "12345",
+  "fetchedAt": "2026-01-15T10:00:00Z",
+  "album": {
+    "title": "The Wall",
+    "albumArtist": "Pink Floyd",
+    "date": "1979",
+    "genres": ["Rock"],
+    "styles": ["Art Rock", "Prog Rock"],
+    "label": "Harvest",
+    "catalogNumber": "SHDW 411",
+    "barcode": "5099902988924",
+    "composer": null,
+    "conductor": null,
+    "ensemble": null,
+    "discTotal": 2
+  },
+  "tracks": [
+    {
+      "discNumber": 1,
+      "trackNumber": 1,
+      "trackTotal": 13,
+      "title": "In the Flesh?",
+      "artist": null,
+      "duration": "3:16",
+      "discSubtitle": null,
+      "originalPosition": "A1"
+    },
+    {
+      "discNumber": 2,
+      "trackNumber": 1,
+      "trackTotal": 13,
+      "title": "Hey You",
+      "artist": null,
+      "duration": "4:40",
+      "discSubtitle": null,
+      "originalPosition": "C1"
+    }
+  ],
+  "images": [
+    {
+      "pictureType": 3,
+      "description": "Front cover",
+      "mimeType": "image/jpeg",
+      "sourceUri": "https://img.discogs.com/abc123/front.jpg",
+      "localPath": "folder.jpg"
+    },
+    {
+      "pictureType": 4,
+      "description": "Back cover",
+      "mimeType": "image/jpeg",
+      "sourceUri": "https://img.discogs.com/abc123/back.jpg",
+      "localPath": "back.jpg"
+    }
+  ]
+}
+----
+
+== Multi-Disc Directory Matching
+
+When `TaggerService` processes a multi-disc album:
+
+1. It lists subdirectories of the album root (e.g. `cd1/`, `cd2/`, or `disc1/`, `disc2/`).
+2. Subdirectories are matched to disc numbers by **alphabetical sort order**: the first
+   subdirectory alphabetically is disc 1, the second is disc 2, and so on.
+3. FLAC files within each subdirectory are sorted alphabetically and matched positionally to
+   the tracks for that disc in `metadata.json` (track 1 to the first FLAC file, track 2 to
+   the second, etc.).
+
+The FLAC file count in the subdirectory must equal the track count for that disc in
+`metadata.json`. A mismatch is a hard error: the entire album write is aborted and no FLAC
+files are modified. A domain exception is thrown with structured fields including the album
+directory, disc number, expected track count, and actual FLAC file count.
+
+== Adding a New Provider
+
+To add a new metadata provider (e.g. MusicBrainz):
+
+1. Implement the `MetadataSource` port in `kbeatz-sources` (new package under `sources/`).
+2. Map the provider's release model to `KbeatzMetadata` in a mapper class.
+3. Write `metadata.json` to `<album-dir>/.kbeatz/` and a provider source file
+   (`source_<provider>_<id>.json`) with the raw API response.
+4. Set `source` to the provider identifier (e.g. `"musicbrainz"`) and `sourceId` to the
+   provider-specific release ID.
+5. The tagger requires no changes: it reads `KbeatzMetadata` regardless of which provider
+   wrote it.
