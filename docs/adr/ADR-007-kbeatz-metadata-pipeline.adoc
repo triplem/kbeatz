@@ -1,0 +1,155 @@
+= ADR-007: KbeatzMetadata - Provider-Agnostic Album Metadata Schema
+:toc: left
+:icons: font
+:revdate: 2026-06-09
+:status: Accepted
+
+== Status
+
+Accepted
+
+== Context
+
+Epic #358 (Discogs Sync Pipeline Architecture) introduces a clean two-phase pipeline:
+
+1. A `MetadataSource` adapter (e.g. `kbeatz-sources/discogs/`) fetches release data from an
+   external provider and transforms it into a canonical intermediate format.
+2. `TaggerService` (in `kbeatz-tagger`) reads that canonical format and writes Vorbis Comment
+   tags to FLAC files.
+
+Without a shared schema defined in `kbeatz-common`, both modules would either depend on
+provider-specific types (coupling them to Discogs) or each define their own representation
+(duplicating the domain model and forcing a mapping step at every layer boundary).
+
+The common schema must handle:
+- **Multi-disc albums**: classical box sets, double LPs, and multi-CD releases require disc
+  number, disc total, and per-disc track totals.
+- **Multi-image support**: releases have front cover, back cover, booklet scans, and media
+  label images. FLAC `PICTURE` blocks carry an integer picture type (RFC 9639 section 10.7).
+- **Classical music fields**: composer, conductor, and ensemble are provider-optional fields
+  present in Discogs `extraArtists` and MusicBrainz recording credits.
+- **Forward compatibility**: the schema may evolve as new providers are added or new fields
+  are discovered. A `schemaVersion` field allows readers to reject incompatible payloads early.
+
+== Decision
+
+Define `KbeatzMetadata` in `kbeatz-common` (package `org.javafreedom.kbeatz.common.metadata`)
+as a `@Serializable` data class with three nested types: `Album`, `Track`, and `Image`.
+
+=== Why provider-agnostic format
+
+Coupling `TaggerService` directly to Discogs types would:
+- Prevent adding a MusicBrainz adapter without modifying the tagger.
+- Prevent unit-testing the tagger without a Discogs client.
+- Violate the Dependency Inversion Principle (high-level tagger depending on low-level
+  provider client).
+
+By placing `KbeatzMetadata` in `kbeatz-common`, both `kbeatz-sources` (writes) and
+`kbeatz-tagger` (reads) depend on the shared abstraction. Neither module needs to import
+from the other.
+
+=== Multi-disc strategy
+
+Multi-disc albums are represented as a flat `tracks` list where each `Track` carries a
+`discNumber` field (default 1 for single-disc albums). The `Album.discTotal` field states
+how many discs the release spans.
+
+Rationale: a flat list is simpler to serialize, index, and iterate than a nested
+`List<Disc>` structure. The tagger groups tracks by `discNumber` when it needs per-disc
+subsets. This mirrors how FLAC Vorbis Comments encode disc information: each file carries
+`DISCNUMBER` and `DISCTOTAL` as flat string fields.
+
+Providers encode track position differently:
+- Discogs uses `"position"` strings like `"A1"`, `"2-03"`, `"B"` (disc-side or disc-number prefix).
+- MusicBrainz uses integer `"position"` per medium.
+
+The `originalPosition` field preserves the raw provider string for reference and debugging.
+The `discNumber` and `trackNumber` integers are the parsed, normalized values that the tagger
+actually writes. Providers are responsible for parsing `originalPosition` into these integers.
+
+=== localPath convention
+
+The `Image.localPath` field is a path **relative to the album directory** set by the metadata
+mapper (in `kbeatz-sources`) and read by `TaggerService`. The tagger never writes `localPath`.
+
+.localPath conventions by picture type
+|===
+| pictureType (RFC 9639 section 10.7) | Description | localPath convention
+
+| 3  | Front cover | `folder.jpg`
+| 4  | Back cover  | `back.jpg`
+| 5  | Leaflet / booklet page | `booklet-<index>.jpg`
+| 6  | Media / disc label     | `disc-<index>.jpg`
+| 0 (other) | Any other image | `image-<index>.jpg`
+|===
+
+The `.kbeatz/` directory (see developer reference, issue #365) is the storage location for
+source JSON files. `localPath` values in `KbeatzMetadata` are relative to the album root
+directory and point to images that TaggerService can embed directly into FLAC `PICTURE`
+blocks.
+
+=== pictureType as integer
+
+`Image.pictureType` is stored as an `Int` rather than an enum because:
+- RFC 9639 defines 21 picture types (0-20). Not all are used in practice, but any valid
+  integer in the range 0-20 must be accepted without modification.
+- Enums require a migration when new picture types are added to the spec.
+- The integer maps directly to the FLAC binary format value with zero conversion.
+
+=== Retention policy for source files (Option A - Keep All)
+
+`kbeatz-sources` writes `source_discogs_<discogs_id>.json` to `<album_dir>/.kbeatz/` on
+every sync. If the Discogs ID changes (user corrects `metadata.yml`), the old source file
+is **not deleted**. Each sync with a new ID appends a new file; old files accumulate.
+
+Rationale:
+- Source files are low-cost backups (typically less than 50 KB each).
+- Preserving them allows the user to inspect previous Discogs responses and aids debugging
+  when metadata looks wrong.
+- Automatic deletion could silently destroy forensic evidence of a bad sync.
+- ID changes are rare: a user typically has one release ID per album at any given time.
+
+Re-syncing the same ID overwrites the existing file rather than creating a duplicate.
+
+If disk space becomes a concern, old source files can be deleted manually. No automated
+cleanup runs.
+
+== Consequences
+
+- `kbeatz-common` gains a `kotlinx.serialization-json` dependency (already present in
+  `kbeatz-tagger`; now promoted to the shared library).
+- `kbeatz-sources` adapters write `KbeatzMetadata` JSON to `.kbeatz/metadata.json` on each
+  sync. The filename `metadata.json` is stable; it is overwritten on re-sync with the same
+  or a new Discogs ID.
+- `TaggerService` reads `KbeatzMetadata` from `.kbeatz/metadata.json` rather than calling
+  the `MetadataSource` port directly. This decouples tagger execution from network access.
+- The `schemaVersion` field allows the tagger to reject incompatible schema versions early
+  (e.g. if a future version adds required fields that the tagger does not understand).
+- Classical music fields (`composer`, `conductor`, `ensemble`) are nullable strings. The
+  tagger writes their corresponding Vorbis Comment fields only when the value is non-null.
+
+== Alternatives Considered
+
+=== Nest tracks inside a `Disc` wrapper
+
+```
+album: Album
+discs: List<Disc>
+  disc: { discNumber, discSubtitle, tracks: List<Track> }
+```
+
+Rejected because:
+- Adds a nesting level that complicates serialization and provider mapping.
+- The tagger iterates all tracks in a flat loop anyway.
+- Disc metadata (subtitle) can be stored on the first track of each disc using the
+  `discSubtitle` field, which is already included in `Track`.
+
+=== Use Discogs API types directly
+
+Rejected: tightly couples tagger to Discogs. Adding MusicBrainz or any other provider
+would require changing tagger code.
+
+=== Use a property map (Map<String, Any>)
+
+Rejected: loses compile-time type safety, makes serialization brittle, and prevents IDE
+navigation and refactoring.

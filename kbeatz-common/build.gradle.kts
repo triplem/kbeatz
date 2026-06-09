@@ -17,7 +17,18 @@ dependencies {
     api(lib("ktor-server-status-pages"))
     api(lib("kotlin-logging"))
     api(lib("kotlinx-datetime"))
+    api(lib("kotlinx-serialization-json"))
     implementation(lib("ktor-server-core"))
+
+    testImplementation(lib("kotlin-test-junit5"))
+}
+
+kover {
+    reports {
+        verify {
+            rule { minBound(80) }
+        }
+    }
 }
 
 publishing {
