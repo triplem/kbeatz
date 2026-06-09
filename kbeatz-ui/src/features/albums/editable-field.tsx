@@ -12,6 +12,9 @@ interface EditableFieldProps {
   readonly fieldName: string
   readonly onSave: (field: string, value: string) => Promise<void>
   readonly testIdPrefix?: string
+  /** When true, the field is in read-only display mode and cannot enter edit mode.
+   *  Used to disable all fields while another field's PATCH is in flight. */
+  readonly disabled?: boolean
 }
 
 /**
@@ -30,6 +33,7 @@ export function EditableField({
   fieldName,
   onSave,
   testIdPrefix = '',
+  disabled = false,
 }: EditableFieldProps) {
   const { t } = useTranslation()
   const [editing, setEditing] = useState(false)
@@ -137,13 +141,15 @@ export function EditableField({
         ) : (
           <button
             type="button"
-            onClick={startEditing}
+            onClick={disabled ? undefined : startEditing}
             aria-label={value
               ? t('editableField.editWithValue', { label, value })
               : t('editableField.editEmpty', { label })}
             data-testid={`${prefix}value-${fieldName.toLowerCase()}`}
             className="editable-field__display"
-            title={t('editableField.clickToEdit', { label })}
+            title={disabled ? undefined : t('editableField.clickToEdit', { label })}
+            disabled={disabled}
+            aria-disabled={disabled}
           >
             {value ?? <span className="editable-field__empty">{t('common.empty')}</span>}
             {/* Pencil affordance - hidden from screen readers since aria-label already describes the action */}

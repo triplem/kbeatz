@@ -53,6 +53,7 @@ export function AlbumDetail() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const pendingSaveRef = useRef<PendingSave | null>(null)
 
   useEffect(() => {
@@ -89,7 +90,13 @@ export function AlbumDetail() {
   const handleAlbumTagSave = useCallback(
     (field: string, value: string): Promise<void> =>
       new Promise((resolve, reject) => {
-        pendingSaveRef.current = { field, value, resolve, reject }
+        setIsSaving(true)
+        pendingSaveRef.current = {
+          field,
+          value,
+          resolve: () => { setIsSaving(false); resolve() },
+          reject: (err: unknown) => { setIsSaving(false); reject(err) },
+        }
         setConfirmOpen(true)
       }),
     [],
@@ -204,6 +211,11 @@ export function AlbumDetail() {
 
       <section aria-label={t('albumDetail.albumTagsSection')}>
         <h2 className="album-detail__section-title">{t('albumDetail.sectionTitle')}</h2>
+        {isSaving && (
+          <p role="status" aria-live="polite" data-testid="album-saving-indicator">
+            {t('albumDetail.saving')}
+          </p>
+        )}
         <p
           className="album-detail__edit-scope-notice"
           data-testid="edit-scope-notice"
@@ -218,6 +230,7 @@ export function AlbumDetail() {
             fieldName="ALBUM"
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
+            disabled={isSaving}
           />
           <EditableField
             label={t('albumDetail.fields.albumArtist')}
@@ -225,6 +238,7 @@ export function AlbumDetail() {
             fieldName="ALBUMARTIST"
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
+            disabled={isSaving}
           />
           <EditableField
             label={t('albumDetail.fields.date')}
@@ -232,6 +246,7 @@ export function AlbumDetail() {
             fieldName="DATE"
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
+            disabled={isSaving}
           />
           <EditableField
             label={t('albumDetail.fields.genre')}
@@ -239,6 +254,7 @@ export function AlbumDetail() {
             fieldName="GENRE"
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
+            disabled={isSaving}
           />
           <EditableField
             label={t('albumDetail.fields.label')}
@@ -246,6 +262,7 @@ export function AlbumDetail() {
             fieldName="LABEL"
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
+            disabled={isSaving}
           />
           <EditableField
             label={t('albumDetail.fields.catalogNumber')}
@@ -253,6 +270,7 @@ export function AlbumDetail() {
             fieldName="CATALOGNUMBER"
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
+            disabled={isSaving}
           />
           <EditableField
             label={t('albumDetail.fields.composer')}
@@ -260,6 +278,7 @@ export function AlbumDetail() {
             fieldName="COMPOSER"
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
+            disabled={isSaving}
           />
           <EditableField
             label={t('albumDetail.fields.conductor')}
@@ -267,6 +286,7 @@ export function AlbumDetail() {
             fieldName="CONDUCTOR"
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
+            disabled={isSaving}
           />
           <EditableField
             label={t('albumDetail.fields.ensemble')}
@@ -274,6 +294,7 @@ export function AlbumDetail() {
             fieldName="ENSEMBLE"
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
+            disabled={isSaving}
           />
         </dl>
       </section>
