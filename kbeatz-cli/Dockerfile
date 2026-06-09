@@ -12,6 +12,7 @@ COPY kbeatz-common kbeatz-common
 COPY kbeatz-sources kbeatz-sources
 COPY kbeatz-tagger kbeatz-tagger
 COPY kbeatz-cli kbeatz-cli
+COPY kbeatz-catalog kbeatz-catalog
 
 RUN ./gradlew :kbeatz-cli:shadowJar --no-daemon -q
 
