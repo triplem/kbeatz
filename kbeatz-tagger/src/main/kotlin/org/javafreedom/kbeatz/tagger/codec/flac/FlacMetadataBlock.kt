@@ -98,6 +98,8 @@ object VorbisCommentFields {
     const val ENCODER = "ENCODER"
     const val COMMENT = "COMMENT"
 
+    const val DISCSUBTITLE = "DISCSUBTITLE"
+
     const val DISCOGS_ID = "DISCOGS_ID"
     const val DISCOGS_RELEASE_URL = "DISCOGS_RELEASE_URL"
     const val DISCOGS_MASTER_ID = "DISCOGS_MASTER_ID"
