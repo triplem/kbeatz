@@ -10,7 +10,7 @@ schema, the multi-disc track matching algorithm, and the `localPath` image conve
 by the Discogs sync pipeline (epic #358).
 
 See xref:adr/ADR-007-kbeatz-metadata-pipeline.adoc[ADR-007] for the design rationale.
-See xref:write-lock-lifecycle.adoc[Write-Lock Lifecycle] for the `.kbeatz-write.lock` sentinel.
+See xref:write-lock-reference.adoc[Write-Lock Lifecycle] for the `.kbeatz-write.lock` sentinel.
 
 == Pipeline Overview
 
@@ -69,7 +69,7 @@ subdirectory:
 | `.kbeatz-write.lock`
 | Sentinel file created before the first FLAC file in a multi-file album write and deleted
   after all files succeed. Absent under normal conditions. See
-  xref:write-lock-lifecycle.adoc[Write-Lock Lifecycle].
+  xref:write-lock-reference.adoc[Write-Lock Lifecycle].
 |===
 
 == KbeatzMetadata JSON Schema
