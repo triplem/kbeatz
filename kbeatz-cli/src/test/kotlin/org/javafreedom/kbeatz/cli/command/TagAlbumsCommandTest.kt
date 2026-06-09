@@ -22,9 +22,10 @@ class TagAlbumsCommandTest {
     }
 
     @Test
-    fun `should exit cleanly when directory passed directly has no id file`(@TempDir tempDir: java.nio.file.Path) {
+    fun `should exit with code 1 when directory passed directly has no id file`(@TempDir tempDir: java.nio.file.Path) {
         val result = TagAlbumsCommand().test("$tempDir")
-        assertTrue(result.statusCode == 0)
+        assertTrue(result.statusCode == ExitCodes.FAILURE, "Expected exit code 1 but got ${result.statusCode}")
+        assertContains(result.stderr, "No id file found in")
     }
 
     @Test
@@ -151,9 +152,10 @@ class TagAlbumsCommandTest {
     }
 
     @Test
-    fun `should exit cleanly when processing single album with no id file`(@TempDir tempDir: java.nio.file.Path) {
+    fun `should exit with code 1 when processing single album with no id file`(@TempDir tempDir: java.nio.file.Path) {
         val result = TagAlbumsCommand().test("$tempDir")
-        assertTrue(result.statusCode == 0)
+        assertTrue(result.statusCode == ExitCodes.FAILURE, "Expected exit code 1 but got ${result.statusCode}")
+        assertContains(result.stderr, "No id file found in")
     }
 
     @Test
@@ -272,5 +274,116 @@ class TagAlbumsCommandTest {
             TagResult.Failed(Path(album.toString()), RuntimeException("total failure"))
         val result = TagAlbumsCommand(taggerServiceOverride = mockService).test("--library $tempDir")
         assertTrue(result.statusCode == ExitCodes.FAILURE, "Expected exit code 1 but got ${result.statusCode}")
+    }
+
+    // --- AC tests: id-file format recognition and no-id-file behaviour ---
+
+    @Test
+    fun `detectIdFileStatus returns Present when metadata yml exists`(@TempDir tempDir: java.nio.file.Path) {
+        Files.writeString(tempDir.resolve("metadata.yml"), "sources:\n  discogs_id: \"1\"\n")
+        assertTrue(detectIdFileStatus(Path(tempDir.toString())) == IdFileStatus.Present)
+    }
+
+    @Test
+    fun `detectIdFileStatus returns Present when id txt exists`(@TempDir tempDir: java.nio.file.Path) {
+        Files.writeString(tempDir.resolve("id.txt"), "[source]\ndiscogs_id=1\n")
+        assertTrue(detectIdFileStatus(Path(tempDir.toString())) == IdFileStatus.Present)
+    }
+
+    @Test
+    fun `detectIdFileStatus returns Present when discogs_id txt exists`(@TempDir tempDir: java.nio.file.Path) {
+        Files.writeString(tempDir.resolve("discogs_id.txt"), "[source]\ndiscogs_id=1\n")
+        assertTrue(detectIdFileStatus(Path(tempDir.toString())) == IdFileStatus.Present)
+    }
+
+    @Test
+    fun `detectIdFileStatus returns Present when multiple_id txt exists`(@TempDir tempDir: java.nio.file.Path) {
+        Files.writeString(tempDir.resolve("multiple_id.txt"), "[source]\ndiscogs_id=1\n")
+        assertTrue(detectIdFileStatus(Path(tempDir.toString())) == IdFileStatus.Present)
+    }
+
+    @Test
+    fun `detectIdFileStatus returns MbIdOnly when only mb_id txt exists`(@TempDir tempDir: java.nio.file.Path) {
+        Files.writeString(tempDir.resolve("mb_id.txt"), "[source]\nmb_id=abc123\n")
+        assertTrue(detectIdFileStatus(Path(tempDir.toString())) == IdFileStatus.MbIdOnly)
+    }
+
+    @Test
+    fun `detectIdFileStatus returns Missing when directory has no id files`(@TempDir tempDir: java.nio.file.Path) {
+        assertTrue(detectIdFileStatus(Path(tempDir.toString())) == IdFileStatus.Missing)
+    }
+
+    @Test
+    fun `detectIdFileStatus prefers usable file over mb_id txt when both present`(@TempDir tempDir: java.nio.file.Path) {
+        Files.writeString(tempDir.resolve("id.txt"), "[source]\ndiscogs_id=1\n")
+        Files.writeString(tempDir.resolve("mb_id.txt"), "[source]\nmb_id=abc\n")
+        assertTrue(detectIdFileStatus(Path(tempDir.toString())) == IdFileStatus.Present)
+    }
+
+    @Test
+    fun `should use metadata yml when both metadata yml and id txt are present`(@TempDir tempDir: java.nio.file.Path) {
+        Files.writeString(tempDir.resolve("metadata.yml"), "sources:\n  discogs_id: \"from-yaml\"\n")
+        Files.writeString(tempDir.resolve("id.txt"), "[source]\ndiscogs_id=from-ini\n")
+        val result = TagAlbumsCommand().test("--dry-run $tempDir")
+        assertContains(result.output, "discogs_id=from-yaml")
+        assertTrue(result.statusCode == ExitCodes.SUCCESS)
+    }
+
+    @Test
+    fun `should exit with code 1 and stderr message when only mb_id txt present`(@TempDir tempDir: java.nio.file.Path) {
+        Files.writeString(tempDir.resolve("mb_id.txt"), "[source]\nmb_id=abc123\n")
+        val result = TagAlbumsCommand().test("$tempDir")
+        assertTrue(result.statusCode == ExitCodes.FAILURE, "Expected exit code 1 but got ${result.statusCode}")
+        assertContains(result.stderr, "mb_id.txt")
+        assertContains(result.stderr, "MusicBrainz support is not yet available")
+    }
+
+    @Test
+    fun `should exit with code 1 and specific message when no id file in single-target mode`(@TempDir tempDir: java.nio.file.Path) {
+        val result = TagAlbumsCommand().test("$tempDir")
+        assertTrue(result.statusCode == ExitCodes.FAILURE, "Expected exit code 1 but got ${result.statusCode}")
+        assertContains(result.stderr, "No id file found in")
+        assertContains(result.stderr, "expected metadata.yml, id.txt, discogs_id.txt, or multiple_id.txt")
+    }
+
+    @Test
+    fun `should continue processing remaining albums when some have no id file in batch mode`(@TempDir tempDir: java.nio.file.Path) {
+        // album1 has no id file; album2 has a valid id file
+        Files.createDirectory(tempDir.resolve("album1"))
+        val album2 = Files.createDirectory(tempDir.resolve("album2"))
+        Files.writeString(album2.resolve("id.txt"), "[source]\ndiscogs_id=77\n")
+        val result = TagAlbumsCommand().test("--library $tempDir --dry-run")
+        // album2 must be DRY-tagged even though album1 has no id file
+        assertContains(result.output, "DRY")
+        assertContains(result.output, "discogs_id=77")
+    }
+
+    @Test
+    fun `should print summary to stderr when some albums have no id file in batch mode`(@TempDir tempDir: java.nio.file.Path) {
+        val album1 = Files.createDirectory(tempDir.resolve("album1"))
+        Files.writeString(album1.resolve("id.txt"), "[source]\ndiscogs_id=10\n")
+        Files.createDirectory(tempDir.resolve("album2"))
+        val result = TagAlbumsCommand().test("--library $tempDir --dry-run")
+        assertContains(result.stderr, "album(s) skipped - no usable id file")
+        assertContains(result.stderr, "no id file")
+    }
+
+    @Test
+    fun `should print mb_id txt reason in summary when only mb_id txt present in batch mode`(@TempDir tempDir: java.nio.file.Path) {
+        val album1 = Files.createDirectory(tempDir.resolve("album1"))
+        Files.writeString(album1.resolve("id.txt"), "[source]\ndiscogs_id=10\n")
+        val album2 = Files.createDirectory(tempDir.resolve("album2"))
+        Files.writeString(album2.resolve("mb_id.txt"), "[source]\nmb_id=abc\n")
+        val result = TagAlbumsCommand().test("--library $tempDir --dry-run")
+        assertContains(result.stderr, "unsupported: mb_id.txt")
+    }
+
+    @Test
+    fun `should tag album when discogs_id txt is used as id file`(@TempDir tempDir: java.nio.file.Path) {
+        Files.writeString(tempDir.resolve("discogs_id.txt"), "[source]\ndiscogs_id=99\n")
+        val result = TagAlbumsCommand().test("--dry-run $tempDir")
+        assertContains(result.output, "DRY")
+        assertContains(result.output, "discogs_id=99")
+        assertTrue(result.statusCode == ExitCodes.SUCCESS)
     }
 }

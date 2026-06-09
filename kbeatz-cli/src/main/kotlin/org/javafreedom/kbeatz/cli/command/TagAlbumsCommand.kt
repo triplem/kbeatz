@@ -68,11 +68,15 @@ class TagAlbumsCommand(
 
     private val downloadImages: Boolean by option(
         "--download-images",
-        help = "Download and embed cover art. Default off — preserves the Discogs image quota.",
+        help = "Download and embed cover art. Default off - preserves the Discogs image quota.",
     ).flag()
 
     override fun run() {
-        val idReader = IdFileReader(SourceConfig())
+        // Use extended SourceConfig: metadata.yml first (canonical), then INI variants
+        val sourceConfig = SourceConfig(
+            idFileNames = USABLE_ID_FILE_NAMES,
+        )
+        val idReader = IdFileReader(sourceConfig)
         val targets = resolveTargets()
         if (targets.isEmpty()) {
             echo("No album directories found.")
@@ -85,12 +89,17 @@ class TagAlbumsCommand(
         var tagged = 0
         var skipped = 0
         var errors = 0
+        // noIdFileDirs collects directories with no usable id file so they can be summarised
+        // at the end. Each entry also produces TagOutcome.ERROR so it is counted in `errors`
+        // and feeds into resolveExitCode. The two counters are intentionally linked.
+        val noIdFileDirs = mutableListOf<Pair<Path, String>>()
+
         targets.forEachIndexed { idx, dir ->
             if (libraryRoot != null) {
                 echo("Tagging [${idx + 1}/$total]: $dir")
                 logger.info { "tagging idx=${idx + 1} total=$total dir=$dir" }
             }
-            val outcome = tagAlbum(dir, idReader, lazyService)
+            val outcome = tagAlbum(dir, idReader, lazyService, noIdFileDirs)
             when (outcome) {
                 TagOutcome.TAGGED -> tagged++
                 TagOutcome.SKIPPED -> skipped++
@@ -100,6 +109,13 @@ class TagAlbumsCommand(
         if (libraryRoot != null) {
             echo("Tagged $tagged albums, $skipped skipped, $errors errors")
             logger.info { "tag complete: tagged=$tagged skipped=$skipped errors=$errors" }
+        }
+        if (noIdFileDirs.isNotEmpty()) {
+            echo("${noIdFileDirs.size} album(s) skipped - no usable id file:", err = true)
+            noIdFileDirs.forEach { (dir, reason) ->
+                echo("  $dir ($reason)", err = true)
+            }
+            logger.warn { "no-id-file-skipped count=${noIdFileDirs.size}" }
         }
         resolveExitCode(isBatchMode = libraryRoot != null, tagged = tagged, errors = errors)
     }
@@ -121,7 +137,37 @@ class TagAlbumsCommand(
         throw ProgramResult(code)
     }
 
-    private fun tagAlbum(dir: Path, idReader: IdFileReader, lazyService: Lazy<TaggerService>): TagOutcome {
+    private fun tagAlbum(
+        dir: Path,
+        idReader: IdFileReader,
+        lazyService: Lazy<TaggerService>,
+        noIdFileDirs: MutableList<Pair<Path, String>>,
+    ): TagOutcome {
+        val idFileStatus = detectIdFileStatus(dir)
+        return when (idFileStatus) {
+            IdFileStatus.MbIdOnly -> {
+                val msg = "Unsupported id file $MB_ID_FILE in $dir (MusicBrainz support is not yet available)"
+                echo(msg, err = true)
+                logger.warn { "SKIP  dir=$dir reason=mb_id.txt only - MusicBrainz not yet supported" }
+                noIdFileDirs.add(dir to "unsupported: $MB_ID_FILE")
+                TagOutcome.ERROR
+            }
+            IdFileStatus.Missing -> {
+                val msg = "No id file found in $dir (expected metadata.yml, id.txt, discogs_id.txt, or multiple_id.txt)"
+                echo(msg, err = true)
+                logger.warn { "SKIP  dir=$dir reason=no id file found" }
+                noIdFileDirs.add(dir to "no id file")
+                TagOutcome.ERROR
+            }
+            IdFileStatus.Present -> tagWithIdFile(dir, idReader, lazyService)
+        }
+    }
+
+    private fun tagWithIdFile(
+        dir: Path,
+        idReader: IdFileReader,
+        lazyService: Lazy<TaggerService>,
+    ): TagOutcome {
         val idFile = idReader.read(dir)
         if (idFile == null) {
             echo("SKIP  $dir - no id file found")
@@ -136,7 +182,7 @@ class TagAlbumsCommand(
                 TagOutcome.SKIPPED
             }
             dryRun -> {
-                echo("DRY   $dir → discogs_id=$discogsId")
+                echo("DRY   $dir -> discogs_id=$discogsId")
                 TagOutcome.TAGGED
             }
             else -> tagWithService(dir, idFile, lazyService)
@@ -196,24 +242,92 @@ class TagAlbumsCommand(
         val root = libraryRoot
         return if (root != null) {
             val scanDepth = if (recursive) Int.MAX_VALUE else depth
+            // Include directories that have an id file (any format including mb_id.txt) OR
+            // that are leaf directories (no subdirectories) so that albums with no id file
+            // at all receive an actionable error message rather than being silently omitted.
             walkDirectories(root, scanDepth)
-                .filter { hasIdFile(it) }
+                .filter { hasAnyIdFile(it) || isLeafDirectory(it) }
                 .toList()
         } else {
             albumDirs.filter { SystemFileSystem.metadataOrNull(it)?.isDirectory == true }
         }
     }
 
-    private fun hasIdFile(dir: Path): Boolean =
-        listOf("id.txt", "local_ids.txt", "metadata.yml")
+    /**
+     * Returns true if the directory contains any recognised id file, including unsupported
+     * formats such as [MB_ID_FILE]. This ensures that directories with only mb_id.txt are
+     * included in the scan so they receive an actionable error message.
+     */
+    private fun hasAnyIdFile(dir: Path): Boolean =
+        (USABLE_ID_FILE_NAMES + MB_ID_FILE)
             .any { SystemFileSystem.exists(Path(dir, it)) }
+
+    /**
+     * Returns true if the directory has no subdirectories - i.e., it is a leaf node.
+     * Leaf directories are included even when they contain no id files so that albums
+     * with FLAC files but a missing id file receive an error rather than a silent skip.
+     *
+     * Known limitation: an intermediate directory (e.g. an empty Artist/ directory) that
+     * contains no subdirectories at scan time is also treated as a leaf and will be
+     * reported as "no id file". This is an edge case in partial or empty library trees.
+     *
+     * If listing the directory fails due to a permissions error, the directory is treated
+     * as a leaf (conservative: it will be included and reported via an error message).
+     */
+    private fun isLeafDirectory(dir: Path): Boolean =
+        runCatching { SystemFileSystem.list(dir) }
+            .onFailure { logger.warn(it) { "cannot list dir=$dir - treating as leaf" } }
+            .getOrElse { emptyList() }
+            .none { SystemFileSystem.metadataOrNull(it)?.isDirectory == true }
 }
+
+/**
+ * Describes the id-file state of a directory as seen by the tag command.
+ */
+internal enum class IdFileStatus {
+    /** A usable Discogs id file was found (metadata.yml, id.txt, discogs_id.txt, or multiple_id.txt). */
+    Present,
+
+    /** Only mb_id.txt is present; MusicBrainz support is not available in v1. */
+    MbIdOnly,
+
+    /** No recognised id file exists in the directory. */
+    Missing,
+}
+
+/**
+ * Detects the id-file status for a directory without reading file contents.
+ *
+ * Checks for usable Discogs formats first, then falls back to detecting the unsupported
+ * mb_id.txt, and finally reports Missing.
+ */
+internal fun detectIdFileStatus(dir: Path): IdFileStatus =
+    when {
+        USABLE_ID_FILE_NAMES.any { SystemFileSystem.exists(Path(dir, it)) } -> IdFileStatus.Present
+        SystemFileSystem.exists(Path(dir, MB_ID_FILE)) -> IdFileStatus.MbIdOnly
+        else -> IdFileStatus.Missing
+    }
 
 // Matches the documented 3-level library layout: <Genre>/<AlbumArtist>/<AlbumTitle>
 private const val DEFAULT_LIBRARY_SCAN_DEPTH = 3
 
 // Sentinel value used by --recursive flag
 private const val INT_MAX_DEPTH = Int.MAX_VALUE
+
+/** MusicBrainz id file - detected but not processed in v1. */
+internal const val MB_ID_FILE = "mb_id.txt"
+
+/**
+ * All id-file formats that the tagger can actually process, in priority order.
+ * metadata.yml is checked first (canonical format), followed by INI variants.
+ */
+internal val USABLE_ID_FILE_NAMES = listOf(
+    "metadata.yml",
+    "id.txt",
+    "local_ids.txt",
+    "discogs_id.txt",
+    "multiple_id.txt",
+)
 
 private enum class TagOutcome { TAGGED, SKIPPED, ERROR }
 
