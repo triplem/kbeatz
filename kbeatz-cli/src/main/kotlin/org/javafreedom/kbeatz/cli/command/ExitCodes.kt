@@ -27,10 +27,10 @@ object ExitCodes {
     const val FAILURE = 1
 
     /**
-     * Invalid arguments - this is the Clikt default and is not thrown explicitly;
-     * it is documented here for script authors.
+     * Invalid arguments - this is the Clikt default for [UsageError] and is not thrown
+     * explicitly by command code; it is documented here for script authors who need to
+     * distinguish a bad invocation from a runtime failure.
      */
-    @Suppress("unused")
     const val INVALID_ARGS = 2
 
     /**
