@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { AlbumFilters, FilterOptions } from './album-filters'
 
 interface FilterPanelProps {
@@ -11,9 +12,11 @@ interface FilterPanelProps {
  *
  * Provides multi-select checkboxes for genre, artist, composer,
  * and number inputs for year range. Operates on the in-memory
- * album list — no API calls.
+ * album list - no API calls.
  */
 export function FilterPanel({ options, filters, onFiltersChange }: FilterPanelProps) {
+  const { t } = useTranslation()
+
   const toggleMultiSelect = (field: 'genres' | 'artists' | 'composers', value: string) => {
     const current = filters[field] as ReadonlyArray<string>
     const next = current.includes(value)
@@ -33,11 +36,11 @@ export function FilterPanel({ options, filters, onFiltersChange }: FilterPanelPr
   }
 
   return (
-    <aside className="filter-panel" aria-label="Filter albums">
+    <aside className="filter-panel" aria-label={t('filterPanel.ariaLabel')}>
       {options.genres.length > 0 && (
         <section className="filter-panel__section">
-          <h3 className="filter-panel__heading">Genre</h3>
-          <ul className="filter-panel__list" role="group" aria-label="Genre filter">
+          <h3 className="filter-panel__heading">{t('filterPanel.genre')}</h3>
+          <ul className="filter-panel__list" role="group" aria-label={t('filterPanel.genreFilter')}>
             {options.genres.map((genre) => (
               <li key={genre}>
                 <label className="filter-panel__option">
@@ -56,8 +59,8 @@ export function FilterPanel({ options, filters, onFiltersChange }: FilterPanelPr
 
       {options.artists.length > 0 && (
         <section className="filter-panel__section">
-          <h3 className="filter-panel__heading">Artist</h3>
-          <ul className="filter-panel__list" role="group" aria-label="Artist filter">
+          <h3 className="filter-panel__heading">{t('filterPanel.artist')}</h3>
+          <ul className="filter-panel__list" role="group" aria-label={t('filterPanel.artistFilter')}>
             {options.artists.map((artist) => (
               <li key={artist}>
                 <label className="filter-panel__option">
@@ -76,8 +79,8 @@ export function FilterPanel({ options, filters, onFiltersChange }: FilterPanelPr
 
       {options.composers.length > 0 && (
         <section className="filter-panel__section">
-          <h3 className="filter-panel__heading">Composer</h3>
-          <ul className="filter-panel__list" role="group" aria-label="Composer filter">
+          <h3 className="filter-panel__heading">{t('filterPanel.composer')}</h3>
+          <ul className="filter-panel__list" role="group" aria-label={t('filterPanel.composerFilter')}>
             {options.composers.map((composer) => (
               <li key={composer}>
                 <label className="filter-panel__option">
@@ -95,13 +98,13 @@ export function FilterPanel({ options, filters, onFiltersChange }: FilterPanelPr
       )}
 
       <section className="filter-panel__section">
-        <h3 className="filter-panel__heading">Year</h3>
+        <h3 className="filter-panel__heading">{t('filterPanel.year')}</h3>
         <div className="filter-panel__year-range">
           <label>
-            <span className="filter-panel__label">From</span>
+            <span className="filter-panel__label">{t('filterPanel.yearFrom')}</span>
             <input
               type="number"
-              aria-label="Year from"
+              aria-label={t('filterPanel.yearFrom')}
               value={filters.yearMin ?? ''}
               onChange={handleYearMin}
               min={1900}
@@ -110,10 +113,10 @@ export function FilterPanel({ options, filters, onFiltersChange }: FilterPanelPr
             />
           </label>
           <label>
-            <span className="filter-panel__label">To</span>
+            <span className="filter-panel__label">{t('filterPanel.yearTo')}</span>
             <input
               type="number"
-              aria-label="Year to"
+              aria-label={t('filterPanel.yearTo')}
               value={filters.yearMax ?? ''}
               onChange={handleYearMax}
               min={1900}

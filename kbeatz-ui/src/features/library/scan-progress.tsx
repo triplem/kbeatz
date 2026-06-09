@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ScanStatus } from '../../api/generated'
 import { LibraryService } from '../../api/generated'
 
@@ -14,6 +15,7 @@ const POLL_INTERVAL_MS = 2000
  * Does not render at all when state is IDLE or COMPLETED.
  */
 export function ScanProgress() {
+  const { t } = useTranslation()
   const [status, setStatus] = useState<ScanStatus | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -53,7 +55,7 @@ export function ScanProgress() {
   if (status.state === 'FAILED') {
     return (
       <div className="scan-progress scan-progress--failed" role="alert">
-        Scan failed: {status.errorMessage ?? 'Unknown error'}
+        {t('scanProgress.failed', { message: status.errorMessage ?? t('scanProgress.unknownError') })}
       </div>
     )
   }
@@ -70,7 +72,7 @@ export function ScanProgress() {
       aria-live="polite"
       aria-atomic="true"
     >
-      Scanning: {progressText} albums
+      {t('scanProgress.running', { progress: progressText })}
     </div>
   )
 }

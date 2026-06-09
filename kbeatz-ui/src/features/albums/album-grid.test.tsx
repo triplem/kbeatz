@@ -34,7 +34,7 @@ describe('AlbumGrid', () => {
     const albums = [makeAlbum('id-1', 'Kind of Blue')]
     render(<MemoryRouter><AlbumGrid albums={albums} /></MemoryRouter>)
     expect(
-      screen.getByRole('region', { name: /Album collection — 1 albums/ }),
+      screen.getByRole('region', { name: /Album collection - 1 albums/ }),
     ).toBeInTheDocument()
   })
 })

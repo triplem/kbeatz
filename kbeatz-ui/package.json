@@ -14,8 +14,10 @@
   },
   "dependencies": {
     "axios": "^1.7.0",
+    "i18next": "^26.3.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-i18next": "^17.0.8",
     "react-router-dom": "^7.0.0"
   },
   "devDependencies": {
@@ -31,6 +33,7 @@
     "@vitejs/plugin-react": "^4.3.0",
     "@vitest/coverage-v8": "^4.1.8",
     "eslint": "^9.0.0",
+    "eslint-plugin-i18next": "^6.1.4",
     "eslint-plugin-react-hooks": "^5.0.0",
     "globals": "^17.6.0",
     "jsdom": "^25.0.0",

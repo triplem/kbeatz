@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Album } from './api/generated'
 import { AlbumsService } from './api/generated'
 import { AlbumGrid } from './features/albums/album-grid'
@@ -34,6 +35,7 @@ async function fetchAllAlbums(): Promise<Album[]> {
 }
 
 function AlbumListPage() {
+  const { t } = useTranslation()
   const [albums, setAlbums] = useState<Album[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -94,7 +96,7 @@ function AlbumListPage() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>kbeatz</h1>
+        <h1>{t('app.title')}</h1>
         <SearchBox filters={filters} onFiltersChange={setFilters} />
       </header>
       <main className="app-main">
@@ -111,8 +113,8 @@ function AlbumListPage() {
             <div className="app-toolbar">
               <SortPreference value={sortBy} onChange={handleSortChange} />
             </div>
-            {loading && <p>Loading albums...</p>}
-            {error && <p role="alert">Error: {error}</p>}
+            {loading && <p>{t('albumGrid.loading')}</p>}
+            {error && <p role="alert">{t('albumGrid.errorPrefix')}{error}</p>}
             {!loading && !error && <AlbumGrid albums={visibleAlbums} />}
           </div>
         </div>

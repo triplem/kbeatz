@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Album } from '../../api/generated'
 
 interface AlbumCardProps {
@@ -7,21 +8,25 @@ interface AlbumCardProps {
 }
 
 /** Inline SVG placeholder shown when no cover art is available. */
-const CoverPlaceholder = () => (
-  <svg
-    role="img"
-    aria-label="No cover art"
-    width="200"
-    height="200"
-    viewBox="0 0 200 200"
-    xmlns="http://www.w3.org/2000/svg"
-    className="album-card__cover-placeholder"
-  >
-    <rect width="200" height="200" fill="#2a2a2a" />
-    <text x="100" y="90" textAnchor="middle" fill="#666" fontSize="40">♪</text>
-    <text x="100" y="130" textAnchor="middle" fill="#555" fontSize="12">No cover</text>
-  </svg>
-)
+const CoverPlaceholder = () => {
+  const { t } = useTranslation()
+  return (
+    <svg
+      role="img"
+      aria-label={t('albumCard.noCoverAria')}
+      width="200"
+      height="200"
+      viewBox="0 0 200 200"
+      xmlns="http://www.w3.org/2000/svg"
+      className="album-card__cover-placeholder"
+    >
+      <rect width="200" height="200" fill="#2a2a2a" />
+      {/* eslint-disable-next-line i18next/no-literal-string */}
+      <text x="100" y="90" textAnchor="middle" fill="#666" fontSize="40">♪</text>
+      <text x="100" y="130" textAnchor="middle" fill="#555" fontSize="12">{t('albumCard.noCoverLabel')}</text>
+    </svg>
+  )
+}
 
 /**
  * Album card component.
@@ -36,6 +41,7 @@ const CoverPlaceholder = () => (
 export function AlbumCard({ album }: AlbumCardProps) {
   const [coverError, setCoverError] = useState(false)
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   const primaryAttribution = album.composer ?? album.albumArtist
   const showCover = album.hasCoverArt && !coverError
@@ -56,7 +62,7 @@ export function AlbumCard({ album }: AlbumCardProps) {
       className="album-card"
       tabIndex={0}
       role="button"
-      aria-label={`View details for ${album.album} by ${primaryAttribution}`}
+      aria-label={t('albumCard.viewDetails', { album: album.album, artist: primaryAttribution })}
       onClick={handleNavigate}
       onKeyDown={handleKeyDown}
       style={{ cursor: 'pointer' }}
@@ -65,7 +71,7 @@ export function AlbumCard({ album }: AlbumCardProps) {
         {showCover ? (
           <img
             src={`/api/v1/albums/${album.id}/cover`}
-            alt={`Cover art for ${album.album}`}
+            alt={t('albumCard.coverAlt', { album: album.album })}
             width={200}
             height={200}
             onError={() => setCoverError(true)}

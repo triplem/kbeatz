@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { CancelledByUserError } from './cancelled-by-user-error'
 
 interface EditableFieldProps {
@@ -10,14 +11,14 @@ interface EditableFieldProps {
 }
 
 /**
- * EditableField — click-to-edit inline text input for a single Vorbis Comment field.
+ * EditableField - click-to-edit inline text input for a single Vorbis Comment field.
  *
  * Behaviour:
- * - Click on value text → input appears pre-filled with current value
- * - Enter → calls onSave; triggers confirmation dialog before the PATCH is fired
- * - Blur (click away) → silently cancels edit, restores original value; no dialog, no API call
- * - Escape → cancels edit, restores original value; no API call made
- * - On save error → rolls back to pre-edit value and sets error message
+ * - Click on value text - input appears pre-filled with current value
+ * - Enter - calls onSave; triggers confirmation dialog before the PATCH is fired
+ * - Blur (click away) - silently cancels edit, restores original value; no dialog, no API call
+ * - Escape - cancels edit, restores original value; no API call made
+ * - On save error - rolls back to pre-edit value and sets error message
  */
 export function EditableField({
   label,
@@ -26,6 +27,7 @@ export function EditableField({
   onSave,
   testIdPrefix = '',
 }: EditableFieldProps) {
+  const { t } = useTranslation()
   const [editing, setEditing] = useState(false)
   const [editValue, setEditValue] = useState(value ?? '')
   const [saving, setSaving] = useState(false)
@@ -56,7 +58,7 @@ export function EditableField({
     const newValue = editValue.trim()
     const originalValue = value ?? ''
 
-    // No change — just cancel
+    // No change - just cancel
     if (newValue === originalValue) {
       setEditing(false)
       return
@@ -71,17 +73,17 @@ export function EditableField({
       // Rollback to original value
       setEditValue(originalValue)
       setEditing(false)
-      // CancelledByUserError means the user dismissed the confirmation dialog —
+      // CancelledByUserError means the user dismissed the confirmation dialog -
       // do not show an error; the field silently returns to display mode.
       if (err instanceof CancelledByUserError) {
         setError(null)
       } else {
-        setError(err instanceof Error ? err.message : 'Save failed')
+        setError(err instanceof Error ? err.message : t('editableField.saveFailed'))
       }
     } finally {
       setSaving(false)
     }
-  }, [editing, saving, editValue, value, fieldName, onSave])
+  }, [editing, saving, editValue, value, fieldName, onSave, t])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -124,7 +126,7 @@ export function EditableField({
             onKeyDown={handleKeyDown}
             onBlur={handleBlur}
             disabled={saving}
-            aria-label={`Edit ${label}`}
+            aria-label={t('editableField.editLabel', { label })}
             data-testid={`${prefix}input-${fieldName.toLowerCase()}`}
             className="editable-field__input"
           />
@@ -132,11 +134,13 @@ export function EditableField({
           <button
             type="button"
             onClick={startEditing}
-            aria-label={`Edit ${label}: ${value ?? '(empty)'}`}
+            aria-label={value
+              ? t('editableField.editWithValue', { label, value })
+              : t('editableField.editEmpty', { label })}
             data-testid={`${prefix}value-${fieldName.toLowerCase()}`}
             className="editable-field__display"
           >
-            {value ?? <span className="editable-field__empty">(empty — click to set)</span>}
+            {value ?? <span className="editable-field__empty">{t('common.empty')}</span>}
           </button>
         )}
         {error !== null && (

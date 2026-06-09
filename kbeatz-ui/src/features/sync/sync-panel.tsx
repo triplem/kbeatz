@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Album, AlbumsService } from '../../api/generated'
 
 /** Tag fields that Discogs sync can update. */
@@ -32,13 +33,14 @@ interface SyncPanelProps {
 }
 
 /**
- * SyncPanel — renders the "Sync from Discogs" control block for an album detail view.
+ * SyncPanel - renders the "Sync from Discogs" control block for an album detail view.
  *
  * Only rendered when the album has a `discogsId`.
  * Calls POST /api/v1/albums/{albumId}/sync and handles all response states.
  * Displays the number of tag fields updated after a successful sync.
  */
 export function SyncPanel({ album, onSyncComplete }: SyncPanelProps) {
+  const { t } = useTranslation()
   const [downloadImages, setDownloadImages] = useState(false)
   const [syncState, setSyncState] = useState<SyncState>({ status: 'idle' })
 
@@ -57,12 +59,12 @@ export function SyncPanel({ album, onSyncComplete }: SyncPanelProps) {
     } catch (err: unknown) {
       const apiError = err as { body?: { code?: string; message?: string; details?: string[] } }
       const code = apiError.body?.code ?? ''
-      const message = apiError.body?.message ?? 'Unknown error'
+      const message = apiError.body?.message ?? t('common.unknown')
 
       if (code === 'IMAGE_QUOTA_EXHAUSTED') {
         const details = apiError.body?.details ?? []
         const resetAtDetail = details.find((d) => d.startsWith('resetAt='))
-        const resetAt = resetAtDetail ? resetAtDetail.replace('resetAt=', '') : 'unknown'
+        const resetAt = resetAtDetail ? resetAtDetail.replace('resetAt=', '') : t('common.unknown')
         setSyncState({ status: 'quotaExhausted', resetAt })
       } else {
         setSyncState({ status: 'error', message })
@@ -71,10 +73,11 @@ export function SyncPanel({ album, onSyncComplete }: SyncPanelProps) {
   }
 
   return (
-    <section aria-label="Sync from Discogs" className="sync-panel">
-      <h3>Sync from Discogs</h3>
+    <section aria-label={t('syncPanel.ariaLabel')} className="sync-panel">
+      <h3>{t('syncPanel.heading')}</h3>
       <p className="sync-discogs-id">
-        Discogs ID: <span data-testid="discogs-id">{album.discogsId}</span>
+        {t('syncPanel.discogsId', { id: album.discogsId })}
+        <span data-testid="discogs-id" style={{ display: 'none' }}>{album.discogsId}</span>
       </p>
 
       <label className="sync-checkbox-label">
@@ -84,8 +87,9 @@ export function SyncPanel({ album, onSyncComplete }: SyncPanelProps) {
           onChange={(e) => { setDownloadImages(e.target.checked) }}
           disabled={syncState.status === 'loading'}
           data-testid="download-images-checkbox"
+          aria-label={t('syncPanel.downloadImagesAriaLabel')}
         />
-        {' '}Also update cover art
+        {' '}{t('syncPanel.downloadImages')}
       </label>
 
       <button
@@ -95,18 +99,18 @@ export function SyncPanel({ album, onSyncComplete }: SyncPanelProps) {
         data-testid="sync-button"
         className="sync-button"
       >
-        {syncState.status === 'loading' ? 'Syncing…' : 'Sync from Discogs'}
+        {syncState.status === 'loading' ? t('syncPanel.syncButtonLoading') : t('syncPanel.syncButton')}
       </button>
 
       {syncState.status === 'loading' && (
         <p role="status" aria-live="polite" data-testid="sync-loading">
-          Syncing with Discogs…
+          {t('syncPanel.loadingMessage')}
         </p>
       )}
 
       {syncState.status === 'success' && (
         <p role="status" aria-live="polite" data-testid="sync-success" className="sync-success">
-          Sync complete — {syncState.fieldsWritten} field{syncState.fieldsWritten !== 1 ? 's' : ''} updated.
+          {t('syncPanel.successMessage', { count: syncState.fieldsWritten })}
         </p>
       )}
 
@@ -118,7 +122,7 @@ export function SyncPanel({ album, onSyncComplete }: SyncPanelProps) {
 
       {syncState.status === 'quotaExhausted' && (
         <p role="alert" data-testid="sync-quota-exhausted" className="sync-quota-exhausted">
-          Image quota exhausted. Resets at {syncState.resetAt}.
+          {t('syncPanel.quotaExhausted', { resetAt: syncState.resetAt })}
         </p>
       )}
     </section>
