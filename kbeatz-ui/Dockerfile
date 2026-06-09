@@ -1,7 +1,7 @@
 # Build stage
 # Pinned 2026-06-07. Update digest with:
-#   docker pull node:22-alpine
-#   docker inspect node:22-alpine --format='{{index .RepoDigests 0}}'
+#   docker pull node:26-alpine
+#   docker inspect node:26-alpine --format='{{index .RepoDigests 0}}'
 FROM node:26-alpine@sha256:144769ec3f32e8ee36b3cfde91e82bee25d9367b20f31a151f3f7eea3a2a8541 AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
