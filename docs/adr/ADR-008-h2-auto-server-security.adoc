@@ -77,18 +77,20 @@ The risk is accepted on the following conditions:
 . The operations guide documents the exposure and recommends firewall rules for multi-user LANs.
 . PostgreSQL migration (ADR-006) remains the v2 path; this decision is re-evaluated at that point.
 
-.Recommended firewall rule (Linux/iptables) if AUTO_SERVER is enabled
+.Recommended approach: pin the port with AUTO_SERVER_PORT and restrict with a firewall rule
 [source,bash]
 ----
-# Block external access to H2 AUTO_SERVER ephemeral ports
-# H2 uses ports in the OS ephemeral range; restrict to loopback
-iptables -A INPUT -p tcp --dport 9000:65535 -s 127.0.0.1 -j ACCEPT
-iptables -A INPUT -p tcp --dport 9000:65535 -j DROP
+# Set a fixed port for the H2 TCP server by including AUTO_SERVER_PORT in the JDBC URL:
+# CATALOG_JDBC_URL=jdbc:h2:file:./data/kbeatz;AUTO_SERVER=TRUE;AUTO_SERVER_PORT=9092;MODE=PostgreSQL
+
+# Then restrict external access to that port (Linux/iptables):
+iptables -A INPUT -p tcp --dport 9092 ! -s 127.0.0.1 -j DROP
 ----
 
-NOTE: The port is chosen randomly and written to the `.lock.db` file. A more targeted rule
-requires reading the actual port from that file or pinning it with `AUTO_SERVER_PORT=<port>` in
-the JDBC URL.
+NOTE: Without `AUTO_SERVER_PORT`, H2 picks a random port from the OS ephemeral range and
+writes it to the `.lock.db` file. Pinning the port with `AUTO_SERVER_PORT=9092` (H2's
+documented default example value) makes firewall rules practical. Replace `9092` with any
+available port above 1024.
 
 == Consequences
 

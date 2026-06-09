@@ -119,5 +119,6 @@ No Exposed DSL changes and no Liquibase migration rewrites are expected.
 
 == See Also
 
-* ADR-008: H2 AUTO_SERVER=TRUE Security Assessment and Risk Acceptance - detailed security
-  analysis of enabling H2's automatic mixed mode for concurrent CLI and catalog access.
+* link:ADR-008-h2-auto-server-security.adoc[ADR-008: H2 AUTO_SERVER=TRUE Security Assessment
+  and Risk Acceptance] - detailed security analysis of enabling H2's automatic mixed mode for
+  concurrent CLI and catalog access.
