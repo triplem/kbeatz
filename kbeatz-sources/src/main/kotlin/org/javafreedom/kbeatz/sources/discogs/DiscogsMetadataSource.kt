@@ -10,18 +10,25 @@ import io.ktor.client.request.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.io.bytestring.ByteString
 import kotlinx.serialization.json.Json
+import org.javafreedom.kbeatz.common.metadata.KbeatzMetadata
+import org.javafreedom.kbeatz.common.metadata.KbeatzMetadata.Image as KbeatzImage
 import org.javafreedom.kbeatz.sources.ImageResult
 import org.javafreedom.kbeatz.sources.MetadataCache
 import org.javafreedom.kbeatz.sources.MetadataSource
 import org.javafreedom.kbeatz.sources.Release
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 
 private val log = KotlinLogging.logger {}
+
+private val metadataJson = Json { ignoreUnknownKeys = true }
 
 /**
  * Discogs REST API adapter for [MetadataSource].
  *
  * Authentication: Personal Access Token via DISCOGS_TOKEN environment variable.
- * Rate limiting: 60 requests/minute enforced by a [DiscogsTokenBucket] — callers are suspended,
+ * Rate limiting: 60 requests/minute enforced by a [DiscogsTokenBucket] - callers are suspended,
  * not rejected, when the bucket is empty.
  * Image quota: 1 000 images/day tracked by [DiscogsImageQuota].
  *
@@ -91,7 +98,7 @@ class DiscogsMetadataSource private constructor(
 
     override suspend fun fetchImage(releaseId: String, index: Int): ImageResult? =
         if (!imageQuota.canDownload()) {
-            log.warn { "Discogs daily image quota exhausted — skipping image download for release $releaseId" }
+            log.warn { "Discogs daily image quota exhausted - skipping image download for release $releaseId" }
             null
         } else {
             fetchRelease(releaseId)
@@ -104,5 +111,110 @@ class DiscogsMetadataSource private constructor(
                     val mimeType = if (image.uri.endsWith(".png")) "image/png" else "image/jpeg"
                     ImageResult(bytes, mimeType)
                 }
+        }
+
+    /**
+     * Downloads images listed in `<albumDir>/.kbeatz/metadata.json` for the requested picture types.
+     *
+     * For each entry in [requestedTypes]:
+     * - If the metadata.json does not contain an image for the type, a [ImageDownloadResult.Skipped]
+     *   result is returned.
+     * - If [overwriteExisting] is false (default) and the target file already exists, a
+     *   [ImageDownloadResult.Skipped] result is returned.
+     * - If the daily image quota is exhausted, a [ImageDownloadResult.QuotaExceeded] result is
+     *   returned and no bytes are written.
+     * - Otherwise, the image is downloaded and written atomically to `<albumDir>/<localPath>`.
+     *
+     * Rate limiting (1 req/sec) is enforced via the shared [DiscogsTokenBucket].
+     * Quota tracking is handled by the shared [DiscogsImageQuota].
+     *
+     * @param albumDir Path to the album directory. The `.kbeatz/metadata.json` file must exist.
+     * @param requestedTypes FLAC picture-type integers to download (e.g. setOf(3) for front cover).
+     * @param overwriteExisting When true, overwrite existing target files. Default: false.
+     * @return One [ImageDownloadResult] per requested type, in the same order as [requestedTypes].
+     */
+    suspend fun downloadImages(
+        albumDir: Path,
+        requestedTypes: Set<Int>,
+        overwriteExisting: Boolean = false,
+    ): List<ImageDownloadResult> {
+        val metadataFile = albumDir.resolve(".kbeatz/metadata.json")
+        val metadata = loadMetadata(metadataFile)
+        return if (metadata == null) {
+            requestedTypes.map { type ->
+                ImageDownloadResult.Skipped(type, "metadata.json not found at $metadataFile")
+            }
+        } else {
+            requestedTypes.map { type ->
+                downloadImageForType(albumDir, metadata, type, overwriteExisting)
+            }
+        }
+    }
+
+    private suspend fun downloadImageForType(
+        albumDir: Path,
+        metadata: KbeatzMetadata,
+        pictureType: Int,
+        overwriteExisting: Boolean,
+    ): ImageDownloadResult =
+        metadata.images.firstOrNull { it.pictureType == pictureType }
+            ?.let { entry -> resolveDownload(albumDir, entry, pictureType, overwriteExisting) }
+            ?: ImageDownloadResult.Skipped(pictureType, "no image with pictureType=$pictureType in metadata.json")
+
+    private suspend fun resolveDownload(
+        albumDir: Path,
+        entry: KbeatzImage,
+        pictureType: Int,
+        overwriteExisting: Boolean,
+    ): ImageDownloadResult {
+        val targetPath = albumDir.resolve(entry.localPath).normalize()
+        if (!targetPath.startsWith(albumDir.normalize())) {
+            log.warn { "Path traversal blocked: pictureType=$pictureType localPath=${entry.localPath}" }
+            return ImageDownloadResult.Skipped(pictureType, "localPath escapes album directory")
+        }
+        return when {
+            !overwriteExisting && Files.exists(targetPath) -> {
+                log.debug { "Skipping pictureType=$pictureType localPath=${entry.localPath} already exists" }
+                ImageDownloadResult.Skipped(pictureType, "file already exists at $targetPath")
+            }
+            !imageQuota.canDownload() -> {
+                log.warn { "Discogs daily image quota exhausted - pictureType=$pictureType uri=${entry.sourceUri}" }
+                ImageDownloadResult.QuotaExceeded(pictureType)
+            }
+            else -> performDownload(entry, pictureType, targetPath)
+        }
+    }
+
+    private suspend fun performDownload(
+        entry: KbeatzImage,
+        pictureType: Int,
+        targetPath: Path,
+    ): ImageDownloadResult.Downloaded {
+        log.info { "Downloading pictureType=$pictureType uri=${entry.sourceUri} target=$targetPath" }
+        tokenBucket.acquire()
+        val bytes = client.get(entry.sourceUri).body<ByteArray>()
+        imageQuota.recordDownload()
+
+        Files.createDirectories(targetPath.parent)
+        val tmp = targetPath.resolveSibling(targetPath.fileName.toString() + ".tmp")
+        Files.write(tmp, bytes)
+        Files.move(tmp, targetPath, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+
+        log.info { "Downloaded pictureType=$pictureType localPath=${entry.localPath} bytes=${bytes.size}" }
+        return ImageDownloadResult.Downloaded(pictureType, targetPath)
+    }
+
+    @Suppress("TooGenericExceptionCaught") // IO errors reading metadata.json must not crash the caller
+    private fun loadMetadata(metadataFile: Path): KbeatzMetadata? =
+        try {
+            if (!Files.exists(metadataFile)) {
+                log.warn { "metadata.json not found at $metadataFile" }
+                null
+            } else {
+                metadataJson.decodeFromString(KbeatzMetadata.serializer(), Files.readString(metadataFile))
+            }
+        } catch (ex: Exception) {
+            log.warn(ex) { "Failed to parse metadata.json at $metadataFile" }
+            null
         }
 }
