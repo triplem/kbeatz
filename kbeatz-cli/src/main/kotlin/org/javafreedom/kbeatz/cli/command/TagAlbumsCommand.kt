@@ -208,6 +208,18 @@ class TagAlbumsCommand(
                     logger.error(result.cause) { "ERROR  dir=$dir" }
                     TagOutcome.ERROR
                 }
+                is TagResult.TrackCountMismatch -> {
+                    echo(
+                        "ERROR  $dir - disc ${result.disc}: expected ${result.expected} tracks " +
+                            "but found ${result.files} FLAC files",
+                        err = true,
+                    )
+                    logger.error {
+                        "track_count_mismatch dir=$dir disc=${result.disc} " +
+                            "expected=${result.expected} actual=${result.files}"
+                    }
+                    TagOutcome.ERROR
+                }
             }
         }
 
