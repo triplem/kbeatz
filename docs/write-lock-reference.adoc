@@ -1,0 +1,204 @@
+= .kbeatz-write.lock: Write-Lock Lifecycle Reference
+:toc: left
+:toclevels: 3
+:icons: font
+:source-highlighter: rouge
+:doctype: article
+
+This reference describes the `.kbeatz-write.lock` sentinel file: its format, when it is
+created and removed, how the catalog startup repair uses it, and what happens when a write
+crashes mid-album.
+
+The write-lock lifecycle spans three epics:
+
+* Epic #14 - Startup repair (catalog service startup scan)
+* Epic #16 - Tag write (TaggerService multi-file album write)
+* Epic #17 - Discogs sync (metadata source writing image files)
+
+See xref:kbeatz-metadata-pipeline.adoc[Metadata Pipeline Developer Reference] for the
+`.kbeatz/` directory layout.
+
+== File Location and Format
+
+----
+<album-dir>/.kbeatz/.kbeatz-write.lock
+----
+
+.Format
+The lock file contains one absolute filesystem path per line, UTF-8 encoded, with a
+trailing newline on each line. Each path is the absolute path to a FLAC file that is
+part of the current write batch:
+
+----
+/music/Artist/Album/01 - Track.flac
+/music/Artist/Album/02 - Track.flac
+/music/Artist/Album/03 - Track.flac
+----
+
+The file lists every FLAC file that will be written in the current batch. This allows
+startup repair to know exactly which files to re-scan rather than scanning the entire
+album directory.
+
+== Lifecycle
+
+=== CREATE: Before the First File Write
+
+The lock file is created **before** any FLAC file in the album is modified.
+
+Sequence for a multi-file album write (tag write or Discogs sync):
+
+1. Resolve the list of FLAC files to write for the album.
+2. Create `.kbeatz/` if it does not exist.
+3. Write `.kbeatz/.kbeatz-write.lock` with the full list of absolute FLAC paths.
+4. Flush and close the lock file.
+5. Begin writing FLAC files (one by one, using temp-file rename).
+
+The lock is written atomically (temp file + rename) to prevent a partially written lock
+file from being read by startup repair.
+
+==== Single-File Writes
+
+The lock is **not** written for single-file track-level edits (e.g. editing one tag field
+on one track from the catalog UI). Only album-level writes that touch multiple FLAC files
+require the lock.
+
+The threshold is: if `fileCount >= 2` for the write batch, write the lock. If
+`fileCount == 1`, skip the lock.
+
+=== DURING: Temp-File Rename Pattern
+
+Each FLAC file is written as follows:
+
+1. Write updated FLAC content to `<track>.flac.tmp` (same directory).
+2. Atomically rename `<track>.flac.tmp` to `<track>.flac` (replaces the original).
+
+The lock file is not updated as individual files complete. It retains the full list of
+paths written at step CREATE until the entire batch is done.
+
+=== DELETE: After the Last File Succeeds
+
+After every FLAC file in the batch has been renamed successfully:
+
+1. Delete `.kbeatz/.kbeatz-write.lock`.
+
+The delete is the final write-path operation. If deletion fails (e.g. permission error),
+log an `ERROR` and leave the lock in place. Startup repair will clean it up.
+
+=== CONCURRENT LOCK DETECTION
+
+If a write attempt finds an existing `.kbeatz-write.lock` for the same album, the new
+write is **rejected** immediately:
+
+1. Log an `ERROR`: `"album write rejected: lock file present at <path>"`.
+2. Return a `409 Conflict` response to the caller (catalog API) or abort the CLI command.
+3. Do not modify any FLAC files.
+4. Do not delete the existing lock.
+
+Only one write batch per album may be in progress at a time. The lock is not
+re-entrant.
+
+== Startup Repair (Epic #14)
+
+On catalog service startup, before accepting any HTTP requests, `TaggerService` (or a
+startup repair component) scans for abandoned lock files:
+
+=== Repair Algorithm
+
+1. Walk the configured library root directory tree.
+2. For each `.kbeatz/.kbeatz-write.lock` file found:
+   a. Read the list of FLAC file paths from the lock.
+   b. For each listed FLAC file: check whether a `.flac.tmp` sibling exists. If so,
+      delete the `.flac.tmp` file (the temp file is incomplete).
+   c. Log a `WARN` for each abandoned lock: `"startup repair: found abandoned lock at <path>; this indicates a crashed write"`.
+   d. Delete the lock file.
+3. After repair, log an `INFO` summary: `"startup repair complete: repaired N abandoned locks"`.
+
+=== Repair Timeout
+
+If the repair scan takes longer than the configured timeout (default: 30 seconds),
+the service:
+
+1. Logs a `WARN`: `"startup repair scan exceeded timeout; proceeding with startup"`.
+2. Continues startup - does not abort.
+3. Leaves any unprocessed lock files in place for the next startup.
+
+The timeout prevents a pathologically large library from blocking service startup
+indefinitely.
+
+=== What Repair Does NOT Do
+
+- Repair does not re-write FLAC files or restore metadata from backup.
+- Repair does not consult `metadata.json` to re-apply tags.
+- Repair only removes incomplete artifacts (`.flac.tmp` files and the lock itself).
+
+If the FLAC files were partially written before the crash, the user must re-trigger the
+tag write or sync from the catalog UI.
+
+== Failure Modes
+
+=== Process Crash During Write
+
+If the process crashes after CREATE but before DELETE:
+
+- The lock file and any `.flac.tmp` files remain in `.kbeatz/`.
+- On next startup, the repair scan finds and cleans them.
+- FLAC files that were already atomically renamed are intact.
+- FLAC files whose `.flac.tmp` was not yet renamed are cleaned up (the `.flac.tmp` is deleted;
+  the original FLAC is untouched because rename had not yet happened for that file).
+
+=== Lock File Created but Write Never Starts
+
+This can happen if the process crashes between CREATE and the first file write. The repair
+scan handles this identically: delete the lock and any `.flac.tmp` files.
+
+=== Lock File Cannot Be Created
+
+If the `.kbeatz/` directory cannot be written (e.g. filesystem read-only, permissions
+issue), the write is aborted before any FLAC file is touched. Log an `ERROR` and return
+an appropriate error to the caller.
+
+=== Disk Full During Write
+
+If a FLAC write fails mid-batch due to disk full:
+
+1. Log an `ERROR` with the affected file path.
+2. Abort the write batch. Do not delete the lock.
+3. Return an error to the caller.
+4. The lock remains in place. Startup repair cleans it on next restart.
+
+Partially written `.flac.tmp` files are left on disk. They are cleaned by repair on the
+next startup. No attempt is made to roll back FLAC files that were already renamed.
+
+== Cross-Epic Interactions
+
+[cols="1,2,3"]
+|===
+| Epic | Component | Lock interaction
+
+| #14 - Startup repair
+| `CatalogStartup` / `TaggerService`
+| Reads and removes abandoned locks on startup. Logs WARN per abandoned lock. Respects timeout.
+
+| #16 - Tag write
+| `TaggerService`
+| Creates lock before multi-file batch. Deletes lock after last file. Rejects concurrent writes.
+
+| #17 - Discogs sync
+| `DiscogsMetadataSource` + `TaggerService`
+| The sync write goes through `TaggerService` which owns the lock. The source adapter writes
+  `metadata.json` and image files before TaggerService applies tags; only the FLAC tag write
+  phase uses the lock.
+|===
+
+== Implementing a New Write Path
+
+Any new code that writes FLAC files in batch must follow this protocol:
+
+1. Check for an existing lock. If present, reject and log `ERROR`.
+2. Write the lock file with all target FLAC paths before touching any FLAC files.
+3. Write each FLAC file using the temp-file rename pattern.
+4. Delete the lock file after all files succeed.
+5. On any error mid-batch, log `ERROR`, leave the lock in place, abort.
+
+Do not invent an alternative locking mechanism. All write paths must use `.kbeatz-write.lock`
+so that startup repair can find and clean them consistently.

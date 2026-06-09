@@ -52,6 +52,9 @@ subdirectory:
     .kbeatz-write.lock          <- write-lock sentinel (present only during an active write)
 ----
 
+See xref:write-lock-reference.adoc[Write-Lock Lifecycle Reference] for the lifecycle
+of `.kbeatz-write.lock`.
+
 .File roles
 [cols="1,3"]
 |===
