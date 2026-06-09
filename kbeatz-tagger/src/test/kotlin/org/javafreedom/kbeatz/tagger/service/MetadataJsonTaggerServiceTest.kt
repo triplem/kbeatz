@@ -434,6 +434,118 @@ class MetadataJsonTaggerServiceTest {
     }
 
     // -------------------------------------------------------------------------
+    // Security: path traversal rejection
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `should reject localPath with directory traversal and not embed image`(@TempDir tempDir: java.nio.file.Path) {
+        Files.write(tempDir.resolve("01-track.flac"), minimalFlacBytes())
+        // Create a file outside the album directory that traversal would reach
+        val secretFile = Files.createTempFile("secret", ".jpg")
+        secretFile.toFile().writeBytes(byteArrayOf(0xFF.toByte(), 0xD8.toByte()))
+        val traversalPath = "../../${secretFile.fileName}"
+
+        val metadata = singleDiscMetadata(1).copy(
+            images = listOf(
+                KbeatzMetadata.Image(
+                    pictureType = FlacMetadataBlock.Picture.TYPE_FRONT_COVER,
+                    description = null,
+                    mimeType = "image/jpeg",
+                    sourceUri = "https://example.com/cover.jpg",
+                    localPath = traversalPath,
+                ),
+            ),
+        )
+
+        val result = service().tag(Path(tempDir.toString()), metadata)
+
+        // Processing should succeed (traversal path is silently skipped)
+        assertIs<TagResult.Tagged>(result)
+        val blocks = FlacReader().parse(Files.readAllBytes(tempDir.resolve("01-track.flac"))).blocks
+        val picture = blocks.filterIsInstance<FlacMetadataBlock.Picture>().firstOrNull()
+        assertNull(picture, "Traversal localPath must not produce a PICTURE block")
+        secretFile.toFile().delete()
+    }
+
+    @Test
+    fun `should reject localPath starting with slash`(@TempDir tempDir: java.nio.file.Path) {
+        Files.write(tempDir.resolve("01-track.flac"), minimalFlacBytes())
+
+        val metadata = singleDiscMetadata(1).copy(
+            images = listOf(
+                KbeatzMetadata.Image(
+                    pictureType = FlacMetadataBlock.Picture.TYPE_FRONT_COVER,
+                    description = null,
+                    mimeType = "image/jpeg",
+                    sourceUri = "https://example.com/cover.jpg",
+                    localPath = "/etc/passwd",
+                ),
+            ),
+        )
+
+        val result = service().tag(Path(tempDir.toString()), metadata)
+
+        assertIs<TagResult.Tagged>(result)
+        val pic = FlacReader().parse(Files.readAllBytes(tempDir.resolve("01-track.flac")))
+            .blocks.filterIsInstance<FlacMetadataBlock.Picture>().firstOrNull()
+        assertNull(pic, "Absolute localPath must not produce a PICTURE block")
+    }
+
+    // -------------------------------------------------------------------------
+    // Directory layout edge cases
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `should not treat dot-kbeatz directory as a disc subdirectory for multi-disc album`(
+        @TempDir tempDir: java.nio.file.Path,
+    ) {
+        // .kbeatz must not be counted when listing subdirectories for disc assignment.
+        // Disc assignment should only see cd1/ and cd2/, not .kbeatz/
+        val kbeatzDir = Files.createDirectory(tempDir.resolve(".kbeatz"))
+        val cd1 = Files.createDirectory(tempDir.resolve("cd1"))
+        val cd2 = Files.createDirectory(tempDir.resolve("cd2"))
+        // Any FLACs inside .kbeatz must not be processed
+        Files.write(kbeatzDir.resolve("spurious.flac"), minimalFlacBytes())
+        Files.write(cd1.resolve("01-track.flac"), minimalFlacBytes())
+        Files.write(cd2.resolve("01-track.flac"), minimalFlacBytes())
+
+        val metadata = KbeatzMetadata(
+            source = "discogs",
+            sourceId = "999",
+            fetchedAt = Instant.parse("2024-01-01T00:00:00Z"),
+            album = KbeatzMetadata.Album(
+                title = "Test", albumArtist = "Artist", date = null,
+                genres = emptyList(), label = null, catalogNumber = null, barcode = null,
+                composer = null, conductor = null, ensemble = null, discTotal = 2,
+            ),
+            tracks = listOf(
+                KbeatzMetadata.Track(
+                    discNumber = 1, trackNumber = 1, trackTotal = 1,
+                    title = "Track 1", artist = null, duration = null,
+                    discSubtitle = null, originalPosition = "1-1",
+                ),
+                KbeatzMetadata.Track(
+                    discNumber = 2, trackNumber = 1, trackTotal = 1,
+                    title = "Track 1 D2", artist = null, duration = null,
+                    discSubtitle = null, originalPosition = "2-1",
+                ),
+            ),
+            images = emptyList(),
+        )
+
+        val result = service().tag(Path(tempDir.toString()), metadata)
+
+        // .kbeatz excluded - exactly 2 discs matched to cd1/ and cd2/, 1 file each
+        assertIs<TagResult.Tagged>(result)
+        assertEquals(2, result.filesWritten)
+        // Verify DISCNUMBER was written correctly, confirming .kbeatz was skipped in sort order
+        val cd1Tags = readVorbisComment(cd1.resolve("01-track.flac").toString())
+        assertEquals("1", cd1Tags.get(VorbisCommentFields.DISCNUMBER))
+        val cd2Tags = readVorbisComment(cd2.resolve("01-track.flac").toString())
+        assertEquals("2", cd2Tags.get(VorbisCommentFields.DISCNUMBER))
+    }
+
+    // -------------------------------------------------------------------------
     // Error handling
     // -------------------------------------------------------------------------
 

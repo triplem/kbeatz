@@ -94,7 +94,26 @@ class DefaultTaggerService(
 
     private fun resolveImages(albumDir: Path, images: List<KbeatzMetadata.Image>): List<FlacMetadataBlock.Picture> =
         images.mapNotNull { image ->
+            // Reject paths with directory traversal components before constructing the full path.
+            // localPath is metadata-controlled and must not escape the album directory.
+            if (image.localPath.contains("..") || image.localPath.startsWith("/")) {
+                log.warn {
+                    "image_skip albumDir=$albumDir localPath=${image.localPath} reason=path_traversal_rejected"
+                }
+                return@mapNotNull null
+            }
             val imagePath = Path(albumDir, image.localPath)
+            // Canonical path check: ensure resolved path is still inside albumDir.
+            val canonicalAlbum = java.io.File(albumDir.toString()).canonicalPath
+            val canonicalImage = java.io.File(imagePath.toString()).canonicalPath
+            if (!canonicalImage.startsWith(canonicalAlbum + java.io.File.separator) &&
+                canonicalImage != canonicalAlbum
+            ) {
+                log.warn {
+                    "image_skip albumDir=$albumDir localPath=${image.localPath} reason=outside_album_dir"
+                }
+                return@mapNotNull null
+            }
             if (!SystemFileSystem.exists(imagePath)) {
                 log.info { "image_skip albumDir=$albumDir localPath=${image.localPath} reason=file_not_found" }
                 return@mapNotNull null
@@ -133,9 +152,9 @@ class DefaultTaggerService(
             .filter { it.name != ".kbeatz" }
             .sortedBy { it.name }
         return if (discTotal == 1 || subdirs.isEmpty()) {
-            listOf(DiscContext(albumDir, discNumber = 1))
+            listOf(DiscContext(albumDir))
         } else {
-            subdirs.take(discTotal).mapIndexed { index, dir -> DiscContext(dir, discNumber = index + 1) }
+            subdirs.take(discTotal).map { dir -> DiscContext(dir) }
         }
     }
 
@@ -190,7 +209,7 @@ class DefaultTaggerService(
     }
 }
 
-private data class DiscContext(val dir: Path, val discNumber: Int)
+private data class DiscContext(val dir: Path)
 
 private sealed class Lookup {
     data class Found(val discogsId: String, val release: Release) : Lookup()
