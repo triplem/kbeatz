@@ -1,8 +1,13 @@
 package org.javafreedom.kbeatz.tagger.service
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.io.buffered
+import kotlinx.io.bytestring.ByteString
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
+import kotlinx.io.readByteArray
+import org.javafreedom.kbeatz.common.FlacTrackCountMismatchException
+import org.javafreedom.kbeatz.common.metadata.KbeatzMetadata
 import org.javafreedom.kbeatz.sources.MetadataSource
 import org.javafreedom.kbeatz.sources.Release
 import org.javafreedom.kbeatz.tagger.codec.flac.FlacFile
@@ -43,6 +48,115 @@ class DefaultTaggerService(
         }
     }
 
+    override fun tag(albumDir: Path, metadata: KbeatzMetadata): TagResult {
+        log.info { "tag_start albumDir=$albumDir source=${metadata.source} sourceId=${metadata.sourceId}" }
+        return runCatching {
+            val pictures = resolveImages(albumDir, metadata.images)
+            val discDirs = resolveDiscDirectories(albumDir, metadata.album.discTotal)
+            var totalFiles = 0
+            discDirs.forEachIndexed { index, discContext ->
+                val discNumber = index + 1
+                val discTracks = metadata.tracks.filter { it.discNumber == discNumber }
+                FlacTrackCountValidator.validate(
+                    albumDir = albumDir,
+                    discDir = discContext.dir,
+                    discNumber = discNumber,
+                    expectedTrackCount = discTracks.size,
+                )
+                val flacFiles = listFlacFilesSorted(discContext.dir)
+                flacFiles.forEachIndexed { trackIndex, flacPath ->
+                    val track = discTracks[trackIndex]
+                    tagFileFromMetadata(flacPath, metadata, track, pictures)
+                }
+                totalFiles += flacFiles.size
+                log.info {
+                    "tag_disc_done albumDir=$albumDir discNumber=$discNumber files=${flacFiles.size}"
+                }
+            }
+            log.info { "tag_done albumDir=$albumDir totalFiles=$totalFiles" }
+            TagResult.Tagged(albumDir, metadata.sourceId, totalFiles)
+        }.getOrElse { e ->
+            when (e) {
+                is FlacTrackCountMismatchException -> {
+                    log.error(e) {
+                        "tag_mismatch albumDir=$albumDir disc=${e.discNumber} " +
+                            "expected=${e.expectedTracks} actual=${e.actualFiles}"
+                    }
+                    TagResult.TrackCountMismatch(albumDir, e.discNumber, e.actualFiles, e.expectedTracks)
+                }
+                else -> {
+                    log.error(e) { "tag_error albumDir=$albumDir" }
+                    TagResult.Failed(albumDir, e)
+                }
+            }
+        }
+    }
+
+    private fun resolveImages(albumDir: Path, images: List<KbeatzMetadata.Image>): List<FlacMetadataBlock.Picture> =
+        images.mapNotNull { image ->
+            val imagePath = Path(albumDir, image.localPath)
+            if (!SystemFileSystem.exists(imagePath)) {
+                log.info { "image_skip albumDir=$albumDir localPath=${image.localPath} reason=file_not_found" }
+                return@mapNotNull null
+            }
+            val bytes = runCatching {
+                SystemFileSystem.source(imagePath).buffered().use { it.readByteArray() }
+            }.getOrElse { e ->
+                log.warn(e) { "image_read_error albumDir=$albumDir localPath=${image.localPath}" }
+                return@mapNotNull null
+            }
+            val mimeType = image.mimeType ?: inferMimeType(image.localPath)
+            FlacMetadataBlock.Picture(
+                pictureType = image.pictureType,
+                mimeType = mimeType,
+                description = image.description ?: "",
+                width = 0,
+                height = 0,
+                colorDepth = 0,
+                colorCount = 0,
+                data = ByteString(bytes),
+            )
+        }
+
+    private fun inferMimeType(localPath: String): String =
+        when {
+            localPath.endsWith(".jpg", ignoreCase = true) ||
+                localPath.endsWith(".jpeg", ignoreCase = true) -> "image/jpeg"
+            localPath.endsWith(".png", ignoreCase = true) -> "image/png"
+            else -> "image/jpeg"
+        }
+
+    private fun resolveDiscDirectories(albumDir: Path, discTotal: Int): List<DiscContext> {
+        val subdirs = runCatching { SystemFileSystem.list(albumDir) }
+            .getOrElse { emptyList() }
+            .filter { SystemFileSystem.metadataOrNull(it)?.isDirectory == true }
+            .filter { it.name != ".kbeatz" }
+            .sortedBy { it.name }
+        return if (discTotal == 1 || subdirs.isEmpty()) {
+            listOf(DiscContext(albumDir, discNumber = 1))
+        } else {
+            subdirs.take(discTotal).mapIndexed { index, dir -> DiscContext(dir, discNumber = index + 1) }
+        }
+    }
+
+    private fun listFlacFilesSorted(dir: Path): List<Path> =
+        runCatching { SystemFileSystem.list(dir) }
+            .getOrElse { emptyList() }
+            .filter { it.name.endsWith(".flac", ignoreCase = true) }
+            .sortedBy { it.name }
+
+    private fun tagFileFromMetadata(
+        path: Path,
+        metadata: KbeatzMetadata,
+        track: KbeatzMetadata.Track,
+        pictures: List<FlacMetadataBlock.Picture>,
+    ) {
+        var flac = FlacFile.read(path)
+            .updateVorbisComment { editor -> editor.applyMetadata(metadata, track) }
+        pictures.forEach { picture -> flac = flac.withPicture(picture) }
+        flac.writeTo(path)
+    }
+
     private suspend fun resolveRelease(albumDir: Path): Lookup =
         idReader.read(albumDir)?.let { idFile ->
             idReader.discogsId(idFile)?.let { discogsId ->
@@ -76,9 +190,40 @@ class DefaultTaggerService(
     }
 }
 
+private data class DiscContext(val dir: Path, val discNumber: Int)
+
 private sealed class Lookup {
     data class Found(val discogsId: String, val release: Release) : Lookup()
     data class Missing(val reason: String) : Lookup()
+}
+
+private fun VorbisCommentEditor.applyMetadata(
+    metadata: KbeatzMetadata,
+    track: KbeatzMetadata.Track,
+): VorbisCommentEditor {
+    val album = metadata.album
+    set(VorbisCommentFields.ALBUM, album.title)
+    set(VorbisCommentFields.ALBUMARTIST, album.albumArtist)
+    album.date?.let { set(VorbisCommentFields.DATE, it) }
+    album.genres.firstOrNull()?.let { set(VorbisCommentFields.GENRE, it) }
+    album.label?.let { set(VorbisCommentFields.LABEL, it) }
+    album.catalogNumber?.let { set(VorbisCommentFields.CATALOGNUMBER, it) }
+    album.barcode?.let { set(VorbisCommentFields.BARCODE, it) }
+    album.composer?.let { set(VorbisCommentFields.COMPOSER, it) }
+    album.conductor?.let { set(VorbisCommentFields.CONDUCTOR, it) }
+    album.ensemble?.let { set(VorbisCommentFields.ENSEMBLE, it) }
+    set(VorbisCommentFields.DISCNUMBER, track.discNumber.toString())
+    set(VorbisCommentFields.DISCTOTAL, album.discTotal.toString())
+    set(VorbisCommentFields.TRACKNUMBER, track.trackNumber.toString())
+    set(VorbisCommentFields.TRACKTOTAL, track.trackTotal.toString())
+    set(VorbisCommentFields.TITLE, track.title)
+    track.artist?.let { set(VorbisCommentFields.ARTIST, it) }
+        ?: set(VorbisCommentFields.ARTIST, album.albumArtist)
+    track.discSubtitle?.let { set(VorbisCommentFields.DISCSUBTITLE, it) }
+    if (metadata.source == "discogs") {
+        set(VorbisCommentFields.DISCOGS_ID, metadata.sourceId)
+    }
+    return this
 }
 
 private fun VorbisCommentEditor.applyRelease(release: Release): VorbisCommentEditor {
