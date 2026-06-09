@@ -2,14 +2,18 @@ package org.javafreedom.kbeatz.sources.discogs
 
 import io.ktor.client.*
 import io.ktor.client.engine.mock.*
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.SerializationException
 import org.javafreedom.kbeatz.sources.cache.InMemoryMetadataCache
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -206,6 +210,145 @@ class DiscogsMetadataSourceTest {
             elapsed.inWholeMilliseconds < 5_000,
             "Expected fetchRelease to complete within 5000 ms but took ${elapsed.inWholeMilliseconds} ms"
         )
+    }
+
+    // --- Error handling: timeout, malformed JSON, missing fields, 429 ---
+
+    /**
+     * When the mock engine delays longer than the client timeout, Ktor throws a
+     * [io.ktor.client.plugins.HttpRequestTimeoutException]. The library propagates this
+     * exception to the caller rather than returning null, so callers can distinguish
+     * "no data" from "timed out".
+     */
+    @Test
+    fun `fetchRelease propagates timeout exception when server does not respond in time`() = runBlocking {
+        val timeoutMs = 100L
+        val mockEngine = MockEngine {
+            delay(timeoutMs * 10) // delay far beyond timeout
+            respond("", HttpStatusCode.OK)
+        }
+        val source = DiscogsMetadataSource.withHttpClient(
+            token = "test-token",
+            httpClient = HttpClient(mockEngine) {
+                install(ContentNegotiation) {
+                    json(Json { ignoreUnknownKeys = true })
+                }
+                install(HttpTimeout) {
+                    requestTimeoutMillis = timeoutMs
+                }
+            },
+        )
+
+        assertFailsWith<io.ktor.client.plugins.HttpRequestTimeoutException> {
+            source.fetchRelease("12345")
+        }
+    }
+
+    /**
+     * When the Discogs API returns a 200 with an invalid (non-JSON) body,
+     * the serialization layer throws a [SerializationException]. This is the
+     * expected behavior: the caller (catalog service or CLI) handles it as a
+     * malformed-response error.
+     */
+    @Test
+    fun `fetchRelease throws SerializationException when response body is not valid JSON`() = runBlocking {
+        val mockEngine = MockEngine {
+            respond(
+                content = "this is not json at all",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+            )
+        }
+        val source = DiscogsMetadataSource.withHttpClient(
+            token = "test-token",
+            httpClient = HttpClient(mockEngine) {
+                install(ContentNegotiation) {
+                    json(Json { ignoreUnknownKeys = true })
+                }
+            },
+        )
+
+        assertFailsWith<SerializationException> {
+            source.fetchRelease("12345")
+        }
+    }
+
+    /**
+     * When the Discogs API returns a 200 response with a JSON object that is missing
+     * required fields (e.g. "id" and "title"), deserialization throws a
+     * [io.ktor.serialization.JsonConvertException] wrapping a
+     * [kotlinx.serialization.MissingFieldException]. This is the expected behavior:
+     * the caller (catalog service or CLI) handles it as a malformed-response error.
+     */
+    @Test
+    fun `fetchRelease throws when required fields are missing from Discogs JSON response`() = runBlocking {
+        val missingFieldsJson = """
+            {
+              "artists": [],
+              "extraartists": [],
+              "labels": [],
+              "genres": [],
+              "styles": [],
+              "tracklist": [],
+              "images": []
+            }
+        """.trimIndent()
+        val source = buildSource(releaseResponse = missingFieldsJson)
+
+        assertFailsWith<io.ktor.serialization.JsonConvertException> {
+            source.fetchRelease("12345")
+        }
+    }
+
+    /**
+     * When the Discogs API returns 429 Too Many Requests, Ktor's [HttpRequestRetry] plugin
+     * retries. With MockEngine we verify the client does NOT crash on a 429 and that the
+     * retry eventually succeeds when a subsequent response is 200.
+     *
+     * Note: the token-bucket rate limiter is bypassed here (using a single-token bucket
+     * with no wait) so this test focuses purely on the HTTP 429 path.
+     */
+    @Test
+    fun `fetchRelease succeeds after a 429 response on first attempt`() = runBlocking {
+        var callCount = 0
+        val mockEngine = MockEngine {
+            callCount++
+            if (callCount == 1) {
+                respond(
+                    content = "",
+                    status = HttpStatusCode.TooManyRequests,
+                    headers = headersOf(
+                        HttpHeaders.ContentType to listOf(ContentType.Application.Json.toString()),
+                        HttpHeaders.RetryAfter to listOf("1"),
+                    ),
+                )
+            } else {
+                respond(
+                    content = sampleReleaseJson,
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                )
+            }
+        }
+        val source = DiscogsMetadataSource.withHttpClient(
+            token = "test-token",
+            httpClient = HttpClient(mockEngine) {
+                install(ContentNegotiation) {
+                    json(Json { ignoreUnknownKeys = true })
+                }
+                install(io.ktor.client.plugins.HttpRequestRetry) {
+                    retryOnServerErrors(maxRetries = 2)
+                    retryIf { _, response -> response.status == HttpStatusCode.TooManyRequests }
+                    constantDelay(millis = 10L) // fast retry in tests
+                }
+            },
+        )
+
+        val release = source.fetchRelease("12345")
+
+        assertNotNull(release, "fetchRelease should succeed after 429 retry")
+        assertEquals("Kind of Blue", release.title)
+        assertEquals(2, callCount, "Expected exactly 2 HTTP calls: one 429 then one 200")
     }
 
     @Test
