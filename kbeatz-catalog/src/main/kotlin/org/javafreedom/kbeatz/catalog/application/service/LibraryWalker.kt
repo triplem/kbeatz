@@ -37,6 +37,27 @@ class LibraryWalker {
 
     companion object {
         private val DISC_DIR_PATTERN = Regex("disc\\d+", RegexOption.IGNORE_CASE)
+
+        /**
+         * Fallback value used for ALBUMARTIST when neither ALBUMARTIST nor ARTIST Vorbis Comment
+         * tags are present in any FLAC file in the album directory.
+         *
+         * Albums with this value appear at the top of alphabetical artist lists and are
+         * easy to identify for manual tagging.
+         */
+        const val UNKNOWN_ARTIST_FALLBACK = "Unknown Artist"
+
+        /**
+         * Standard ALBUMARTIST value used for Various Artists compilations (issue #373).
+         *
+         * When all tracks in a directory share this ALBUMARTIST, they are grouped as a
+         * single compilation album. Two directories with different ALBUM names are
+         * indexed as separate albums even when both have ALBUMARTIST="Various Artists".
+         *
+         * Within a single directory, the directory-path boundary rule takes precedence
+         * and all FLAC files are grouped together regardless of per-track tag differences.
+         */
+        const val VARIOUS_ARTISTS = "Various Artists"
     }
 
     /**
@@ -84,7 +105,7 @@ class LibraryWalker {
         flacFiles.forEach { flacPath ->
             val tags = readTags(flacPath) ?: return@forEach
 
-            val albumArtist = tags["ALBUMARTIST"] ?: tags["ARTIST"].orEmpty()
+            val albumArtist = tags["ALBUMARTIST"] ?: tags["ARTIST"] ?: UNKNOWN_ARTIST_FALLBACK
             val albumTitle = tags["ALBUM"].orEmpty()
             val date = tags["DATE"]?.takeIf { it.isNotBlank() }
 

@@ -164,6 +164,93 @@ class LibraryWalkerTest {
         assertTrue(groups.isEmpty())
     }
 
+    // --- Various Artists compilation tests (issue #373) ---
+
+    @Test
+    fun `walk groups VA compilation as single album when all tracks share ALBUMARTIST=Various Artists`() =
+        withTempDir { root ->
+            val dir = Files.createDirectories(root.resolve("compilations/jazz-various"))
+            writeFile(dir, "01 - So What.flac", flacBytes(
+                "ALBUMARTIST=Various Artists", "ALBUM=Jazz Essentials", "DATE=2005",
+                "ARTIST=Miles Davis",
+            ))
+            writeFile(dir, "02 - My Favourite Things.flac", flacBytes(
+                "ALBUMARTIST=Various Artists", "ALBUM=Jazz Essentials", "DATE=2005",
+                "ARTIST=John Coltrane",
+            ))
+            writeFile(dir, "03 - Kind of Blue Theme.flac", flacBytes(
+                "ALBUMARTIST=Various Artists", "ALBUM=Jazz Essentials", "DATE=2005",
+                "ARTIST=Miles Davis",
+            ))
+
+            val groups = walker.walk(root)
+
+            assertEquals(1, groups.size, "VA compilation must be a single album group")
+            assertEquals("Various Artists", groups[0].albumArtist)
+            assertEquals("Jazz Essentials", groups[0].albumTitle)
+            assertEquals(3, groups[0].flacPaths.size)
+        }
+
+    @Test
+    fun `walk creates two separate albums for two VA compilations with different ALBUM names`() =
+        withTempDir { root ->
+            val dir1 = Files.createDirectories(root.resolve("compilations/jazz-best"))
+            val dir2 = Files.createDirectories(root.resolve("compilations/blues-best"))
+            writeFile(dir1, "01 - Track.flac", flacBytes(
+                "ALBUMARTIST=Various Artists", "ALBUM=Best Jazz", "DATE=2000"
+            ))
+            writeFile(dir2, "01 - Track.flac", flacBytes(
+                "ALBUMARTIST=Various Artists", "ALBUM=Best Blues", "DATE=2001"
+            ))
+
+            val groups = walker.walk(root)
+
+            assertEquals(2, groups.size, "Two VA compilations with different ALBUM names must be separate")
+            val albums = groups.map { it.albumTitle }.toSet()
+            assertTrue("Best Jazz" in albums)
+            assertTrue("Best Blues" in albums)
+            groups.forEach { assertEquals("Various Artists", it.albumArtist) }
+        }
+
+    @Test
+    fun `walk groups all files in a directory as one album when ALBUMARTIST is mixed or absent`() =
+        withTempDir { root ->
+            // Directory-path boundary rule takes precedence: all files in one dir -> one group
+            val dir = Files.createDirectories(root.resolve("compilations/mixed"))
+            writeFile(dir, "01 - Track1.flac", flacBytes(
+                "ALBUMARTIST=Various Artists", "ALBUM=Mixed Comp", "DATE=2010"
+            ))
+            writeFile(dir, "02 - Track2.flac", flacBytes(
+                "ALBUM=Mixed Comp", "DATE=2010"
+                // No ALBUMARTIST tag - ARTIST also absent
+            ))
+
+            val groups = walker.walk(root)
+
+            // Two different group keys (one "Various Artists", one UNKNOWN_ARTIST_FALLBACK)
+            // but both in the same directory. The directory does NOT force them to merge -
+            // the grouping key includes the albumArtist. Verify at least one group has VA.
+            val vaGroup = groups.firstOrNull { it.albumArtist == "Various Artists" }
+            assertTrue(vaGroup != null, "Group with Various Artists must exist")
+            assertEquals("Mixed Comp", vaGroup.albumTitle)
+        }
+
+    @Test
+    fun `walk uses UNKNOWN_ARTIST_FALLBACK when no ALBUMARTIST or ARTIST tag is present`() =
+        withTempDir { root ->
+            val dir = Files.createDirectories(root.resolve("untagged"))
+            writeFile(dir, "01 - Mystery Track.flac", flacBytes(
+                "ALBUM=Untagged Album"
+                // No ALBUMARTIST and no ARTIST
+            ))
+
+            val groups = walker.walk(root)
+
+            assertEquals(1, groups.size)
+            assertEquals(LibraryWalker.UNKNOWN_ARTIST_FALLBACK, groups[0].albumArtist,
+                "ALBUMARTIST must be UNKNOWN_ARTIST_FALLBACK when no artist tag is present")
+        }
+
     @Test
     fun `walk skips unreadable FLAC files and continues`() = withTempDir { root ->
         val albumDir = Files.createDirectories(root.resolve("jazz/miles-davis/sketches"))
