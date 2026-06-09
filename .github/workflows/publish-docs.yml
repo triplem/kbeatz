@@ -179,27 +179,27 @@ jobs:
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: detekt-reports
-          path: site/detekt/
+          path: site/reports/detekt/
 
       - name: Download ESLint report
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: eslint-report
-          path: site/eslint/
+          path: site/reports/eslint/
 
       - name: Download Trivy report (optional)
         id: trivy-download
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: trivy-report
-          path: site/trivy/
+          path: site/reports/trivy/
         continue-on-error: true
 
-      - name: Build site index
+      - name: Build quality reports index
         run: |
           TRIVY_LINK=""
           TRIVY_STATUS=""
-          if [ "${{ steps.trivy-download.outcome }}" = "success" ] && ls site/trivy/*.html 1>/dev/null 2>&1; then
+          if [ "${{ steps.trivy-download.outcome }}" = "success" ] && ls site/reports/trivy/*.html 1>/dev/null 2>&1; then
             TRIVY_LINK='<li><a href="trivy/trivy-report.html">Trivy Container Scan Report</a></li>'
           else
             TRIVY_STATUS='<p class="placeholder">Trivy container scan report is not yet available. It will appear once the Docker image is published to GHCR.</p>'
@@ -207,12 +207,13 @@ jobs:
 
           DETEKT_LINKS=""
           for module in kbeatz-catalog kbeatz-cli kbeatz-common kbeatz-sources kbeatz-tagger; do
-            if [ -f "site/detekt/${module}.html" ]; then
+            if [ -f "site/reports/detekt/${module}.html" ]; then
               DETEKT_LINKS="${DETEKT_LINKS}<li><a href=\"detekt/${module}.html\">${module}</a></li>"
             fi
           done
 
-          cat > site/index.html << 'HTMLEOF'
+          mkdir -p site/reports
+          cat > site/reports/index.html << 'HTMLEOF'
           <!DOCTYPE html>
           <html lang="en">
           <head>
@@ -232,7 +233,7 @@ jobs:
           <body>
             <h1>kbeatz - Quality Reports</h1>
             <p>Published from the <code>main</code> branch on every push.</p>
-            <p>AsciiDoc documentation is published per release - see the <a href="docs/index.html">docs section</a>.</p>
+            <p>Return to the <a href="../index.html">documentation index</a>.</p>
 
             <h2>Quality Reports</h2>
 
@@ -259,9 +260,9 @@ jobs:
           ESCAPED_TRIVY=$(printf '%s\n' "$TRIVY_LINK" | sed 's/[&/\]/\\&/g; s/$/\\n/' | tr -d '\n')
           ESCAPED_STATUS=$(printf '%s\n' "$TRIVY_STATUS" | sed 's/[&/\]/\\&/g; s/$/\\n/' | tr -d '\n')
 
-          sed -i "s|DETEKT_LINKS_PLACEHOLDER|${ESCAPED_DETEKT}|g" site/index.html
-          sed -i "s|TRIVY_LINK_PLACEHOLDER|${ESCAPED_TRIVY}|g" site/index.html
-          sed -i "s|TRIVY_STATUS_PLACEHOLDER|${ESCAPED_STATUS}|g" site/index.html
+          sed -i "s|DETEKT_LINKS_PLACEHOLDER|${ESCAPED_DETEKT}|g" site/reports/index.html
+          sed -i "s|TRIVY_LINK_PLACEHOLDER|${ESCAPED_TRIVY}|g" site/reports/index.html
+          sed -i "s|TRIVY_STATUS_PLACEHOLDER|${ESCAPED_STATUS}|g" site/reports/index.html
 
       - name: Deploy to gh-pages branch
         uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453 # v4

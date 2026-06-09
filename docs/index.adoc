@@ -10,7 +10,7 @@
 ====
 Quality reports (Detekt static analysis, Kover coverage, ESLint, Trivy container scan)
 are published alongside this documentation.
-link:../index.html[Quality Reports (Detekt, ESLint, Trivy)]
+link:reports/index.html[Quality Reports (Detekt, ESLint, Trivy)]
 ====
 
 == Overview
