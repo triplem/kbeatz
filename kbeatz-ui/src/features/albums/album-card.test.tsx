@@ -152,4 +152,47 @@ describe('AlbumCard', () => {
     expect(screen.getByRole('img', { name: 'Album cover not available' })).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
+
+  // ──────────────────────────────────────────────
+  // Edge cases: missing/malformed tags (#380)
+  // ──────────────────────────────────────────────
+
+  it('shows "Unknown Album" fallback when album title is missing', () => {
+    render(
+      <MemoryRouter>
+        <AlbumCard album={makeAlbum({ album: undefined })} />
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('Unknown Album')).toBeInTheDocument()
+  })
+
+  it('shows "Unknown Artist" fallback when albumArtist and composer are both missing', () => {
+    render(
+      <MemoryRouter>
+        <AlbumCard album={makeAlbum({ albumArtist: undefined, composer: undefined })} />
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('Unknown Artist')).toBeInTheDocument()
+  })
+
+  it('renders correctly when album has no date tag', () => {
+    render(
+      <MemoryRouter>
+        <AlbumCard album={makeAlbum({ date: undefined })} />
+      </MemoryRouter>,
+    )
+    // No date span should be present
+    expect(screen.queryByText('1959')).not.toBeInTheDocument()
+    // Card itself should still render
+    expect(screen.getByText('Kind of Blue')).toBeInTheDocument()
+  })
+
+  it('renders date as-is for non-standard date format', () => {
+    render(
+      <MemoryRouter>
+        <AlbumCard album={makeAlbum({ date: 'circa 1970' })} />
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('circa 1970')).toBeInTheDocument()
+  })
 })

@@ -43,7 +43,9 @@ export function AlbumCard({ album }: AlbumCardProps) {
   const navigate = useNavigate()
   const { t } = useTranslation()
 
-  const primaryAttribution = album.composer ?? album.albumArtist
+  // Use fallbacks for missing tag values so the card never shows blank content
+  const albumTitle = album.album ?? t('albumCard.unknownAlbum')
+  const primaryAttribution = album.composer ?? album.albumArtist ?? t('albumCard.unknownArtist')
   const showCover = album.hasCoverArt && !coverError
 
   const handleNavigate = () => {
@@ -62,7 +64,7 @@ export function AlbumCard({ album }: AlbumCardProps) {
       className="album-card"
       tabIndex={0}
       role="button"
-      aria-label={t('albumCard.viewDetails', { album: album.album, artist: primaryAttribution })}
+      aria-label={t('albumCard.viewDetails', { album: albumTitle, artist: primaryAttribution })}
       onClick={handleNavigate}
       onKeyDown={handleKeyDown}
       style={{ cursor: 'pointer' }}
@@ -71,7 +73,7 @@ export function AlbumCard({ album }: AlbumCardProps) {
         {showCover ? (
           <img
             src={`/api/v1/albums/${album.id}/cover`}
-            alt={t('albumCard.coverAlt', { album: album.album })}
+            alt={t('albumCard.coverAlt', { album: albumTitle })}
             width={200}
             height={200}
             onError={() => setCoverError(true)}
@@ -82,8 +84,8 @@ export function AlbumCard({ album }: AlbumCardProps) {
         )}
       </div>
       <div className="album-card__info">
-        <h2 className="album-card__title" title={album.album}>
-          {album.album}
+        <h2 className="album-card__title" title={albumTitle}>
+          {albumTitle}
         </h2>
         <p className="album-card__attribution" title={primaryAttribution}>
           {primaryAttribution}
