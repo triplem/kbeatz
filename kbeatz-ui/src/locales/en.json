@@ -24,7 +24,10 @@
     "viewDetails": "View details for {{album}} by {{artist}}",
     "coverAlt": "Cover art for {{album}}",
     "noCoverAria": "Album cover not available",
-    "noCoverLabel": "No cover"
+    "noCoverLabel": "No cover",
+    "unknownAlbum": "Unknown Album",
+    "unknownArtist": "Unknown Artist",
+    "unknownYear": "Unknown Year"
   },
   "albumDetail": {
     "title": "Album Detail",
