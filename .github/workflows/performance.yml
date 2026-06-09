@@ -1,0 +1,87 @@
+name: Performance
+
+# Opt-in performance job: triggered manually or on push to main.
+# These tests are intentionally slow (file system I/O at scale) and must
+# not block every PR. Run manually before a release or after a
+# significant change to the library scan or filter logic.
+#
+# Performance targets (see ADR-006, Epic #14, Epic #15):
+#   Backend scan   2 000 albums <= 60 s
+#   Frontend filter                200 ms p95 across 50 runs (NFR-02)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  backend-scan-performance:
+    name: Backend - library scan performance
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Cache Gradle
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('**/*.gradle.kts', '**/libs.versions.toml', '**/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - name: Create required env directories
+        run: mkdir -p /tmp/kbeatz-test-library /tmp/kbeatz-test-data
+
+      - name: Run library scan performance test
+        # performanceTest source set is declared in kbeatz-catalog/build.gradle.kts.
+        # The test creates a 2 000-album fixture in a temp directory (no CATALOG_LIBRARY_ROOT
+        # needed) and asserts the walk completes in under 60 seconds.
+        run: ./gradlew :kbeatz-catalog:performanceTest --no-daemon --no-parallel
+        env:
+          CATALOG_LIBRARY_ROOT: /tmp/kbeatz-test-library
+          DATA_DIR: /tmp/kbeatz-test-data
+
+      - name: Upload performance test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-test-reports
+          path: 'kbeatz-catalog/build/reports/tests/performanceTest/'
+          retention-days: 7
+
+  frontend-filter-performance:
+    name: Frontend - client-side filter performance (NFR-02)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+          cache-dependency-path: kbeatz-ui/package-lock.json
+
+      - name: Install dependencies
+        working-directory: kbeatz-ui
+        run: npm ci
+
+      - name: Run frontend performance tests
+        # The album-filters.test.ts file contains a 'performance' describe block
+        # that asserts applyFiltersAndSort over 2 000 albums completes in < 200 ms.
+        # Running vitest in run mode executes all tests including the performance case.
+        working-directory: kbeatz-ui
+        run: npm run test -- --reporter=verbose
+        env:
+          CI: true

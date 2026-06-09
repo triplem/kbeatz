@@ -31,6 +31,26 @@ openApiGenerate {
     modelPackage.set("org.javafreedom.kbeatz.catalog.api.models")
 }
 
+@Suppress("UnstableApiUsage")
+testing {
+    suites {
+        val performanceTest by registering(JvmTestSuite::class) {
+            useJUnitJupiter()
+            dependencies { implementation(project()) }
+            targets { all { testTask.configure { shouldRunAfter("integrationTest") } } }
+            sources {
+                kotlin { setSrcDirs(listOf("src/performance-test/kotlin")) }
+                resources { setSrcDirs(listOf("src/performance-test/resources")) }
+            }
+        }
+    }
+}
+
+configurations.named("performanceTestImplementation") {
+    extendsFrom(configurations.implementation.get())
+    extendsFrom(configurations.testImplementation.get())
+}
+
 tasks.named<Test>("e2eTest") {
     environment("CATALOG_LIBRARY_ROOT", System.getenv("CATALOG_LIBRARY_ROOT") ?: System.getProperty("java.io.tmpdir"))
     environment("CATALOG_JDBC_URL", "jdbc:h2:mem:kbeatz_e2e;DB_CLOSE_DELAY=-1;MODE=PostgreSQL")
