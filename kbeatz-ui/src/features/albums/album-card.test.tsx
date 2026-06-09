@@ -69,7 +69,7 @@ describe('AlbumCard', () => {
 
   it('shows placeholder SVG when hasCoverArt is false', () => {
     render(<MemoryRouter><AlbumCard album={makeAlbum({ hasCoverArt: false })} /></MemoryRouter>)
-    expect(screen.getByRole('img', { name: 'No cover art' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Album cover not available' })).toBeInTheDocument()
     expect(screen.queryByRole('img', { name: /Cover art for/ })).not.toBeInTheDocument()
   })
 
@@ -91,7 +91,7 @@ describe('AlbumCard', () => {
       img.dispatchEvent(new Event('error'))
     })
     // After error, placeholder should appear
-    expect(screen.getByRole('img', { name: 'No cover art' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Album cover not available' })).toBeInTheDocument()
   })
 
   // ──────────────────────────────────────────────

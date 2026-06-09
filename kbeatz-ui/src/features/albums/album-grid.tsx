@@ -6,6 +6,9 @@ import { AlbumCard } from './album-card'
 
 interface AlbumGridProps {
   readonly albums: Album[]
+  /** Total count before filtering - used to announce "Showing N of total" to screen readers.
+   *  When undefined or equal to albums.length, the announcement says "Showing all N albums". */
+  readonly totalCount?: number
 }
 
 /** Minimum card width in px - matches the CSS minmax(200px, 1fr) grid definition. */
@@ -29,12 +32,14 @@ function calcColumns(containerWidth: number): number {
  * Uses TanStack Virtual to render only the visible rows + overscan buffer,
  * keeping the DOM node count low even with 5,000+ albums.
  *
- * Layout strategy: group albums into rows based on the container width,
- * then virtualise at the row level. When the scroll container reports
- * zero height (e.g. in tests or before layout), all rows are rendered
- * so the content is accessible without layout constraints.
+ * Accessibility (WCAG AA):
+ * - The section has role="region" (via <section>) with an aria-label stating the count.
+ * - A live region announces the visible count when filters change.
+ * - Album cards have role="button", aria-label with title and artist.
+ * - Cover art SVG placeholder has role="img" and descriptive aria-label.
+ * - Keyboard navigation: Tab moves to each card, Enter/Space activates it.
  */
-export function AlbumGrid({ albums }: AlbumGridProps) {
+export function AlbumGrid({ albums, totalCount }: AlbumGridProps) {
   const { t } = useTranslation()
   const containerRef = useRef<HTMLDivElement>(null)
   const [columns, setColumns] = useState(1)
@@ -64,6 +69,13 @@ export function AlbumGrid({ albums }: AlbumGridProps) {
     overscan: OVERSCAN_ROWS,
   })
 
+  const isFiltered = totalCount !== undefined && totalCount !== albums.length
+
+  // Screen-reader announcement text for the result count
+  const resultCountText = isFiltered
+    ? t('albumGrid.showingFiltered', { visible: albums.length, total: totalCount })
+    : t('albumGrid.showingAll', { count: albums.length })
+
   if (albums.length === 0) {
     return (
       <p className="album-grid__empty">
@@ -80,50 +92,62 @@ export function AlbumGrid({ albums }: AlbumGridProps) {
   const shouldFallback = totalHeight === 0 || virtualRows.length === 0
 
   return (
-    <section
-      className="album-grid"
-      aria-label={t('albumGrid.collectionLabel', { count: albums.length })}
-      ref={containerRef}
-      data-testid="album-grid-section"
-    >
-      {shouldFallback ? (
-        // Fallback: render all albums without virtualisation
-        albums.map((album) => (
-          <AlbumCard key={album.id} album={album} />
-        ))
-      ) : (
-        // Virtualised rendering: only visible rows + overscan
-        <div
-          style={{ height: `${totalHeight}px`, width: '100%', position: 'relative' }}
-          data-testid="album-grid-virtual-container"
-        >
-          {virtualRows.map((virtualRow) => {
-            const startIndex = virtualRow.index * columns
-            const rowAlbums = albums.slice(startIndex, startIndex + columns)
+    <>
+      {/* Live region: announced by screen readers when the album count changes */}
+      <p
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="album-grid__result-count"
+        data-testid="album-grid-result-count"
+      >
+        {resultCountText}
+      </p>
+      <section
+        className="album-grid"
+        aria-label={t('albumGrid.collectionLabel', { count: albums.length })}
+        ref={containerRef}
+        data-testid="album-grid-section"
+      >
+        {shouldFallback ? (
+          // Fallback: render all albums without virtualisation
+          albums.map((album) => (
+            <AlbumCard key={album.id} album={album} />
+          ))
+        ) : (
+          // Virtualised rendering: only visible rows + overscan
+          <div
+            style={{ height: `${totalHeight}px`, width: '100%', position: 'relative' }}
+            data-testid="album-grid-virtual-container"
+          >
+            {virtualRows.map((virtualRow) => {
+              const startIndex = virtualRow.index * columns
+              const rowAlbums = albums.slice(startIndex, startIndex + columns)
 
-            return (
-              <div
-                key={virtualRow.key}
-                data-index={virtualRow.index}
-                ref={virtualizer.measureElement}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  transform: `translateY(${virtualRow.start}px)`,
-                }}
-              >
-                <div className="album-grid__row">
-                  {rowAlbums.map((album) => (
-                    <AlbumCard key={album.id} album={album} />
-                  ))}
+              return (
+                <div
+                  key={virtualRow.key}
+                  data-index={virtualRow.index}
+                  ref={virtualizer.measureElement}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                >
+                  <div className="album-grid__row">
+                    {rowAlbums.map((album) => (
+                      <AlbumCard key={album.id} album={album} />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
-    </section>
+              )
+            })}
+          </div>
+        )}
+      </section>
+    </>
   )
 }
