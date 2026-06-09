@@ -16,7 +16,9 @@
     "collectionLabel": "Album collection - {{count}} albums",
     "errorPrefix": "Error: ",
     "showingFiltered": "Showing {{visible}} of {{total}} albums",
-    "showingAll": "Showing all {{count}} albums"
+    "showingAll": "Showing all {{count}} albums",
+    "fetchError": "Could not load albums. Check that kbeatz-catalog is running.",
+    "retryButton": "Retry"
   },
   "albumCard": {
     "viewDetails": "View details for {{album}} by {{artist}}",

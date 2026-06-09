@@ -39,8 +39,10 @@ function AlbumListPage() {
   const [albums, setAlbums] = useState<Album[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // Incrementing this triggers a re-fetch when the user clicks Retry
+  const [retryCount, setRetryCount] = useState(0)
 
-  // Filter and sort state — initialised from URL query params and localStorage
+  // Filter and sort state - initialised from URL query params and localStorage
   const [filters, setFilters] = useState<AlbumFilters>(() =>
     filtersFromParams(new URLSearchParams(window.location.search)),
   )
@@ -60,6 +62,12 @@ function AlbumListPage() {
     saveSortPreference(next)
   }, [])
 
+  const handleRetry = useCallback(() => {
+    setLoading(true)
+    setError(null)
+    setRetryCount((n) => n + 1)
+  }, [])
+
   useEffect(() => {
     let cancelled = false
 
@@ -71,7 +79,7 @@ function AlbumListPage() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Failed to load albums')
+          setError(err instanceof Error ? err.message : t('albumGrid.fetchError'))
         }
       } finally {
         if (!cancelled) {
@@ -84,7 +92,7 @@ function AlbumListPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [retryCount, t])
 
   const filterOptions = useMemo(() => deriveFilterOptions(albums), [albums])
 
@@ -114,7 +122,18 @@ function AlbumListPage() {
               <SortPreference value={sortBy} onChange={handleSortChange} />
             </div>
             {loading && <p>{t('albumGrid.loading')}</p>}
-            {error && <p role="alert">{t('albumGrid.errorPrefix')}{error}</p>}
+            {error && (
+              <div role="alert" data-testid="albums-error">
+                <p>{t('albumGrid.fetchError')}</p>
+                <button
+                  type="button"
+                  onClick={handleRetry}
+                  data-testid="albums-retry-button"
+                >
+                  {t('albumGrid.retryButton')}
+                </button>
+              </div>
+            )}
             {!loading && !error && <AlbumGrid albums={visibleAlbums} totalCount={albums.length} />}
           </div>
         </div>
