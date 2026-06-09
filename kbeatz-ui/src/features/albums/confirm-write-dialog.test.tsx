@@ -198,4 +198,53 @@ describe('ConfirmWriteDialog', () => {
     })
     expect(document.body.style.overflow).toBe('')
   })
+
+  // ──────────────────────────────────────────────
+  // Tab-trap keyboard navigation
+  // ──────────────────────────────────────────────
+
+  it('wraps focus from confirm to cancel on Tab when confirm is focused', () => {
+    renderDialog()
+    const confirm = screen.getByTestId('confirm-dialog-confirm')
+    const cancel = screen.getByTestId('confirm-dialog-cancel')
+    confirm.focus()
+    fireEvent.keyDown(screen.getByTestId('confirm-dialog'), { key: 'Tab', shiftKey: false })
+    expect(document.activeElement).toBe(cancel)
+  })
+
+  it('wraps focus from cancel to confirm on Shift+Tab when cancel is focused', () => {
+    renderDialog()
+    const confirm = screen.getByTestId('confirm-dialog-confirm')
+    const cancel = screen.getByTestId('confirm-dialog-cancel')
+    cancel.focus()
+    fireEvent.keyDown(screen.getByTestId('confirm-dialog'), { key: 'Tab', shiftKey: true })
+    expect(document.activeElement).toBe(confirm)
+  })
+
+  it('does not wrap Tab when focus is not on the confirm button', () => {
+    renderDialog()
+    const cancel = screen.getByTestId('confirm-dialog-cancel')
+    cancel.focus()
+    // Tab forward from cancel - should not redirect
+    fireEvent.keyDown(screen.getByTestId('confirm-dialog'), { key: 'Tab', shiftKey: false })
+    // Focus should stay on cancel (no redirect because active is not confirm)
+    expect(document.activeElement).toBe(cancel)
+  })
+
+  it('does not wrap Shift+Tab when focus is not on the cancel button', () => {
+    renderDialog()
+    const confirm = screen.getByTestId('confirm-dialog-confirm')
+    confirm.focus()
+    // Shift+Tab from confirm - should not redirect because active is not cancel
+    fireEvent.keyDown(screen.getByTestId('confirm-dialog'), { key: 'Tab', shiftKey: true })
+    // Focus should stay on confirm
+    expect(document.activeElement).toBe(confirm)
+  })
+
+  it('ignores unrelated key presses', () => {
+    const onCancel = vi.fn()
+    renderDialog({ onCancel })
+    fireEvent.keyDown(screen.getByTestId('confirm-dialog'), { key: 'Enter' })
+    expect(onCancel).not.toHaveBeenCalled()
+  })
 })

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface ConfirmWriteDialogProps {
   /** Whether the dialog is open */
@@ -14,7 +15,7 @@ interface ConfirmWriteDialogProps {
 }
 
 /**
- * ConfirmWriteDialog — accessible confirmation dialog for album tag writes.
+ * ConfirmWriteDialog - accessible confirmation dialog for album tag writes.
  *
  * Shown before any PATCH /albums/{albumId} call to prevent accidental
  * overwriting of all FLAC files in an album directory. The operation is
@@ -35,6 +36,7 @@ export function ConfirmWriteDialog({
   onConfirm,
   onCancel,
 }: ConfirmWriteDialogProps) {
+  const { t } = useTranslation()
   const cancelButtonRef = useRef<HTMLButtonElement>(null)
   const confirmButtonRef = useRef<HTMLButtonElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
@@ -92,13 +94,12 @@ export function ConfirmWriteDialog({
 
   if (!open) return null
 
-  const fileLabel = trackCount === 1 ? '1 FLAC file' : `${trackCount.toString()} FLAC files`
+  const fileLabel = t('confirmDialog.fileCount', { count: trackCount })
 
   return (
     <div
       className="confirm-dialog-overlay"
       data-testid="confirm-dialog-overlay"
-      // Clicking the backdrop cancels — common UX convention
       onClick={onCancel}
     >
       <div
@@ -109,20 +110,18 @@ export function ConfirmWriteDialog({
         className="confirm-dialog"
         data-testid="confirm-dialog"
         onKeyDown={handleKeyDown}
-        // Stop overlay click from triggering inside the panel
         onClick={(e) => { e.stopPropagation() }}
       >
         <h2 id="confirm-dialog-title" className="confirm-dialog__title">
-          Write tags to FLAC files?
+          {t('confirmDialog.title')}
         </h2>
 
         <p id="confirm-dialog-body" className="confirm-dialog__body">
-          Write changes to all <strong>{fileLabel}</strong> in{' '}
-          <strong>&ldquo;{albumTitle}&rdquo;</strong>?
+          {t('confirmDialog.body', { count: fileLabel, albumTitle })}
         </p>
 
         <p id="confirm-dialog-warning" className="confirm-dialog__warning" data-testid="confirm-dialog-warning">
-          This cannot be undone.
+          {t('confirmDialog.warning')}
         </p>
 
         <div className="confirm-dialog__actions">
@@ -133,7 +132,7 @@ export function ConfirmWriteDialog({
             data-testid="confirm-dialog-cancel"
             onClick={onCancel}
           >
-            Cancel
+            {t('confirmDialog.cancelButton')}
           </button>
 
           <button
@@ -143,7 +142,7 @@ export function ConfirmWriteDialog({
             data-testid="confirm-dialog-confirm"
             onClick={onConfirm}
           >
-            Write tags
+            {t('confirmDialog.confirmButton')}
           </button>
         </div>
       </div>

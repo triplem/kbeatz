@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { AlbumFilters } from './album-filters'
 
 const DEBOUNCE_MS = 150
@@ -11,14 +12,15 @@ interface SearchBoxProps {
 /**
  * Free-text search box.
  *
- * Controlled input — value is driven by `filters.query` so that external
+ * Controlled input - value is driven by `filters.query` so that external
  * filter resets (e.g. "Clear all filters") immediately clear the visible text.
- * Debounced 150ms — updates the `query` field in AlbumFilters only after
+ * Debounced 150ms - updates the `query` field in AlbumFilters only after
  * the user stops typing, to avoid excessive re-renders.
- * Shows a clear (×) button when the search box is non-empty.
+ * Shows a clear (x) button when the search box is non-empty.
  */
 export function SearchBox({ filters, onFiltersChange }: SearchBoxProps) {
-  // Local display value — updated immediately on input, debounces the filter update
+  const { t } = useTranslation()
+  // Local display value - updated immediately on input, debounces the filter update
   const [displayValue, setDisplayValue] = useState(filters.query)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -54,8 +56,8 @@ export function SearchBox({ filters, onFiltersChange }: SearchBoxProps) {
     <div className="search-box" role="search">
       <input
         type="search"
-        aria-label="Search albums"
-        placeholder="Search by title, artist, composer, label…"
+        aria-label={t('searchBox.ariaLabel')}
+        placeholder={t('searchBox.placeholder')}
         value={displayValue}
         onChange={handleChange}
         className="search-box__input"
@@ -63,11 +65,11 @@ export function SearchBox({ filters, onFiltersChange }: SearchBoxProps) {
       {filters.query !== '' && (
         <button
           type="button"
-          aria-label="Clear search"
+          aria-label={t('searchBox.clearAriaLabel')}
           onClick={handleClear}
           className="search-box__clear"
         >
-          ×
+          {'×'}
         </button>
       )}
     </div>

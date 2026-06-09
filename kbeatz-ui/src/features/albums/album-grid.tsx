@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Album } from '../../api/generated'
 import { AlbumCard } from './album-card'
 
@@ -12,10 +13,12 @@ interface AlbumGridProps {
  * naturally from 1 to N columns based on viewport width.
  */
 export function AlbumGrid({ albums }: AlbumGridProps) {
+  const { t } = useTranslation()
+
   if (albums.length === 0) {
     return (
       <p className="album-grid__empty">
-        No albums found. Trigger a library scan to index your collection.
+        {t('albumGrid.noResults')}
       </p>
     )
   }
@@ -23,7 +26,7 @@ export function AlbumGrid({ albums }: AlbumGridProps) {
   return (
     <section
       className="album-grid"
-      aria-label={`Album collection — ${albums.length} albums`}
+      aria-label={t('albumGrid.collectionLabel', { count: albums.length })}
     >
       {albums.map((album) => (
         <AlbumCard key={album.id} album={album} />

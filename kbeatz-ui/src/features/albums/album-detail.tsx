@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { AlbumDetail as AlbumDetailModel, Album, AlbumsService, Track } from '../../api/generated'
 import { CancelledByUserError } from './cancelled-by-user-error'
 import { ConfirmWriteDialog } from './confirm-write-dialog'
@@ -47,6 +48,7 @@ interface PendingSave {
 export function AlbumDetail() {
   const { albumId } = useParams<{ albumId: string }>()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [album, setAlbum] = useState<AlbumDetailModel | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -64,7 +66,7 @@ export function AlbumDetail() {
         if (!cancelled) setAlbum(data)
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Failed to load album')
+          setError(err instanceof Error ? err.message : t('common.error'))
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -75,7 +77,7 @@ export function AlbumDetail() {
     return () => {
       cancelled = true
     }
-  }, [albumId])
+  }, [albumId, t])
 
   /**
    * Called by EditableField when the user commits an album-level field edit.
@@ -168,9 +170,9 @@ export function AlbumDetail() {
     })
   }, [])
 
-  if (loading) return <p>Loading album…</p>
-  if (error) return <p role="alert">Error: {error}</p>
-  if (!album) return <p role="alert">Album not found.</p>
+  if (loading) return <p>{t('albumDetail.loading')}</p>
+  if (error) return <p role="alert">{t('albumDetail.errorPrefix')}{error}</p>
+  if (!album) return <p role="alert">{t('albumDetail.notFound')}</p>
 
   return (
     <>
@@ -181,86 +183,86 @@ export function AlbumDetail() {
         onConfirm={() => { void handleConfirm() }}
         onCancel={handleCancel}
       />
-    <article className="album-detail" aria-label="Album detail">
+    <article className="album-detail" aria-label={t('albumDetail.albumTagsSection')}>
       <button
         type="button"
         onClick={() => { navigate(-1) }}
         className="back-button"
         data-testid="back-button"
       >
-        ← Back
+        {t('common.back')}
       </button>
 
       {album.hasCoverArt && (
         <img
           src={`/api/v1/albums/${album.id}/cover`}
-          alt={`Cover art for ${album.album}`}
+          alt={t('albumDetail.coverAlt', { album: album.album })}
           className="album-cover"
           data-testid="album-cover"
         />
       )}
 
-      <section aria-label="Album tags">
-        <h2 className="album-detail__section-title">Album Tags</h2>
+      <section aria-label={t('albumDetail.albumTagsSection')}>
+        <h2 className="album-detail__section-title">{t('albumDetail.sectionTitle')}</h2>
         <dl className="album-tags">
           <EditableField
-            label="Album"
+            label={t('albumDetail.fields.album')}
             value={album.album}
             fieldName="ALBUM"
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
           />
           <EditableField
-            label="Album Artist"
+            label={t('albumDetail.fields.albumArtist')}
             value={album.albumArtist}
             fieldName="ALBUMARTIST"
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
           />
           <EditableField
-            label="Date"
+            label={t('albumDetail.fields.date')}
             value={album.date}
             fieldName="DATE"
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
           />
           <EditableField
-            label="Genre"
+            label={t('albumDetail.fields.genre')}
             value={album.genre}
             fieldName="GENRE"
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
           />
           <EditableField
-            label="Label"
+            label={t('albumDetail.fields.label')}
             value={album.label}
             fieldName="LABEL"
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
           />
           <EditableField
-            label="Catalog #"
+            label={t('albumDetail.fields.catalogNumber')}
             value={album.catalogNumber}
             fieldName="CATALOGNUMBER"
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
           />
           <EditableField
-            label="Composer"
+            label={t('albumDetail.fields.composer')}
             value={album.composer}
             fieldName="COMPOSER"
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
           />
           <EditableField
-            label="Conductor"
+            label={t('albumDetail.fields.conductor')}
             value={album.conductor}
             fieldName="CONDUCTOR"
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
           />
           <EditableField
-            label="Ensemble"
+            label={t('albumDetail.fields.ensemble')}
             value={album.ensemble}
             fieldName="ENSEMBLE"
             onSave={handleAlbumTagSave}
@@ -270,21 +272,21 @@ export function AlbumDetail() {
       </section>
 
       {album.discogsId !== undefined && (
-        <section aria-label="Discogs sync">
+        <section aria-label={t('albumDetail.discogsSection')}>
           <SyncPanel album={album} onSyncComplete={handleSyncComplete} />
         </section>
       )}
 
       {album.tracks.length > 0 && (
-        <section aria-label="Tracks">
-          <h2 className="album-detail__section-title">Tracks</h2>
+        <section aria-label={t('albumDetail.tracksSection')}>
+          <h2 className="album-detail__section-title">{t('albumDetail.tracksSectionTitle')}</h2>
           <table className="tracks-table" role="grid">
             <thead>
               <tr>
-                <th scope="col">#</th>
-                <th scope="col">Title</th>
-                <th scope="col">Artist</th>
-                <th scope="col">Duration</th>
+                <th scope="col">{t('albumDetail.trackColumns.number')}</th>
+                <th scope="col">{t('albumDetail.trackColumns.title')}</th>
+                <th scope="col">{t('albumDetail.trackColumns.artist')}</th>
+                <th scope="col">{t('albumDetail.trackColumns.duration')}</th>
               </tr>
             </thead>
             <tbody>
@@ -310,15 +312,16 @@ interface TrackRowProps {
 }
 
 function TrackRow({ track, onSave }: TrackRowProps) {
+  const { t } = useTranslation()
   const durationDisplay = track.durationSeconds !== undefined
     ? formatDuration(track.durationSeconds)
-    : '—'
+    : '-'
 
   return (
     <tr data-testid={`track-row-${track.id}`}>
       <td>
         <EditableField
-          label="Track number"
+          label={t('albumDetail.fields.trackNumber')}
           value={track.trackNumber}
           fieldName="TRACKNUMBER"
           onSave={onSave}
@@ -327,7 +330,7 @@ function TrackRow({ track, onSave }: TrackRowProps) {
       </td>
       <td>
         <EditableField
-          label="Title"
+          label={t('albumDetail.fields.title')}
           value={track.title}
           fieldName="TITLE"
           onSave={onSave}
@@ -336,7 +339,7 @@ function TrackRow({ track, onSave }: TrackRowProps) {
       </td>
       <td>
         <EditableField
-          label="Artist"
+          label={t('albumDetail.fields.artist')}
           value={track.artist}
           fieldName="ARTIST"
           onSave={onSave}

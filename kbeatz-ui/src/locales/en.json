@@ -1,0 +1,117 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "error": "Something went wrong",
+    "loading": "Loading...",
+    "back": "Back",
+    "empty": "(empty - click to set)",
+    "noResults": "No results found",
+    "retry": "Retry",
+    "unknown": "Unknown"
+  },
+  "albumGrid": {
+    "noResults": "No albums found. Trigger a library scan to index your collection.",
+    "loading": "Loading albums...",
+    "collectionLabel": "Album collection - {{count}} albums",
+    "errorPrefix": "Error: "
+  },
+  "albumCard": {
+    "viewDetails": "View details for {{album}} by {{artist}}",
+    "coverAlt": "Cover art for {{album}}",
+    "noCoverAria": "No cover art",
+    "noCoverLabel": "No cover"
+  },
+  "albumDetail": {
+    "title": "Album Detail",
+    "albumTagsSection": "Album tags",
+    "tracksSection": "Tracks",
+    "discogsSection": "Discogs sync",
+    "sectionTitle": "Album Tags",
+    "tracksSectionTitle": "Tracks",
+    "coverAlt": "Cover art for {{album}}",
+    "loading": "Loading album...",
+    "notFound": "Album not found.",
+    "errorPrefix": "Error: ",
+    "editScopeNotice": "Editing tags updates all files in this album's directory.",
+    "fields": {
+      "album": "Album",
+      "albumArtist": "Album Artist",
+      "date": "Date",
+      "genre": "Genre",
+      "label": "Label",
+      "catalogNumber": "Catalog #",
+      "composer": "Composer",
+      "conductor": "Conductor",
+      "ensemble": "Ensemble",
+      "title": "Title",
+      "trackNumber": "Track number",
+      "artist": "Artist"
+    },
+    "trackColumns": {
+      "number": "#",
+      "title": "Title",
+      "artist": "Artist",
+      "duration": "Duration"
+    }
+  },
+  "editableField": {
+    "editLabel": "Edit {{label}}",
+    "editWithValue": "Edit {{label}}: {{value}}",
+    "editEmpty": "Edit {{label}}: (empty)",
+    "saveFailed": "Save failed"
+  },
+  "confirmDialog": {
+    "title": "Write tags to FLAC files?",
+    "body": "Write changes to all {{count}} in \"{{albumTitle}}\"?",
+    "fileCount_one": "1 FLAC file",
+    "fileCount_other": "{{count}} FLAC files",
+    "warning": "This cannot be undone.",
+    "cancelButton": "Cancel",
+    "confirmButton": "Write tags"
+  },
+  "filterPanel": {
+    "ariaLabel": "Filter albums",
+    "genre": "Genre",
+    "artist": "Artist",
+    "composer": "Composer",
+    "year": "Year",
+    "yearFrom": "Year from",
+    "yearTo": "Year to",
+    "genreFilter": "Genre filter",
+    "artistFilter": "Artist filter",
+    "composerFilter": "Composer filter"
+  },
+  "searchBox": {
+    "placeholder": "Search by title, artist, composer, label...",
+    "ariaLabel": "Search albums",
+    "clearAriaLabel": "Clear search"
+  },
+  "sortPreference": {
+    "label": "Sort by",
+    "ariaLabel": "Sort albums by",
+    "albumArtist": "Album Artist",
+    "composer": "Composer"
+  },
+  "scanProgress": {
+    "running": "Scanning: {{progress}} albums",
+    "failed": "Scan failed: {{message}}",
+    "unknownError": "Unknown error"
+  },
+  "syncPanel": {
+    "heading": "Sync from Discogs",
+    "discogsId": "Discogs ID: {{id}}",
+    "downloadImages": "Also update cover art",
+    "syncButton": "Sync from Discogs",
+    "syncButtonLoading": "Syncing...",
+    "ariaLabel": "Sync from Discogs",
+    "loadingMessage": "Syncing with Discogs...",
+    "successMessage_one": "Sync complete - {{count}} field updated.",
+    "successMessage_other": "Sync complete - {{count}} fields updated.",
+    "quotaExhausted": "Image quota exhausted. Resets at {{resetAt}}.",
+    "downloadImagesAriaLabel": "Download cover art"
+  },
+  "app": {
+    "title": "kbeatz"
+  }
+}
