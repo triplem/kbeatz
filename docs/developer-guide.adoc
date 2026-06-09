@@ -821,6 +821,208 @@ TypeScript strict mode is enforced (`noUnusedLocals: true`, `noUnusedParameters:
 `strictNullChecks: true`). The build fails on any type error. Fix all errors before
 opening a PR.
 
+== Internationalisation (i18n) Conventions for kbeatz-ui
+
+All user-visible strings in `kbeatz-ui` are managed through react-i18next. This section
+explains how to add translated strings, follow key naming conventions, format dates, and
+verify that no bare strings slip into the codebase.
+
+=== Overview
+
+kbeatz-ui uses a single `translation` namespace backed by one source file:
+
+----
+kbeatz-ui/src/locales/en.json      <-- add all string keys here
+kbeatz-ui/src/lib/i18n.ts          <-- i18next setup + formatDate / formatDateTime helpers
+----
+
+The `t()` function from `useTranslation()` resolves keys at runtime. The
+`eslint-plugin-i18next` ESLint plugin enforces that no bare string literals appear in JSX.
+
+=== How to add a new translated string
+
+**Step 1 - Before (bare string in JSX, will fail lint):**
+
+[source,tsx]
+----
+function ScanTrigger() {
+  return <button type="button">Scan library</button>
+}
+----
+
+**Step 2 - Add the key to `src/locales/en.json`:**
+
+[source,json]
+----
+{
+  "library": {
+    "scanTrigger": {
+      "buttonLabel": "Scan library"
+    }
+  }
+}
+----
+
+**Step 3 - After (use `t()` in the component):**
+
+[source,tsx]
+----
+import { useTranslation } from 'react-i18next'
+
+function ScanTrigger() {
+  const { t } = useTranslation()
+  return <button type="button">{t('library.scanTrigger.buttonLabel')}</button>
+}
+----
+
+That is the complete workflow. No configuration changes are needed.
+
+=== Namespace structure and key naming
+
+kbeatz-ui uses a single namespace (`translation`). All keys live in `en.json` under a
+feature-based hierarchy:
+
+----
+<feature>.<component>.<label>
+----
+
+Examples from the existing codebase:
+
+[cols="1,2"]
+|===
+|Key |Value
+
+|`albums.card.unknownArtist`
+|"Unknown Artist"
+
+|`albumGrid.noResults`
+|"No albums found..."
+
+|`scanProgress.running`
+|"Scanning: {{progress}} albums"
+
+|`editableField.saveFailed`
+|"Save failed"
+|===
+
+Rules:
+- Use camelCase for each segment.
+- Group by feature first (`albums`, `library`, `sync`, `common`).
+- Keep keys short but descriptive - `buttonLabel` not `btn`.
+- For interpolated values use double-brace syntax: `"Hello, {{name}}"`.
+
+=== How to run the missing-key test
+
+A Vitest test in `src/lib/i18n.test.ts` walks all leaf keys in `en.json` and verifies each
+one resolves to a non-empty string. Run it with:
+
+[source,bash]
+----
+cd kbeatz-ui
+npm run test -- --reporter=verbose
+----
+
+Or target just the i18n tests:
+
+[source,bash]
+----
+npm run test -- i18n
+----
+
+If you add a key to `en.json` but misspell it in the component (or vice versa), the test
+will fail with a list of missing or unresolved keys.
+
+=== Date and timestamp formatting
+
+The API returns dates in three formats. Do not format them inline with `Intl.DateTimeFormat`
+in components. Use the helpers from `src/lib/i18n.ts`:
+
+[cols="2,2,2"]
+|===
+|Input shape |Example |Use
+
+|Bare year
+|`"1978"`
+|`formatDate("1978")` returns `"1978"` unchanged
+
+|Year-month
+|`"1978-06"`
+|`formatDate("1978-06")` returns locale month+year, e.g. "June 1978"
+
+|Full ISO date
+|`"1978-07-14"`
+|`formatDate("1978-07-14")` returns locale short date, e.g. "14 Jul 1978"
+
+|UTC timestamp
+|`"2026-06-09T20:31:20Z"`
+|`formatDateTime("2026-06-09T20:31:20Z")` returns locale date+time
+|===
+
+Non-ISO strings (e.g. `"circa 1970"`) are returned unchanged without throwing.
+
+**Correct usage in a component:**
+
+[source,tsx]
+----
+import { formatDate } from '../../lib/i18n'
+
+function AlbumMeta({ date }: { date?: string }) {
+  return date ? <span>{formatDate(date)}</span> : null
+}
+----
+
+**Incorrect usage (bypasses locale, fails review):**
+
+[source,tsx]
+----
+// Do not do this
+<span>{new Intl.DateTimeFormat().format(new Date(date))}</span>
+----
+
+When a field is editable (e.g. the DATE field in album-detail), pass `displayValue` to
+`EditableField` so the formatted date is shown while the raw tag value is preserved in the
+edit input:
+
+[source,tsx]
+----
+<EditableField
+  value={album.date}
+  displayValue={album.date !== undefined ? formatDate(album.date) : undefined}
+  fieldName="DATE"
+  onSave={handleAlbumTagSave}
+/>
+----
+
+=== How to verify no bare strings
+
+`npm run lint` runs ESLint with `eslint-plugin-i18next`. Any string literal directly inside
+JSX triggers the `i18next/no-literal-string` rule and fails the lint step:
+
+[source,bash]
+----
+cd kbeatz-ui
+npm run lint
+----
+
+The only allowed exceptions are non-translatable content such as icon characters or
+aria-label decorations, which must be suppressed with an explicit comment:
+
+[source,tsx]
+----
+{/* eslint-disable-next-line i18next/no-literal-string */}
+<text x="100" y="90" textAnchor="middle" fill="#666" fontSize="40">music</text>
+----
+
+=== Checklist before committing i18n changes
+
+- [ ] New key added to `src/locales/en.json` under the correct feature group
+- [ ] Key uses `feature.component.label` naming convention
+- [ ] Component uses `const { t } = useTranslation()` and calls `t('key')`
+- [ ] Dates use `formatDate()` or `formatDateTime()` from `src/lib/i18n.ts`
+- [ ] `npm run lint` passes (no bare-string warnings)
+- [ ] `npm run test -- i18n` passes (no missing keys)
+- [ ] `npm run build` passes (TypeScript strict mode)
+
 == CLI: Adding a Command
 
 The CLI module (`kbeatz-cli`) uses Clikt for command-line argument parsing. It is distributed
