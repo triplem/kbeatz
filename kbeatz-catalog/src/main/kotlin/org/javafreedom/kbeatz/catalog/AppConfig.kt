@@ -14,6 +14,7 @@ data class AppConfig(
     val dbPassword: String,
     val dataDir: String,
     val repairTimeoutSeconds: Long,
+    val scanParallelism: Int,
     val discogsRateLimitPerMinute: Int,
     val discogsImageDailyQuota: Int,
 ) {
@@ -23,22 +24,13 @@ data class AppConfig(
         private const val DEFAULT_DATA_DIR = "./data"
         @Suppress("MagicNumber") // default repair scan timeout in seconds per issue #372 ops spec
         private const val DEFAULT_REPAIR_TIMEOUT_SECONDS = 60L
+        @Suppress("MagicNumber") // default scan parallelism: 4 for spinning-disk libraries per issue #374
+        private const val DEFAULT_SCAN_PARALLELISM = 4
         @Suppress("MagicNumber") // default rate-limit matching Discogs API cap
         private const val DEFAULT_RATE_LIMIT = 60
         @Suppress("MagicNumber") // default daily image-download quota
         private const val DEFAULT_IMAGE_QUOTA = 1000
 
-        /**
-         * Builds [AppConfig] from HOCON using Typesafe Config.
-         *
-         * The resolution order (highest priority wins):
-         *  1. System properties (`-Dcatalog.jdbcUrl=...`)
-         *  2. Environment variables resolved via `${?CATALOG_JDBC_URL}` substitutions in the conf file
-         *  3. `local.conf` (gitignored developer override, optional)
-         *  4. `application.conf` (shipped defaults)
-         *
-         * Pass a custom [Config] in tests to avoid touching the filesystem or real env vars.
-         */
         fun fromConf(config: Config = ConfigFactory.load()): AppConfig {
             val root = config.getString("catalog.libraryRoot")
             if (root.isBlank()) {
@@ -54,6 +46,7 @@ data class AppConfig(
             val dbPassword = config.getString("catalog.dbPassword")
             val dataDir = config.getString("catalog.dataDir").ifBlank { DEFAULT_DATA_DIR }
             val repairTimeout = config.getLong("catalog.repair.timeoutSeconds")
+            val scanParallelism = config.getInt("catalog.scan.parallelism")
             val rateLimit = config.getInt("catalog.discogs.rateLimitPerMinute")
             val imageQuota = config.getInt("catalog.discogs.imageDailyQuota")
             return AppConfig(
@@ -64,16 +57,12 @@ data class AppConfig(
                 dbPassword = dbPassword,
                 dataDir = dataDir,
                 repairTimeoutSeconds = repairTimeout,
+                scanParallelism = scanParallelism,
                 discogsRateLimitPerMinute = rateLimit,
                 discogsImageDailyQuota = imageQuota,
             )
         }
 
-        /**
-         * Legacy factory that reads directly from environment variables.
-         *
-         * Kept for unit tests that do not want to spin up a full HOCON config.
-         */
         fun fromEnv(env: (String) -> String? = System::getenv): AppConfig {
             val root = env("CATALOG_LIBRARY_ROOT")
                 ?: error("CATALOG_LIBRARY_ROOT must be set")
@@ -93,6 +82,7 @@ data class AppConfig(
                 dbPassword = dbPassword,
                 dataDir = dataDir,
                 repairTimeoutSeconds = DEFAULT_REPAIR_TIMEOUT_SECONDS,
+                scanParallelism = DEFAULT_SCAN_PARALLELISM,
                 discogsRateLimitPerMinute = DEFAULT_RATE_LIMIT,
                 discogsImageDailyQuota = DEFAULT_IMAGE_QUOTA,
             )
@@ -102,14 +92,11 @@ data class AppConfig(
     fun filesystemStatus(): String =
         if (java.io.File(catalogLibraryRoot).exists()) "UP" else "DOWN"
 
-    /**
-     * Masks [discogsToken] and [dbPassword] so secrets never appear in log output.
-     * A Discogs token in any log line would violate the NFR-09 secret-hygiene requirement.
-     */
     override fun toString(): String =
         "AppConfig(catalogLibraryRoot=$catalogLibraryRoot, " +
             "jdbcUrl=$jdbcUrl, dbUser=$dbUser, dbPassword=****, " +
             "dataDir=$dataDir, repairTimeoutSeconds=$repairTimeoutSeconds, " +
+            "scanParallelism=$scanParallelism, " +
             "discogsToken=${if (discogsToken != null) "****" else "null"}, " +
             "discogsRateLimitPerMinute=$discogsRateLimitPerMinute, " +
             "discogsImageDailyQuota=$discogsImageDailyQuota)"

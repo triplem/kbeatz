@@ -23,6 +23,7 @@ class AppConfigTest {
         dbPassword = dbPassword,
         dataDir = dataDir,
         repairTimeoutSeconds = 60L,
+        scanParallelism = 4,
         discogsRateLimitPerMinute = 60,
         discogsImageDailyQuota = 1000,
     )
@@ -131,6 +132,7 @@ class AppConfigTest {
               libraryRoot = "${System.getProperty("java.io.tmpdir")}"
               dataDir = "./data"
               repair { timeoutSeconds = 60 }
+              scan { parallelism = 4 }
               discogs { token = "", rateLimitPerMinute = 60, imageDailyQuota = 1000 }
             }
             """.trimIndent()
@@ -152,6 +154,7 @@ class AppConfigTest {
               libraryRoot = ""
               dataDir = "./data"
               repair { timeoutSeconds = 60 }
+              scan { parallelism = 4 }
               discogs { token = "", rateLimitPerMinute = 60, imageDailyQuota = 1000 }
             }
             """.trimIndent()
@@ -172,6 +175,7 @@ class AppConfigTest {
               libraryRoot = "${System.getProperty("java.io.tmpdir")}"
               dataDir = "./data"
               repair { timeoutSeconds = 60 }
+              scan { parallelism = 4 }
               discogs { token = "my-token", rateLimitPerMinute = 60, imageDailyQuota = 1000 }
             }
             """.trimIndent()
@@ -191,12 +195,14 @@ class AppConfigTest {
               libraryRoot = "${System.getProperty("java.io.tmpdir")}"
               dataDir = "./data"
               repair { timeoutSeconds = 30 }
+              scan { parallelism = 1 }
               discogs { token = "", rateLimitPerMinute = 30, imageDailyQuota = 500 }
             }
             """.trimIndent()
         )
         val config = AppConfig.fromConf(hocon)
         assertEquals(30L, config.repairTimeoutSeconds)
+        assertEquals(1, config.scanParallelism)
         assertEquals(30, config.discogsRateLimitPerMinute)
         assertEquals(500, config.discogsImageDailyQuota)
     }
