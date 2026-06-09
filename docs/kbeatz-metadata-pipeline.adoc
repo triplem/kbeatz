@@ -106,7 +106,7 @@ The canonical schema is the `KbeatzMetadata` data class in
       "trackTotal": 2,
       "title": "Allegro ma non troppo",
       "artist": "Berliner Philharmoniker",
-      "originalPosition": "A1",
+      "originalPosition": "1-01",
       "composer": "Ludwig van Beethoven",
       "conductor": "Herbert von Karajan",
       "ensemble": null
@@ -118,7 +118,7 @@ The canonical schema is the `KbeatzMetadata` data class in
       "trackTotal": 2,
       "title": "Molto vivace",
       "artist": "Berliner Philharmoniker",
-      "originalPosition": "A2",
+      "originalPosition": "1-02",
       "composer": "Ludwig van Beethoven",
       "conductor": "Herbert von Karajan",
       "ensemble": null
@@ -130,7 +130,7 @@ The canonical schema is the `KbeatzMetadata` data class in
       "trackTotal": 2,
       "title": "Adagio molto e cantabile",
       "artist": "Berliner Philharmoniker",
-      "originalPosition": "B1",
+      "originalPosition": "2-01",
       "composer": "Ludwig van Beethoven",
       "conductor": "Herbert von Karajan",
       "ensemble": null
@@ -142,7 +142,7 @@ The canonical schema is the `KbeatzMetadata` data class in
       "trackTotal": 2,
       "title": "Presto - Ode to Joy",
       "artist": "Berliner Philharmoniker",
-      "originalPosition": "B2",
+      "originalPosition": "2-02",
       "composer": "Ludwig van Beethoven",
       "conductor": "Herbert von Karajan",
       "ensemble": null
