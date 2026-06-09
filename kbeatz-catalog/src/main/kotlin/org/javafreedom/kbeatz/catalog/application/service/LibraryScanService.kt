@@ -12,12 +12,15 @@ import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.CoroutineContext
 import kotlin.io.path.deleteIfExists
+import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import org.javafreedom.kbeatz.catalog.domain.model.Album
@@ -50,6 +53,7 @@ class LibraryScanService(
     private val walker: LibraryWalker,
     private val albumRepository: AlbumRepository,
     scanDispatcher: CoroutineContext = Dispatchers.IO,
+    private val repairTimeoutSeconds: Long = DEFAULT_REPAIR_TIMEOUT_SECONDS,
 ) {
     private val scanScope = CoroutineScope(SupervisorJob() + scanDispatcher)
     private val state = AtomicReference(ScanState.IDLE)
@@ -130,16 +134,29 @@ class LibraryScanService(
      * Sets [isRepairComplete] to `true` in a `finally` block so the readiness probe is
      * unblocked even when individual directories fail. Must be called before the HTTP server
      * begins accepting requests.
+     *
+     * If the repair scan does not complete within [repairTimeoutSeconds], the scan is aborted,
+     * an ERROR is logged listing any unrepaired lock files, and startup continues. Unrepaired
+     * albums will be re-indexed on the next POST /api/v1/library/scan call.
      */
     suspend fun repairOnStartup() {
         try {
-            val lockFiles = collectLockFiles()
-            if (lockFiles.isEmpty()) {
-                log.info { "No .kbeatz-write.lock files found - skipping startup repair" }
-                return
+            withTimeout(repairTimeoutSeconds.seconds) {
+                val lockFiles = collectLockFiles()
+                if (lockFiles.isEmpty()) {
+                    log.info { "No .kbeatz-write.lock files found - skipping startup repair" }
+                    return@withTimeout
+                }
+                log.info { "Found ${lockFiles.size} .kbeatz-write.lock file(s) - running startup repair" }
+                lockFiles.forEach { repairLockFile(it) }
             }
-            log.info { "Found ${lockFiles.size} .kbeatz-write.lock file(s) - running startup repair" }
-            lockFiles.forEach { repairLockFile(it) }
+        } catch (ex: TimeoutCancellationException) {
+            val remaining = collectLockFiles()
+            log.error(ex) {
+                "Startup repair timed out after ${repairTimeoutSeconds}s. " +
+                    "${remaining.size} lock file(s) were not repaired: $remaining. " +
+                    "Affected albums will be re-indexed on the next library scan."
+            }
         } finally {
             // Mark repair as complete regardless of outcome so the readiness probe
             // does not block traffic indefinitely when individual directories fail.
@@ -148,7 +165,7 @@ class LibraryScanService(
         }
     }
 
-    @Suppress("TooGenericExceptionCaught") // individual lock repairs must not abort the whole startup
+    @Suppress("TooGenericExceptionCaught") // non-cancellation exceptions must not abort the whole startup
     private suspend fun repairLockFile(lockFile: Path) {
         val albumDir = lockFile.parent ?: libraryRoot
         try {
@@ -158,6 +175,9 @@ class LibraryScanService(
             }
             lockFile.deleteIfExists()
             log.info { "Repaired album directory: $albumDir" }
+        } catch (ex: kotlinx.coroutines.CancellationException) {
+            // Propagate cancellation (e.g. from withTimeout) so the timeout is honoured.
+            throw ex
         } catch (ex: Exception) {
             log.error(ex) { "Startup repair failed for $albumDir - lock file retained: $lockFile" }
         }
@@ -204,6 +224,13 @@ class LibraryScanService(
     }
 
     companion object {
+        /**
+         * Default timeout for the startup write-lock repair scan in seconds (issue #372).
+         * Configurable via `catalog.repair.timeoutSeconds` in application.conf.
+         */
+        @Suppress("MagicNumber") // 60s default per ops spec in issue #372
+        const val DEFAULT_REPAIR_TIMEOUT_SECONDS: Long = 60L
+
         /**
          * Maps a [AlbumGroup] from the walker to an [Album] suitable for persistence.
          *
