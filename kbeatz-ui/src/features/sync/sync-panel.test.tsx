@@ -276,4 +276,55 @@ describe('SyncPanel', () => {
       expect(screen.queryByTestId('sync-loading')).not.toBeInTheDocument()
     })
   })
+
+  // ---- Overwrite warning (#392) ----
+
+  it('sync proceeds without dialog when hasLocalEdits is false', async () => {
+    const album = buildAlbum()
+    mockSyncAlbum.mockResolvedValue(buildAlbum())
+
+    render(<SyncPanel album={album} onSyncComplete={onSyncComplete} hasLocalEdits={false} />)
+    await userEvent.click(screen.getByTestId('sync-button'))
+
+    // No dialog should appear
+    expect(screen.queryByTestId('sync-overwrite-dialog')).not.toBeInTheDocument()
+    // Sync should have been called directly
+    await waitFor(() => expect(mockSyncAlbum).toHaveBeenCalled())
+  })
+
+  it('shows overwrite warning dialog when hasLocalEdits is true', async () => {
+    render(<SyncPanel album={buildAlbum()} onSyncComplete={onSyncComplete} hasLocalEdits={true} />)
+    await userEvent.click(screen.getByTestId('sync-button'))
+
+    // Dialog should appear
+    expect(screen.getByTestId('sync-overwrite-dialog')).toBeInTheDocument()
+    expect(screen.getByTestId('sync-overwrite-dialog')).toHaveAttribute('role', 'dialog')
+    // Sync should NOT have been called yet
+    expect(mockSyncAlbum).not.toHaveBeenCalled()
+  })
+
+  it('aborts sync when user cancels the overwrite warning', async () => {
+    render(<SyncPanel album={buildAlbum()} onSyncComplete={onSyncComplete} hasLocalEdits={true} />)
+    await userEvent.click(screen.getByTestId('sync-button'))
+
+    expect(screen.getByTestId('sync-overwrite-dialog')).toBeInTheDocument()
+    await userEvent.click(screen.getByTestId('sync-overwrite-cancel'))
+
+    // Dialog should be gone and sync should not have been called
+    expect(screen.queryByTestId('sync-overwrite-dialog')).not.toBeInTheDocument()
+    expect(mockSyncAlbum).not.toHaveBeenCalled()
+  })
+
+  it('proceeds with sync when user confirms the overwrite warning', async () => {
+    mockSyncAlbum.mockResolvedValue(buildAlbum())
+    render(<SyncPanel album={buildAlbum()} onSyncComplete={onSyncComplete} hasLocalEdits={true} />)
+    await userEvent.click(screen.getByTestId('sync-button'))
+
+    expect(screen.getByTestId('sync-overwrite-dialog')).toBeInTheDocument()
+    await userEvent.click(screen.getByTestId('sync-overwrite-confirm'))
+
+    // Dialog gone and sync called
+    expect(screen.queryByTestId('sync-overwrite-dialog')).not.toBeInTheDocument()
+    await waitFor(() => expect(mockSyncAlbum).toHaveBeenCalled())
+  })
 })
