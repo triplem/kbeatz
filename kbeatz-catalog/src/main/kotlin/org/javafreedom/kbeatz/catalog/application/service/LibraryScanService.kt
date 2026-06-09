@@ -7,6 +7,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.SimpleFileVisitor
 import java.nio.file.attribute.BasicFileAttributes
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.CoroutineContext
@@ -57,6 +58,17 @@ class LibraryScanService(
     private val startedAt = AtomicReference<Instant?>(null)
     private val completedAt = AtomicReference<Instant?>(null)
     private val errorMessage = AtomicReference<String?>(null)
+
+    // Set to true after repairOnStartup() completes (or when no repair is needed).
+    // The readiness probe returns 503 until this is true, so orchestrators do not
+    // route traffic to the instance before consistency is restored.
+    private val repairComplete = AtomicBoolean(false)
+
+    /**
+     * Returns true when the startup write-lock repair has completed and the service
+     * is ready to accept traffic. Always false until [repairOnStartup] returns.
+     */
+    fun isRepairComplete(): Boolean = repairComplete.get()
 
     /**
      * Cancels all in-progress coroutines launched by this service.
@@ -111,27 +123,43 @@ class LibraryScanService(
      * Must be called before HTTP requests are accepted. Runs on the caller's thread (blocking).
      * Lock files indicate a previous run was killed mid-write; re-indexing restores consistency.
      */
-    @Suppress("TooGenericExceptionCaught") // individual lock repairs must not abort the whole startup
+    /**
+     * Synchronous startup repair: finds all `.kbeatz-write.lock` files under [libraryRoot],
+     * re-indexes the containing album directory for each, then deletes the lock file.
+     *
+     * Sets [isRepairComplete] to `true` in a `finally` block so the readiness probe is
+     * unblocked even when individual directories fail. Must be called before the HTTP server
+     * begins accepting requests.
+     */
     suspend fun repairOnStartup() {
-        val lockFiles = collectLockFiles()
-        if (lockFiles.isEmpty()) {
-            log.info { "No .kbeatz-write.lock files found — skipping startup repair" }
-            return
-        }
-
-        log.info { "Found ${lockFiles.size} .kbeatz-write.lock file(s) — running startup repair" }
-        lockFiles.forEach { lockFile ->
-            val albumDir = lockFile.parent ?: libraryRoot
-            try {
-                val groups = walker.walk(albumDir)
-                if (groups.isNotEmpty()) {
-                    albumRepository.saveAll(groups.map { it.toAlbum() })
-                }
-                lockFile.deleteIfExists()
-                log.info { "Repaired album directory: $albumDir" }
-            } catch (ex: Exception) {
-                log.error(ex) { "Startup repair failed for $albumDir — lock file retained: $lockFile" }
+        try {
+            val lockFiles = collectLockFiles()
+            if (lockFiles.isEmpty()) {
+                log.info { "No .kbeatz-write.lock files found - skipping startup repair" }
+                return
             }
+            log.info { "Found ${lockFiles.size} .kbeatz-write.lock file(s) - running startup repair" }
+            lockFiles.forEach { repairLockFile(it) }
+        } finally {
+            // Mark repair as complete regardless of outcome so the readiness probe
+            // does not block traffic indefinitely when individual directories fail.
+            repairComplete.set(true)
+            log.info { "Startup repair phase complete" }
+        }
+    }
+
+    @Suppress("TooGenericExceptionCaught") // individual lock repairs must not abort the whole startup
+    private suspend fun repairLockFile(lockFile: Path) {
+        val albumDir = lockFile.parent ?: libraryRoot
+        try {
+            val groups = walker.walk(albumDir)
+            if (groups.isNotEmpty()) {
+                albumRepository.saveAll(groups.map { it.toAlbum() })
+            }
+            lockFile.deleteIfExists()
+            log.info { "Repaired album directory: $albumDir" }
+        } catch (ex: Exception) {
+            log.error(ex) { "Startup repair failed for $albumDir - lock file retained: $lockFile" }
         }
     }
 

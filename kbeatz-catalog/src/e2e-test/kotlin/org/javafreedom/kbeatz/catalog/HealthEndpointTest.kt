@@ -77,6 +77,50 @@ class HealthEndpointTest {
     }
 
     @Test
+    fun `GET readyz returns 503 REPAIR_IN_PROGRESS when startup repair is running`() = testApplication {
+        val json = Json { ignoreUnknownKeys = true }
+        val existingDir = Files.createTempDirectory("health-e2e-repair-in-progress")
+        install(ServerContentNegotiation) { json(json) }
+        routing {
+            healthRoutes(
+                dbProbe = { true },
+                libraryRoot = existingDir,
+                repairReadyProbe = { false },
+            )
+        }
+
+        val client = createClient {
+            install(ContentNegotiation) { json(json) }
+        }
+        val response = client.get("/readyz")
+        assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
+        val body = response.body<ErrorResponse>()
+        assertEquals("REPAIR_IN_PROGRESS", body.code)
+    }
+
+    @Test
+    fun `GET readyz returns 200 when repair is complete and database is reachable`() = testApplication {
+        val json = Json { ignoreUnknownKeys = true }
+        val existingDir = Files.createTempDirectory("health-e2e-repair-done")
+        install(ServerContentNegotiation) { json(json) }
+        routing {
+            healthRoutes(
+                dbProbe = { true },
+                libraryRoot = existingDir,
+                repairReadyProbe = { true },
+            )
+        }
+
+        val client = createClient {
+            install(ContentNegotiation) { json(json) }
+        }
+        val response = client.get("/readyz")
+        assertEquals(HttpStatusCode.OK, response.status)
+        val body = response.body<ReadinessResponse>()
+        assertEquals(ReadinessResponse.Status.UP, body.status)
+    }
+
+    @Test
     fun `unknown route returns 404`() = testApplication {
         application { module() }
         val response = client.get("/api/v1/nonexistent")

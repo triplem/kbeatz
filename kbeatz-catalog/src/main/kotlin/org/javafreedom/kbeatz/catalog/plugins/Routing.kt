@@ -27,7 +27,7 @@ fun Application.configureRouting(
 ) {
     routing {
         // Health probes at root level per K8s convention (/livez, /readyz, /healthz)
-        healthRoutes(healthConfig.dbProbe, healthConfig.libraryRoot)
+        healthRoutes(healthConfig.dbProbe, healthConfig.libraryRoot, healthConfig.repairReadyProbe)
         route("/api/v1") {
             libraryRoutes(scanService)
             albumRoutes(albumService, healthConfig.libraryRoot)
