@@ -5,6 +5,14 @@ pluginManagement {
     }
 }
 
+// Foojay toolchain resolver: allows Gradle to auto-provision the JDK version
+// specified by jvmToolchain() when the running JVM is a different version.
+// Required because dependabot bumped Docker base images to eclipse-temurin:25
+// while the project targets Java 21 via jvmToolchain(21).
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "0.9.0"
+}
+
 rootProject.name = "kbeatz"
 
 includeBuild("kbeatz-common") {
