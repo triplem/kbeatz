@@ -11,6 +11,7 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.io.bytestring.ByteString
 import kotlinx.serialization.json.Json
 import org.javafreedom.kbeatz.common.metadata.KbeatzMetadata
+import org.javafreedom.kbeatz.common.metadata.KbeatzMetadata.Image as KbeatzImage
 import org.javafreedom.kbeatz.sources.ImageResult
 import org.javafreedom.kbeatz.sources.MetadataCache
 import org.javafreedom.kbeatz.sources.MetadataSource
@@ -162,18 +163,22 @@ class DiscogsMetadataSource private constructor(
 
     private suspend fun resolveDownload(
         albumDir: Path,
-        entry: org.javafreedom.kbeatz.common.metadata.KbeatzMetadata.Image,
+        entry: KbeatzImage,
         pictureType: Int,
         overwriteExisting: Boolean,
     ): ImageDownloadResult {
-        val targetPath = albumDir.resolve(entry.localPath)
+        val targetPath = albumDir.resolve(entry.localPath).normalize()
+        if (!targetPath.startsWith(albumDir.normalize())) {
+            log.warn { "Path traversal blocked: pictureType=$pictureType localPath=${entry.localPath}" }
+            return ImageDownloadResult.Skipped(pictureType, "localPath escapes album directory")
+        }
         return when {
             !overwriteExisting && Files.exists(targetPath) -> {
                 log.debug { "Skipping pictureType=$pictureType localPath=${entry.localPath} already exists" }
                 ImageDownloadResult.Skipped(pictureType, "file already exists at $targetPath")
             }
             !imageQuota.canDownload() -> {
-                log.warn { "Discogs daily image quota exhausted - skipping pictureType=$pictureType" }
+                log.warn { "Discogs daily image quota exhausted - pictureType=$pictureType uri=${entry.sourceUri}" }
                 ImageDownloadResult.QuotaExceeded(pictureType)
             }
             else -> performDownload(entry, pictureType, targetPath)
@@ -181,7 +186,7 @@ class DiscogsMetadataSource private constructor(
     }
 
     private suspend fun performDownload(
-        entry: org.javafreedom.kbeatz.common.metadata.KbeatzMetadata.Image,
+        entry: KbeatzImage,
         pictureType: Int,
         targetPath: Path,
     ): ImageDownloadResult.Downloaded {

@@ -268,4 +268,53 @@ class DiscogsDownloadImagesTest {
 
         assertTrue(results.isEmpty())
     }
+
+    // --- path traversal protection ---
+
+    @Test
+    fun `path traversal in localPath returns Skipped and writes no file`() = runBlocking {
+        val maliciousMetadata = """
+            {
+              "schemaVersion": 1,
+              "source": "discogs",
+              "sourceId": "99",
+              "fetchedAt": "2026-06-09T10:00:00Z",
+              "album": {
+                "title": "Malicious",
+                "albumArtist": "Hacker",
+                "date": null,
+                "genres": [],
+                "styles": [],
+                "label": null,
+                "catalogNumber": null,
+                "barcode": null,
+                "composer": null,
+                "conductor": null,
+                "ensemble": null,
+                "discTotal": 1
+              },
+              "tracks": [],
+              "images": [
+                {
+                  "pictureType": 3,
+                  "description": null,
+                  "mimeType": "image/jpeg",
+                  "sourceUri": "https://img.discogs.com/cover.jpg",
+                  "localPath": "../../etc/passwd"
+                }
+              ]
+            }
+        """.trimIndent()
+        val albumDir = prepareAlbumDir(maliciousMetadata)
+        val source = buildSource()
+
+        val results = source.downloadImages(albumDir, setOf(3))
+
+        assertEquals(1, results.size)
+        val result = results.first()
+        assertIs<ImageDownloadResult.Skipped>(result)
+        assertTrue(result.reason.contains("escapes album directory"), "Reason must indicate path traversal block")
+        // The traversal target must not exist
+        assertTrue(!Files.exists(albumDir.parent.resolve("etc/passwd")))
+    }
 }
