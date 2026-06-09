@@ -217,9 +217,9 @@ export function AlbumDetail() {
           </p>
         )}
         <p
+          id="edit-scope-notice"
           className="album-detail__edit-scope-notice"
           data-testid="edit-scope-notice"
-          aria-describedby="album-tags"
         >
           {t('albumDetail.editScopeNotice', { count: album.tracks.length })}
         </p>
@@ -231,6 +231,7 @@ export function AlbumDetail() {
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
             disabled={isSaving}
+            scopeDescribedBy="edit-scope-notice"
           />
           <EditableField
             label={t('albumDetail.fields.albumArtist')}
@@ -239,6 +240,7 @@ export function AlbumDetail() {
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
             disabled={isSaving}
+            scopeDescribedBy="edit-scope-notice"
           />
           <EditableField
             label={t('albumDetail.fields.date')}
@@ -247,6 +249,7 @@ export function AlbumDetail() {
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
             disabled={isSaving}
+            scopeDescribedBy="edit-scope-notice"
           />
           <EditableField
             label={t('albumDetail.fields.genre')}
@@ -255,6 +258,7 @@ export function AlbumDetail() {
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
             disabled={isSaving}
+            scopeDescribedBy="edit-scope-notice"
           />
           <EditableField
             label={t('albumDetail.fields.label')}
@@ -263,6 +267,7 @@ export function AlbumDetail() {
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
             disabled={isSaving}
+            scopeDescribedBy="edit-scope-notice"
           />
           <EditableField
             label={t('albumDetail.fields.catalogNumber')}
@@ -271,6 +276,7 @@ export function AlbumDetail() {
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
             disabled={isSaving}
+            scopeDescribedBy="edit-scope-notice"
           />
           <EditableField
             label={t('albumDetail.fields.composer')}
@@ -279,6 +285,7 @@ export function AlbumDetail() {
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
             disabled={isSaving}
+            scopeDescribedBy="edit-scope-notice"
           />
           <EditableField
             label={t('albumDetail.fields.conductor')}
@@ -287,6 +294,7 @@ export function AlbumDetail() {
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
             disabled={isSaving}
+            scopeDescribedBy="edit-scope-notice"
           />
           <EditableField
             label={t('albumDetail.fields.ensemble')}
@@ -295,6 +303,7 @@ export function AlbumDetail() {
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
             disabled={isSaving}
+            scopeDescribedBy="edit-scope-notice"
           />
         </dl>
       </section>
