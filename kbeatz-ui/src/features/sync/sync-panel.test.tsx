@@ -214,4 +214,66 @@ describe('SyncPanel', () => {
       requestBody: { downloadImages: false },
     }))
   })
+
+  // ---- WCAG AA accessibility (#389) ----
+
+  it('sync button is keyboard-accessible (findable by role and label)', () => {
+    render(<SyncPanel album={buildAlbum()} onSyncComplete={onSyncComplete} />)
+    expect(screen.getByRole('button', { name: 'Sync from Discogs' })).toBeInTheDocument()
+  })
+
+  it('download cover art checkbox is keyboard-accessible', () => {
+    render(<SyncPanel album={buildAlbum()} onSyncComplete={onSyncComplete} />)
+    expect(screen.getByRole('checkbox', { name: 'Download cover art' })).toBeInTheDocument()
+  })
+
+  it('success message has role=status and aria-live=polite for screen reader announcement', async () => {
+    const album = buildAlbum()
+    mockSyncAlbum.mockResolvedValue(buildAlbum())
+
+    render(<SyncPanel album={album} onSyncComplete={onSyncComplete} />)
+    await userEvent.click(screen.getByTestId('sync-button'))
+
+    await waitFor(() => {
+      const statusEl = screen.getByTestId('sync-success')
+      expect(statusEl).toHaveAttribute('role', 'status')
+      expect(statusEl).toHaveAttribute('aria-live', 'polite')
+    })
+  })
+
+  it('error message has role=alert for immediate screen reader announcement', async () => {
+    mockSyncAlbum.mockRejectedValue({ body: { message: 'Server error' } })
+
+    render(<SyncPanel album={buildAlbum()} onSyncComplete={onSyncComplete} />)
+    await userEvent.click(screen.getByTestId('sync-button'))
+
+    await waitFor(() => {
+      const alertEl = screen.getByTestId('sync-error')
+      expect(alertEl).toHaveAttribute('role', 'alert')
+    })
+  })
+
+  it('sync button has aria-disabled=true while syncing', async () => {
+    // Mock a slow sync so we can check the button state during the request
+    mockSyncAlbum.mockImplementation(
+      () =>
+        new Promise((r) => {
+          // Resolve after a short delay to allow state transition
+          setTimeout(() => { r(buildAlbum()) }, 100)
+        }) as ReturnType<typeof AlbumsService.syncAlbumFromDiscogs>,
+    )
+
+    render(<SyncPanel album={buildAlbum()} onSyncComplete={onSyncComplete} />)
+    await userEvent.click(screen.getByTestId('sync-button'))
+
+    // Button should be disabled immediately after click
+    const button = screen.getByTestId('sync-button')
+    expect(button).toHaveAttribute('aria-disabled', 'true')
+    expect(button).toBeDisabled()
+
+    // Wait for mock to resolve and loading to clear
+    await waitFor(() => {
+      expect(screen.queryByTestId('sync-loading')).not.toBeInTheDocument()
+    })
+  })
 })
