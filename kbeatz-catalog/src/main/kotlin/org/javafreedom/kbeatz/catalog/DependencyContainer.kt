@@ -25,7 +25,7 @@ import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
  */
 class DependencyContainer(config: AppConfig, libraryRootPath: Path, dataDirPath: Path) {
 
-    val dataSource: AutoCloseable = DbFactory.init(config.jdbcUrl)
+    val dataSource: AutoCloseable = DbFactory.init(config.jdbcUrl, config.dbUser, config.dbPassword)
 
     private val albumRepository: AlbumRepository = ExposedAlbumRepository()
     private val trackRepository = ExposedTrackRepository()
