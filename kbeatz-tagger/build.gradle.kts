@@ -35,6 +35,14 @@ dependencies {
 group = "org.javafreedom.kbeatz"
 version = "0.0.1"
 
+// Publish a -sources.jar alongside the compiled JAR so IDEs can navigate to
+// Kotlin source for consumers of this shared library. withSourcesJar() wires
+// the sourcesJar task into the java component, so the MavenPublication below
+// picks it up automatically via from(components["java"]).
+java {
+    withSourcesJar()
+}
+
 kover {
     reports {
         verify {
