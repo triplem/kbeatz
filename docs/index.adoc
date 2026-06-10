@@ -33,6 +33,18 @@ This documentation covers:
 * xref:kbeatz-metadata-pipeline.adoc[Metadata Pipeline Developer Reference] - .kbeatz/ directory layout, KbeatzMetadata JSON schema, multi-disc matching rules, and localPath image convention
 * xref:write-lock-reference.adoc[Write-Lock Lifecycle Reference] - .kbeatz-write.lock sentinel: create, delete, startup repair, and failure modes
 
+=== Architecture Decision Records
+
+* xref:adr/ADR-001-flac-implementation.adoc[ADR-001] - FLAC implementation
+* xref:adr/ADR-002-kotlin-file-api.adoc[ADR-002] - Kotlin File API
+* xref:adr/ADR-003-cli-framework.adoc[ADR-003] - CLI framework (Clikt)
+* xref:adr/ADR-004-image-handling.adoc[ADR-004] - Image handling
+* xref:adr/ADR-005-module-structure.adoc[ADR-005] - Module structure
+* xref:adr/ADR-006-database-choice.adoc[ADR-006] - Database choice (H2 v1, PostgreSQL v2)
+* xref:adr/ADR-007-kbeatz-metadata-pipeline.adoc[ADR-007] - kbeatz metadata pipeline
+* xref:adr/ADR-008-h2-auto-server-security.adoc[ADR-008] - H2 AUTO_SERVER security implications
+* xref:adr/ADR-009-cli-integration-strategy.adoc[ADR-009] - CLI integration strategy (shared libraries vs REST)
+
 == Shared Libraries
 
 [cols="1,2"]
