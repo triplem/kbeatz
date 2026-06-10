@@ -1,7 +1,7 @@
 # kbeatz: Epics Index
 
-**Date**: 2026-06-09  
-**Status**: M1-M4 epics approved; M5 epics approved (except #362 pending); challenge-all review complete (2026-06-09) - 33 findings logged as sub-issues
+**Date**: 2026-06-10  
+**Status**: M1-M4 epics approved; M5 epics approved (except #362 pending); challenge-all review complete (2026-06-09) - 33 findings logged as sub-issues; two new epics added (#472 docs, #473 Phase 3)
 
 ---
 
@@ -18,6 +18,8 @@
 | [#360](https://github.com/triplem/kbeatz/issues/360) | UI Internationalisation | M5 | S | enhancement | approved |
 | [#361](https://github.com/triplem/kbeatz/issues/361) | Documentation Infrastructure & Polish | M5 | S | docs | approved |
 | [#362](https://github.com/triplem/kbeatz/issues/362) | Build, Release & CI Pipeline Hardening | M5 | S | tech-debt | pending-approval |
+| [#472](https://github.com/triplem/kbeatz/issues/472) | Documentation Corrections | M5 | XS | docs | approved |
+| [#473](https://github.com/triplem/kbeatz/issues/473) | Phase 3: Multi-Collection and Multi-Library Support | Phase 3 | XL | enhancement | pending-approval |
 
 ---
 
