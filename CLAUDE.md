@@ -27,7 +27,7 @@ Agent actions are logged to `~/.claude/kbeatz-sessions/<session_id>.jsonl`.
 
 - **Backend**: Kotlin + Ktor, Gradle Kotlin DSL
 - **Frontend**: React 19 + TypeScript + Vite
-- **API Contract**: OpenAPI spec at `kbeatz-catalog/api/openapi.yaml` — single source of truth (catalog only; `kbeatz-sources` and `kbeatz-tagger` are libraries, not HTTP services)
+- **API Contract**: OpenAPI spec at `kbeatz-catalog/api/openapi.yaml` - single source of truth (catalog only; `kbeatz-sources` and `kbeatz-tagger` are libraries, not HTTP services)
 - **Persistence**: H2 + Exposed ORM + Liquibase migrations (v1); PostgreSQL is the v2 migration target (see ADR-006)
 - **Tooling**: Detekt, Kover (≥ 80% coverage), CycloneDX SBOM, AsciiDoc docs
 
@@ -288,20 +288,20 @@ See `.claude/rules/commit-conventions.md` for the full list of types.
 
 All rules live in `.claude/rules/` and are automatically applied.
 
-- `commit-conventions.md` — Conventional Commits
-- `branching-strategy.md` — Branch naming & merge strategy
-- `quality-gates.md` — Mandatory checks before PR
-- `test-pyramid.md` — Unit / Integration / E2E ratios
-- `solid-principles.md` — SOLID + Clean Code
-- `api-design.md` — OpenAPI / REST best practices
-- `security.md` — SAST, OWASP, secret hygiene
-- `kotlin-style.md` — Kotlin idioms, Detekt, Gradle
-- `typescript-style.md` — TypeScript strict mode, ESLint
-- `logging.md` — Structured logging
-- `openapi.md` — OpenAPI spec discipline
-- `agent-context.md` — CLAUDE.md convention, hook patterns
-- `github-issue-management.md` — Sub-issues, epic body structure
-- `writing-style.md` — No em-dashes; plain ASCII punctuation in all artifacts
+- `commit-conventions.md` - Conventional Commits
+- `branching-strategy.md` - Branch naming & merge strategy
+- `quality-gates.md` - Mandatory checks before PR
+- `test-pyramid.md` - Unit / Integration / E2E ratios
+- `solid-principles.md` - SOLID + Clean Code
+- `api-design.md` - OpenAPI / REST best practices
+- `security.md` - SAST, OWASP, secret hygiene
+- `kotlin-style.md` - Kotlin idioms, Detekt, Gradle
+- `typescript-style.md` - TypeScript strict mode, ESLint
+- `logging.md` - Structured logging
+- `openapi.md` - OpenAPI spec discipline
+- `agent-context.md` - CLAUDE.md convention, hook patterns
+- `github-issue-management.md` - Sub-issues, epic body structure
+- `writing-style.md` - No em-dashes; plain ASCII punctuation in all artifacts
 - `react-patterns.md` - React hooks, Context, component composition, state management
 
 ## Skills Index
@@ -309,33 +309,33 @@ All rules live in `.claude/rules/` and are automatically applied.
 Invoke with `/skill-name`. All skills live in `.claude/skills/`.
 
 ### SDLC Workflow
-- `/gather-requirements` — elicit and document requirements
-- `/write-epics` — decompose requirements into epics
-- `/write-stories` — decompose epic into user stories
-- `/implement` — implement a story on a feature branch
-- `/implement-epic` — implement all stories under an epic in dependency order
-- `/write-tests` — write tests for an implementation
-- `/create-pr` — post-merge cleanup: delete branches, close issues, close epic if done
-- `/pr-reviewer` — review a PR; auto-posts findings and fixes them
-- `/release` — tag, changelog, GitHub release
-- `/create-adr` — document an architecture decision
+- `/gather-requirements` - elicit and document requirements
+- `/write-epics` - decompose requirements into epics
+- `/write-stories` - decompose epic into user stories
+- `/implement` - implement a story on a feature branch
+- `/implement-epic` - implement all stories under an epic in dependency order
+- `/write-tests` - write tests for an implementation
+- `/create-pr` - post-merge cleanup: delete branches, close issues, close epic if done
+- `/pr-reviewer` - review a PR; auto-posts findings and fixes them
+- `/release` - tag, changelog, GitHub release
+- `/create-adr` - document an architecture decision
 
 ### Code Patterns
-- `/react-patterns` — hooks, context, component design
+- `/react-patterns` - hooks, context, component design
 
 ### Specialist Reviews
-- `/security-review` — OWASP Top 10, auth, secrets
-- `/qa-review` — test coverage, acceptance criteria
-- `/architect-review` — hexagonal layers, SOLID, coupling
-- `/devops-review` — container hygiene, CI/CD
-- `/ux-review` — WCAG AA, ease of use
-- `/performance-review` — query efficiency, bundle size
-- `/operations-review` — observability, graceful degradation
-- `/technical-writer-review` — documentation clarity
-- `/requirements-review` — completeness, testability
-- `/challenge-all` — all 9 specialist perspectives at once
+- `/security-review` - OWASP Top 10, auth, secrets
+- `/qa-review` - test coverage, acceptance criteria
+- `/architect-review` - hexagonal layers, SOLID, coupling
+- `/devops-review` - container hygiene, CI/CD
+- `/ux-review` - WCAG AA, ease of use
+- `/performance-review` - query efficiency, bundle size
+- `/operations-review` - observability, graceful degradation
+- `/technical-writer-review` - documentation clarity
+- `/requirements-review` - completeness, testability
+- `/challenge-all` - all 9 specialist perspectives at once
 
 ### Meta
-- `/learn` — extract a reusable rule from a completed story
-- `/domain-model` — build/update the project domain model
-- `/claude-code-expert` — audit and improve CLAUDE.md, hooks, skills, MCP config
+- `/learn` - extract a reusable rule from a completed story
+- `/domain-model` - build/update the project domain model
+- `/claude-code-expert` - audit and improve CLAUDE.md, hooks, skills, MCP config
