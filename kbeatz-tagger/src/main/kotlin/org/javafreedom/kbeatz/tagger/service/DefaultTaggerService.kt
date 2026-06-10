@@ -104,11 +104,11 @@ class DefaultTaggerService(
             }
             val imagePath = Path(albumDir, image.localPath)
             // Canonical path check: ensure resolved path is still inside albumDir.
-            val canonicalAlbum = java.io.File(albumDir.toString()).canonicalPath
-            val canonicalImage = java.io.File(imagePath.toString()).canonicalPath
-            if (!canonicalImage.startsWith(canonicalAlbum + java.io.File.separator) &&
-                canonicalImage != canonicalAlbum
-            ) {
+            // NIO.2 normalize() resolves ".." components lexically without requiring file existence.
+            // startsWith() on java.nio.file.Path checks path component boundaries (safe vs string prefix).
+            val nioAlbum = java.nio.file.Path.of(albumDir.toString()).normalize()
+            val nioImage = java.nio.file.Path.of(imagePath.toString()).normalize()
+            if (!nioImage.startsWith(nioAlbum) && nioImage != nioAlbum) {
                 log.warn {
                     "image_skip albumDir=$albumDir localPath=${image.localPath} reason=outside_album_dir"
                 }
