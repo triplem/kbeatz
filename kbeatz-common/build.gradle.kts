@@ -19,14 +19,12 @@ private val catalog get() = the<VersionCatalogsExtension>().named("libs")
 private fun lib(alias: String) = catalog.findLibrary(alias).get()
 
 dependencies {
-    api(lib("ktor-server-auth-jwt"))
-    api(lib("ktor-server-call-id"))
-    api(lib("ktor-server-call-logging"))
-    api(lib("ktor-server-status-pages"))
+    // kbeatz-common is a leaf library (domain exceptions + metadata value types).
+    // It deliberately depends on no Ktor server artifacts: those belong to the
+    // catalog HTTP service, which pulls the full ktor-server bundle directly.
     api(lib("kotlin-logging"))
     api(lib("kotlinx-datetime"))
     api(lib("kotlinx-serialization-json"))
-    implementation(lib("ktor-server-core"))
 
     testImplementation(lib("kotlin-test-junit5"))
 }
