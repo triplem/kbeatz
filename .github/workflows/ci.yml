@@ -35,7 +35,7 @@ jobs:
         run: mkdir -p /tmp/kbeatz-test-library /tmp/kbeatz-test-data
 
       - name: Build backends and run quality gates
-        run: ./gradlew buildBackends check --no-daemon --no-parallel
+        run: ./gradlew buildBackends check --no-daemon --no-parallel --no-configuration-cache
         env:
           CATALOG_LIBRARY_ROOT: /tmp/kbeatz-test-library
           DATA_DIR: /tmp/kbeatz-test-data
@@ -61,7 +61,7 @@ jobs:
         # and document the reason in docs/security/accepted-risks.md.
 
       - name: Run E2E tests
-        run: ./gradlew :kbeatz-catalog:e2eTest --no-daemon
+        run: ./gradlew :kbeatz-catalog:e2eTest --no-daemon --no-configuration-cache
         env:
           CATALOG_LIBRARY_ROOT: /tmp/kbeatz-test-library
           DATA_DIR: /tmp/kbeatz-test-data
