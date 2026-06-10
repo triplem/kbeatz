@@ -38,6 +38,9 @@ class DependencyContainer(config: AppConfig, libraryRootPath: Path, dataDirPath:
     // Dispatchers.IO.limitedParallelism(N), where N = catalog.scan.parallelism.
     // Default N=4 prevents seek contention on spinning-disk libraries.
     // Increase N for SSD libraries; set N=1 for fully sequential reads.
+    // InjectDispatcher: suppressed here because DependencyContainer IS the injection point;
+    // Dispatchers.IO is created once and injected into LibraryScanService, not used directly.
+    @Suppress("InjectDispatcher")
     val scanService = LibraryScanService(
         libraryRoot = libraryRootPath,
         walker = LibraryWalker(),

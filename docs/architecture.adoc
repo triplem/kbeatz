@@ -69,33 +69,17 @@ The domain layer has no framework dependencies. Infrastructure implements domain
 
 == Authentication
 
-JWT-based via Keycloak. The `kbeatz-common` library provides:
+NOTE: kbeatz v1 runs on a trusted LAN with *no authentication*. Keycloak JWT/OIDC is planned for Phase 3+ and is not implemented in v1 or v2 (see NFR-07). Do not configure Keycloak for a v1 or v2 deployment.
+
+The `kbeatz-catalog` service accepts all inbound requests without any authentication or authorisation check in v1.
+
+=== Phase 3+ target (Keycloak JWT/OIDC)
+
+When authentication is introduced in Phase 3+, the design will use JWT-based auth via Keycloak.
+The `kbeatz-common` library is intended to provide the shared security primitives at that point:
 
 * `UserPrincipal` - extracted from JWT claims on every request
 * `configureSecurity()` - Ktor plugin that validates the JWT and populates the principal
-* `configureStatusPages()` - maps `DomainException` subtypes to HTTP status codes
-
-=== JWT Claims
-
-[source,kotlin]
-----
-data class UserPrincipal(
-    val userId: Uuid,
-    val roles: Set<Role>,      // USER, ADMIN
-)
-----
-
-Access control at route level:
-
-[source,kotlin]
-----
-authenticate("jwt") {
-    get("/items") {
-        val principal = call.principal<UserPrincipal>()!!
-        // principal.userId, principal.roles available here
-    }
-}
-----
 
 == Error Handling
 
@@ -104,14 +88,6 @@ Domain exceptions in `kbeatz-common` map automatically to HTTP responses via `St
 [cols="2,1,2"]
 |===
 |Exception |HTTP Status |When to throw
-
-|`AuthenticationException`
-|401
-|JWT missing or invalid (usually handled by Ktor auth plugin)
-
-|`AuthorizationException`
-|403
-|Valid user, insufficient permissions
 
 |`ResourceNotFoundException`
 |404

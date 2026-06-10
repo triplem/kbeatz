@@ -1,0 +1,118 @@
+= ADR-009: CLI Integration Strategy - Shared Libraries vs Catalog REST API
+:toc: left
+:icons: font
+:date: 2026-06-10
+:status: Accepted
+
+== Status
+
+Accepted
+
+== Context
+
+`kbeatz-cli` provides two commands (`tag` and `migrate-ids`) that read id-files and write FLAC
+tags without any dependency on a running catalog service. The implementation imports
+`kbeatz-sources` and `kbeatz-tagger` as compile dependencies and runs the sync pipeline
+in-process.
+
+Two architectural directions exist for how `kbeatz-cli` integrates with the broader kbeatz
+ecosystem going forward:
+
+=== Option A - CLI calls kbeatz-catalog REST endpoints (thin client)
+
+`kbeatz-cli` becomes an HTTP client that delegates all business logic to the catalog service
+by calling endpoints such as `POST /api/v1/albums/{id}/sync` and `POST /api/v1/library/scan`.
+The CLI no longer needs direct filesystem access to the music library.
+
+Advantages::
+* All business logic and file I/O live in one place (kbeatz-catalog)
+* The CLI could be compiled to a native binary (GraalVM / Kotlin Multiplatform) with no JVM
+  filesystem dependency
+* H2 album index is always consistent because all writes go through the catalog
+
+Disadvantages::
+* `kbeatz-catalog` must be running for any CLI command to work; the CLI cannot operate
+  standalone
+* Requires network configuration and authentication when kbeatz-catalog is not local
+* Significant refactor: every CLI command becomes an HTTP call; error handling must cover
+  network and HTTP failures
+* Incompatible with the current self-contained deployment model where a user runs CLI
+  commands against a library on the same host without starting a server
+
+=== Option B - CLI shares library code directly (current approach, chosen)
+
+`kbeatz-cli` continues to import `kbeatz-sources` and `kbeatz-tagger` as compile-time
+libraries. The sync pipeline runs in-process: sources fetches Discogs metadata and writes
+`.kbeatz/metadata.json`; tagger writes FLAC tags from that metadata.
+
+Advantages::
+* Fully self-contained: the CLI works without any running service
+* No network configuration needed; music library filesystem access is sufficient
+* Consistent with how the CLI has worked since its introduction in epic #18
+* Lower operational complexity for the common use case (personal library, single host)
+
+Disadvantages::
+* H2 album index (owned by kbeatz-catalog) and CLI file state can drift: CLI tag writes are
+  not reflected in the H2 index until the user triggers a library rescan in kbeatz-catalog
+* The CLI host must have filesystem read-write access to the library root
+
+== Decision
+
+**Option B** - shared libraries - is the chosen approach for v1 and v2.
+
+The kbeatz target deployment is a personal LAN server where the same host runs kbeatz-catalog
+and kbeatz-cli against the same mounted library. The self-contained model is a better fit for
+this context than requiring a running catalog service. The H2 drift concern is acceptable
+because the catalog offers a manual rescan that reconciles file state into the index.
+
+`kbeatz-cli` will continue to depend on `kbeatz-sources` and `kbeatz-tagger` directly. No
+HTTP client integration with kbeatz-catalog is introduced.
+
+== Consequences
+
+=== Data consistency
+
+CLI operations (`tag` command) write FLAC tags and update `.kbeatz/metadata.json` but do NOT
+update the H2 album index in kbeatz-catalog. After running CLI commands on a library, the
+operator should trigger a library rescan via the kbeatz-catalog UI or
+`POST /api/v1/library/scan` to bring the catalog index back in sync.
+
+This drift is documented in the kbeatz-cli user guide.
+
+=== Catalog availability
+
+kbeatz-catalog does not need to be running for any CLI command to succeed. The CLI operates
+purely against the filesystem.
+
+=== Module boundary enforcement (#477)
+
+Because Option B is the chosen approach, `kbeatz-catalog` should NOT import Discogs-specific
+classes from `kbeatz-sources` directly in its application or domain layers. Story #476 moves
+`DiscogsSyncService` and `DiscogsImageService` from `catalog.application.service` to
+`catalog.infrastructure.sync`. Moving them to `kbeatz-sources` was considered but rejected
+because `DiscogsImageService` uses `FlacFile` from `kbeatz-tagger`, and `kbeatz-tagger` already
+depends on `kbeatz-sources` - adding a reverse dependency would create a circular dependency.
+
+The result: catalog application and domain layers depend only on the generic `MetadataSource`
+port (from `kbeatz-sources`) and on `SyncProvider` (catalog domain port). The concrete Discogs
+wiring lives exclusively in `catalog.infrastructure.sync`.
+
+=== Future reconsideration (Phase 3+)
+
+If kbeatz is ever deployed internet-facing with multiple users or as a SaaS product, Option A
+becomes more attractive because it centralises all state in the catalog and enables native CLI
+compilation. Revisit this ADR at that point.
+
+== Alternatives Considered
+
+Option A was rejected because it would break the self-contained deployment model that is the
+primary kbeatz use case. The catalog availability requirement and the network configuration
+overhead outweigh the consistency benefit for a personal LAN server.
+
+== Related
+
+* ADR-003: CLI framework (Clikt)
+* ADR-005: Module structure
+* Epic #479 (Module Architecture: Source/Tagger Boundary Enforcement and CLI Integration Strategy)
+* Story #476 (move DiscogsSyncService to kbeatz-sources)
+* Story #477 (module boundary audit and enforcement)

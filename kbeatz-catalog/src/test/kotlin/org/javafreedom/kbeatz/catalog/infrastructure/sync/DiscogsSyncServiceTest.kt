@@ -1,4 +1,4 @@
-package org.javafreedom.kbeatz.catalog.application.service
+package org.javafreedom.kbeatz.catalog.infrastructure.sync
 
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -15,7 +15,9 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
 import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
+import org.javafreedom.kbeatz.catalog.domain.model.WRITE_LOCK_FILENAME
 import org.javafreedom.kbeatz.common.BusinessValidationException
+import org.javafreedom.kbeatz.common.ImageQuotaExhaustedException
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
 import org.javafreedom.kbeatz.sources.MetadataSource
 import org.javafreedom.kbeatz.sources.Release
@@ -201,5 +203,81 @@ class DiscogsSyncServiceTest {
         val result = service.sync(album.id, downloadImages = false)
 
         assertTrue(result.warnings.isEmpty())
+    }
+
+    // ---- path traversal validation ----
+
+    @Test
+    fun `should throw SecurityException when album directory is outside library root`() = runBlocking {
+        val outsideDir = Files.createTempDirectory("outside-library")
+        try {
+            val album = buildAlbum().copy(directoryPath = outsideDir.toString())
+            val repo = mockk<AlbumRepository>()
+            coEvery { repo.findById(album.id) } returns album
+
+            val service = DiscogsSyncService(
+                albumRepository = repo,
+                metadataSource = mockk(),
+                imageService = null,
+                libraryRoot = libraryRoot,
+            )
+
+            assertFailsWith<SecurityException> {
+                service.sync(album.id, downloadImages = false)
+            }
+        } finally {
+            outsideDir.toFile().deleteRecursively()
+        }
+    }
+
+    // ---- image quota exhaustion ----
+
+    @Test
+    fun `should add quota warning and complete sync when image quota is exhausted`() = runBlocking {
+        val album = buildAlbum()
+        val imageService = mockk<DiscogsImageService>()
+        coEvery { imageService.downloadAndWrite(any(), any(), any()) } throws
+            ImageQuotaExhaustedException("2026-06-11T00:00:00Z")
+
+        val (service, _, _) = buildService(album = album, imageService = imageService)
+
+        val result = service.sync(album.id, downloadImages = true)
+
+        assertTrue(result.warnings.any { "quota" in it.lowercase() },
+            "warnings should mention quota exhaustion")
+        assertTrue(result.fieldsWritten.isNotEmpty(),
+            "metadata tags should still be written despite quota exhaustion")
+    }
+
+    // ---- lock file retained on exception ----
+
+    @Test
+    fun `should retain write-lock file when FLAC tag write throws`() = runBlocking {
+        val album = buildAlbum()
+        val repo = mockk<AlbumRepository>()
+        coEvery { repo.findById(album.id) } returns album
+
+        val source = mockk<MetadataSource>()
+        coEvery { source.fetchRelease(any()) } returns buildRelease()
+
+        // Place a real .flac file in albumDir so writeTagsToFlacFiles is attempted
+        val fakeFlac = albumDir.resolve("track.flac")
+        Files.write(fakeFlac, byteArrayOf(0x66, 0x4C, 0x61, 0x43)) // fLaC magic bytes only - will throw on parse
+
+        val service = DiscogsSyncService(
+            albumRepository = repo,
+            metadataSource = source,
+            imageService = null,
+            libraryRoot = libraryRoot,
+        )
+
+        runCatching { service.sync(album.id, downloadImages = false) }
+
+        val lockFile = albumDir.resolve(WRITE_LOCK_FILENAME)
+        assertTrue(Files.exists(lockFile),
+            "write-lock file must remain after a failed sync so startup repair can detect it")
+
+        Files.deleteIfExists(fakeFlac)
+        Files.deleteIfExists(lockFile)
     }
 }

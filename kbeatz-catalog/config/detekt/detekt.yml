@@ -582,8 +582,13 @@ style:
         value: 'TODO:'
     allowedPatterns: ''
   ForbiddenImport:
-    active: false
-    imports: []
+    active: true
+    # Discogs-specific imports are only allowed in the infrastructure layer (wiring).
+    # Application and domain layers must depend on the generic MetadataSource port only.
+    excludes: ['**/infrastructure/**', '**/test/**', '**/androidTest/**', '**/jvmTest/**']
+    imports:
+      - value: 'org.javafreedom.kbeatz.sources.discogs.*'
+        reason: 'catalog application and domain layers must not import discogs sub-package types; use the MetadataSource port instead'
     forbiddenPatterns: ''
   ForbiddenMethodCall:
     active: false

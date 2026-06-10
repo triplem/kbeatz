@@ -7,9 +7,9 @@
 
 [NOTE]
 ====
-Quality reports (Detekt static analysis, Kover coverage, ESLint, Trivy container scan)
-are published alongside this documentation.
-link:reports/index.html[Quality Reports (Detekt, ESLint, Trivy)]
+Quality reports (Detekt static analysis, ESLint, Trivy container scan) are published to
+link:reports/index.html[/reports/] on every push to `main`. The reports index at
+`/reports/index.html` links to each individual report. No separate start page is needed.
 ====
 
 == Overview
@@ -32,20 +32,49 @@ This documentation covers:
 * xref:adding-a-service.adoc[Adding a Service] - step-by-step guide for new backend services
 * xref:kbeatz-metadata-pipeline.adoc[Metadata Pipeline Developer Reference] - .kbeatz/ directory layout, KbeatzMetadata JSON schema, multi-disc matching rules, and localPath image convention
 * xref:write-lock-reference.adoc[Write-Lock Lifecycle Reference] - .kbeatz-write.lock sentinel: create, delete, startup repair, and failure modes
+* xref:module-boundaries.adoc[Module Boundary Reference] - dependency graph, boundary rules, enforcement via Detekt, and album-walking utilities inventory
 
-== Services
+=== Architecture Decision Records
+
+* xref:adr/ADR-001-flac-implementation.adoc[ADR-001] - FLAC implementation
+* xref:adr/ADR-002-kotlin-file-api.adoc[ADR-002] - Kotlin File API
+* xref:adr/ADR-003-cli-framework.adoc[ADR-003] - CLI framework (Clikt)
+* xref:adr/ADR-004-image-handling.adoc[ADR-004] - Image handling
+* xref:adr/ADR-005-module-structure.adoc[ADR-005] - Module structure
+* xref:adr/ADR-006-database-choice.adoc[ADR-006] - Database choice (H2 v1, PostgreSQL v2)
+* xref:adr/ADR-007-kbeatz-metadata-pipeline.adoc[ADR-007] - kbeatz metadata pipeline
+* xref:adr/ADR-008-h2-auto-server-security.adoc[ADR-008] - H2 AUTO_SERVER security implications
+* xref:adr/ADR-009-cli-integration-strategy.adoc[ADR-009] - CLI integration strategy (shared libraries vs REST)
+
+== Shared Libraries
+
+[cols="1,2"]
+|===
+|Module |Purpose
+
+|kbeatz-common
+|Shared Kotlin library (no port, no deployment): domain exceptions consumed by all modules
+
+|kbeatz-sources
+|Metadata library: `MetadataSource`/`MetadataCache` ports; Discogs adapter
+
+|kbeatz-tagger
+|FLAC codec + `TaggerService` + id-file parser; library consumed by catalog and CLI
+|===
+
+== Services and Applications
 
 [cols="1,1,3"]
 |===
-|Service |Port |Purpose
+|Module |Port |Purpose
 
-|kbeatz-common
-|(none)
-|Shared Kotlin library: domain types, Ktor plugins, exception hierarchy
-
-|kbeatz-service
+|kbeatz-catalog
 |8080
-|Sample service skeleton - rename or replace with your first real service
+|Music collection catalog: browse albums, edit tags, Discogs sync
+
+|kbeatz-cli
+|CLI
+|Fat JAR CLI: `tag` and `migrate-ids` commands
 
 |kbeatz-ui
 |3005
@@ -68,10 +97,10 @@ This documentation covers:
 |Gradle 9 with Kotlin DSL + composite builds
 
 |Persistence
-|PostgreSQL + Exposed ORM + HikariCP + Liquibase
+|H2 (embedded JVM database, v1) + Exposed ORM + HikariCP + Liquibase. PostgreSQL: migration target in v2 (see ADR-006).
 
 |Authentication
-|Keycloak (JWT / JWKS)
+|None in v1 (trusted LAN). Keycloak JWT/OIDC planned for Phase 3+ (not implemented in v1 or v2).
 
 |Frontend
 |React 19 + TypeScript + Vite + Axios

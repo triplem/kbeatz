@@ -582,8 +582,10 @@ style:
         value: 'TODO:'
     allowedPatterns: ''
   ForbiddenImport:
-    active: false
-    imports: []
+    active: true
+    imports:
+      - value: 'org.javafreedom.kbeatz.catalog.*'
+        reason: 'kbeatz-cli must not depend on kbeatz-catalog classes; use kbeatz-sources or kbeatz-tagger APIs instead'
     forbiddenPatterns: ''
   ForbiddenMethodCall:
     active: false
