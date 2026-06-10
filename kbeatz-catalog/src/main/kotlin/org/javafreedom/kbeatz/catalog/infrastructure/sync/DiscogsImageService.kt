@@ -1,4 +1,4 @@
-package org.javafreedom.kbeatz.catalog.application.service
+package org.javafreedom.kbeatz.catalog.infrastructure.sync
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.IOException

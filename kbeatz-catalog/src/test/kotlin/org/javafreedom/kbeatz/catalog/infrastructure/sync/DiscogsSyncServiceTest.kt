@@ -1,4 +1,4 @@
-package org.javafreedom.kbeatz.catalog.application.service
+package org.javafreedom.kbeatz.catalog.infrastructure.sync
 
 import io.mockk.coEvery
 import io.mockk.coVerify

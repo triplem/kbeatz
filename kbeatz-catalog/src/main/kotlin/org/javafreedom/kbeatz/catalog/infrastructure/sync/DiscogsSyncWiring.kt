@@ -3,8 +3,6 @@ package org.javafreedom.kbeatz.catalog.infrastructure.sync
 import java.nio.file.Path
 import org.javafreedom.kbeatz.catalog.AppConfig
 import org.javafreedom.kbeatz.catalog.domain.port.SyncProvider
-import org.javafreedom.kbeatz.catalog.application.service.DiscogsImageService
-import org.javafreedom.kbeatz.catalog.application.service.DiscogsSyncService
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 import org.javafreedom.kbeatz.sources.ImageResult
 import org.javafreedom.kbeatz.sources.MetadataSource

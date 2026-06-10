@@ -12,7 +12,7 @@ import org.javafreedom.kbeatz.catalog.domain.model.SyncResult
  * Phase 1: exactly one active provider is configured at wiring time.
  * Multiple concurrent providers are out of scope until a second source is introduced.
  *
- * @see org.javafreedom.kbeatz.catalog.application.service.DiscogsSyncService
+ * @see org.javafreedom.kbeatz.catalog.infrastructure.sync.DiscogsSyncService
  */
 interface SyncProvider {
 
