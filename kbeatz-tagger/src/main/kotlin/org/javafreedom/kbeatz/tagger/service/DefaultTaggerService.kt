@@ -200,6 +200,7 @@ class DefaultTaggerService(
         runCatching { SystemFileSystem.list(albumDir) }
             .getOrElse { emptyList() }
             .filter { it.name.endsWith(".flac", ignoreCase = true) }
+            .sortedBy { it.name }
 
     private fun tagFile(path: Path, release: Release, picture: FlacMetadataBlock.Picture?) {
         FlacFile.read(path)

@@ -87,10 +87,15 @@ purely against the filesystem.
 === Module boundary enforcement (#477)
 
 Because Option B is the chosen approach, `kbeatz-catalog` should NOT import Discogs-specific
-classes from `kbeatz-sources` directly where those classes are better owned by kbeatz-sources
-itself. Story #476 moves `DiscogsSyncService` from kbeatz-catalog to kbeatz-sources so that
-both kbeatz-catalog (via the `SyncProvider` port) and kbeatz-cli can call it without circular
-dependencies.
+classes from `kbeatz-sources` directly in its application or domain layers. Story #476 moves
+`DiscogsSyncService` and `DiscogsImageService` from `catalog.application.service` to
+`catalog.infrastructure.sync`. Moving them to `kbeatz-sources` was considered but rejected
+because `DiscogsImageService` uses `FlacFile` from `kbeatz-tagger`, and `kbeatz-tagger` already
+depends on `kbeatz-sources` - adding a reverse dependency would create a circular dependency.
+
+The result: catalog application and domain layers depend only on the generic `MetadataSource`
+port (from `kbeatz-sources`) and on `SyncProvider` (catalog domain port). The concrete Discogs
+wiring lives exclusively in `catalog.infrastructure.sync`.
 
 === Future reconsideration (Phase 3+)
 
