@@ -116,7 +116,8 @@ Once running:
 * Frontend: http://localhost:3005
 * Backend API: http://localhost:8080/api/v1
 * Swagger UI: http://localhost:8080/swagger
-* Keycloak Admin: http://localhost:8081
+
+NOTE: kbeatz v1 runs without authentication (trusted LAN). There is no Keycloak service in v1 or v2. Keycloak JWT/OIDC is planned for Phase 3+.
 
 == Container Deployment
 
@@ -243,8 +244,8 @@ The service refuses to start if this is blank.
 |`CATALOG_JDBC_URL`
 |`catalog.jdbcUrl`
 |No
-|JDBC connection URL. Default: `jdbc:h2:file:./data/kbeatz;DB_CLOSE_DELAY=-1;MODE=PostgreSQL`.
-Set to a PostgreSQL URL for production deployments.
+|H2 JDBC URL. Default: `jdbc:h2:file:./data/kbeatz;DB_CLOSE_DELAY=-1;MODE=PostgreSQL`.
+H2 is the v1 database. PostgreSQL is the planned v2 migration target (see ADR-006).
 
 |`CATALOG_DB_USER`
 |`catalog.dbUser`

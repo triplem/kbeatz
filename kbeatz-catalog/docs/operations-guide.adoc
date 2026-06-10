@@ -400,7 +400,7 @@ grep "a1b2c3..." /var/log/kbeatz-catalog.log
 In v1, kbeatz-catalog is deployed on a trusted LAN without authentication. Echoing
 server-generated trace UUIDs to all clients is acceptable in this context.
 
-NOTE: Before v2 internet-facing deployment (Keycloak JWT/OIDC per ADR-not-yet-assigned),
+NOTE: Before any internet-facing deployment (Keycloak JWT/OIDC is planned for Phase 3+, not v1 or v2),
 the X-Trace-Id echo behaviour should be re-evaluated. Returning server-generated UUIDs to
 unauthenticated clients could allow UUID sequencing analysis. Options include: echoing
 only client-supplied IDs (not generated ones), or restricting the header to authenticated

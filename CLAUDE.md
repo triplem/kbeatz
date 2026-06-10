@@ -5,15 +5,22 @@ Agent actions are logged to `~/.claude/kbeatz-sessions/<session_id>.jsonl`.
 
 ## Project Overview
 
-**kbeatz** is a music collection management platform — a monorepo of:
+**kbeatz** is a music collection management platform - a monorepo of:
+
+**Shared Libraries** (no HTTP port, no deployment artifact):
+
+| Module | Directory | Notes |
+|---|---|---|
+| kbeatz-common | `kbeatz-common/` | Shared library: domain exceptions |
+| kbeatz-sources | `kbeatz-sources/` | Metadata library: `MetadataSource`/`MetadataCache` ports; `discogs/` + future `musicbrainz/` impls |
+| kbeatz-tagger | `kbeatz-tagger/` | FLAC codec (`codec/flac/`) + `TaggerService` + id-file parser; library consumed by catalog and CLI |
+
+**Services and Applications** (deployed):
 
 | Module | Directory | Port | Notes |
 |---|---|---|---|
-| kbeatz-common | `kbeatz-common/` | — | Shared library: domain exceptions |
-| kbeatz-sources | `kbeatz-sources/` | — | Metadata library: `MetadataSource`/`MetadataCache` ports; `discogs/` + future `musicbrainz/` impls |
-| kbeatz-tagger | `kbeatz-tagger/` | — | FLAC codec (`codec/flac/`) + `TaggerService` + id-file parser; library consumed by catalog and CLI |
 | kbeatz-cli | `kbeatz-cli/` | CLI | Fat JAR CLI: `tag` and `migrate-ids` commands (Clikt entry point only) |
-| kbeatz-catalog | `kbeatz-catalog/` | 8080 | Music collection catalog — browse albums, edit tags, Discogs sync |
+| kbeatz-catalog | `kbeatz-catalog/` | 8080 | Music collection catalog - browse albums, edit tags, Discogs sync |
 | kbeatz-ui | `kbeatz-ui/` | 3005 | React SPA |
 
 ## Common Tech Stack
@@ -85,7 +92,7 @@ plugins/                    # Ktor plugin config (StatusPages, Logging)
 ### Domain Conventions
 - Use `kotlin.uuid.Uuid` and `kotlinx.datetime.Instant`/`LocalDate` in domain code.
 - No `java.time.*` or `java.util.UUID` in `domain/` or `application/`.
-- No authentication in v1 (trusted LAN). Keycloak JWT/OIDC is the v2 target (see NFR-07).
+- No authentication in v1 (trusted LAN). Keycloak JWT/OIDC is the Phase 3+ target (not implemented in v1 or v2; see NFR-07).
 
 ## Module Details
 
@@ -125,11 +132,17 @@ plugins/                    # Ktor plugin config (StatusPages, Logging)
   plugins/                     Ktor plugins (StatusPages, TraceId, Routing, Serialization)
   ```
 - H2 schema via Liquibase: `kbeatz-catalog/src/main/resources/db/changelog/`
-- Key env vars:
-  - `CATALOG_LIBRARY_ROOT` (required) - absolute path to the music library root directory
-  - `DATA_DIR` (default: `./data`) - directory for image download quota tracking
-  - `CATALOG_JDBC_URL` (default: in-memory H2) - JDBC connection string
-  - `DISCOGS_TOKEN` (optional) - Discogs API token; Discogs sync is unavailable without it
+- Configuration: `application.conf` (HOCON/Typesafe Config) is the primary config source; environment variables listed below override the corresponding HOCON keys via `${?ENV_VAR}` substitution.
+- Key configuration (HOCON key / env var override):
+
+  | HOCON key | Env var | Default | Notes |
+  |---|---|---|---|
+  | `catalog.libraryRoot` | `CATALOG_LIBRARY_ROOT` | (required) | Absolute path to the music library root directory |
+  | `catalog.dataDir` | `CATALOG_DATA_DIR` | `./data` | Runtime data dir for Discogs image quota tracking |
+  | `catalog.jdbcUrl` | `CATALOG_JDBC_URL` | `jdbc:h2:file:./data/kbeatz;...` | H2 JDBC URL (v1). PostgreSQL is the v2 migration target (see ADR-006). |
+  | `catalog.discogs.token` | `DISCOGS_TOKEN` | (optional) | Discogs API token; sync is unavailable without it |
+  | `catalog.dbUser` | `CATALOG_DB_USER` | `sa` | Database username |
+  | `catalog.dbPassword` | `CATALOG_DB_PASSWORD` | (empty) | Database password |
 
 ### kbeatz-cli
 
