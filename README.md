@@ -13,7 +13,7 @@ want full control over their local library without relying on third-party deskto
 | Module | Directory | Port | Purpose |
 |---|---|---|---|
 | kbeatz-common | `kbeatz-common/` | - | Shared library: domain exceptions |
-| kbeatz-sources | `kbeatz-sources/` | - | Metadata library: Discogs and MusicBrainz adapters, MetadataSource/MetadataCache ports |
+| kbeatz-sources | `kbeatz-sources/` | - | Metadata library: Discogs adapter (v1), MusicBrainz adapter (planned), MetadataSource/MetadataCache ports |
 | kbeatz-tagger | `kbeatz-tagger/` | - | FLAC codec, TaggerService, and id-file parser |
 | kbeatz-cli | `kbeatz-cli/` | CLI | Fat JAR CLI: `tag` and `migrate-ids` commands |
 | kbeatz-catalog | `kbeatz-catalog/` | 8080 | Ktor HTTP service: browse albums, edit tags, Discogs sync |
