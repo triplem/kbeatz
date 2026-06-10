@@ -85,20 +85,32 @@ Tags are created on `main` by ReleaseAgent after squash rebase. Semver bump is d
 
 ## Post-Rebase Branch Cleanup
 
-After every PR is rebased and closed, **always** delete both the remote and local branch immediately:
+**Remote branch deletion is automated.** The `.github/workflows/branch-cleanup.yml`
+workflow triggers on `pull_request` `closed` and, when `merged == true`, deletes the
+merged head branch from the remote (protected branches `main`/`develop` are skipped).
+You normally do not need to run `git push origin --delete` by hand.
+
+Local branch deletion remains a **manual** step - GitHub Actions cannot touch a
+developer's local git state:
 
 ```bash
-# Delete remote branch
-git push origin --delete <branch-name>
-
 # Switch away from the branch first if on it
 git checkout main
 
-# Delete local branch
+# Prune the now-deleted remote-tracking ref, then delete the local branch
+git fetch --prune
 git branch -D <branch-name>
 ```
 
-Do this as the last step of every `gh pr merge --squash` flow - stale branches clutter `git branch` output and confuse future work. Do not rely on GitHub's "Delete branch on merge" auto-delete alone; always delete the local branch too.
+If the automated workflow is ever disabled or fails, fall back to deleting the
+remote branch manually as the last step of the merge flow:
+
+```bash
+git push origin --delete <branch-name>
+```
+
+Stale branches clutter `git branch` output and confuse future work, so confirm both
+the remote (automated) and local (manual) branch are gone after every merge.
 
 ## Stale Branches
 

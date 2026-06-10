@@ -264,6 +264,10 @@ gh pr create
 ```
 Types: `feature`, `fix`, `bug`, `chore`, `docs`, `refactor`
 
+After a PR merges, the remote head branch is deleted automatically by
+`.github/workflows/branch-cleanup.yml`. Local branch deletion is still manual:
+`git fetch --prune && git branch -D <branch>`. See `.claude/rules/branching-strategy.md`.
+
 ## Commit Conventions
 
 ```
