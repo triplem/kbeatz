@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Album, AlbumsService } from '../../api/generated'
+import { CancelError } from '../../api/generated/core/CancelablePromise'
 
 /** Client-side timeout for Discogs sync requests (30 seconds). */
 const SYNC_TIMEOUT_MS = 30_000
@@ -53,26 +54,32 @@ export function SyncPanel({ album, onSyncComplete, hasLocalEdits = false }: Sync
   const { t } = useTranslation()
   const [downloadImages, setDownloadImages] = useState(false)
   const [syncState, setSyncState] = useState<SyncState>({ status: 'idle' })
+  const cancelButtonRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (syncState.status === 'confirmOverwrite') {
+      cancelButtonRef.current?.focus()
+    }
+  }, [syncState.status])
 
   if (!album.discogsId) return null
 
   const executeSync = async () => {
     setSyncState({ status: 'loading' })
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => { controller.abort() }, SYNC_TIMEOUT_MS)
+    const request = AlbumsService.syncAlbumFromDiscogs({
+      albumId: album.id,
+      requestBody: { downloadImages },
+    })
+    const timeoutId = setTimeout(() => { request.cancel() }, SYNC_TIMEOUT_MS)
     try {
-      const updated = await AlbumsService.syncAlbumFromDiscogs({
-        albumId: album.id,
-        requestBody: { downloadImages },
-      })
+      const updated = await request
       clearTimeout(timeoutId)
       const fieldsWritten = countChangedFields(album, updated)
       onSyncComplete(updated)
       setSyncState({ status: 'success', fieldsWritten })
     } catch (err: unknown) {
       clearTimeout(timeoutId)
-      // AbortError means the client-side timeout fired
-      if (err instanceof DOMException && err.name === 'AbortError') {
+      if (err instanceof CancelError) {
         setSyncState({ status: 'error', message: t('syncPanel.syncTimeout') })
         return
       }
@@ -113,9 +120,8 @@ export function SyncPanel({ album, onSyncComplete, hasLocalEdits = false }: Sync
   return (
     <section aria-label={t('syncPanel.ariaLabel')} className="sync-panel">
       <h3>{t('syncPanel.heading')}</h3>
-      <p className="sync-discogs-id">
+      <p className="sync-discogs-id" data-testid="discogs-id">
         {t('syncPanel.discogsId', { id: album.discogsId })}
-        <span data-testid="discogs-id" style={{ display: 'none' }}>{album.discogsId}</span>
       </p>
 
       <label className="sync-checkbox-label">
@@ -158,6 +164,7 @@ export function SyncPanel({ album, onSyncComplete, hasLocalEdits = false }: Sync
           <p id="sync-overwrite-body">{t('syncPanel.overwriteBody')}</p>
           <div className="sync-overwrite-dialog__actions">
             <button
+              ref={cancelButtonRef}
               type="button"
               onClick={handleCancelOverwrite}
               data-testid="sync-overwrite-cancel"
