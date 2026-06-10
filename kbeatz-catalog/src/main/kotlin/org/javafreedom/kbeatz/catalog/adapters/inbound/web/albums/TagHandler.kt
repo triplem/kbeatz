@@ -95,10 +95,10 @@ private suspend fun handlePatchAlbum(
             HttpStatusCode.BadRequest,
             ErrorResponse(code = "INVALID_FIELD", message = ex.message ?: "Invalid field"),
         )
-    } catch (ex: SecurityException) {
+    } catch (_: SecurityException) {
         call.respond(
             HttpStatusCode.BadRequest,
-            ErrorResponse(code = "INVALID_PATH", message = ex.message ?: "Invalid album path"),
+            ErrorResponse(code = "INVALID_PATH", message = "Album path is outside the library root"),
         )
     }
 }
@@ -127,10 +127,10 @@ private suspend fun handlePatchTrack(
             HttpStatusCode.BadRequest,
             ErrorResponse(code = "INVALID_FIELD", message = ex.message ?: "Invalid field"),
         )
-    } catch (ex: SecurityException) {
+    } catch (_: SecurityException) {
         call.respond(
             HttpStatusCode.BadRequest,
-            ErrorResponse(code = "INVALID_PATH", message = ex.message ?: "Invalid album path"),
+            ErrorResponse(code = "INVALID_PATH", message = "Album path is outside the library root"),
         )
     }
 }

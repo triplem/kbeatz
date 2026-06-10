@@ -151,6 +151,24 @@ class TagHandlerTest {
     }
 
     @Test
+    fun `PATCH albums albumId returns 400 INVALID_PATH when album directory is outside library root`() = testApp {
+        coEvery {
+            tagWriteService.writeAlbumTags(albumId, "GENRE", "Rock")
+        } throws SecurityException("Album directory is outside the library root: /etc/secret")
+
+        val response = patch("/albums/$albumId") {
+            contentType(ContentType.Application.Json)
+            setBody(UpdateTagFieldRequest(field = "GENRE", value = "Rock"))
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        val error = response.body<ErrorResponse>()
+        assertEquals("INVALID_PATH", error.code)
+        // path must not leak into the error message
+        assertEquals("Album path is outside the library root", error.message)
+    }
+
+    @Test
     fun `PATCH albums albumId delegates to tagWriteService with correct parameters`() = testApp {
         val updatedAlbum = buildAlbum()
         coEvery { tagWriteService.writeAlbumTags(albumId, "GENRE", "Rock") } returns updatedAlbum
@@ -212,6 +230,23 @@ class TagHandlerTest {
         assertEquals(HttpStatusCode.NotFound, response.status)
         val error = response.body<ErrorResponse>()
         assertEquals("RESOURCE_NOT_FOUND", error.code)
+    }
+
+    @Test
+    fun `PATCH albums albumId tracks trackId returns 400 INVALID_PATH when directory is outside library root`() = testApp {
+        coEvery {
+            tagWriteService.writeTrackTags(albumId, trackId, "TITLE", "New Title")
+        } throws SecurityException("Album directory is outside the library root: /etc/secret")
+
+        val response = patch("/albums/$albumId/tracks/$trackId") {
+            contentType(ContentType.Application.Json)
+            setBody(UpdateTagFieldRequest(field = "TITLE", value = "New Title"))
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        val error = response.body<ErrorResponse>()
+        assertEquals("INVALID_PATH", error.code)
+        assertEquals("Album path is outside the library root", error.message)
     }
 
     @Test
