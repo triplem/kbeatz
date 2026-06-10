@@ -1,8 +1,8 @@
 # Build stage
-# Pinned 2026-06-07. Update digest with:
+# Pinned 2026-06-10. Update digest with:
 #   docker pull eclipse-temurin:21-jdk
 #   docker inspect eclipse-temurin:21-jdk --format='{{index .RepoDigests 0}}'
-FROM eclipse-temurin:25-jdk@sha256:c2b7ea21649875fb9052237ac4e3cd4ef63968a2a389a0a1b1a72a5e53e5c93f AS build
+FROM eclipse-temurin:21-jdk@sha256:949f7645022e8cd5cd65eac4b342e7505c86b721b6338f8b677c6f2edc180262 AS build
 WORKDIR /workspace
 
 COPY gradle gradle
@@ -17,10 +17,10 @@ COPY kbeatz-catalog kbeatz-catalog
 RUN ./gradlew :kbeatz-cli:shadowJar --no-daemon -q
 
 # Runtime stage
-# Pinned 2026-06-07. Update digest with:
+# Pinned 2026-06-10. Update digest with:
 #   docker pull eclipse-temurin:21-jre
 #   docker inspect eclipse-temurin:21-jre --format='{{index .RepoDigests 0}}'
-FROM eclipse-temurin:25-jre@sha256:04262e8782d6b034ee5d7c1c5d4e8938fcf2063a76b4bfcd84e5d994d09c27bc
+FROM eclipse-temurin:21-jre@sha256:194b590649efee5555de080c634905a30c2885190210e37ada26370ed2a9c781
 RUN groupadd --system app && useradd --system --gid app app
 WORKDIR /app
 COPY --from=build /workspace/kbeatz-cli/build/libs/kbeatz-cli-all.jar ./kbeatz-cli-all.jar

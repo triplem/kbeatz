@@ -224,6 +224,9 @@ private fun VorbisCommentEditor.applyMetadata(
     set(VorbisCommentFields.ALBUM, album.title)
     set(VorbisCommentFields.ALBUMARTIST, album.albumArtist)
     album.date?.let { set(VorbisCommentFields.DATE, it) }
+    if (album.genres.size > 1) {
+        log.debug { "multi_genre_truncation source=metadata genres=${album.genres.size} writing first only" }
+    }
     album.genres.firstOrNull()?.let { set(VorbisCommentFields.GENRE, it) }
     album.label?.let { set(VorbisCommentFields.LABEL, it) }
     album.catalogNumber?.let { set(VorbisCommentFields.CATALOGNUMBER, it) }
@@ -249,6 +252,9 @@ private fun VorbisCommentEditor.applyRelease(release: Release): VorbisCommentEdi
     set(VorbisCommentFields.ALBUM, release.title)
     release.artists.firstOrNull()?.let { set(VorbisCommentFields.ALBUMARTIST, it.name) }
     release.resolvedYear()?.let { set(VorbisCommentFields.DATE, it) }
+    if (release.genres.size > 1) {
+        log.debug { "multi_genre_truncation source=discogs genres=${release.genres.size} writing first only" }
+    }
     release.genres.firstOrNull()?.let { set(VorbisCommentFields.GENRE, it) }
     release.labels.firstOrNull()?.let {
         set(VorbisCommentFields.LABEL, it.name)

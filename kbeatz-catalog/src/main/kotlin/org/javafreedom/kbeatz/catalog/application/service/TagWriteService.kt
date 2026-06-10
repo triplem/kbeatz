@@ -59,8 +59,8 @@ val TRACK_LEVEL_FIELDS: Set<String> = setOf("TITLE", "TRACKNUMBER", "ARTIST")
  * (single atomic op is safe without a manifest).
  *
  * ## Failure handling
- * If any file write fails, the lock file is left in place and the exception is rethrown.
- * [LibraryScanService.repairOnStartup] detects stale lock files and re-indexes affected directories.
+ * The lock file is always deleted in a `finally` block, even if the write fails. The exception
+ * is rethrown so the caller receives the original error.
  *
  * No Ktor types are present in this class — it is a pure application-layer service.
  */
@@ -116,9 +116,11 @@ class TagWriteService(
             val flacFiles = findFlacFiles(albumDir)
             writeLockFile(albumDir, flacFiles)
 
-            writeTagToFiles(flacFiles, normalised, value, albumId)
-
-            deleteLockFile(albumDir)
+            try {
+                writeTagToFiles(flacFiles, normalised, value, albumId)
+            } finally {
+                deleteLockFile(albumDir)
+            }
 
             val updatedAlbum = album.applyAlbumField(normalised, value)
             albumRepository.save(updatedAlbum)

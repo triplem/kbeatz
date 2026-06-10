@@ -27,7 +27,7 @@ private val log = KotlinLogging.logger {}
  *
  * ## Response codes
  * - 200: sync completed successfully; returns updated [ApiAlbum]
- * - 400: invalid UUID in path
+ * - 400: invalid UUID in path or malformed release ID stored in the database
  * - 404: album not found
  * - 422: album has no source ID - cannot sync
  * - 429: image quota exhausted (only when `downloadImages=true`)
@@ -80,6 +80,9 @@ private suspend fun handleSync(
                 message = ex.message ?: "Daily image quota exhausted",
                 details = listOf("resetAt=${ex.resetAt}"),
             ))
+    } catch (ex: IllegalArgumentException) {
+        call.respond(HttpStatusCode.BadRequest,
+            ErrorResponse(code = "INVALID_RELEASE_ID", message = ex.message ?: "Invalid release ID"))
     } catch (ex: CancellationException) {
         throw ex
     } catch (ex: Exception) {
