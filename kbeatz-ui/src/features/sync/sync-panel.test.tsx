@@ -50,6 +50,7 @@ describe('SyncPanel', () => {
     render(<SyncPanel album={album} onSyncComplete={onSyncComplete} />)
     expect(screen.getByTestId('sync-button')).toBeInTheDocument()
     expect(screen.getByTestId('discogs-id')).toHaveTextContent('12345')
+    expect(screen.getByTestId('discogs-id')).toBeVisible()
   })
 
   // ---- default checkbox state ----

@@ -104,6 +104,9 @@ class DiscogsMetadataSource private constructor(
     override val name = "discogs"
 
     override suspend fun fetchRelease(releaseId: String): Release? {
+        require(SAFE_RELEASE_ID_PATTERN.matches(releaseId)) {
+            "releaseId must contain only alphanumeric characters and hyphens: $releaseId"
+        }
         cache?.get(name, releaseId)?.let { return it }
         tokenBucket.acquire()
         log.info { "Fetching Discogs release $releaseId" }
@@ -113,8 +116,11 @@ class DiscogsMetadataSource private constructor(
         return release
     }
 
-    override suspend fun fetchImage(releaseId: String, index: Int): ImageResult? =
-        if (!imageQuota.canDownload()) {
+    override suspend fun fetchImage(releaseId: String, index: Int): ImageResult? {
+        require(SAFE_RELEASE_ID_PATTERN.matches(releaseId)) {
+            "releaseId must contain only alphanumeric characters and hyphens: $releaseId"
+        }
+        return if (!imageQuota.canDownload()) {
             log.warn { "Discogs daily image quota exhausted - skipping image download for release $releaseId" }
             null
         } else {
@@ -129,6 +135,7 @@ class DiscogsMetadataSource private constructor(
                     ImageResult(bytes, mimeType)
                 }
         }
+    }
 
     /**
      * Fetches a Discogs release by [discogsId], persists the raw API JSON to

@@ -95,6 +95,11 @@ private suspend fun handlePatchAlbum(
             HttpStatusCode.BadRequest,
             ErrorResponse(code = "INVALID_FIELD", message = ex.message ?: "Invalid field"),
         )
+    } catch (ex: SecurityException) {
+        call.respond(
+            HttpStatusCode.BadRequest,
+            ErrorResponse(code = "INVALID_PATH", message = ex.message ?: "Invalid album path"),
+        )
     }
 }
 
@@ -121,6 +126,11 @@ private suspend fun handlePatchTrack(
         call.respond(
             HttpStatusCode.BadRequest,
             ErrorResponse(code = "INVALID_FIELD", message = ex.message ?: "Invalid field"),
+        )
+    } catch (ex: SecurityException) {
+        call.respond(
+            HttpStatusCode.BadRequest,
+            ErrorResponse(code = "INVALID_PATH", message = ex.message ?: "Invalid album path"),
         )
     }
 }
