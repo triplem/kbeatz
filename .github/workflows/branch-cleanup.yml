@@ -1,0 +1,50 @@
+name: Branch Cleanup
+
+# Deletes the head branch from the remote after a pull request is merged, so
+# stale feature branches do not accumulate. Local branch deletion is still a
+# manual step (git branch -D <branch> after git fetch --prune).
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+jobs:
+  delete-merged-branch:
+    name: Delete merged head branch
+    runs-on: ubuntu-latest
+    # Only act when the PR was actually merged (not merely closed) and the head
+    # branch lives in this repository - fork branches cannot and must not be
+    # deleted from here.
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Delete head branch
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const branch = context.payload.pull_request.head.ref;
+            const protectedBranches = ['main', 'develop'];
+            if (protectedBranches.includes(branch)) {
+              core.info(`Refusing to delete protected branch '${branch}'.`);
+              return;
+            }
+            try {
+              await github.rest.git.deleteRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: `heads/${branch}`,
+              });
+              core.info(`Deleted remote branch '${branch}'.`);
+            } catch (error) {
+              // 422 Unprocessable Entity is returned when the ref is already
+              // gone (e.g. the merge UI deleted it). Treat that as success.
+              if (error.status === 422) {
+                core.info(`Branch '${branch}' already deleted - nothing to do.`);
+              } else {
+                throw error;
+              }
+            }
