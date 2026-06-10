@@ -32,6 +32,7 @@ This documentation covers:
 * xref:adding-a-service.adoc[Adding a Service] - step-by-step guide for new backend services
 * xref:kbeatz-metadata-pipeline.adoc[Metadata Pipeline Developer Reference] - .kbeatz/ directory layout, KbeatzMetadata JSON schema, multi-disc matching rules, and localPath image convention
 * xref:write-lock-reference.adoc[Write-Lock Lifecycle Reference] - .kbeatz-write.lock sentinel: create, delete, startup repair, and failure modes
+* xref:module-boundaries.adoc[Module Boundary Reference] - dependency graph, boundary rules, enforcement via Detekt, and album-walking utilities inventory
 
 === Architecture Decision Records
 
