@@ -10,6 +10,10 @@ version = "0.0.1"
 dependencies {
     implementation("org.javafreedom.kbeatz:kbeatz-tagger")
     implementation("org.javafreedom.kbeatz:kbeatz-sources")
+    // cli uses KotlinLogging directly (TagAlbumsCommand, MigrateIdFilesCommand);
+    // declare the facade here instead of relying on a transitive re-export from
+    // kbeatz-common.
+    implementation(libs.kotlin.logging)
 }
 
 application {
