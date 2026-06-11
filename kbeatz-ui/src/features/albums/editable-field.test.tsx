@@ -39,6 +39,32 @@ describe('EditableField', () => {
   })
 
   // ──────────────────────────────────────────────
+  // Label association (#485 - WCAG AA)
+  // ──────────────────────────────────────────────
+
+  it('associates a programmatic label with the edit input', () => {
+    render(<EditableField {...defaultProps} />)
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+
+    // getByLabelText resolves the input only when a <label htmlFor> (or aria
+    // label) is programmatically associated. It would throw if the input had
+    // no accessible name, so this asserts the label/input pairing directly.
+    const labelledInput = screen.getByLabelText('Edit Genre')
+    expect(labelledInput).toBe(screen.getByTestId('album-input-genre'))
+    expect(labelledInput.tagName).toBe('INPUT')
+  })
+
+  it('gives the edit input an id matching the label htmlFor', () => {
+    render(<EditableField {...defaultProps} />)
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    const input = screen.getByTestId('album-input-genre')
+    const label = screen.getByText('Edit Genre')
+
+    expect(input).toHaveAttribute('id', 'album-input-genre')
+    expect(label).toHaveAttribute('for', 'album-input-genre')
+  })
+
+  // ──────────────────────────────────────────────
   // Escape cancellation
   // ──────────────────────────────────────────────
 
