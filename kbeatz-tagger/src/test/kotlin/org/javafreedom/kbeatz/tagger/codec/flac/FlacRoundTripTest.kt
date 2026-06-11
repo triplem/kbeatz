@@ -87,6 +87,41 @@ class FlacRoundTripTest {
         }
     }
 
+    @Test
+    fun `should throw FlacParseException when file is truncated mid-block`() {
+        // A valid FLAC file whose StreamInfo block header declares a length the bytes
+        // do not satisfy: we keep the 'fLaC' marker and the 4-byte block header but cut
+        // the file off inside the StreamInfo payload. The reader must surface this as a
+        // typed FlacParseException, not an unchecked EOFException.
+        val full = FlacWriter().write(listOf<FlacMetadataBlock>(streamInfo, vorbisComment), ByteArray(0))
+
+        // fLaC marker (4) + first block header (4) = 8 bytes; keep header + 2 payload bytes
+        // so the declared StreamInfo length cannot be read in full.
+        val truncated = full.copyOfRange(0, 10)
+
+        val ex = assertFailsWith<FlacParseException> {
+            FlacReader().parse(truncated)
+        }
+        assertTrue(
+            ex.message?.contains("Truncated or malformed") == true,
+            "Expected a truncation message but was: ${ex.message}",
+        )
+    }
+
+    @Test
+    fun `should throw FlacParseException when block length exceeds remaining bytes`() {
+        // Marker + a block header that claims a 4096-byte payload, followed by only a few bytes.
+        // The reader attempts to read 4096 bytes, hits end-of-input, and wraps the failure.
+        val marker = byteArrayOf(0x66, 0x4C, 0x61, 0x43) // "fLaC"
+        @Suppress("MagicNumber") // last-block StreamInfo header declaring 4096-byte payload
+        val header = byteArrayOf(0x80.toByte(), 0x00, 0x10, 0x00) // last=true, type=0, length=4096
+        val truncated = marker + header + byteArrayOf(0x01, 0x02, 0x03)
+
+        assertFailsWith<FlacParseException> {
+            FlacReader().parse(truncated)
+        }
+    }
+
     // -------------------------------------------------------------------------
     // FlacFile.withVorbisComment
     // -------------------------------------------------------------------------

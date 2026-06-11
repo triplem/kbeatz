@@ -61,6 +61,23 @@ class TagWriteServiceTest {
         images = null,
     )
 
+    private fun buildAlbumWithId(id: Uuid, dir: Path = albumDir) = Album(
+        id = id,
+        albumArtist = "Miles Davis",
+        album = "Kind of Blue",
+        date = "1959",
+        genre = "Jazz",
+        label = null,
+        catalogNumber = null,
+        composer = null,
+        conductor = null,
+        ensemble = null,
+        discogsId = null,
+        directoryPath = dir.toString(),
+        extraTags = null,
+        images = null,
+    )
+
     private fun buildTrack(path: String = "01 So What.flac") = Track(
         id = trackId,
         albumId = albumId,
@@ -342,6 +359,74 @@ class TagWriteServiceTest {
         val start2 = executionOrder.indexOf("start-2")
         assertTrue(end1 < start2 || executionOrder.indexOf("end-2") < executionOrder.indexOf("start-1"),
             "Concurrent writes must be serialised: observed order $executionOrder")
+    }
+
+    @Test
+    fun `writeAlbumTags rejects a second writer while the first holds the directory write-lock`() = runTest {
+        // Two distinct albums whose records point to the SAME directory. The in-memory Mutex is
+        // keyed by album UUID, so these two writes are NOT serialised by the Mutex: they contend
+        // only on the on-disk .kbeatz-write.lock file (the cross-writer guard). While the first
+        // writer holds the lock file, the second must be rejected with ConflictException and the
+        // FLAC file on disk must not be corrupted.
+        //
+        // The first writer's critical section (lock create -> FLAC write -> lock delete) is fully
+        // synchronous with no interceptable suspension point, so a wall-clock race would be flaky.
+        // To assert the contract deterministically we hold the lock file open for the duration of
+        // the second writer's attempt by pre-creating it (exactly the state a concurrent first
+        // writer produces between writeLockFile() and deleteLockFile()).
+        val flacFile = albumDir.resolve("01.flac")
+        copyMinimalFlac(flacFile)
+        val originalBytes = flacFile.toFile().readBytes()
+
+        val firstAlbumId = Uuid.random()
+        val secondAlbumId = Uuid.random()
+
+        coEvery { albumRepository.findById(secondAlbumId) } returns buildAlbumWithId(secondAlbumId)
+        coEvery { albumRepository.findById(firstAlbumId) } returns buildAlbumWithId(firstAlbumId)
+        coEvery { albumRepository.save(any()) } answers { firstArg() }
+
+        // Simulate the first writer being inside its critical section, holding the lock file.
+        val manifest = flacFile.toString()
+        Files.writeString(albumDir.resolve(WRITE_LOCK_FILENAME), manifest)
+
+        try {
+            // Second writer must be rejected because the lock file is present.
+            val secondResult = runCatching {
+                service.writeAlbumTags(secondAlbumId, "GENRE", "Rock")
+            }
+            assertTrue(
+                secondResult.exceptionOrNull() is ConflictException,
+                "The contending writer must be rejected with ConflictException but was: " +
+                    "${secondResult.exceptionOrNull()}",
+            )
+
+            // No corrupt file: the rejected write touched no bytes; the FLAC is byte-identical.
+            val afterReject = flacFile.toFile().readBytes()
+            assertEquals(
+                originalBytes.toList(),
+                afterReject.toList(),
+                "Rejected writer must not modify the FLAC file",
+            )
+        } finally {
+            // First writer finishes and releases the lock.
+            Files.deleteIfExists(albumDir.resolve(WRITE_LOCK_FILENAME))
+        }
+
+        // Once the lock is released, a fresh write to the same directory succeeds (serialised,
+        // not lost) and leaves a valid FLAC with no lingering lock file.
+        val retry = service.writeAlbumTags(firstAlbumId, "GENRE", "Jazz")
+        assertEquals("Jazz", retry.genre)
+        val finalBytes = flacFile.toFile().readBytes()
+        assertTrue(finalBytes.size >= 4, "FLAC file must not be truncated after the serialised retry")
+        assertEquals(
+            originalBytes.copyOfRange(0, 4).toList(),
+            finalBytes.copyOfRange(0, 4).toList(),
+            "FLAC marker must be intact after the serialised retry",
+        )
+        assertFalse(
+            albumDir.resolve(WRITE_LOCK_FILENAME).toFile().exists(),
+            "Write-lock file must be removed after the serialised retry",
+        )
     }
 
     // ──────────────────────────────────────────────

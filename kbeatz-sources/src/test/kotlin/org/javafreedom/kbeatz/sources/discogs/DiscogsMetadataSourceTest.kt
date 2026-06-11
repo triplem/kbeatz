@@ -245,6 +245,47 @@ class DiscogsMetadataSourceTest {
     }
 
     /**
+     * When Discogs returns HTTP 429 Too Many Requests and the client has no retry plugin
+     * configured (so the 429 is the final response), [fetchRelease] does not validate the
+     * status code itself. Instead it asks ContentNegotiation to deserialize the (empty) 429
+     * body into a [DiscogsRelease], which fails with [io.ktor.serialization.ContentConvertException].
+     *
+     * This mirrors the timeout test above: a bare client (no [io.ktor.client.plugins.HttpRequestRetry])
+     * is used so the test asserts the adapter's direct contract on a terminal 429 rather than the
+     * retry-then-succeed path covered separately. The exception propagates to the caller (catalog
+     * service or CLI), which treats it as a rate-limit/transport error.
+     *
+     * Note: this asserts the current behaviour and changes no production code. The retry-aware
+     * `syncAlbum` path has its own dedicated 429 test returning SyncResult.RateLimitExceeded.
+     */
+    @Test
+    fun `fetchRelease throws ContentConvertException when Discogs returns 429 with no retry configured`() =
+        runBlocking {
+            val mockEngine = MockEngine {
+                respond(
+                    content = "",
+                    status = HttpStatusCode.TooManyRequests,
+                    headers = headersOf(
+                        HttpHeaders.ContentType to listOf(ContentType.Application.Json.toString()),
+                        HttpHeaders.RetryAfter to listOf("1"),
+                    ),
+                )
+            }
+            val source = DiscogsMetadataSource.withHttpClient(
+                token = "test-token",
+                httpClient = HttpClient(mockEngine) {
+                    install(ContentNegotiation) {
+                        json(Json { ignoreUnknownKeys = true })
+                    }
+                },
+            )
+
+            assertFailsWith<io.ktor.serialization.ContentConvertException> {
+                source.fetchRelease("12345")
+            }
+        }
+
+    /**
      * When the Discogs API returns a 200 with an invalid (non-JSON) body,
      * the serialization layer throws a [SerializationException]. This is the
      * expected behavior: the caller (catalog service or CLI) handles it as a
