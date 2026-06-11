@@ -143,16 +143,24 @@ jobs:
             echo "available=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Download Trivy HTML template
+        if: steps.pull.outputs.available == 'true'
+        run: |
+          curl -sSfL \
+            "https://raw.githubusercontent.com/aquasecurity/trivy/v0.71.0/contrib/html.tpl" \
+            -o /tmp/trivy-html.tpl
+
       - name: Run Trivy image scan (HTML)
         if: steps.pull.outputs.available == 'true'
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ steps.pull.outputs.image }}
-          format: 'html'
+          format: 'template'
+          template: '@/tmp/trivy-html.tpl'
           output: 'trivy-report.html'
           severity: 'HIGH,CRITICAL'
           exit-code: '0'
-          trivy-version: 'v0.71.0'
+          version: 'v0.71.0'
 
       - name: Upload Trivy report
         if: steps.pull.outputs.available == 'true'
