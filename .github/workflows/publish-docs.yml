@@ -148,11 +148,11 @@ jobs:
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ steps.pull.outputs.image }}
-          format: 'template'
-          template: '@/contrib/html.tpl'
+          format: 'html'
           output: 'trivy-report.html'
           severity: 'HIGH,CRITICAL'
           exit-code: '0'
+          trivy-version: 'v0.71.0'
 
       - name: Upload Trivy report
         if: steps.pull.outputs.available == 'true'
