@@ -149,4 +149,4 @@ Removes the shared-file problem entirely.
 
 * ADR-006: H2 as the Embedded Database (v1); PostgreSQL as the v2 Migration Target
 * https://h2database.com/html/advanced.html#auto_mixed_mode[H2 Automatic Mixed Mode documentation]
-* NFR-07: No authentication in v1; Keycloak JWT/OIDC is the v2 target
+* NFR-07: No authentication in v1 or v2 (trusted LAN); Keycloak JWT/OIDC is the Phase 3+ target

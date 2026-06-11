@@ -55,7 +55,7 @@ Each album card shows: cover art (placeholder if absent), album title, primary a
 
 **FR-02** The user shall be able to filter the album grid by artist, composer, genre, and year (range). Filters update the visible results immediately (client-side, no round-trip).
 
-**FR-03** The user shall be able to perform a free-text search across album title, artist, composer, and label. Results update immediately as the user types.
+**FR-03** The user shall be able to perform a free-text search across album title, artist, composer, and label. "Free-text" means a case-insensitive substring match: an album matches when the query string occurs as a substring (ignoring case) of any of those four fields. As the user types, the result set updates within < 200 ms p95 (client-side, mirroring FR-05).
 
 **FR-04** The album grid shall load within 3–5 seconds on first access (v1 acceptable). The p95 target for initial grid load is < 1 second once the metadata cache is warm (long-term requirement).
 
@@ -63,9 +63,9 @@ Each album card shows: cover art (placeholder if absent), album title, primary a
 
 ### P0: In-place tag editing
 
-**FR-06** The user shall be able to open an album detail view showing all Vorbis Comment tags for that album.
+**FR-06** The user shall be able to open an album detail view. The view displays the standard album-level Vorbis Comment fields (ALBUM, ALBUMARTIST, DATE, GENRE, LABEL, CATALOGNUMBER, BARCODE, COMPOSER, CONDUCTOR, ENSEMBLE) and, per track, the standard track-level fields (TITLE, TRACKNUMBER, DISCNUMBER, ARTIST). A field with no value present in any of the album's FLAC files is shown as empty (not hidden), so the user can add it. Custom or non-standard Vorbis Comment tags (any tag outside the standard set above) are listed read-only in a separate "Other tags" section and are not editable in v1; editing them is deferred to a future phase.
 
-**FR-07** The user shall be able to edit any individual tag field in place (click → edit → save). Changes are written to **all FLAC files that belong to the album** for album-level tags (ALBUM, ALBUMARTIST, DATE, GENRE, LABEL, CATALOGNUMBER, COMPOSER, CONDUCTOR, ENSEMBLE). Track-level tags (TITLE, TRACKNUMBER, ARTIST on VA albums) update only the individual file.
+**FR-07** The user shall be able to edit any individual tag field in place (click → edit → save). Changes are written to **all FLAC files that belong to the album** for album-level tags (ALBUM, ALBUMARTIST, DATE, GENRE, LABEL, CATALOGNUMBER, COMPOSER, CONDUCTOR, ENSEMBLE). Track-level tags (TITLE, TRACKNUMBER, DISCNUMBER, ARTIST on VA albums) update only the individual file.
 
 **FR-08** A save operation writes changes to disk immediately using the atomic write strategy (temp file + rename). No "pending changes" queue in v1.
 
@@ -73,7 +73,7 @@ Each album card shows: cover art (placeholder if absent), album title, primary a
 
 **FR-09** Given an album directory containing a `metadata.yml` (or `id.txt` / `local_ids.txt`) file with a `discogs_id`, the system shall fetch the corresponding Discogs release and write all standard Vorbis Comment tags to every FLAC file in that album directory.
 
-**FR-10** Discogs sync applies automatically without a preview/diff step (user trusts Discogs data). If the result is wrong, the user corrects it via manual editing (FR-07) or by providing a different `discogs_id`.
+**FR-10** Discogs sync is triggered on demand by the user (the UI sync action or the CLI `tag` command), never automatically on library scan. Once triggered, the fetched tags from FR-09 are written directly to disk without a preview/diff step (user trusts Discogs data). If the result is wrong, the user corrects it via manual editing (FR-07) or by triggering sync again with a different `discogs_id`.
 
 **FR-11** Cover art: the primary Discogs image is embedded as `METADATA_BLOCK_PICTURE` type 3 in every FLAC file **and** saved as `folder.jpg` in the album directory.
 
@@ -127,13 +127,13 @@ Each album card shows: cover art (placeholder if absent), album title, primary a
 | NFR-04 | Performance | Discogs metadata fetch (single album): p95 < 3 s (network-dependent) |
 | NFR-05 | Availability | No formal SLA; personal tool. Service restart < 30 s. |
 | NFR-06 | Security | No authentication in v1 (trusted LAN). `DISCOGS_TOKEN` via environment variable only; never in source or logs. Path traversal guard on all filesystem operations. |
-| NFR-07 | Security | v2: Keycloak JWT/OIDC authentication. |
-| NFR-08 | Data safety | FLAC writes are atomic (temp file + rename). No file is ever left in a corrupt state. |
+| NFR-07 | Security | No authentication in v1 or v2 (trusted LAN deployment in both releases). Keycloak JWT/OIDC authentication is a Phase 3+ target and is not implemented before then. Consistent with ADR-008 and CLAUDE.md. |
+| NFR-08 | Data safety | FLAC writes are atomic (temp file + rename, per ADR-001). No file is ever left in a corrupt state. Observable criterion: under a process kill at any point mid-write, the target FLAC path always holds exactly one complete, valid file - either the unchanged original or the fully written new version - never a partially written or truncated file. |
 | NFR-09 | Deployment | Deployable with `podman-compose up`. Single `compose.yml` works with both Podman and Docker. |
 | NFR-10 | Browsers | Latest Firefox and Chromium on Linux. Safari (tablet) as stretch goal. |
 | NFR-11 | Library size | System must remain responsive at 10 000 albums (indexing strategy must support future growth). |
 | NFR-12 | Payload size | Album listing API response shall not exceed 500 KB (after gzip compression) at 10 000 albums. Above 5 000 albums (configurable threshold), the listing endpoint switches to server-side pagination with a pre-built in-memory search index. |
-| NFR-13 | Write consistency | A multi-file album write interrupted mid-operation shall be detectable and recoverable on next startup via the `.kbeatz-write.lock` manifest (see FR-20). No album shall be permanently left in a partially-written state. |
+| NFR-13 | Write consistency | A multi-file album write interrupted mid-operation shall be detectable and recoverable on next startup via the `.kbeatz-write.lock` manifest (see FR-20). RPO criterion: no committed album state is lost (the manifest plus per-file atomic writes from NFR-08 guarantee each file is either old-complete or new-complete). RTO criterion: the orphaned-lock repair scan for every affected album completes within the < 30 s service restart budget (consistent with NFR-05). After repair, no album is left in a partially-written state. |
 
 ---
 
