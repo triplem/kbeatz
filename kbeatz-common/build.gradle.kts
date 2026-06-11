@@ -19,14 +19,14 @@ private val catalog get() = the<VersionCatalogsExtension>().named("libs")
 private fun lib(alias: String) = catalog.findLibrary(alias).get()
 
 dependencies {
-    api(lib("ktor-server-auth-jwt"))
-    api(lib("ktor-server-call-id"))
-    api(lib("ktor-server-call-logging"))
-    api(lib("ktor-server-status-pages"))
-    api(lib("kotlin-logging"))
+    // kbeatz-common is a leaf library (domain exceptions + metadata value types).
+    // It exports only the types that appear in its public API: kotlinx.datetime
+    // (Instant on KbeatzMetadata) and kotlinx.serialization (the @Serializable
+    // metadata model). It depends on no Ktor server artifacts and does not log,
+    // so no logging dependency is declared here; modules that log declare it
+    // themselves (catalog/sources/tagger via the logging bundle, cli directly).
     api(lib("kotlinx-datetime"))
     api(lib("kotlinx-serialization-json"))
-    implementation(lib("ktor-server-core"))
 
     testImplementation(lib("kotlin-test-junit5"))
 }

@@ -42,8 +42,10 @@ ktor-server-openapi = { module = "io.ktor:ktor-server-openapi", version.ref = "k
 ktor-server-swagger = { module = "io.ktor:ktor-server-swagger-jvm", version.ref = "ktor" }
 ktor-server-call-id = { module = "io.ktor:ktor-server-call-id-jvm", version.ref = "ktor" }
 ktor-server-call-logging = { module = "io.ktor:ktor-server-call-logging-jvm", version.ref = "ktor" }
+# Base auth is required only by the OpenAPI-generated supporting file ApiKeyAuth.kt
+# (the kotlin-server generator always emits it). The spec declares no security
+# schemes (every operation is security: []), so no JWT artifact is needed.
 ktor-server-auth = { module = "io.ktor:ktor-server-auth-jvm", version.ref = "ktor" }
-ktor-server-auth-jwt = { module = "io.ktor:ktor-server-auth-jwt-jvm", version.ref = "ktor" }
 ktor-server-metrics = { module = "io.ktor:ktor-server-metrics", version.ref = "ktor" }
 ktor-server-compression = { module = "io.ktor:ktor-server-compression", version.ref = "ktor" }
 ktor-server-auto-head-response = { module = "io.ktor:ktor-server-auto-head-response", version.ref = "ktor" }
@@ -104,7 +106,7 @@ ktor-server = [
     "ktor-server-core", "ktor-server-cio", "ktor-server-content-negotiation",
     "ktor-serialization-kotlinx-json", "ktor-server-resources", "ktor-server-openapi",
     "ktor-server-swagger", "ktor-server-call-id", "ktor-server-call-logging",
-    "ktor-server-auth", "ktor-server-auth-jwt", "ktor-server-metrics",
+    "ktor-server-auth", "ktor-server-metrics",
     "ktor-server-compression", "ktor-server-auto-head-response", "ktor-server-cors",
     "ktor-server-hsts", "ktor-server-default-headers", "ktor-server-status-pages",
     "ktor-server-di"
