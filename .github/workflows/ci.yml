@@ -52,7 +52,7 @@ jobs:
           exit-code: '1'
           format: 'table'
           skip-dirs: '.git,kbeatz-ui/node_modules'
-          trivy-version: 'v0.71.0'
+          version: 'v0.71.0'
         # Scans gradle.lockfile in each module for JVM CVEs, and
         # kbeatz-ui/package-lock.json for npm CVEs.
         # Lockfiles are committed and must be kept up to date: run
