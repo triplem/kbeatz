@@ -3,6 +3,7 @@ package org.javafreedom.kbeatz.catalog.plugins
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.plugins.callid.callId
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import org.javafreedom.kbeatz.catalog.api.models.ErrorResponse
@@ -14,7 +15,7 @@ private val logger = KotlinLogging.logger {}
 fun Application.configureStatusPages() {
     install(StatusPages) {
         exception<ResourceNotFoundException> { call, _ ->
-            val traceId = call.attributes.getOrNull(TraceIdKey)
+            val traceId = call.callId
             logger.debug { "Resource not found traceId=$traceId" }
             call.respond(
                 HttpStatusCode.NotFound,
@@ -22,7 +23,7 @@ fun Application.configureStatusPages() {
             )
         }
         exception<ConflictException> { call, ex ->
-            val traceId = call.attributes.getOrNull(TraceIdKey)
+            val traceId = call.callId
             logger.warn { "Write conflict traceId=$traceId message=${ex.message}" }
             call.respond(
                 HttpStatusCode.Conflict,
@@ -30,7 +31,7 @@ fun Application.configureStatusPages() {
             )
         }
         exception<Throwable> { call, ex ->
-            val traceId = call.attributes.getOrNull(TraceIdKey)
+            val traceId = call.callId
             logger.error(ex) { "Unhandled exception traceId=$traceId" }
             call.respond(
                 HttpStatusCode.InternalServerError,

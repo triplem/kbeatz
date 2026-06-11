@@ -1,13 +1,36 @@
 package org.javafreedom.kbeatz.catalog
 
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.server.testing.testApplication
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
+import org.slf4j.LoggerFactory
 
 class TraceIdTest {
+
+    private val accessLogger = LoggerFactory.getLogger("org.javafreedom.kbeatz.catalog.access") as Logger
+    private val appender = ListAppender<ILoggingEvent>()
+
+    @BeforeTest
+    fun attachAppender() {
+        appender.start()
+        accessLogger.addAppender(appender)
+    }
+
+    @AfterTest
+    fun detachAppender() {
+        accessLogger.detachAppender(appender)
+        appender.stop()
+    }
+
     @Test
     fun `response echoes X-Trace-Id from request`() = testApplication {
         application { module() }
@@ -29,5 +52,36 @@ class TraceIdTest {
         ) {
             "Expected UUID format but got: $traceId"
         }
+    }
+
+    @Test
+    fun `access log emits one structured INFO line with correlation fields for a 200 response`() = testApplication {
+        application { module() }
+
+        client.get("/healthz") { header("X-Trace-Id", "trace-access-200") }
+
+        val event = appender.list.firstOrNull { it.message.startsWith("http_request") }
+        assertNotNull(event, "Expected an http_request access log line to be emitted")
+        val message = event.message
+        assertTrue(message.contains("traceId=trace-access-200"), "Missing traceId in: $message")
+        assertTrue(message.contains("method=GET"), "Missing method in: $message")
+        assertTrue(message.contains("path=/healthz"), "Missing path in: $message")
+        assertTrue(message.contains("status=200"), "Missing status in: $message")
+        assertTrue(message.contains("durationMs="), "Missing durationMs in: $message")
+        assertEquals("INFO", event.level.toString(), "Expected INFO level for a 200 response")
+    }
+
+    @Test
+    fun `access log emits one WARN line for a 4xx response`() = testApplication {
+        application { module() }
+
+        client.get("/api/v1/albums/not-a-uuid") { header("X-Trace-Id", "trace-access-400") }
+
+        val event = appender.list.firstOrNull {
+            it.message.startsWith("http_request") && it.message.contains("status=400")
+        }
+        assertNotNull(event, "Expected an http_request access log line for the 4xx response")
+        assertEquals("WARN", event.level.toString(), "Expected WARN level for a 4xx response")
+        assertTrue(event.message.contains("traceId=trace-access-400"), "Missing traceId in: ${event.message}")
     }
 }
