@@ -19,7 +19,8 @@ dependencies {
     "implementation"(libs.hikaricp)
     "implementation"(libs.h2)
     "implementation"(libs.liquibase.core)
-    // MDC propagation across coroutine suspension boundaries (issue #170)
+    // Required at runtime: Ktor CallLogging's callIdMdc uses kotlinx-coroutines-slf4j
+    // internally to propagate MDC across coroutine suspension boundaries (see issue #170).
     "implementation"("org.jetbrains.kotlinx:kotlinx-coroutines-slf4j:1.10.2")
 }
 
