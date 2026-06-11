@@ -14,8 +14,9 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.response.respond
 import org.javafreedom.kbeatz.catalog.plugins.configureLogging
-import org.javafreedom.kbeatz.catalog.plugins.configureStatusPages
 import org.slf4j.LoggerFactory
 
 class TraceIdTest {
@@ -93,9 +94,9 @@ class TraceIdTest {
     fun `access log emits one ERROR line for a 5xx response`() = testApplication {
         application {
             configureLogging()
-            configureStatusPages()
             routing {
-                get("/test/boom") { throw RuntimeException("simulated unhandled error") }
+                // respond directly to avoid needing serialization in this focused test
+                get("/test/boom") { call.respond(HttpStatusCode.InternalServerError) }
             }
         }
 
