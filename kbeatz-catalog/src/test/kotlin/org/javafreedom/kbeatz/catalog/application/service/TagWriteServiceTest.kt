@@ -44,24 +44,7 @@ class TagWriteServiceTest {
     private val albumId = Uuid.random()
     private val trackId = Uuid.random()
 
-    private fun buildAlbum(dir: Path = albumDir) = Album(
-        id = albumId,
-        albumArtist = "Miles Davis",
-        album = "Kind of Blue",
-        date = "1959",
-        genre = "Jazz",
-        label = null,
-        catalogNumber = null,
-        composer = null,
-        conductor = null,
-        ensemble = null,
-        discogsId = null,
-        directoryPath = dir.toString(),
-        extraTags = null,
-        images = null,
-    )
-
-    private fun buildAlbumWithId(id: Uuid, dir: Path = albumDir) = Album(
+    private fun buildAlbum(id: Uuid = albumId, dir: Path = albumDir) = Album(
         id = id,
         albumArtist = "Miles Davis",
         album = "Kind of Blue",
@@ -381,8 +364,8 @@ class TagWriteServiceTest {
         val firstAlbumId = Uuid.random()
         val secondAlbumId = Uuid.random()
 
-        coEvery { albumRepository.findById(secondAlbumId) } returns buildAlbumWithId(secondAlbumId)
-        coEvery { albumRepository.findById(firstAlbumId) } returns buildAlbumWithId(firstAlbumId)
+        coEvery { albumRepository.findById(secondAlbumId) } returns buildAlbum(id = secondAlbumId)
+        coEvery { albumRepository.findById(firstAlbumId) } returns buildAlbum(id = firstAlbumId)
         coEvery { albumRepository.save(any()) } answers { firstArg() }
 
         // Simulate the first writer being inside its critical section, holding the lock file.
@@ -485,11 +468,9 @@ class TagWriteServiceTest {
             it[16] = 0xAC.toByte(); it[17] = 0x44.toByte()
             // Bytes 18-33: MD5 signature (16 bytes, all zero = silence)
         }
-        val headerByte = (0x80 or 0).toByte() // last=true, type=StreamInfo=0
         val len0 = ((34 shr 16) and 0xFF).toByte()
         val len1 = ((34 shr 8) and 0xFF).toByte()
         val len2 = (34 and 0xFF).toByte()
-        val blockHeader = byteArrayOf(headerByte, len0, len1, len2)
 
         // VorbisComment block (type=4), minimal: vendor string + 0 comments
         val vendorBytes = "kbeatz".toByteArray(Charsets.UTF_8)
