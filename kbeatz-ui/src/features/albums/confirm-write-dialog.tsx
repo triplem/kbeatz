@@ -27,6 +27,8 @@ interface ConfirmWriteDialogProps {
  * - Focus returns to the triggering element when it closes
  * - Escape key dismisses as Cancel
  * - Tab focus is trapped inside the dialog while it is open
+ * - The backdrop carries role="presentation" so it is not an unlabelled
+ *   interactive element; click-to-dismiss is a mouse-only convenience
  * - document.body overflow is set to hidden while open to prevent background scroll
  */
 export function ConfirmWriteDialog({
@@ -97,7 +99,12 @@ export function ConfirmWriteDialog({
   const fileLabel = t('confirmDialog.fileCount', { count: trackCount })
 
   return (
+    // role="presentation" marks the backdrop as a non-interactive layout wrapper
+    // so assistive tech does not expose it as an unlabelled interactive element.
+    // The onClick remains a mouse convenience for sighted users; keyboard users
+    // dismiss via the Escape handler on the dialog itself (WCAG 4.1.2).
     <div
+      role="presentation"
       className="confirm-dialog-overlay"
       data-testid="confirm-dialog-overlay"
       onClick={onCancel}

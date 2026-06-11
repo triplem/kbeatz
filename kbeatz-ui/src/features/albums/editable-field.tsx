@@ -7,6 +7,22 @@ import { CancelledByUserError } from './cancelled-by-user-error'
 // Defined as a module constant to avoid i18next lint warnings on JSX string literals
 const EDIT_ICON = '✎'
 
+// Visually-hidden style for the edit input's <label>. The project ships no
+// stylesheet (no .sr-only utility class exists), so the standard clip-rect
+// pattern is applied inline. This keeps the label in the accessibility tree
+// and clickable to focus the input, while removing it from the visual layout.
+const VISUALLY_HIDDEN: React.CSSProperties = {
+  position: 'absolute',
+  width: '1px',
+  height: '1px',
+  padding: 0,
+  margin: '-1px',
+  overflow: 'hidden',
+  clip: 'rect(0, 0, 0, 0)',
+  whiteSpace: 'nowrap',
+  border: 0,
+}
+
 /**
  * Classify a tag-write error into a user-friendly message.
  *
@@ -53,7 +69,8 @@ interface EditableFieldProps {
  *
  * Accessibility (WCAG AA):
  * - Display button has aria-label describing both the field name and current value.
- * - Input has aria-label; optionally aria-describedby for scope notice.
+ * - Input has a programmatically associated, visually-hidden <label htmlFor>;
+ *   optionally aria-describedby for scope notice.
  * - Escape key cancels edit and returns focus to the display button.
  * - After save completes (or is cancelled), focus returns to the display button.
  * - Pencil icon is aria-hidden (the aria-label already conveys edit affordance).
@@ -169,26 +186,36 @@ export function EditableField({
 
   const prefix = testIdPrefix ? `${testIdPrefix}-` : ''
   const errorId = error !== null ? `${prefix}error-${fieldName.toLowerCase()}` : undefined
+  const inputId = `${prefix}input-${fieldName.toLowerCase()}`
 
   return (
     <div className="editable-field" data-testid={`${prefix}field-${fieldName.toLowerCase()}`}>
       <dt className="editable-field__label">{label}</dt>
       <dd className="editable-field__value">
         {editing ? (
-          <input
-            ref={inputRef}
-            type="text"
-            value={editValue}
-            onChange={(e) => { setEditValue(e.target.value) }}
-            onKeyDown={handleKeyDown}
-            onBlur={handleBlur}
-            disabled={saving}
-            aria-label={t('editableField.editLabel', { label })}
-            aria-describedby={scopeDescribedBy}
-            aria-busy={saving}
-            data-testid={`${prefix}input-${fieldName.toLowerCase()}`}
-            className="editable-field__input"
-          />
+          <>
+            {/* Programmatically associated label. Visually hidden because the
+                surrounding <dt> already shows the field name; the label exists
+                so screen readers announce the input and clicking it focuses the
+                field (WCAG 1.3.1 / 3.3.2). */}
+            <label htmlFor={inputId} style={VISUALLY_HIDDEN}>
+              {t('editableField.editLabel', { label })}
+            </label>
+            <input
+              ref={inputRef}
+              id={inputId}
+              type="text"
+              value={editValue}
+              onChange={(e) => { setEditValue(e.target.value) }}
+              onKeyDown={handleKeyDown}
+              onBlur={handleBlur}
+              disabled={saving}
+              aria-describedby={scopeDescribedBy}
+              aria-busy={saving}
+              data-testid={inputId}
+              className="editable-field__input"
+            />
+          </>
         ) : (
           <button
             ref={displayButtonRef}

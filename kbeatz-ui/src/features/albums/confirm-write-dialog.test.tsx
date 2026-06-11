@@ -114,6 +114,14 @@ describe('ConfirmWriteDialog', () => {
     expect(warningEl?.textContent).toMatch(/This cannot be undone/)
   })
 
+  it('backdrop overlay carries role="presentation" (#485 - WCAG AA)', () => {
+    renderDialog()
+    const overlay = screen.getByTestId('confirm-dialog-overlay')
+    // The backdrop must not be exposed as an unlabelled interactive element;
+    // role="presentation" removes it from the accessibility tree.
+    expect(overlay).toHaveAttribute('role', 'presentation')
+  })
+
   // ──────────────────────────────────────────────
   // Interactions
   // ──────────────────────────────────────────────
