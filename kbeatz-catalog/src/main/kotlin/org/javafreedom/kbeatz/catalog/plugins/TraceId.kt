@@ -89,7 +89,7 @@ val AccessLogPlugin = createApplicationPlugin("AccessLogPlugin") {
 }
 
 private fun logLevelFor(status: Int, durationMs: Long): Level = when {
-    status >= SERVER_ERROR_STATUS -> Level.ERROR
+    status >= SERVER_ERROR_STATUS || status < 0 -> Level.ERROR
     status >= CLIENT_ERROR_STATUS || durationMs > SLOW_REQUEST_THRESHOLD_MS -> Level.WARN
     else -> Level.INFO
 }

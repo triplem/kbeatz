@@ -5,6 +5,8 @@ import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.server.routing.get
+import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -12,6 +14,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import org.javafreedom.kbeatz.catalog.plugins.configureLogging
+import org.javafreedom.kbeatz.catalog.plugins.configureStatusPages
 import org.slf4j.LoggerFactory
 
 class TraceIdTest {
@@ -83,5 +87,25 @@ class TraceIdTest {
         assertNotNull(event, "Expected an http_request access log line for the 4xx response")
         assertEquals("WARN", event.level.toString(), "Expected WARN level for a 4xx response")
         assertTrue(event.message.contains("traceId=trace-access-400"), "Missing traceId in: ${event.message}")
+    }
+
+    @Test
+    fun `access log emits one ERROR line for a 5xx response`() = testApplication {
+        application {
+            configureLogging()
+            configureStatusPages()
+            routing {
+                get("/test/boom") { throw RuntimeException("simulated unhandled error") }
+            }
+        }
+
+        client.get("/test/boom") { header("X-Trace-Id", "trace-access-500") }
+
+        val event = appender.list.firstOrNull {
+            it.message.startsWith("http_request") && it.message.contains("status=500")
+        }
+        assertNotNull(event, "Expected an http_request access log line for the 5xx response")
+        assertEquals("ERROR", event.level.toString(), "Expected ERROR level for a 5xx response")
+        assertTrue(event.message.contains("traceId=trace-access-500"), "Missing traceId in: ${event.message}")
     }
 }
