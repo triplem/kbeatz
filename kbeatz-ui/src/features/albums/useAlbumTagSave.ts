@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AlbumsService, type AlbumDetail } from '../../api/generated'
 
 interface SaveTagVariables {
@@ -7,7 +7,7 @@ interface SaveTagVariables {
 }
 
 interface UseAlbumTagSaveResult {
-  readonly save: UseMutationResult<AlbumDetail, Error, SaveTagVariables>['mutateAsync']
+  readonly save: (vars: SaveTagVariables) => Promise<AlbumDetail>
   readonly isPending: boolean
   readonly error: Error | null
 }

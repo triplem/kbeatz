@@ -1,7 +1,7 @@
 import { renderHook, act } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
 import { createElement } from 'react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 import { useAlbumFilters } from './useAlbumFilters'
 import { EMPTY_FILTERS, type AlbumFilters } from './album-filters'
 
@@ -9,6 +9,13 @@ function makeWrapper(initialSearch = '') {
   const initialEntry = initialSearch ? `/?${initialSearch}` : '/'
   return ({ children }: { children: React.ReactNode }) =>
     createElement(MemoryRouter, { initialEntries: [initialEntry] }, children)
+}
+
+/** Combined hook that exposes both filter state and the raw URL search string. */
+function useAlbumFiltersWithLocation() {
+  const hook = useAlbumFilters()
+  const { search } = useLocation()
+  return { ...hook, locationSearch: search }
 }
 
 describe('useAlbumFilters', () => {
@@ -46,8 +53,8 @@ describe('useAlbumFilters', () => {
     expect(result.current.filters.query).toBe('miles davis')
   })
 
-  it('setFilters updates the URL search params', () => {
-    const { result } = renderHook(() => useAlbumFilters(), { wrapper: makeWrapper() })
+  it('setFilters writes genre and query into the URL search string', () => {
+    const { result } = renderHook(() => useAlbumFiltersWithLocation(), { wrapper: makeWrapper() })
 
     const newFilters: AlbumFilters = {
       ...EMPTY_FILTERS,
@@ -59,8 +66,12 @@ describe('useAlbumFilters', () => {
       result.current.setFilters(newFilters)
     })
 
+    // Derived filter state reflects the new values
     expect(result.current.filters.genres).toEqual(['Jazz'])
     expect(result.current.filters.query).toBe('miles')
+    // The actual URL search string was updated - not just local state
+    expect(result.current.locationSearch).toContain('genre=Jazz')
+    expect(result.current.locationSearch).toContain('q=miles')
   })
 
   it('clearFilters resets all filters to empty', () => {
