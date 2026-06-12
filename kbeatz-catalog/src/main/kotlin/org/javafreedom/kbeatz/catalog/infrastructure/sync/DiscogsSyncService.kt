@@ -75,7 +75,7 @@ class DiscogsSyncService(
 
         val release = metadataSource.fetchRelease(discogsId)
         if (release == null) {
-            log.warn { "Discogs release $discogsId not found - skipping sync for album $albumId" }
+            log.warn { "discogs_release_not_found albumId=$albumId discogsId=$discogsId" }
             return SyncResult(
                 fieldsWritten = emptyList(),
                 warnings = listOf("Discogs release $discogsId not found"),
@@ -93,7 +93,7 @@ class DiscogsSyncService(
         writeTagsToFlacFiles(flacFiles, tags)
 
         val warnings = mutableListOf<String>()
-        downloadCoverArtIfRequested(discogsId, albumDir, downloadImages, warnings)
+        downloadCoverArtIfRequested(albumId, discogsId, albumDir, downloadImages, warnings)
 
         deleteLockFile(albumDir)
 
@@ -109,6 +109,7 @@ class DiscogsSyncService(
     }
 
     private suspend fun downloadCoverArtIfRequested(
+        albumId: Uuid,
         discogsId: String,
         albumDir: Path,
         downloadImages: Boolean,
@@ -118,7 +119,7 @@ class DiscogsSyncService(
         try {
             service.downloadAndWrite(discogsId, albumDir, downloadImages)
         } catch (ex: ImageQuotaExhaustedException) {
-            log.warn { "Image quota exhausted for $discogsId - sync continues with metadata only" }
+            log.warn { "discogs_image_quota_exhausted albumId=$albumId discogsId=$discogsId" }
             warnings += "Image quota exhausted. Resets at ${ex.resetAt}"
         }
     }
