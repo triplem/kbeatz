@@ -84,7 +84,7 @@
 .retryButton {
   min-height: var(--min-touch-target);
   padding: var(--space-sm) var(--space-md);
-  background: var(--accent);
+  background: var(--accent-button);
   color: #fff;
   border: none;
   border-radius: var(--radius-sm);

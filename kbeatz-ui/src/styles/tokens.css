@@ -4,7 +4,7 @@
 :root {
   /* Brand palette */
   --color-violet: #7c5cff;
-  --color-pink: #ff5a8f;
+  /* --color-pink: #ff5a8f -- reserved for future genre badge use */
   --color-teal: #2ec4b6;
   --color-amber: #ffb627;
 
@@ -17,11 +17,15 @@
   --border-color: #e0e0e0;
   --accent: var(--color-violet);
   --accent-hover: #6a4de8;
+  /* --accent-button: darker violet for white text on filled buttons (WCAG AA 5.90:1) */
+  --accent-button: #6644e8;
 
   /* Status colours */
   --color-success: #2ec4b6;
   --color-error: #e53e3e;
   --color-warning: #ffb627;
+  /* --color-error-button: dark enough for white text on error-coloured buttons (WCAG AA 5.47:1) */
+  --color-error-button: #c53030;
 
   /* Spacing scale */
   --space-xs: 4px;
@@ -74,10 +78,12 @@
     --border-color: #3a3356;
     --accent: var(--color-violet);
     --accent-hover: #9d84ff;
+    --accent-button: #6644e8;
 
     --color-success: #2ec4b6;
     --color-error: #fc8181;
     --color-warning: #ffb627;
+    --color-error-button: #b91c1c;
 
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);

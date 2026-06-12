@@ -70,7 +70,7 @@
 .confirmButton {
   min-height: var(--min-touch-target);
   padding: var(--space-sm) var(--space-lg);
-  background: var(--color-error);
+  background: var(--color-error-button);
   border: none;
   border-radius: var(--radius-sm);
   color: #fff;

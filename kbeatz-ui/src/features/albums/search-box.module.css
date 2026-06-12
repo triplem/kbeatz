@@ -22,7 +22,7 @@
   transition: border-color var(--transition-base);
 }
 
-.input:focus {
+.input:focus-visible {
   outline: none;
   border-color: var(--accent);
 }
