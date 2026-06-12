@@ -143,6 +143,7 @@ plugins/                    # Ktor plugin config (StatusPages, Logging)
   | `catalog.discogs.token` | `DISCOGS_TOKEN` | (optional) | Discogs API token; sync is unavailable without it |
   | `catalog.dbUser` | `CATALOG_DB_USER` | `sa` | Database username |
   | `catalog.dbPassword` | `CATALOG_DB_PASSWORD` | (empty) | Database password |
+  | `catalog.repair.timeoutSeconds` | `CATALOG_REPAIR_TIMEOUT_SECONDS` | `60` | Max seconds the startup lock-file repair phase may run before startup continues |
 
 ### kbeatz-cli
 
