@@ -23,9 +23,9 @@ export function ScanProgress() {
     queryKey: ['scan-status'],
     queryFn: () => LibraryService.getLibraryScanStatus(),
     refetchInterval: (query) => {
-      const data = query.state.data
-      if (!data || data.state === 'RUNNING') return POLL_INTERVAL_MS
-      return false
+      // Only poll while RUNNING; stop for any terminal state or before first response
+      const state = query.state.data?.state
+      return state === 'RUNNING' ? POLL_INTERVAL_MS : false
     },
   })
 

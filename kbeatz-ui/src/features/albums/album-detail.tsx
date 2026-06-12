@@ -188,7 +188,7 @@ export function AlbumDetail() {
   }, [albumId, queryClient])
 
   if (isPending) return <p>{t('albumDetail.loading')}</p>
-  if (isError) return <p role="alert">{t('albumDetail.errorPrefix')}{error instanceof Error ? error.message : t('common.error')}</p>
+  if (isError) return <p role="alert">{t('albumDetail.errorPrefix')}{' '}{error instanceof Error ? error.message : t('common.error')}</p>
   if (!album) return <p role="alert">{t('albumDetail.notFound')}</p>
 
   return (
