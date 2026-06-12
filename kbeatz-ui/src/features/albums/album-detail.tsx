@@ -211,6 +211,7 @@ export function AlbumDetail() {
           src={`/api/v1/albums/${album.id}/cover`}
           alt={t('albumDetail.coverAlt', { album: album.album })}
           className="album-cover"
+          loading="lazy"
           data-testid="album-cover"
         />
       )}

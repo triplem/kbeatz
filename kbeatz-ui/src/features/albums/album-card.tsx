@@ -77,6 +77,7 @@ export function AlbumCard({ album }: AlbumCardProps) {
             alt={t('albumCard.coverAlt', { album: albumTitle })}
             width={200}
             height={200}
+            loading="lazy"
             onError={() => setCoverError(true)}
             className="album-card__cover-img"
           />

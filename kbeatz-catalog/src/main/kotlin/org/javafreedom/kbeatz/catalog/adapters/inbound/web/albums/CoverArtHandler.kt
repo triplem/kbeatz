@@ -4,6 +4,8 @@ import io.ktor.http.*
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import kotlin.uuid.Uuid
 import org.javafreedom.kbeatz.catalog.api.models.ErrorResponse
 import org.javafreedom.kbeatz.catalog.application.service.CoverArtResult
@@ -55,7 +57,12 @@ private suspend fun handleCoverArt(
     val outcome = resolveCoverArt(coverArtService, albumId, albumIdRaw)
     when (outcome) {
         is CoverArtOutcome.Found -> {
-            call.response.headers.append(HttpHeaders.CacheControl, "max-age=86400")
+            call.response.headers.append(HttpHeaders.CacheControl, "public, max-age=86400")
+            outcome.result.lastModified?.let { lastModified ->
+                val httpDate = DateTimeFormatter.RFC_1123_DATE_TIME
+                    .format(lastModified.atOffset(ZoneOffset.UTC))
+                call.response.headers.append(HttpHeaders.LastModified, httpDate)
+            }
             call.respondBytes(
                 bytes = outcome.result.bytes,
                 contentType = ContentType.parse(outcome.result.mimeType),
