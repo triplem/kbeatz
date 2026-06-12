@@ -98,8 +98,10 @@ export function EditableField({
   const [editValue, setEditValue] = useState(value ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showHint, setShowHint] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const displayButtonRef = useRef<HTMLButtonElement>(null)
+  const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Keep editValue in sync when value prop changes externally (e.g. after parent refreshes)
   useEffect(() => {
@@ -112,15 +114,31 @@ export function EditableField({
     setEditing(true)
     setEditValue(value ?? '')
     setError(null)
+    setShowHint(false)
+    if (hintTimerRef.current !== null) {
+      clearTimeout(hintTimerRef.current)
+      hintTimerRef.current = null
+    }
   }, [value])
 
   const cancelEditing = useCallback(() => {
+    // Show hint when the user blurs away with a changed value (Tab / click-away).
+    // This tells them Enter is required to commit, since blur silently discards changes.
+    const hasUnsavedChange = editValue.trim() !== (value ?? '')
     setEditing(false)
     setEditValue(value ?? '')
     setError(null)
+    if (hasUnsavedChange) {
+      setShowHint(true)
+      if (hintTimerRef.current !== null) clearTimeout(hintTimerRef.current)
+      hintTimerRef.current = setTimeout(() => {
+        setShowHint(false)
+        hintTimerRef.current = null
+      }, 2000)
+    }
     // Return focus to the display button so keyboard users can continue navigating
     setTimeout(() => { displayButtonRef.current?.focus() }, 0)
-  }, [value])
+  }, [value, editValue])
 
   const commitEdit = useCallback(async () => {
     if (!editing || saving) return
@@ -174,9 +192,10 @@ export function EditableField({
 
   // Blur silently cancels the edit without opening the confirmation dialog.
   // Only Enter (explicit commit intent) should trigger the save/confirmation flow.
+  // Guard: when saving is true the confirm dialog just stole focus - do not cancel.
   const handleBlur = useCallback(() => {
-    cancelEditing()
-  }, [cancelEditing])
+    if (!saving) cancelEditing()
+  }, [cancelEditing, saving])
 
   // Focus input when entering edit mode
   useEffect(() => {
@@ -184,6 +203,13 @@ export function EditableField({
       inputRef.current?.focus()
     }
   }, [editing])
+
+  // Clean up the hint auto-dismiss timer on unmount
+  useEffect(() => {
+    return () => {
+      if (hintTimerRef.current !== null) clearTimeout(hintTimerRef.current)
+    }
+  }, [])
 
   const prefix = testIdPrefix ? `${testIdPrefix}-` : ''
   const errorId = error !== null ? `${prefix}error-${fieldName.toLowerCase()}` : undefined
@@ -245,6 +271,15 @@ export function EditableField({
             data-testid={`${prefix}error-${fieldName.toLowerCase()}`}
           >
             {error}
+          </p>
+        )}
+        {showHint && (
+          <p
+            className={styles.hint}
+            aria-live="polite"
+            data-testid={`${prefix}hint-${fieldName.toLowerCase()}`}
+          >
+            {t('editableField.hint')}
           </p>
         )}
       </dd>
