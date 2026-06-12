@@ -70,12 +70,12 @@
 /* Dark theme - primary experience */
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg-primary: #1c1828;
-    --bg-secondary: #252236;
-    --bg-overlay: rgba(0, 0, 0, 0.7);
-    --text-primary: #f0eeff;
-    --text-secondary: #a9a3c8;
-    --border-color: #3a3356;
+    --bg-primary: #111111;
+    --bg-secondary: #1c1c1c;
+    --bg-overlay: rgba(0, 0, 0, 0.75);
+    --text-primary: #f2f2f2;
+    --text-secondary: #8a8a8a;
+    --border-color: #2e2e2e;
     --accent: var(--color-violet);
     --accent-hover: #9d84ff;
     --accent-button: #6644e8;
