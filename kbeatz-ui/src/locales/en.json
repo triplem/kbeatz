@@ -105,6 +105,11 @@
     "albumArtist": "Album Artist",
     "composer": "Composer"
   },
+  "scanButton": {
+    "scan": "Scan library",
+    "scanning": "Scanning...",
+    "error": "Scan failed"
+  },
   "scanProgress": {
     "running": "Scanning: {{progress}} albums",
     "failed": "Scan failed: {{message}}",

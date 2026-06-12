@@ -9,6 +9,7 @@ import { SearchBox } from './features/albums/search-box'
 import { SortPreference } from './features/albums/sort-preference'
 import { useAlbumPage } from './features/albums/use-album-page'
 import { ScanProgress } from './features/library/scan-progress'
+import { ScanButton } from './features/library/scan-button'
 import { NotFoundPage } from './features/not-found/not-found-page'
 import { ErrorBoundary } from './lib/error-boundary'
 import { LanguageToggle } from './features/language/language-toggle'
@@ -74,6 +75,7 @@ function AlbumListPage() {
       <header className={styles.appHeader}>
         <h1>{t('app.title')}</h1>
         <SearchBox filters={filters} onFiltersChange={setFilters} />
+        <ScanButton />
         <LanguageToggle />
       </header>
       <main className={styles.appMain}>
