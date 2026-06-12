@@ -43,8 +43,9 @@ and have overlapping component impact.
 === Styling: CSS Modules with CSS custom property design tokens
 
 CSS Modules are used for all component-scoped styles. A single global token file
-(`src/styles/tokens.css`) defines CSS custom properties for the brand palette, spacing scale,
-and typography.
+(`src/styles/tokens.css`) defines CSS custom properties for the brand palette. Spacing scale
+and typography tokens will be specified during component implementation stories; they follow
+the same `src/styles/tokens.css` pattern.
 
 ==== Design tokens
 
@@ -83,9 +84,9 @@ reference tokens; tokens resolve to different values under each media query.
 ==== Vite integration
 
 CSS Modules are supported natively by Vite with no additional plugins or configuration.
-TypeScript typings for `.module.css` files are generated automatically when
-`vite-plugin-svgr` or equivalent plugin is present; otherwise `*.module.css` declarations
-are added to `vite-env.d.ts`.
+The `@vitejs/plugin-react` plugin (already present in `vite.config.ts`) handles TypeScript
+typings for `.module.css` files automatically. No separate `vite-plugin-svgr` or manual
+`vite-env.d.ts` declaration is required.
 
 === Server state: TanStack Query
 
