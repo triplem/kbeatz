@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="kbeatz icon">
+  <title>kbeatz icon</title>
+  <defs>
+    <radialGradient id="bg-gradient" cx="50%" cy="40%" r="80%">
+      <stop offset="0%" stop-color="#1c1828"/>
+      <stop offset="100%" stop-color="#0d0b12"/>
+    </radialGradient>
+    <radialGradient id="disc-base" cx="42%" cy="38%" r="75%">
+      <stop offset="0%" stop-color="#f4f6f9"/>
+      <stop offset="55%" stop-color="#c3c9d4"/>
+      <stop offset="100%" stop-color="#8d94a2"/>
+    </radialGradient>
+    <filter id="sheen" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4"/>
+    </filter>
+    <mask id="disc-hole">
+      <circle cx="158" cy="146" r="67" fill="#ffffff"/>
+      <circle cx="158" cy="146" r="10" fill="#000000"/>
+    </mask>
+  </defs>
+
+  <rect width="256" height="256" rx="56" fill="url(#bg-gradient)"/>
+
+  <ellipse cx="130" cy="216" rx="95" ry="8" fill="#000000" opacity="0.35"/>
+
+  <!-- CD case spines -->
+  <g>
+    <rect x="40" y="70" width="17" height="142" rx="3.5" fill="#2EC4B6"/>
+    <rect x="43" y="80" width="11" height="4"   rx="2"   fill="#ffffff" opacity="0.35"/>
+    <rect x="62" y="82" width="17" height="130" rx="3.5" fill="#FFB627"/>
+    <rect x="65" y="92" width="11" height="4"   rx="2"   fill="#ffffff" opacity="0.35"/>
+    <rect x="84" y="64" width="17" height="148" rx="3.5" fill="#FF5A5F"/>
+    <rect x="87" y="74" width="11" height="4"   rx="2"   fill="#ffffff" opacity="0.35"/>
+    <g transform="rotate(8 106 212)">
+      <rect x="106" y="72" width="17" height="140" rx="3.5" fill="#3D9BE9"/>
+      <rect x="109" y="82" width="11" height="4"   rx="2"   fill="#ffffff" opacity="0.35"/>
+    </g>
+  </g>
+
+  <!-- disc -->
+  <g mask="url(#disc-hole)">
+    <circle cx="158" cy="146" r="66" fill="url(#disc-base)"/>
+    <g filter="url(#sheen)">
+      <path d="M 158 146 L 96 123.4 A 66 66 0 0 1 125 88.8 Z" fill="#37d6e6" opacity="0.4"/>
+      <path d="M 158 146 L 220 168.6 A 66 66 0 0 1 180.6 208 Z" fill="#e64fc4" opacity="0.4"/>
+      <path d="M 158 146 L 191 88.8 A 66 66 0 0 1 215.2 113 Z" fill="#ffd84d" opacity="0.35"/>
+      <path d="M 158 146 L 100.8 179 A 66 66 0 0 0 135.4 208 Z" fill="#7C5CFF" opacity="0.3"/>
+    </g>
+    <circle cx="158" cy="146" r="57" fill="none" stroke="#5e6675" stroke-width="1.3" opacity="0.25"/>
+    <circle cx="158" cy="146" r="47" fill="none" stroke="#5e6675" stroke-width="1.3" opacity="0.25"/>
+    <circle cx="158" cy="146" r="37" fill="none" stroke="#5e6675" stroke-width="1.3" opacity="0.25"/>
+    <circle cx="158" cy="146" r="25" fill="#dfe3e9"/>
+    <circle cx="158" cy="146" r="25" fill="none" stroke="#b6bcc7" stroke-width="1.7"/>
+    <circle cx="158" cy="146" r="15" fill="#eef0f4"/>
+    <circle cx="158" cy="146" r="11.5" fill="none" stroke="#9aa1ad" stroke-width="1.7"/>
+    <circle cx="158" cy="146" r="66" fill="none" stroke="#5d6573" stroke-width="1.7" opacity="0.8"/>
+    <circle cx="158" cy="146" r="63.8" fill="none" stroke="#ffffff" stroke-width="0.9" opacity="0.3"/>
+  </g>
+</svg>
