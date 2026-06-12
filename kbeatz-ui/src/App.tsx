@@ -11,6 +11,7 @@ import { SortPreference } from './features/albums/sort-preference'
 import { ScanProgress } from './features/library/scan-progress'
 import { NotFoundPage } from './features/not-found/not-found-page'
 import { ErrorBoundary } from './lib/error-boundary'
+import { LanguageToggle } from './features/language/language-toggle'
 import {
   applyFiltersAndSort,
   deriveFilterOptions,
@@ -108,6 +109,7 @@ function AlbumListPage() {
       <header className="app-header">
         <h1>{t('app.title')}</h1>
         <SearchBox filters={filters} onFiltersChange={setFilters} />
+        <LanguageToggle />
       </header>
       <main className="app-main">
         <ScanProgress />
