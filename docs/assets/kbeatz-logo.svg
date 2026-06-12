@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+     viewBox="0 0 920 340" width="920" height="340" role="img" aria-label="kbeatz logo">
+  <title>kbeatz</title>
+  <defs>
+    <!-- Kotlin brand gradient, see https://kotlinlang.org/docs/kotlin-brand-assets.html -->
+    <linearGradient id="kotlin-gradient" x1="99.6%" y1="0.4%" x2="0.4%" y2="99.6%">
+      <stop offset="0%" stop-color="#E44857"/>
+      <stop offset="47%" stop-color="#C711E1"/>
+      <stop offset="100%" stop-color="#7F52FF"/>
+    </linearGradient>
+
+    <radialGradient id="bg-gradient" cx="50%" cy="42%" r="75%">
+      <stop offset="0%" stop-color="#2b1c22"/>
+      <stop offset="100%" stop-color="#140a0e"/>
+    </radialGradient>
+
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+
+    <!-- channel-letter skeletons, stroked with round caps to mimic lit sign letters -->
+    <g id="letter-b" fill="none" stroke="currentColor" stroke-width="30"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 20 12 L 20 168"/>
+      <path d="M 20 127 a 43 43 0 1 0 86 0 a 43 43 0 1 0 -86 0"/>
+    </g>
+    <g id="letter-e" fill="none" stroke="currentColor" stroke-width="30"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 100 125 A 45 45 0 1 0 89.5 153.9"/>
+      <path d="M 14 125 L 98 125"/>
+    </g>
+    <g id="letter-a" fill="none" stroke="currentColor" stroke-width="30"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 12 127 a 43 43 0 1 0 86 0 a 43 43 0 1 0 -86 0"/>
+      <path d="M 98 88 L 98 170"/>
+    </g>
+    <g id="letter-t" fill="none" stroke="currentColor" stroke-width="30"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 50 28 L 50 146 Q 50 170 76 170"/>
+      <path d="M 14 76 L 86 76"/>
+    </g>
+    <g id="letter-z" fill="none" stroke="currentColor" stroke-width="30"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 14 82 L 90 82 L 14 168 L 94 168"/>
+    </g>
+  </defs>
+
+  <rect width="920" height="340" fill="url(#bg-gradient)"/>
+
+  <!-- Kotlin K mark -->
+  <g transform="translate(40,75)">
+    <path d="M 0 0 H 160 L 80 80 L 160 160 H 0 Z" fill="url(#kotlin-gradient)"/>
+  </g>
+
+  <!-- b : orange -->
+  <g transform="translate(235,42) scale(1.18)">
+    <use xlink:href="#letter-b" color="#F7941D" filter="url(#glow)" opacity="0.8"/>
+    <use xlink:href="#letter-b" color="#F7941D"/>
+  </g>
+
+  <!-- e : blue, leaning like in the sign photo -->
+  <g transform="translate(395,128) scale(0.8) rotate(-14 55 125)">
+    <use xlink:href="#letter-e" color="#2D9CFF" filter="url(#glow)" opacity="0.8"/>
+    <use xlink:href="#letter-e" color="#2D9CFF"/>
+  </g>
+
+  <!-- a : red -->
+  <g transform="translate(485,88)">
+    <use xlink:href="#letter-a" color="#E8112D" filter="url(#glow)" opacity="0.8"/>
+    <use xlink:href="#letter-a" color="#E8112D"/>
+  </g>
+
+  <!-- t : bright orange -->
+  <g transform="translate(610,30) scale(1.25)">
+    <use xlink:href="#letter-t" color="#FF8A00" filter="url(#glow)" opacity="0.8"/>
+    <use xlink:href="#letter-t" color="#FF8A00"/>
+  </g>
+
+  <!-- z : warm white -->
+  <g transform="translate(745,75) scale(1.08)">
+    <use xlink:href="#letter-z" color="#F2F0E9" filter="url(#glow)" opacity="0.7"/>
+    <use xlink:href="#letter-z" color="#F2F0E9"/>
+  </g>
+</svg>

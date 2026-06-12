@@ -1,5 +1,9 @@
 # kbeatz
 
+<p align="center">
+  <img src="docs/assets/kbeatz-logo.svg" alt="kbeatz logo" width="600"/>
+</p>
+
 [![CI](https://github.com/triplem/kbeatz/actions/workflows/ci.yml/badge.svg)](https://github.com/triplem/kbeatz/actions/workflows/ci.yml)
 [![Documentation](https://img.shields.io/badge/docs-github%20pages-blue)](https://triplem.github.io/kbeatz/)
 
