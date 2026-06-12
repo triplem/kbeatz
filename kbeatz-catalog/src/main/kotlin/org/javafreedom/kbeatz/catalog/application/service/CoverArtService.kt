@@ -3,7 +3,9 @@ package org.javafreedom.kbeatz.catalog.application.service
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.attribute.BasicFileAttributes
 import kotlin.uuid.Uuid
+import kotlin.time.Instant
 import kotlinx.io.files.Path as KtPath
 import org.javafreedom.kbeatz.catalog.domain.model.ImageDescriptor
 import org.javafreedom.kbeatz.catalog.domain.model.ImageSource
@@ -37,7 +39,7 @@ class CoverArtService(
         if (!Files.isDirectory(libraryRoot)) {
             log.warn {
                 "CATALOG_LIBRARY_ROOT does not exist or is not a directory: $libraryRoot" +
-                    " — cover art will return 404 until the directory is created"
+                    " - cover art will return 404 until the directory is created"
             }
         }
     }
@@ -63,12 +65,21 @@ class CoverArtService(
         val folderJpg = albumDir.resolve("folder.jpg")
         return if (Files.isRegularFile(folderJpg)) {
             log.debug { "Serving folder.jpg for album $albumId" }
-            CoverArtResult(bytes = Files.readAllBytes(folderJpg), mimeType = "image/jpeg")
+            val lastModified = readLastModified(folderJpg)
+            CoverArtResult(bytes = Files.readAllBytes(folderJpg), mimeType = "image/jpeg", lastModified = lastModified)
         } else {
             log.debug { "No cover art found for album $albumId" }
             null
         }
     }
+
+    private fun readLastModified(path: Path): Instant? =
+        try {
+            val mtime = Files.readAttributes(path, BasicFileAttributes::class.java).lastModifiedTime()
+            Instant.fromEpochMilliseconds(mtime.toMillis())
+        } catch (_: Exception) {
+            null
+        }
 
     private fun resolveEmbeddedPicture(
         images: List<ImageDescriptor>?,
@@ -98,9 +109,11 @@ class CoverArtService(
                 .firstOrNull { it.pictureType == FlacMetadataBlock.Picture.TYPE_FRONT_COVER }
                 ?.let { pic ->
                     log.debug { "Serving embedded PICTURE from: $trackPath" }
+                    val lastModified = readLastModified(trackPath)
                     CoverArtResult(
                         bytes = pic.data.toByteArray(),
                         mimeType = pic.mimeType.ifBlank { fallbackMime },
+                        lastModified = lastModified,
                     )
                 }
         } catch (ex: Exception) {
@@ -117,16 +130,22 @@ class CoverArtService(
     }
 }
 
-/** Resolved cover art bytes with MIME type. */
+/** Resolved cover art bytes with MIME type and optional last-modified timestamp. */
 data class CoverArtResult(
     val bytes: ByteArray,
     val mimeType: String,
+    /** Last-modified time of the source file, used for conditional HTTP caching. */
+    val lastModified: Instant? = null,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is CoverArtResult) return false
-        return mimeType == other.mimeType && bytes.contentEquals(other.bytes)
+        return mimeType == other.mimeType && lastModified == other.lastModified && bytes.contentEquals(other.bytes)
     }
 
-    override fun hashCode(): Int = 31 * mimeType.hashCode() + bytes.contentHashCode()
+    override fun hashCode(): Int {
+        val mimeHash = mimeType.hashCode()
+        val lastModHash = lastModified?.hashCode() ?: 0
+        return 31 * (31 * mimeHash + lastModHash) + bytes.contentHashCode()
+    }
 }

@@ -83,6 +83,12 @@ describe('AlbumCard', () => {
     )
   })
 
+  it('cover img has loading="lazy" for deferred loading', () => {
+    render(<MemoryRouter><AlbumCard album={makeAlbum({ hasCoverArt: true })} /></MemoryRouter>)
+    const img = screen.getByRole('img', { name: 'Cover art for Kind of Blue' })
+    expect(img).toHaveAttribute('loading', 'lazy')
+  })
+
   it('shows placeholder when cover image fails to load', async () => {
     render(<MemoryRouter><AlbumCard album={makeAlbum({ hasCoverArt: true })} /></MemoryRouter>)
     const img = screen.getByRole('img', { name: 'Cover art for Kind of Blue' })

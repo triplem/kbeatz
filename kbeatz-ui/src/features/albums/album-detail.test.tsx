@@ -119,6 +119,26 @@ describe('AlbumDetail', () => {
     expect(screen.getByTestId('album-value-genre')).toHaveTextContent('Jazz')
   })
 
+  it('renders cover image with loading="lazy" when hasCoverArt is true', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ hasCoverArt: true }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('album-cover')).toBeInTheDocument()
+    })
+    const img = screen.getByTestId('album-cover')
+    expect(img).toHaveAttribute('loading', 'lazy')
+    expect(img).toHaveAttribute('src', '/api/v1/albums/album-id-1/cover')
+  })
+
+  it('does not render cover image when hasCoverArt is false', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ hasCoverArt: false }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-album')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('album-cover')).not.toBeInTheDocument()
+  })
+
   it('renders error state when fetch fails', async () => {
     mockAlbumsService.getAlbum.mockRejectedValue(new Error('Network error'))
     renderDetail()
