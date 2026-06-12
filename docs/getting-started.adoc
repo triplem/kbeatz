@@ -216,6 +216,29 @@ curl http://localhost:8080/api/v1/health
 
 Then open http://localhost:3005 in a browser to reach the UI.
 
+=== Accessing from a LAN device
+
+The UI container runs nginx which proxies all `/api/` requests to the catalog service by
+internal Docker network name. The frontend JavaScript always calls `/api/v1/...` (a relative
+path), so the browser sends API requests to whichever host served the page.
+
+To use kbeatz from a phone, tablet, or other computer on the same network:
+
+. Find the host machine IP address (e.g. `192.168.1.10`):
++
+[source,bash]
+----
+ip addr show | grep 'inet ' | grep -v '127.0.0.1'
+----
+
+. Open `http://<host-ip>:3005` in any browser on the LAN.
+
+No rebuild or configuration change is needed. The nginx proxy inside the UI container
+forwards API calls to the catalog service; they never leave the container network.
+
+NOTE: The catalog API (`http://<host-ip>:8080`) does not need to be reachable from LAN
+devices directly; only the UI port `3005` needs to be open on the host firewall.
+
 === 4. Stop the stack
 
 [source,bash]
