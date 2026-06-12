@@ -10,6 +10,7 @@ import kotlin.uuid.Uuid
 import kotlinx.coroutines.test.runTest
 import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.model.Track
+import org.javafreedom.kbeatz.catalog.domain.repository.AlbumFilter
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 import org.javafreedom.kbeatz.catalog.domain.repository.TrackRepository
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
@@ -62,18 +63,18 @@ class AlbumServiceTest {
     @Test
     fun `listAlbums returns albums and total count from a single transaction`() = runTest {
         val albums = listOf(album(), album())
-        coEvery { repository.findAllWithCount(0, 20) } returns (albums to 2L)
+        coEvery { repository.findAllWithCount(0, 20, AlbumFilter()) } returns (albums to 2L)
 
         val (result, total) = service.listAlbums(0, 20)
 
         assertEquals(albums, result)
         assertEquals(2L, total)
-        coVerify(exactly = 1) { repository.findAllWithCount(0, 20) }
+        coVerify(exactly = 1) { repository.findAllWithCount(0, 20, AlbumFilter()) }
     }
 
     @Test
     fun `listAlbums returns empty list when repository is empty`() = runTest {
-        coEvery { repository.findAllWithCount(0, 20) } returns (emptyList<Album>() to 0L)
+        coEvery { repository.findAllWithCount(0, 20, AlbumFilter()) } returns (emptyList<Album>() to 0L)
 
         val (result, total) = service.listAlbums(0, 20)
 
@@ -84,14 +85,27 @@ class AlbumServiceTest {
     @Test
     fun `listAlbums delegates to findAllWithCount for a single atomic result`() = runTest {
         val albums = listOf(album())
-        coEvery { repository.findAllWithCount(1, 10) } returns (albums to 5L)
+        coEvery { repository.findAllWithCount(1, 10, AlbumFilter()) } returns (albums to 5L)
 
         val (result, total) = service.listAlbums(1, 10)
 
         assertEquals(albums, result)
         assertEquals(5L, total)
         // Verify the single atomic method is used (not two separate calls that could race)
-        coVerify(exactly = 1) { repository.findAllWithCount(1, 10) }
+        coVerify(exactly = 1) { repository.findAllWithCount(1, 10, AlbumFilter()) }
+    }
+
+    @Test
+    fun `listAlbums passes filter to repository when filter is provided`() = runTest {
+        val albums = listOf(album())
+        val filter = AlbumFilter(q = "Miles")
+        coEvery { repository.findAllWithCount(0, 20, filter) } returns (albums to 1L)
+
+        val (result, total) = service.listAlbums(0, 20, filter)
+
+        assertEquals(albums, result)
+        assertEquals(1L, total)
+        coVerify(exactly = 1) { repository.findAllWithCount(0, 20, filter) }
     }
 
     @Test

@@ -6,6 +6,7 @@ import kotlin.test.assertTrue
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.test.runTest
 import org.javafreedom.kbeatz.catalog.domain.model.Album
+import org.javafreedom.kbeatz.catalog.domain.repository.AlbumFilter
 import org.jetbrains.exposed.v1.jdbc.deleteAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 
@@ -76,6 +77,55 @@ class LargeLibraryTest {
         }
     }
 
+    /**
+     * NFR-12 acceptance test: server-side search on 5,000 albums must return only matching results.
+     *
+     * Inserts 5,000 albums where artist 1 is "TargetArtist" and the rest are "OtherArtist N".
+     * Asserts that searching with q="TargetArtist" returns exactly 1 result, not 5,000.
+     */
+    @Suppress("MagicNumber") // 5_000 is the NFR-12 scale requirement; 1 is the expected match count
+    @Test
+    fun `server-side search on 5000 albums returns only matching results`() = runTest(
+        timeout = kotlin.time.Duration.parse("120s")
+    ) {
+        val ds = DbFactory.init(jdbcUrl)
+        try {
+            val repo = ExposedAlbumRepository()
+            val albums = buildAlbumsWithSearchTargets(5_000)
+            repo.saveAll(albums)
+
+            // Only the first album has albumArtist "TargetArtist"
+            val (results, total) = repo.findAllWithCount(0, 20, AlbumFilter(q = "TargetArtist"))
+            assertEquals(1L, total, "search must return exactly 1 match out of 5,000")
+            assertEquals(1, results.size, "page content must contain 1 album")
+            assertEquals("TargetArtist", results.first().albumArtist)
+        } finally {
+            transaction { AlbumsTable.deleteAll() }
+            ds.close()
+        }
+    }
+
+    @Suppress("MagicNumber") // 5_000 / 20 = 250 pages; genre filter narrows to 500 albums
+    @Test
+    fun `genre filter on 5000 albums returns only albums with matching genre`() = runTest(
+        timeout = kotlin.time.Duration.parse("120s")
+    ) {
+        val ds = DbFactory.init(jdbcUrl)
+        try {
+            val repo = ExposedAlbumRepository()
+            // Even-indexed albums get genre "Jazz", odd-indexed get genre "Classical"
+            val albums = buildAlbumsWithGenres(5_000)
+            repo.saveAll(albums)
+
+            val (jazzResults, jazzTotal) = repo.findAllWithCount(0, 20, AlbumFilter(genre = "Jazz"))
+            assertEquals(2_500L, jazzTotal, "genre=Jazz must return exactly 2,500 albums")
+            assertTrue(jazzResults.all { it.genre == "Jazz" }, "all results must have genre=Jazz")
+        } finally {
+            transaction { AlbumsTable.deleteAll() }
+            ds.close()
+        }
+    }
+
     // --- helpers ---
 
     @Suppress("MagicNumber") // 4-digit year for synthetic test data
@@ -87,6 +137,48 @@ class LargeLibraryTest {
                 album = "Album %05d".format(i),
                 date = "20%02d".format(i % 24),
                 genre = null,
+                label = null,
+                catalogNumber = null,
+                composer = null,
+                conductor = null,
+                ensemble = null,
+                discogsId = null,
+                extraTags = null,
+                images = null,
+                directoryPath = "music/artist%05d/album%05d".format(i, i),
+            )
+        }
+
+    @Suppress("MagicNumber") // 4-digit year for synthetic test data; 1 is first album index
+    private fun buildAlbumsWithSearchTargets(count: Int): List<Album> =
+        (1..count).map { i ->
+            Album(
+                id = Uuid.random(),
+                albumArtist = if (i == 1) "TargetArtist" else "OtherArtist %05d".format(i),
+                album = "Album %05d".format(i),
+                date = "2000",
+                genre = null,
+                label = null,
+                catalogNumber = null,
+                composer = null,
+                conductor = null,
+                ensemble = null,
+                discogsId = null,
+                extraTags = null,
+                images = null,
+                directoryPath = "music/artist%05d/album%05d".format(i, i),
+            )
+        }
+
+    @Suppress("MagicNumber") // 2 genres alternating across 5,000 albums for even/odd split
+    private fun buildAlbumsWithGenres(count: Int): List<Album> =
+        (1..count).map { i ->
+            Album(
+                id = Uuid.random(),
+                albumArtist = "Artist %05d".format(i),
+                album = "Album %05d".format(i),
+                date = "2000",
+                genre = if (i % 2 == 0) "Jazz" else "Classical",
                 label = null,
                 catalogNumber = null,
                 composer = null,

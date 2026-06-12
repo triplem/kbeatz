@@ -9,23 +9,35 @@ import org.javafreedom.kbeatz.catalog.api.models.Album as ApiAlbum
 import org.javafreedom.kbeatz.catalog.api.models.AlbumPage
 import org.javafreedom.kbeatz.catalog.application.service.AlbumService
 import org.javafreedom.kbeatz.catalog.domain.model.Album
+import org.javafreedom.kbeatz.catalog.domain.repository.AlbumFilter
 
 /**
  * Ktor route handlers for album browsing.
  *
- * `GET /albums` supports optional `page` and `size` parameters.
- * Results are always wrapped in an [AlbumPage] pagination envelope.
+ * `GET /albums` supports optional `page`, `size`, `q`, `albumArtist`, `composer`,
+ * `genre`, `yearFrom`, and `yearTo` query parameters. All filter parameters are
+ * applied server-side. Results are always wrapped in an [AlbumPage] pagination envelope.
  *
  * @param libraryRoot Used to compute relative [directoryPath] in API responses.
  * No auth in v1 (trusted LAN deployment).
  */
 fun Route.albumRoutes(albumService: AlbumService, libraryRoot: Path) {
     get("/albums") {
-        val page = call.request.queryParameters["page"]?.toIntOrNull()?.coerceAtLeast(0) ?: 0
-        val size = call.request.queryParameters["size"]?.toIntOrNull()
+        val params = call.request.queryParameters
+        val page = params["page"]?.toIntOrNull()?.coerceAtLeast(0) ?: 0
+        val size = params["size"]?.toIntOrNull()
             ?.coerceIn(1, MAX_PAGE_SIZE) ?: DEFAULT_PAGE_SIZE
 
-        val (albums, total) = albumService.listAlbums(page, size)
+        val filter = AlbumFilter(
+            q = params["q"]?.takeIf { it.isNotBlank() },
+            albumArtist = params["albumArtist"]?.takeIf { it.isNotBlank() },
+            composer = params["composer"]?.takeIf { it.isNotBlank() },
+            genre = params["genre"]?.takeIf { it.isNotBlank() },
+            yearFrom = params["yearFrom"]?.toIntOrNull(),
+            yearTo = params["yearTo"]?.toIntOrNull(),
+        )
+
+        val (albums, total) = albumService.listAlbums(page, size, filter)
         val totalPages = if (total == 0L) 0 else ceil(total.toDouble() / size).toInt()
 
         call.respond(
