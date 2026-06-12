@@ -89,7 +89,7 @@ class ExposedAlbumRepository : AlbumRepository {
         filter.q?.takeIf { it.isNotBlank() }?.let { q ->
             // Escape LIKE metacharacters so user input is treated as a literal substring.
             val escaped = LikePattern.ofLiteral(q.lowercase())
-            val term = LikePattern("%") + escaped + LikePattern("%")
+            val term = LikePattern("%", '\\') + escaped + LikePattern("%", '\\')
             conditions += (LowerCase(AlbumsTable.albumArtist) like term) or
                 (LowerCase(AlbumsTable.album) like term) or
                 (LowerCase(AlbumsTable.composer) like term) or
@@ -99,14 +99,14 @@ class ExposedAlbumRepository : AlbumRepository {
         filter.albumArtist?.takeIf { it.isNotBlank() }?.let { artist ->
             // Escape LIKE metacharacters so user input is treated as a literal substring.
             val escaped = LikePattern.ofLiteral(artist.lowercase())
-            val term = LikePattern("%") + escaped + LikePattern("%")
+            val term = LikePattern("%", '\\') + escaped + LikePattern("%", '\\')
             conditions += LowerCase(AlbumsTable.albumArtist) like term
         }
 
         filter.composer?.takeIf { it.isNotBlank() }?.let { composer ->
             // Escape LIKE metacharacters so user input is treated as a literal substring.
             val escaped = LikePattern.ofLiteral(composer.lowercase())
-            val term = LikePattern("%") + escaped + LikePattern("%")
+            val term = LikePattern("%", '\\') + escaped + LikePattern("%", '\\')
             conditions += LowerCase(AlbumsTable.composer) like term
         }
 
