@@ -3,6 +3,7 @@
   "short_name": "kbeatz",
   "description": "Music collection manager",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#1c1828",
   "theme_color": "#1c1828",
