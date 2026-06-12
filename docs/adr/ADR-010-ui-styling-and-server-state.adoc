@@ -1,0 +1,236 @@
+= ADR-010: UI Styling Approach and Server State Management
+:toc: left
+:icons: font
+:revdate: 2026-06-12
+:status: Accepted
+
+== Status
+
+Accepted
+
+== Context
+
+`kbeatz-ui` is a React 19 + TypeScript SPA built with Vite. At the time this ADR is written,
+the application has no stylesheet of its own. Components reference CSS class names
+(`app`, `app-header`, `app-main`, `app-content`, `app-grid-area`, `app-toolbar`) that are
+not defined anywhere, meaning the layout relies entirely on browser defaults.
+
+Two related gaps need to be addressed together because they affect the same components:
+
+=== Gap 1 - Styling
+
+* No `.css` file is imported anywhere in the application source.
+* Three inline style attributes exist in the codebase; these are remnants, not an intentional
+  approach.
+* No design tokens (brand colours, spacing scale, typography) are defined.
+* The project vision specifies a violet/pink/teal/amber colour palette. None of these values
+  are referenced in any source file.
+
+=== Gap 2 - Server state
+
+* The `.claude/rules/react-patterns.md` rule mandates TanStack Query (`@tanstack/react-query`)
+  for all server state. The rule explicitly prohibits `useEffect` for data fetching.
+* `@tanstack/react-query` is NOT in `package.json` at the time this ADR is written.
+* All data fetching in `App.tsx` uses hand-rolled `useEffect` + `useState` patterns, including
+  manual cancellation flags, `retryCount` state, and manual loading/error state tracking.
+* `ScanProgress` uses `setInterval` polling instead of TanStack Query `refetchInterval`.
+
+Both decisions are recorded in one ADR because they are resolved together in the same epic
+and have overlapping component impact.
+
+== Decision
+
+=== Styling: CSS Modules with CSS custom property design tokens
+
+CSS Modules are used for all component-scoped styles. A single global token file
+(`src/styles/tokens.css`) defines CSS custom properties for the brand palette, spacing scale,
+and typography.
+
+==== Design tokens
+
+.Brand palette (derived from project logo)
+|===
+| Token | Value | Role
+
+| `--color-brand-violet`
+| `#7C5CFF`
+| Primary accent, focus rings, active states
+
+| `--color-brand-pink`
+| `#FF5A8F`
+| Secondary accent, destructive actions
+
+| `--color-brand-teal`
+| `#2EC4B6`
+| Success states, scan progress indicator
+
+| `--color-brand-amber`
+| `#FFB627`
+| Warning states, Discogs sync indicator
+
+| `--color-bg-dark`
+| `#1C1828`
+| Default application background (dark theme base)
+|===
+
+==== Theming
+
+Dark mode is the default theme. Light mode overrides are applied via a
+`prefers-color-scheme: light` media query inside `tokens.css`. No JavaScript is required for
+theme detection at runtime. The CSS custom properties layer cleanly: component stylesheets
+reference tokens; tokens resolve to different values under each media query.
+
+==== Vite integration
+
+CSS Modules are supported natively by Vite with no additional plugins or configuration.
+TypeScript typings for `.module.css` files are generated automatically when
+`vite-plugin-svgr` or equivalent plugin is present; otherwise `*.module.css` declarations
+are added to `vite-env.d.ts`.
+
+=== Server state: TanStack Query
+
+`@tanstack/react-query` is adopted as the single library for all server state. No other state
+management library (SWR, Redux Toolkit Query, Zustand) is used for data fetched from the
+catalog API.
+
+==== Query key conventions
+
+|===
+| Data | Query key
+
+| Album list (all pages)
+| `['albums']`
+
+| Single album detail
+| `['album', albumId]`
+
+| Library scan status
+| `['scan-status']`
+|===
+
+==== Cache invalidation strategy
+
+After a successful tag-write mutation for album `albumId`:
+
+* Invalidate `['album', albumId]` - forces a refetch of the detail view so stale tag data
+  is not shown.
+
+After a successful Discogs sync completion for album `albumId`:
+
+* Invalidate `['album', albumId]` - Discogs metadata changes the album detail.
+* Invalidate `['albums']` - album title or artist may have changed, which affects the list.
+
+==== Polling
+
+`ScanProgress` uses `refetchInterval` on the `['scan-status']` query, not `setInterval`.
+The interval is active only while a scan is running; when the catalog reports `IDLE` the
+interval is stopped by returning `false` from the `refetchInterval` callback.
+
+==== QueryClientProvider placement
+
+A `QueryClient` instance is created in `main.tsx` and wrapped around the application root
+with `QueryClientProvider`. `ReactQueryDevtools` is included in development builds only
+(`import.meta.env.DEV`).
+
+==== Migration path for existing useEffect fetches
+
+Every `useEffect` data-fetch in `App.tsx` and feature components is replaced by a
+`useQuery` hook call. The hand-rolled cancellation flag, `retryCount`, manual `loading`,
+and `error` states are removed. TanStack Query handles deduplication, background refresh,
+and error retry automatically.
+
+== Consequences
+
+=== CSS Modules
+
+* Each component has a corresponding `.module.css` file. The file count grows with the
+  component count. This is slightly more boilerplate per component than a utility-first
+  approach but keeps style co-located with the component.
+* Class names are scoped to the module by the Vite transform. Accidental global style
+  pollution is eliminated.
+* Design tokens in `tokens.css` are the single source of truth. Components reference tokens
+  via `var()` calls. Changing a brand colour requires editing one file.
+* No JavaScript runtime overhead for styling. No hydration mismatch risk.
+* Developers unfamiliar with CSS Modules need to learn the `styles.className` import pattern,
+  but it is a small learning curve.
+
+=== TanStack Query
+
+* `QueryClientProvider` must wrap the app root in `main.tsx`. This is a one-time addition.
+* All existing `useEffect` data-fetch hooks must be migrated to `useQuery`. This is a
+  planned migration; new components must use `useQuery` from the start.
+* Navigating back to a previously loaded page shows cached data immediately while a
+  background refetch validates freshness. This is a user-visible improvement over the current
+  approach, which shows a loading spinner on every navigation.
+* The bundle size increases by the TanStack Query runtime (~13 KB gzipped). This is
+  acceptable given the functionality gained.
+* `@tanstack/react-virtual` is already in `package.json`. `@tanstack/react-query` should be
+  added alongside it for ecosystem consistency.
+
+== Alternatives Considered
+
+=== Tailwind CSS (rejected for styling)
+
+Tailwind generates utility classes from a configuration file and removes unused classes at
+build time (PurgeCSS). The approach produces terse JSX with long `className` strings.
+
+Rejected because:
+
+* Purge configuration in Vite requires `tailwind.config.js` and `postcss.config.js` setup,
+  adding build complexity.
+* Utility-class strings in JSX grow long and reduce readability for component-heavy layouts.
+* The utility-first model works against component encapsulation: styles are not co-located in
+  a single `.module.css` file but scattered inline across JSX.
+* Tailwind's design token system (via `tailwind.config.js`) is powerful but adds an additional
+  configuration layer on top of CSS custom properties, which Vite already handles natively.
+
+=== Styled Components / Emotion (rejected for styling)
+
+CSS-in-JS libraries produce encapsulated styles via JavaScript template literals or object
+syntax. Style is genuinely co-located with the component.
+
+Rejected because:
+
+* Both libraries add a JavaScript runtime (~10-25 KB gzipped each) that CSS Modules do not
+  require.
+* SSR hydration mismatches are a known issue class; kbeatz-ui is a client-rendered SPA today
+  but the risk is unnecessary.
+* TypeScript support is good but requires additional type packages.
+* Emotion and Styled Components require their own Babel or Vite plugin for optimal performance.
+
+=== SWR (rejected for server state)
+
+SWR (stale-while-revalidate) is a lightweight React data-fetching library from Vercel. It
+covers the basic use case of `useQuery` with a simpler API.
+
+Rejected because:
+
+* Mutation API is significantly more limited than TanStack Query's `useMutation`. Discogs
+  sync and tag-write workflows require rich mutation state (pending, success, error, retry).
+* TypeScript inference for `mutate()` is weaker than TanStack Query's typed `useMutation`.
+* Cache invalidation after mutations (e.g. invalidate `['albums']` after sync) is manual in
+  SWR; TanStack Query provides `queryClient.invalidateQueries()` as a first-class primitive.
+* TanStack Query has a larger community, richer documentation, and more ecosystem integrations
+  (DevTools, Persist, Offline adapters).
+
+=== Zustand for server state (rejected)
+
+Zustand is a lightweight global state store for client state. It has no concept of cache
+expiry, background refresh, or server-driven invalidation.
+
+Rejected because:
+
+* Zustand stores client state, not server state. Using it for API data requires hand-writing
+  all the logic that TanStack Query provides out of the box: loading states, error states,
+  deduplication, background refresh, and cache invalidation.
+* The `.claude/rules/react-patterns.md` rule explicitly categorises server state as TanStack
+  Query and global client state as Zustand. Using Zustand for server state contradicts this
+  rule.
+
+== Related
+
+* `.claude/rules/react-patterns.md` - mandates TanStack Query for server state, prohibits
+  `useEffect` for data fetching
+* `kbeatz-ui/package.json` - `@tanstack/react-virtual` already installed; `@tanstack/react-query`
+  to be added
+* `kbeatz-ui/src/App.tsx` - primary migration target for existing `useEffect` data fetches
