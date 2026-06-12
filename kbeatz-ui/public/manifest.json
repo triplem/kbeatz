@@ -1,0 +1,21 @@
+{
+  "name": "kbeatz",
+  "short_name": "kbeatz",
+  "description": "Music collection manager",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1c1828",
+  "theme_color": "#1c1828",
+  "icons": [
+    {
+      "src": "/kbeatz-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/kbeatz-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
