@@ -324,5 +324,4 @@ cd kbeatz-ui && npm run lint && npm test # frontend: ESLint + Vitest
 == Adding Your First Real Service
 
 See xref:adding-a-service.adoc[Adding a Service] for the step-by-step guide.
-The `kbeatz-service` skeleton in this repo is a working starting point - rename its directories
-and package paths, then register it in `settings.gradle.kts`.
+Follow the existing modules as a reference, then register the new module in `settings.gradle.kts`.
