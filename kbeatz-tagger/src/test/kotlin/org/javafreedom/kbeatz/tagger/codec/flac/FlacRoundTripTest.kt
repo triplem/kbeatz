@@ -343,7 +343,7 @@ class FlacRoundTripTest {
     }
 
     @Test
-    fun `should encode comment length as UTF-8 byte count not character count for multi-byte values`() {
+    fun `should encode comment length as UTF-8 byte count when value contains multi-byte characters`() {
         // "Über die Brücke" has 15 characters but more than 15 UTF-8 bytes (U+00DC and U+00FC
         // each encode to 2 bytes in UTF-8, so the comment is 17 bytes).
         // RFC 9639 §10 mandates that the length field is the UTF-8 byte count.
@@ -364,7 +364,8 @@ class FlacRoundTripTest {
         val vcPayload = extractVorbisCommentPayload(bytes)
         val vcBuf = java.io.DataInputStream(vcPayload.inputStream())
         val vendorLen = readUInt32Le(vcBuf)
-        vcBuf.skipBytes(vendorLen)
+        // Use readFully to unconditionally consume exactly vendorLen bytes (skipBytes may skip fewer)
+        vcBuf.readFully(ByteArray(vendorLen))
         @Suppress("UNUSED_VARIABLE") // comment count is read to advance the stream position
         val commentCount = readUInt32Le(vcBuf)
         val firstCommentByteLength = readUInt32Le(vcBuf)
@@ -444,9 +445,9 @@ class FlacRoundTripTest {
     @Suppress("MagicNumber") // FLAC binary format constants per RFC 9639 §8-§10
     private fun extractVorbisCommentPayload(flacBytes: ByteArray): ByteArray {
         val buf = java.io.DataInputStream(flacBytes.inputStream())
-        // Skip 'fLaC' marker (4 bytes)
-        buf.skipBytes(4)
-        var isLast = false
+        // Use readFully to unconditionally consume the 'fLaC' marker (4 bytes)
+        buf.readFully(ByteArray(4))
+        var isLast = false // loop sentinel: tracks whether the current block is the last one
         while (!isLast) {
             val firstByte = buf.readByte().toInt() and 0xFF
             isLast = (firstByte and 0x80) != 0
