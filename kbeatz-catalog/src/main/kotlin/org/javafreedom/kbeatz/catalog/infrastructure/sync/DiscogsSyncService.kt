@@ -30,8 +30,8 @@ private const val ROLE_ORCHESTRA = "Orchestra"
  * A future MusicBrainz or other provider would be a separate implementation of [SyncProvider].
  *
  * ## Sync sequence
- * 1. Load album from repository — throws [ResourceNotFoundException] if not found.
- * 2. Validate `discogsId` is present — throws [BusinessValidationException] if absent.
+ * 1. Load album from repository; throws [ResourceNotFoundException] if not found.
+ * 2. Validate `discogsId` is present; throws [BusinessValidationException] if absent.
  * 3. Fetch Discogs release via [metadataSource] (rate-limited, returns null -> warning, no-op).
  * 4. Write `.kbeatz-write.lock` to album directory.
  * 5. Write tags to all FLAC files atomically.
@@ -75,7 +75,7 @@ class DiscogsSyncService(
 
         val release = metadataSource.fetchRelease(discogsId)
         if (release == null) {
-            log.warn { "Discogs release $discogsId not found - skipping sync for album $albumId" }
+            log.warn { "discogs_release_not_found albumId=$albumId discogsId=$discogsId" }
             return SyncResult(
                 fieldsWritten = emptyList(),
                 warnings = listOf("Discogs release $discogsId not found"),
@@ -93,14 +93,14 @@ class DiscogsSyncService(
         writeTagsToFlacFiles(flacFiles, tags)
 
         val warnings = mutableListOf<String>()
-        downloadCoverArtIfRequested(discogsId, albumDir, downloadImages, warnings)
+        downloadCoverArtIfRequested(albumId, discogsId, albumDir, downloadImages, warnings)
 
         deleteLockFile(albumDir)
 
         val updatedAlbum = buildUpdatedAlbum(album, tags, discogsId)
         albumRepository.save(updatedAlbum)
 
-        log.info { "Sync complete for album $albumId: ${tags.size} tags written, ${warnings.size} warnings" }
+        log.info { "discogs_sync_complete albumId=$albumId fieldsWritten=${tags.size} warnings=${warnings.size}" }
         return SyncResult(
             fieldsWritten = tags.keys.toList().sorted(),
             warnings = warnings,
@@ -109,6 +109,7 @@ class DiscogsSyncService(
     }
 
     private suspend fun downloadCoverArtIfRequested(
+        albumId: Uuid,
         discogsId: String,
         albumDir: Path,
         downloadImages: Boolean,
@@ -118,7 +119,7 @@ class DiscogsSyncService(
         try {
             service.downloadAndWrite(discogsId, albumDir, downloadImages)
         } catch (ex: ImageQuotaExhaustedException) {
-            log.warn { "Image quota exhausted for $discogsId - sync continues with metadata only" }
+            log.warn { "discogs_image_quota_exhausted albumId=$albumId discogsId=$discogsId" }
             warnings += "Image quota exhausted. Resets at ${ex.resetAt}"
         }
     }

@@ -1,5 +1,9 @@
 package org.javafreedom.kbeatz.catalog.infrastructure.sync
 
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -21,6 +25,7 @@ import org.javafreedom.kbeatz.common.ImageQuotaExhaustedException
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
 import org.javafreedom.kbeatz.sources.MetadataSource
 import org.javafreedom.kbeatz.sources.Release
+import org.slf4j.LoggerFactory
 
 /**
  * Unit tests for [DiscogsSyncService] with all dependencies mocked.
@@ -279,5 +284,55 @@ class DiscogsSyncServiceTest {
 
         Files.deleteIfExists(fakeFlac)
         Files.deleteIfExists(lockFile)
+    }
+
+    // ---- structured log context: albumId and discogsId ----
+
+    /**
+     * When a Discogs release is not found, the WARN log must include albumId= and discogsId=
+     * as structured key=value pairs so operators can correlate log entries with albums.
+     */
+    @Test
+    fun `should log albumId and discogsId in WARN when Discogs release is not found`() = runBlocking {
+        val logAppender = ListAppender<ILoggingEvent>().also { it.start() }
+        val serviceLogger =
+            LoggerFactory.getLogger("org.javafreedom.kbeatz.catalog.infrastructure.sync") as Logger
+        serviceLogger.level = Level.WARN
+        serviceLogger.addAppender(logAppender)
+        serviceLogger.isAdditive = true
+
+        try {
+            val album = buildAlbum()
+            val (service, _, _) = buildService(album = album, release = null)
+
+            service.sync(album.id, downloadImages = false)
+
+            assertTrue(
+                logAppender.list.any { it.level == Level.WARN },
+                "Expected at least one WARN log entry when release is not found"
+            )
+
+            val warnEvents = logAppender.list.filter { it.level == Level.WARN }
+            val warnMessage = warnEvents.first().formattedMessage
+
+            assertTrue(
+                warnMessage.contains("albumId="),
+                "WARN message must contain 'albumId=' but was: $warnMessage"
+            )
+            assertTrue(
+                warnMessage.contains("discogsId="),
+                "WARN message must contain 'discogsId=' but was: $warnMessage"
+            )
+            assertTrue(
+                warnMessage.contains(album.id.toString()),
+                "WARN message must contain the actual albumId value but was: $warnMessage"
+            )
+            assertTrue(
+                warnMessage.contains(requireNotNull(album.discogsId) { "test album must have a discogsId" }),
+                "WARN message must contain the actual discogsId value but was: $warnMessage"
+            )
+        } finally {
+            serviceLogger.detachAppender(logAppender)
+        }
     }
 }

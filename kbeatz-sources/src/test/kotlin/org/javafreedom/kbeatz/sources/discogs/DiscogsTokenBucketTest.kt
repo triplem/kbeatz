@@ -185,12 +185,12 @@ class DiscogsTokenBucketTest {
             nowRef[0] = 2_000L
             advanceTimeBy(1_001L)
 
-            val warnEvents = logAppender.list.filter { it.level == Level.WARN }
             assertTrue(
-                warnEvents.isNotEmpty(),
+                logAppender.list.any { it.level == Level.WARN },
                 "Expected at least one WARN log entry for rate-limit wait"
             )
 
+            val warnEvents = logAppender.list.filter { it.level == Level.WARN }
             val warnMessage = warnEvents.first().formattedMessage
             assertTrue(
                 warnMessage.contains("discogs_rate_limit_wait"),
