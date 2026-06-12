@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useQuery, keepPreviousData } from '@tanstack/react-query'
-import { AlbumsService } from './api/generated'
 import styles from './App.module.css'
 import { AlbumGrid } from './features/albums/album-grid'
 import { AlbumDetail } from './features/albums/album-detail'
 import { FilterPanel } from './features/albums/filter-panel'
 import { SearchBox } from './features/albums/search-box'
 import { SortPreference } from './features/albums/sort-preference'
+import { useAlbumPage } from './features/albums/use-album-page'
 import { ScanProgress } from './features/library/scan-progress'
 import { NotFoundPage } from './features/not-found/not-found-page'
 import { ErrorBoundary } from './lib/error-boundary'
@@ -18,41 +17,8 @@ import {
   applyFiltersAndSort,
   loadSortPreference,
   saveSortPreference,
-  type AlbumFilters,
   type SortField,
 } from './features/albums/album-filters'
-
-const DEFAULT_PAGE_SIZE = 20
-
-function useAlbumPage(page: number, filters: AlbumFilters) {
-  return useQuery({
-    queryKey: [
-      'albums',
-      {
-        page,
-        q: filters.query || undefined,
-        albumArtist: filters.artists.length === 1 ? filters.artists[0] : undefined,
-        composer: filters.composers.length === 1 ? filters.composers[0] : undefined,
-        genre: filters.genres.length === 1 ? filters.genres[0] : undefined,
-        yearFrom: filters.yearMin ?? undefined,
-        yearTo: filters.yearMax ?? undefined,
-      },
-    ],
-    queryFn: () =>
-      AlbumsService.listAlbums({
-        page,
-        size: DEFAULT_PAGE_SIZE,
-        q: filters.query.trim() || undefined,
-        albumArtist: filters.artists.length === 1 ? filters.artists[0] : undefined,
-        composer: filters.composers.length === 1 ? filters.composers[0] : undefined,
-        genre: filters.genres.length === 1 ? filters.genres[0] : undefined,
-        yearFrom: filters.yearMin ?? undefined,
-        yearTo: filters.yearMax ?? undefined,
-      }),
-    placeholderData: keepPreviousData,
-    staleTime: 30_000,
-  })
-}
 
 function AlbumListPage() {
   const { t } = useTranslation()

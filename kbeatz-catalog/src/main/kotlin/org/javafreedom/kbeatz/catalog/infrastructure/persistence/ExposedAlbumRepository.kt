@@ -8,6 +8,7 @@ import org.javafreedom.kbeatz.catalog.domain.repository.AlbumFilter
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 import org.jetbrains.exposed.v1.core.Count
 import org.jetbrains.exposed.v1.core.Expression
+import org.jetbrains.exposed.v1.core.LikePattern
 import org.jetbrains.exposed.v1.core.LowerCase
 import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.ResultRow
@@ -19,6 +20,7 @@ import org.jetbrains.exposed.v1.core.intLiteral
 import org.jetbrains.exposed.v1.core.lessEq
 import org.jetbrains.exposed.v1.core.like
 import org.jetbrains.exposed.v1.core.or
+import org.jetbrains.exposed.v1.core.stringParam
 import org.jetbrains.exposed.v1.core.substring
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.select
@@ -70,6 +72,13 @@ class ExposedAlbumRepository : AlbumRepository {
      * Builds a WHERE clause from the given [filter], or returns null if all fields are blank.
      *
      * All string comparisons are case-insensitive via LOWER(column) LIKE lower-cased pattern.
+     * User-supplied text is wrapped with [LikePattern.ofLiteral] so that LIKE metacharacters
+     * (`%`, `_`, and the dialect escape char) in the search term are treated as literals and
+     * do not produce unintended wildcard behaviour (e.g. searching for "100%" must not match
+     * every album).
+     *
+     * Genre matching uses equality rather than LIKE to enforce the spec's "exact genre" semantics.
+     *
      * Year range filters parse the first four characters of the album_date column
      * (stored as 'YYYY' or 'YYYY-MM-DD') as a string prefix comparison.
      */
@@ -78,7 +87,9 @@ class ExposedAlbumRepository : AlbumRepository {
         val conditions = mutableListOf<Op<Boolean>>()
 
         filter.q?.takeIf { it.isNotBlank() }?.let { q ->
-            val term = "%${q.lowercase()}%"
+            // Escape LIKE metacharacters so user input is treated as a literal substring.
+            val escaped = LikePattern.ofLiteral(q.lowercase())
+            val term = LikePattern("%") + escaped + LikePattern("%")
             conditions += (LowerCase(AlbumsTable.albumArtist) like term) or
                 (LowerCase(AlbumsTable.album) like term) or
                 (LowerCase(AlbumsTable.composer) like term) or
@@ -86,15 +97,23 @@ class ExposedAlbumRepository : AlbumRepository {
         }
 
         filter.albumArtist?.takeIf { it.isNotBlank() }?.let { artist ->
-            conditions += LowerCase(AlbumsTable.albumArtist) like "%${artist.lowercase()}%"
+            // Escape LIKE metacharacters so user input is treated as a literal substring.
+            val escaped = LikePattern.ofLiteral(artist.lowercase())
+            val term = LikePattern("%") + escaped + LikePattern("%")
+            conditions += LowerCase(AlbumsTable.albumArtist) like term
         }
 
         filter.composer?.takeIf { it.isNotBlank() }?.let { composer ->
-            conditions += LowerCase(AlbumsTable.composer) like "%${composer.lowercase()}%"
+            // Escape LIKE metacharacters so user input is treated as a literal substring.
+            val escaped = LikePattern.ofLiteral(composer.lowercase())
+            val term = LikePattern("%") + escaped + LikePattern("%")
+            conditions += LowerCase(AlbumsTable.composer) like term
         }
 
         filter.genre?.takeIf { it.isNotBlank() }?.let { genre ->
-            conditions += LowerCase(AlbumsTable.genre) like genre.lowercase()
+            // Exact case-insensitive equality: spec says "Filter by exact genre".
+            // Using eq rather than LIKE prevents partial-match surprises (e.g. genre="Jazz%").
+            conditions += LowerCase(AlbumsTable.genre) eq stringParam(genre.lowercase())
         }
 
         filter.yearFrom?.let { yearFrom ->

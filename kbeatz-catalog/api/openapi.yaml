@@ -122,27 +122,27 @@ paths:
         - name: albumArtist
           in: query
           description: "Filter by album artist (case-insensitive contains)"
-          schema: { type: string }
+          schema: { type: string, example: "Miles Davis" }
         - name: composer
           in: query
           description: "Filter by composer (case-insensitive contains)"
-          schema: { type: string }
+          schema: { type: string, example: "Ludwig van Beethoven" }
         - name: genre
           in: query
-          description: "Filter by exact genre"
-          schema: { type: string }
+          description: "Filter by exact genre (case-insensitive)"
+          schema: { type: string, example: "Jazz" }
         - name: yearFrom
           in: query
-          description: "Filter albums released on or after this year"
-          schema: { type: integer }
+          description: "Filter albums released on or after this year (inclusive)"
+          schema: { type: integer, example: 1950 }
         - name: yearTo
           in: query
-          description: "Filter albums released on or before this year"
-          schema: { type: integer }
+          description: "Filter albums released on or before this year (inclusive)"
+          schema: { type: integer, example: 1970 }
         - name: q
           in: query
           description: "Free-text search across title, albumArtist, composer, label"
-          schema: { type: string }
+          schema: { type: string, example: "Kind of Blue" }
       responses:
         "200":
           description: Paginated list of albums
