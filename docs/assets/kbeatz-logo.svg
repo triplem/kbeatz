@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+     viewBox="0 0 980 300" width="980" height="300" role="img" aria-label="kbeatz logo">
+  <title>kbeatz</title>
+  <defs>
+    <radialGradient id="bg-gradient" cx="50%" cy="40%" r="80%">
+      <stop offset="0%" stop-color="#1c1828"/>
+      <stop offset="100%" stop-color="#0d0b12"/>
+    </radialGradient>
+
+    <!-- silver CD surface -->
+    <radialGradient id="disc-base" cx="42%" cy="38%" r="75%">
+      <stop offset="0%" stop-color="#f4f6f9"/>
+      <stop offset="55%" stop-color="#c3c9d4"/>
+      <stop offset="100%" stop-color="#8d94a2"/>
+    </radialGradient>
+
+    <!-- userSpaceOnUse in font units (y up): violet at the ascender,
+         pink at the baseline -->
+    <linearGradient id="k-accent" gradientUnits="userSpaceOnUse"
+                    x1="0" y1="740" x2="0" y2="0">
+      <stop offset="0%" stop-color="#7C5CFF"/>
+      <stop offset="100%" stop-color="#FF5A8F"/>
+    </linearGradient>
+    <linearGradient id="pulse-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#2EC4B6"/>
+      <stop offset="55%" stop-color="#7C5CFF"/>
+      <stop offset="100%" stop-color="#FF5A8F"/>
+    </linearGradient>
+
+    <filter id="sheen" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="5"/>
+    </filter>
+
+    <!-- punches the centre hole through the whole disc group -->
+    <mask id="disc-hole">
+      <circle cx="200" cy="174" r="79" fill="#ffffff"/>
+      <circle cx="200" cy="174" r="12" fill="#000000"/>
+    </mask>
+
+  </defs>
+
+  <rect width="980" height="300" fill="url(#bg-gradient)"/>
+
+  <!-- icon: a shelf of CD case spines with a disc pulled out in front -->
+  <ellipse cx="170" cy="255" rx="140" ry="10" fill="#000000" opacity="0.35"/>
+
+  <g>
+    <rect x="58"  y="80" width="20" height="172" rx="4" fill="#2EC4B6"/>
+    <rect x="62"  y="92" width="12" height="5"   rx="2.5" fill="#ffffff" opacity="0.35"/>
+    <rect x="84"  y="94" width="20" height="158" rx="4" fill="#FFB627"/>
+    <rect x="88"  y="106" width="12" height="5"  rx="2.5" fill="#ffffff" opacity="0.35"/>
+    <rect x="110" y="74" width="20" height="178" rx="4" fill="#FF5A5F"/>
+    <rect x="114" y="86" width="12" height="5"   rx="2.5" fill="#ffffff" opacity="0.35"/>
+    <g transform="rotate(8 136 252)">
+      <rect x="136" y="82" width="20" height="170" rx="4" fill="#3D9BE9"/>
+      <rect x="140" y="94" width="12" height="5"   rx="2.5" fill="#ffffff" opacity="0.35"/>
+    </g>
+  </g>
+
+  <g mask="url(#disc-hole)">
+    <circle cx="200" cy="174" r="78" fill="url(#disc-base)"/>
+    <!-- iridescent reflections -->
+    <g filter="url(#sheen)">
+      <path d="M 200 174 L 126.7 147.3 A 78 78 0 0 1 161 106.5 Z" fill="#37d6e6" opacity="0.4"/>
+      <path d="M 200 174 L 273.3 200.7 A 78 78 0 0 1 226.7 247.3 Z" fill="#e64fc4" opacity="0.4"/>
+      <path d="M 200 174 L 239 106.5 A 78 78 0 0 1 267.5 135 Z" fill="#ffd84d" opacity="0.35"/>
+      <path d="M 200 174 L 132.5 213 A 78 78 0 0 0 173 250.2 Z" fill="#7C5CFF" opacity="0.3"/>
+    </g>
+    <!-- groove rings -->
+    <circle cx="200" cy="174" r="68" fill="none" stroke="#5e6675" stroke-width="1.5" opacity="0.25"/>
+    <circle cx="200" cy="174" r="56" fill="none" stroke="#5e6675" stroke-width="1.5" opacity="0.25"/>
+    <circle cx="200" cy="174" r="44" fill="none" stroke="#5e6675" stroke-width="1.5" opacity="0.25"/>
+    <!-- hub -->
+    <circle cx="200" cy="174" r="30" fill="#dfe3e9"/>
+    <circle cx="200" cy="174" r="30" fill="none" stroke="#b6bcc7" stroke-width="2"/>
+    <circle cx="200" cy="174" r="18" fill="#eef0f4"/>
+    <circle cx="200" cy="174" r="13.5" fill="none" stroke="#9aa1ad" stroke-width="2"/>
+    <!-- rim -->
+    <circle cx="200" cy="174" r="78" fill="none" stroke="#5d6573" stroke-width="2" opacity="0.8"/>
+    <circle cx="200" cy="174" r="75.5" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.3"/>
+  </g>
+
+  <!-- wordmark: Poppins Bold outlines (SIL OFL), baked to paths in font
+       units (y up), flipped and scaled into place -->
+  <g transform="translate(305,200) scale(0.186,-0.186)">
+    <path fill="url(#k-accent)"
+          d="M403 0L233 234L233 0L62 0L62 740L233 740L233 331L402 558L613 558L381 278L615 0Z"/>
+    <path fill="#F4F2EE" transform="translate(618,0)"
+          d="M233 479Q257 518 302 542Q347 566 405 566Q474 566 530 531Q586 496 618.5 431Q651 366 651 280Q651 194 618.5 128.5Q586 63 530 27.5Q474 -8 405 -8Q346 -8 302 15.5Q258 39 233 78L233 0L62 0L62 740L233 740L233 479ZM477 280Q477 344 441.5 380.5Q406 417 354 417Q303 417 267.5 380Q232 343 232 279Q232 215 267.5 178Q303 141 354 141Q405 141 441 178.5Q477 216 477 280Z M1267 288Q1267 264 1264 238L877 238Q881 186 910.5 158.5Q940 131 983 131Q1047 131 1072 185L1254 185Q1240 130 1203.5 86Q1167 42 1112 17Q1057 -8 989 -8Q907 -8 843 27Q779 62 743 127Q707 192 707 279Q707 366 742.5 431Q778 496 842 531Q906 566 989 566Q1070 566 1133 532Q1196 498 1231.5 435Q1267 372 1267 288ZM1092 333Q1092 377 1062 403Q1032 429 987 429Q944 429 914.5 404Q885 379 878 333Z M1323 280Q1323 366 1355.5 431Q1388 496 1444 531Q1500 566 1569 566Q1628 566 1672.5 542Q1717 518 1741 479L1741 558L1912 558L1912 0L1741 0L1741 79Q1716 40 1671.5 16Q1627 -8 1568 -8Q1500 -8 1444 27.5Q1388 63 1355.5 128.5Q1323 194 1323 280ZM1741 279Q1741 343 1705.5 380Q1670 417 1619 417Q1568 417 1532.5 380.5Q1497 344 1497 280Q1497 216 1532.5 178.5Q1568 141 1619 141Q1670 141 1705.5 178Q1741 215 1741 279Z M2347 145L2347 0L2260 0Q2167 0 2115 45.5Q2063 91 2063 194L2063 416L1995 416L1995 558L2063 558L2063 694L2234 694L2234 558L2346 558L2346 416L2234 416L2234 192Q2234 167 2246 156Q2258 145 2286 145Z M2602 141L2844 141L2844 0L2411 0L2411 136L2643 417L2413 417L2413 558L2839 558L2839 422Z"/>
+  </g>
+
+  <!-- audio pulse underline -->
+  <path d="M 310 238 H 590 l 12 -30 l 14 56 l 12 -44 l 10 18 H 952"
+        fill="none" stroke="url(#pulse-gradient)" stroke-width="5"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
