@@ -48,7 +48,7 @@ export type Album = {
      */
     discogsId?: string;
     /**
-     * Absolute path of the album directory within the library root
+     * Path of the album directory relative to the configured library root
      */
     directoryPath: string;
     /**

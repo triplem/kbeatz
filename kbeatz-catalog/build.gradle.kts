@@ -30,6 +30,9 @@ openApiGenerate {
     packageName.set("org.javafreedom.kbeatz.catalog.api")
     apiPackage.set("org.javafreedom.kbeatz.catalog.api")
     modelPackage.set("org.javafreedom.kbeatz.catalog.api.models")
+    // Custom templates add @SerialName when the Kotlin property name is sanitized
+    // (e.g. "size" -> "propertySize") so the JSON field name matches the OpenAPI spec.
+    templateDir.set(layout.projectDirectory.dir("src/main/openapi-templates").asFile.path)
 }
 
 @Suppress("UnstableApiUsage")
