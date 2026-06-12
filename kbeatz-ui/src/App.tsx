@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import styles from './App.module.css'
+import logoFull from './assets/kbeatz-logo-transparent.svg'
+import logoIcon from './assets/kbeatz-icon.svg'
 import { AlbumGrid } from './features/albums/album-grid'
 import { AlbumDetail } from './features/albums/album-detail'
 import { FilterPanel } from './features/albums/filter-panel'
@@ -72,7 +74,19 @@ function AlbumListPage() {
   return (
     <div className={styles.app}>
       <header className={styles.appHeader}>
-        <h1>{t('app.title')}</h1>
+        <a href="/" className={styles.appLogoLink} aria-label={t('app.title')}>
+          <img
+            src={logoFull}
+            alt={t('app.title')}
+            className={styles.appLogoFull}
+          />
+          <img
+            src={logoIcon}
+            alt={t('app.title')}
+            className={styles.appLogoIcon}
+            aria-hidden="true"
+          />
+        </a>
         <SearchBox filters={filters} onFiltersChange={setFilters} />
         <LanguageToggle />
       </header>

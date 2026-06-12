@@ -21,12 +21,23 @@
   z-index: 100;
 }
 
-.appHeader h1 {
-  font-size: var(--font-size-xl);
-  font-weight: 700;
-  color: var(--accent);
-  white-space: nowrap;
+.appLogoLink {
+  display: flex;
+  align-items: center;
   flex-shrink: 0;
+  text-decoration: none;
+}
+
+.appLogoFull {
+  height: 36px;
+  width: auto;
+  display: block;
+}
+
+.appLogoIcon {
+  height: 36px;
+  width: auto;
+  display: none;
 }
 
 /* ── Main content area ─────────────────────────────────── */
@@ -113,5 +124,15 @@
 
   .appHeader {
     padding: var(--space-sm) var(--space-md);
+  }
+}
+
+@media (max-width: 640px) {
+  .appLogoFull {
+    display: none;
+  }
+
+  .appLogoIcon {
+    display: block;
   }
 }
