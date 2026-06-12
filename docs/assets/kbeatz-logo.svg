@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-     viewBox="0 0 920 340" width="920" height="340" role="img" aria-label="kbeatz logo">
+     viewBox="0 0 920 360" width="920" height="360" role="img" aria-label="kbeatz logo">
   <title>kbeatz</title>
   <defs>
     <!-- Kotlin brand gradient, see https://kotlinlang.org/docs/kotlin-brand-assets.html -->
@@ -8,77 +8,178 @@
       <stop offset="47%" stop-color="#C711E1"/>
       <stop offset="100%" stop-color="#7F52FF"/>
     </linearGradient>
+    <linearGradient id="k-sheen" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="45%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
 
-    <radialGradient id="bg-gradient" cx="50%" cy="42%" r="75%">
-      <stop offset="0%" stop-color="#2b1c22"/>
-      <stop offset="100%" stop-color="#140a0e"/>
+    <radialGradient id="wall-gradient" cx="50%" cy="45%" r="80%">
+      <stop offset="0%" stop-color="#2e1d24"/>
+      <stop offset="100%" stop-color="#120a0e"/>
     </radialGradient>
+    <linearGradient id="floor-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#432822"/>
+      <stop offset="100%" stop-color="#150b0d"/>
+    </linearGradient>
+
+    <!-- perforated wall panel like in the original sign photo -->
+    <pattern id="wall-dots" width="46" height="42" patternUnits="userSpaceOnUse"
+             patternTransform="rotate(-6)">
+      <ellipse cx="23" cy="21" rx="12" ry="8" fill="#e8e4da"/>
+    </pattern>
 
     <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
       <feGaussianBlur stdDeviation="10"/>
     </filter>
+    <filter id="hot-core" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="3"/>
+    </filter>
+    <filter id="light-pool" x="-80%" y="-200%" width="260%" height="500%">
+      <feGaussianBlur stdDeviation="12"/>
+    </filter>
+    <filter id="reflection-blur" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="5"/>
+    </filter>
 
-    <!-- channel-letter skeletons, stroked with round caps to mimic lit sign letters -->
-    <g id="letter-b" fill="none" stroke="currentColor" stroke-width="30"
-       stroke-linecap="round" stroke-linejoin="round">
+    <!-- channel-letter skeletons; stroke colour and width are set per use -->
+    <g id="letter-b" fill="none" stroke-linecap="round" stroke-linejoin="round">
       <path d="M 20 12 L 20 168"/>
       <path d="M 20 127 a 43 43 0 1 0 86 0 a 43 43 0 1 0 -86 0"/>
     </g>
-    <g id="letter-e" fill="none" stroke="currentColor" stroke-width="30"
-       stroke-linecap="round" stroke-linejoin="round">
+    <g id="letter-e" fill="none" stroke-linecap="round" stroke-linejoin="round">
       <path d="M 100 125 A 45 45 0 1 0 89.5 153.9"/>
       <path d="M 14 125 L 98 125"/>
     </g>
-    <g id="letter-a" fill="none" stroke="currentColor" stroke-width="30"
-       stroke-linecap="round" stroke-linejoin="round">
+    <g id="letter-a" fill="none" stroke-linecap="round" stroke-linejoin="round">
       <path d="M 12 127 a 43 43 0 1 0 86 0 a 43 43 0 1 0 -86 0"/>
       <path d="M 98 88 L 98 170"/>
     </g>
-    <g id="letter-t" fill="none" stroke="currentColor" stroke-width="30"
-       stroke-linecap="round" stroke-linejoin="round">
+    <g id="letter-t" fill="none" stroke-linecap="round" stroke-linejoin="round">
       <path d="M 50 28 L 50 146 Q 50 170 76 170"/>
       <path d="M 14 76 L 86 76"/>
     </g>
-    <g id="letter-z" fill="none" stroke="currentColor" stroke-width="30"
-       stroke-linecap="round" stroke-linejoin="round">
+    <g id="letter-z" fill="none" stroke-linecap="round" stroke-linejoin="round">
       <path d="M 14 82 L 90 82 L 14 168 L 94 168"/>
+    </g>
+
+    <path id="k-mark" d="M 0 0 H 160 L 80 80 L 160 160 H 0 Z"/>
+
+    <!-- the full sign artwork: each letter is built back to front as
+         glow, extruded dark return (5 offset stamps), trim cap rim,
+         lit acrylic face, hot light core -->
+    <g id="artwork">
+      <!-- Kotlin K mark as a lit sign element -->
+      <g transform="translate(40,116)">
+        <use xlink:href="#k-mark" fill="#B14FE0" filter="url(#glow)" opacity="0.5"/>
+        <g fill="#311447">
+          <use xlink:href="#k-mark" transform="translate(12,9)"/>
+          <use xlink:href="#k-mark" transform="translate(9.6,7.2)"/>
+          <use xlink:href="#k-mark" transform="translate(7.2,5.4)"/>
+          <use xlink:href="#k-mark" transform="translate(4.8,3.6)"/>
+          <use xlink:href="#k-mark" transform="translate(2.4,1.8)"/>
+        </g>
+        <use xlink:href="#k-mark" fill="url(#kotlin-gradient)" stroke="#2a1338" stroke-width="2"/>
+        <use xlink:href="#k-mark" fill="url(#k-sheen)"/>
+      </g>
+
+      <!-- b : orange -->
+      <g transform="translate(235,57) scale(1.18)">
+        <use xlink:href="#letter-b" stroke="#F7941D" stroke-width="30" filter="url(#glow)" opacity="0.75"/>
+        <g stroke="#6b3d05" stroke-width="30">
+          <use xlink:href="#letter-b" transform="translate(12,9)"/>
+          <use xlink:href="#letter-b" transform="translate(9.6,7.2)"/>
+          <use xlink:href="#letter-b" transform="translate(7.2,5.4)"/>
+          <use xlink:href="#letter-b" transform="translate(4.8,3.6)"/>
+          <use xlink:href="#letter-b" transform="translate(2.4,1.8)"/>
+        </g>
+        <use xlink:href="#letter-b" stroke="#1f1b18" stroke-width="35"/>
+        <use xlink:href="#letter-b" stroke="#F7941D" stroke-width="28"/>
+        <use xlink:href="#letter-b" stroke="#FFC46B" stroke-width="12" filter="url(#hot-core)" opacity="0.95"/>
+      </g>
+
+      <!-- e : blue, leaning like in the sign photo -->
+      <g transform="translate(395,128) scale(0.8) rotate(-14 55 125)">
+        <use xlink:href="#letter-e" stroke="#2D9CFF" stroke-width="30" filter="url(#glow)" opacity="0.75"/>
+        <g stroke="#0d4070" stroke-width="30">
+          <use xlink:href="#letter-e" transform="translate(12,9)"/>
+          <use xlink:href="#letter-e" transform="translate(9.6,7.2)"/>
+          <use xlink:href="#letter-e" transform="translate(7.2,5.4)"/>
+          <use xlink:href="#letter-e" transform="translate(4.8,3.6)"/>
+          <use xlink:href="#letter-e" transform="translate(2.4,1.8)"/>
+        </g>
+        <use xlink:href="#letter-e" stroke="#1f1b18" stroke-width="35"/>
+        <use xlink:href="#letter-e" stroke="#2D9CFF" stroke-width="28"/>
+        <use xlink:href="#letter-e" stroke="#8FCBFF" stroke-width="12" filter="url(#hot-core)" opacity="0.95"/>
+      </g>
+
+      <!-- a : red -->
+      <g transform="translate(485,91)">
+        <use xlink:href="#letter-a" stroke="#E8112D" stroke-width="30" filter="url(#glow)" opacity="0.75"/>
+        <g stroke="#6e0a18" stroke-width="30">
+          <use xlink:href="#letter-a" transform="translate(12,9)"/>
+          <use xlink:href="#letter-a" transform="translate(9.6,7.2)"/>
+          <use xlink:href="#letter-a" transform="translate(7.2,5.4)"/>
+          <use xlink:href="#letter-a" transform="translate(4.8,3.6)"/>
+          <use xlink:href="#letter-a" transform="translate(2.4,1.8)"/>
+        </g>
+        <use xlink:href="#letter-a" stroke="#1f1b18" stroke-width="35"/>
+        <use xlink:href="#letter-a" stroke="#E8112D" stroke-width="28"/>
+        <use xlink:href="#letter-a" stroke="#FF6B7A" stroke-width="12" filter="url(#hot-core)" opacity="0.95"/>
+      </g>
+
+      <!-- t : bright orange -->
+      <g transform="translate(610,44) scale(1.25)">
+        <use xlink:href="#letter-t" stroke="#FF8A00" stroke-width="30" filter="url(#glow)" opacity="0.75"/>
+        <g stroke="#6b3a00" stroke-width="30">
+          <use xlink:href="#letter-t" transform="translate(12,9)"/>
+          <use xlink:href="#letter-t" transform="translate(9.6,7.2)"/>
+          <use xlink:href="#letter-t" transform="translate(7.2,5.4)"/>
+          <use xlink:href="#letter-t" transform="translate(4.8,3.6)"/>
+          <use xlink:href="#letter-t" transform="translate(2.4,1.8)"/>
+        </g>
+        <use xlink:href="#letter-t" stroke="#1f1b18" stroke-width="35"/>
+        <use xlink:href="#letter-t" stroke="#FF8A00" stroke-width="28"/>
+        <use xlink:href="#letter-t" stroke="#FFC04D" stroke-width="12" filter="url(#hot-core)" opacity="0.95"/>
+      </g>
+
+      <!-- z : warm white -->
+      <g transform="translate(745,78) scale(1.08)">
+        <use xlink:href="#letter-z" stroke="#F2F0E9" stroke-width="30" filter="url(#glow)" opacity="0.6"/>
+        <g stroke="#8d887e" stroke-width="30">
+          <use xlink:href="#letter-z" transform="translate(12,9)"/>
+          <use xlink:href="#letter-z" transform="translate(9.6,7.2)"/>
+          <use xlink:href="#letter-z" transform="translate(7.2,5.4)"/>
+          <use xlink:href="#letter-z" transform="translate(4.8,3.6)"/>
+          <use xlink:href="#letter-z" transform="translate(2.4,1.8)"/>
+        </g>
+        <use xlink:href="#letter-z" stroke="#1f1b18" stroke-width="35"/>
+        <use xlink:href="#letter-z" stroke="#F2F0E9" stroke-width="28"/>
+        <use xlink:href="#letter-z" stroke="#FFFFFF" stroke-width="12" filter="url(#hot-core)" opacity="0.95"/>
+      </g>
     </g>
   </defs>
 
-  <rect width="920" height="340" fill="url(#bg-gradient)"/>
+  <!-- wall and perforated panel -->
+  <rect width="920" height="360" fill="url(#wall-gradient)"/>
+  <rect width="920" height="118" fill="#0b0508" opacity="0.55"/>
+  <rect width="920" height="118" fill="url(#wall-dots)" opacity="0.06"/>
 
-  <!-- Kotlin K mark -->
-  <g transform="translate(40,75)">
-    <path d="M 0 0 H 160 L 80 80 L 160 160 H 0 Z" fill="url(#kotlin-gradient)"/>
+  <!-- floor -->
+  <rect y="278" width="920" height="82" fill="url(#floor-gradient)"/>
+
+  <!-- coloured light pools cast on the floor -->
+  <g filter="url(#light-pool)">
+    <ellipse cx="125" cy="290" rx="95" ry="13" fill="#9A4FFF" opacity="0.22"/>
+    <ellipse cx="300" cy="292" rx="90" ry="13" fill="#F7941D" opacity="0.26"/>
+    <ellipse cx="432" cy="294" rx="55" ry="9"  fill="#2D9CFF" opacity="0.30"/>
+    <ellipse cx="538" cy="294" rx="70" ry="11" fill="#E8112D" opacity="0.26"/>
+    <ellipse cx="672" cy="292" rx="85" ry="12" fill="#FF8A00" opacity="0.26"/>
+    <ellipse cx="800" cy="292" rx="75" ry="11" fill="#F2F0E9" opacity="0.18"/>
   </g>
 
-  <!-- b : orange -->
-  <g transform="translate(235,42) scale(1.18)">
-    <use xlink:href="#letter-b" color="#F7941D" filter="url(#glow)" opacity="0.8"/>
-    <use xlink:href="#letter-b" color="#F7941D"/>
-  </g>
+  <!-- faint reflection on the floor -->
+  <use xlink:href="#artwork" transform="translate(0,556) scale(1,-1)"
+       opacity="0.1" filter="url(#reflection-blur)"/>
 
-  <!-- e : blue, leaning like in the sign photo -->
-  <g transform="translate(395,128) scale(0.8) rotate(-14 55 125)">
-    <use xlink:href="#letter-e" color="#2D9CFF" filter="url(#glow)" opacity="0.8"/>
-    <use xlink:href="#letter-e" color="#2D9CFF"/>
-  </g>
-
-  <!-- a : red -->
-  <g transform="translate(485,88)">
-    <use xlink:href="#letter-a" color="#E8112D" filter="url(#glow)" opacity="0.8"/>
-    <use xlink:href="#letter-a" color="#E8112D"/>
-  </g>
-
-  <!-- t : bright orange -->
-  <g transform="translate(610,30) scale(1.25)">
-    <use xlink:href="#letter-t" color="#FF8A00" filter="url(#glow)" opacity="0.8"/>
-    <use xlink:href="#letter-t" color="#FF8A00"/>
-  </g>
-
-  <!-- z : warm white -->
-  <g transform="translate(745,75) scale(1.08)">
-    <use xlink:href="#letter-z" color="#F2F0E9" filter="url(#glow)" opacity="0.7"/>
-    <use xlink:href="#letter-z" color="#F2F0E9"/>
-  </g>
+  <use xlink:href="#artwork"/>
 </svg>
