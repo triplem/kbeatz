@@ -45,6 +45,7 @@ This documentation covers:
 * xref:adr/ADR-007-kbeatz-metadata-pipeline.adoc[ADR-007] - kbeatz metadata pipeline
 * xref:adr/ADR-008-h2-auto-server-security.adoc[ADR-008] - H2 AUTO_SERVER security implications
 * xref:adr/ADR-009-cli-integration-strategy.adoc[ADR-009] - CLI integration strategy (shared libraries vs REST)
+* xref:adr/ADR-010-ui-styling-and-server-state.adoc[ADR-010] - UI styling approach (CSS Modules) and server state management (TanStack Query)
 
 == Shared Libraries
 
