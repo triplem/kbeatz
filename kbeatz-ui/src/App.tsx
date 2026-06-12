@@ -1,8 +1,7 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useQuery } from '@tanstack/react-query'
-import { Album } from './api/generated'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { AlbumsService } from './api/generated'
 import styles from './App.module.css'
 import { AlbumGrid } from './features/albums/album-grid'
@@ -17,32 +16,63 @@ import { LanguageToggle } from './features/language/language-toggle'
 import { useAlbumFilters } from './features/albums/useAlbumFilters'
 import {
   applyFiltersAndSort,
-  deriveFilterOptions,
   loadSortPreference,
   saveSortPreference,
+  type AlbumFilters,
   type SortField,
 } from './features/albums/album-filters'
 
-/** Fetch all pages sequentially until the last page is reached. */
-async function fetchAllAlbums(): Promise<Album[]> {
-  const all: Album[] = []
-  let page = 0
-  let totalPages = 1
-  do {
-    const response = await AlbumsService.listAlbums({ page, size: 100 })
-    all.push(...response.content)
-    totalPages = response.totalPages
-    page++
-  } while (page < totalPages)
-  return all
+const DEFAULT_PAGE_SIZE = 20
+
+function useAlbumPage(page: number, filters: AlbumFilters) {
+  return useQuery({
+    queryKey: [
+      'albums',
+      {
+        page,
+        q: filters.query || undefined,
+        albumArtist: filters.artists.length === 1 ? filters.artists[0] : undefined,
+        composer: filters.composers.length === 1 ? filters.composers[0] : undefined,
+        genre: filters.genres.length === 1 ? filters.genres[0] : undefined,
+        yearFrom: filters.yearMin ?? undefined,
+        yearTo: filters.yearMax ?? undefined,
+      },
+    ],
+    queryFn: () =>
+      AlbumsService.listAlbums({
+        page,
+        size: DEFAULT_PAGE_SIZE,
+        q: filters.query.trim() || undefined,
+        albumArtist: filters.artists.length === 1 ? filters.artists[0] : undefined,
+        composer: filters.composers.length === 1 ? filters.composers[0] : undefined,
+        genre: filters.genres.length === 1 ? filters.genres[0] : undefined,
+        yearFrom: filters.yearMin ?? undefined,
+        yearTo: filters.yearMax ?? undefined,
+      }),
+    placeholderData: keepPreviousData,
+    staleTime: 30_000,
+  })
 }
 
 function AlbumListPage() {
   const { t } = useTranslation()
 
+  const [page, setPage] = useState(0)
+
   // Filter state synced to URL search params via react-router
   const { filters, setFilters } = useAlbumFilters()
   const [sortBy, setSortBy] = useState<SortField>(() => loadSortPreference())
+
+  // Reset to page 0 whenever filters change
+  useEffect(() => {
+    setPage(0)
+  }, [filters])
+
+  const { data, isPending, isError, refetch } = useAlbumPage(page, filters)
+
+  const albums = useMemo(() => data?.content ?? [], [data?.content])
+  const totalElements = data?.totalElements ?? 0
+  const totalPages = data?.totalPages ?? 0
 
   // Persist sort preference to localStorage
   const handleSortChange = useCallback((next: SortField) => {
@@ -50,17 +80,28 @@ function AlbumListPage() {
     saveSortPreference(next)
   }, [])
 
-  const { data: albums = [], isPending, isError, refetch } = useQuery({
-    queryKey: ['albums'],
-    queryFn: fetchAllAlbums,
-  })
+  const handleRetry = useCallback(() => {
+    void refetch()
+  }, [refetch])
 
-  const filterOptions = useMemo(() => deriveFilterOptions(albums), [albums])
-
+  // Client-side sort only (no client-side filter - filtering is server-side)
   const visibleAlbums = useMemo(
-    () => applyFiltersAndSort(albums, filters, sortBy),
+    () => applyFiltersAndSort(albums, { ...filters, genres: [], artists: [], composers: [], query: '' }, sortBy),
     [albums, filters, sortBy],
   )
+
+  // Multi-select filters with more than 1 value are applied client-side on the current page
+  // as a fallback until a future epic adds multi-value server-side filter support.
+  const clientFilteredAlbums = useMemo(() => {
+    if (
+      filters.genres.length > 1 ||
+      filters.artists.length > 1 ||
+      filters.composers.length > 1
+    ) {
+      return applyFiltersAndSort(albums, filters, sortBy)
+    }
+    return visibleAlbums
+  }, [albums, filters, sortBy, visibleAlbums])
 
   return (
     <div className={styles.app}>
@@ -73,8 +114,14 @@ function AlbumListPage() {
         <ScanProgress />
         <div className={styles.appContent}>
           {!isPending && !isError && (
+            // TODO(#515-follow-up): FilterPanel dropdown options are empty because
+            // server-side options derivation is not yet implemented. A dedicated
+            // GET /api/v1/albums/filter-options endpoint is tracked as a follow-up
+            // story. Until then the dropdowns are visible but unpopulated; free-text
+            // search (q=) and single-value artist/genre/composer filters still work
+            // via the server-side query params sent by useAlbumPage.
             <FilterPanel
-              options={filterOptions}
+              options={{ genres: [], artists: [], composers: [] }}
               filters={filters}
               onFiltersChange={setFilters}
             />
@@ -89,7 +136,7 @@ function AlbumListPage() {
                 <p>{t('albumGrid.fetchError')}</p>
                 <button
                   type="button"
-                  onClick={() => { void refetch() }}
+                  onClick={handleRetry}
                   data-testid="albums-retry-button"
                   className={styles.retryButton}
                 >
@@ -97,7 +144,34 @@ function AlbumListPage() {
                 </button>
               </div>
             )}
-            {!isPending && !isError && <AlbumGrid albums={visibleAlbums} totalCount={albums.length} />}
+            {!isPending && !isError && (
+              <>
+                <AlbumGrid albums={clientFilteredAlbums} totalCount={totalElements} />
+                {totalPages > 1 && (
+                  <div className="app-pagination" data-testid="album-pagination">
+                    <button
+                      type="button"
+                      onClick={() => setPage((p) => Math.max(0, p - 1))}
+                      disabled={page === 0}
+                      data-testid="pagination-prev"
+                    >
+                      {t('pagination.previous')}
+                    </button>
+                    <span data-testid="pagination-info">
+                      {t('pagination.pageOf', { current: page + 1, total: totalPages })}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                      disabled={page >= totalPages - 1}
+                      data-testid="pagination-next"
+                    >
+                      {t('pagination.next')}
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       </main>

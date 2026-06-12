@@ -20,6 +20,15 @@ const queryClient = new QueryClient({
   },
 })
 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      staleTime: 30_000,
+    },
+  },
+})
+
 const rootEl = document.getElementById('root')
 if (!rootEl) throw new Error('Root element not found')
 

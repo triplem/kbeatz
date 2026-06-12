@@ -144,5 +144,10 @@
     "ariaLabel": "Select language",
     "en": "English",
     "de": "Deutsch"
+  },
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {{current}} of {{total}}"
   }
 }
