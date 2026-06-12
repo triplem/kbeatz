@@ -9,6 +9,8 @@ import { FilterPanel } from './features/albums/filter-panel'
 import { SearchBox } from './features/albums/search-box'
 import { SortPreference } from './features/albums/sort-preference'
 import { ScanProgress } from './features/library/scan-progress'
+import { NotFoundPage } from './features/not-found/not-found-page'
+import { ErrorBoundary } from './lib/error-boundary'
 import {
   applyFiltersAndSort,
   deriveFilterOptions,
@@ -144,9 +146,19 @@ function AlbumListPage() {
 
 export function App() {
   return (
-    <Routes>
-      <Route path="/" element={<AlbumListPage />} />
-      <Route path="/albums/:albumId" element={<AlbumDetail />} />
-    </Routes>
+    <ErrorBoundary>
+      <Routes>
+        <Route path="/" element={<AlbumListPage />} />
+        <Route
+          path="/albums/:albumId"
+          element={
+            <ErrorBoundary>
+              <AlbumDetail />
+            </ErrorBoundary>
+          }
+        />
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </ErrorBoundary>
   )
 }
