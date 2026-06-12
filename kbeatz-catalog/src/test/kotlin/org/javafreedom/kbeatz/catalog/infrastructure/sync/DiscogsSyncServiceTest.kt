@@ -328,7 +328,7 @@ class DiscogsSyncServiceTest {
                 "WARN message must contain the actual albumId value but was: $warnMessage"
             )
             assertTrue(
-                warnMessage.contains(album.discogsId!!),
+                warnMessage.contains(requireNotNull(album.discogsId) { "test album must have a discogsId" }),
                 "WARN message must contain the actual discogsId value but was: $warnMessage"
             )
         } finally {

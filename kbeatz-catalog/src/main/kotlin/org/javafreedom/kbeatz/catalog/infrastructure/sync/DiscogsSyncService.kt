@@ -30,8 +30,8 @@ private const val ROLE_ORCHESTRA = "Orchestra"
  * A future MusicBrainz or other provider would be a separate implementation of [SyncProvider].
  *
  * ## Sync sequence
- * 1. Load album from repository — throws [ResourceNotFoundException] if not found.
- * 2. Validate `discogsId` is present — throws [BusinessValidationException] if absent.
+ * 1. Load album from repository; throws [ResourceNotFoundException] if not found.
+ * 2. Validate `discogsId` is present; throws [BusinessValidationException] if absent.
  * 3. Fetch Discogs release via [metadataSource] (rate-limited, returns null -> warning, no-op).
  * 4. Write `.kbeatz-write.lock` to album directory.
  * 5. Write tags to all FLAC files atomically.
@@ -100,7 +100,7 @@ class DiscogsSyncService(
         val updatedAlbum = buildUpdatedAlbum(album, tags, discogsId)
         albumRepository.save(updatedAlbum)
 
-        log.info { "Sync complete for album $albumId: ${tags.size} tags written, ${warnings.size} warnings" }
+        log.info { "discogs_sync_complete albumId=$albumId fieldsWritten=${tags.size} warnings=${warnings.size}" }
         return SyncResult(
             fieldsWritten = tags.keys.toList().sorted(),
             warnings = warnings,
