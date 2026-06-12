@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
 import { Album } from './api/generated'
 import { AlbumsService } from './api/generated'
 import styles from './App.module.css'
@@ -40,11 +41,6 @@ async function fetchAllAlbums(): Promise<Album[]> {
 
 function AlbumListPage() {
   const { t } = useTranslation()
-  const [albums, setAlbums] = useState<Album[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  // Incrementing this triggers a re-fetch when the user clicks Retry
-  const [retryCount, setRetryCount] = useState(0)
 
   // Filter and sort state - initialised from URL query params and localStorage
   const [filters, setFilters] = useState<AlbumFilters>(() =>
@@ -66,37 +62,10 @@ function AlbumListPage() {
     saveSortPreference(next)
   }, [])
 
-  const handleRetry = useCallback(() => {
-    setLoading(true)
-    setError(null)
-    setRetryCount((n) => n + 1)
-  }, [])
-
-  useEffect(() => {
-    let cancelled = false
-
-    const loadAlbums = async () => {
-      try {
-        const all = await fetchAllAlbums()
-        if (!cancelled) {
-          setAlbums(all)
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : t('albumGrid.fetchError'))
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
-      }
-    }
-
-    void loadAlbums()
-    return () => {
-      cancelled = true
-    }
-  }, [retryCount, t])
+  const { data: albums = [], isPending, isError, refetch } = useQuery({
+    queryKey: ['albums'],
+    queryFn: fetchAllAlbums,
+  })
 
   const filterOptions = useMemo(() => deriveFilterOptions(albums), [albums])
 
@@ -115,7 +84,7 @@ function AlbumListPage() {
       <main className={styles.appMain}>
         <ScanProgress />
         <div className={styles.appContent}>
-          {!loading && !error && (
+          {!isPending && !isError && (
             <FilterPanel
               options={filterOptions}
               filters={filters}
@@ -126,13 +95,13 @@ function AlbumListPage() {
             <div className={styles.appToolbar}>
               <SortPreference value={sortBy} onChange={handleSortChange} />
             </div>
-            {loading && <p className={styles.loadingText}>{t('albumGrid.loading')}</p>}
-            {error && (
+            {isPending && <p className={styles.loadingText}>{t('albumGrid.loading')}</p>}
+            {isError && (
               <div role="alert" data-testid="albums-error" className={styles.errorBlock}>
                 <p>{t('albumGrid.fetchError')}</p>
                 <button
                   type="button"
-                  onClick={handleRetry}
+                  onClick={() => { void refetch() }}
                   data-testid="albums-retry-button"
                   className={styles.retryButton}
                 >
@@ -140,7 +109,7 @@ function AlbumListPage() {
                 </button>
               </div>
             )}
-            {!loading && !error && <AlbumGrid albums={visibleAlbums} totalCount={albums.length} />}
+            {!isPending && !isError && <AlbumGrid albums={visibleAlbums} totalCount={albums.length} />}
           </div>
         </div>
       </main>

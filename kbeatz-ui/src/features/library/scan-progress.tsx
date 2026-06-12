@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
 import { ScanStatus } from '../../api/generated'
 import { LibraryService } from '../../api/generated'
 import { formatDateTime } from '../../lib/i18n'
@@ -18,39 +18,18 @@ const POLL_INTERVAL_MS = 2000
  */
 export function ScanProgress() {
   const { t } = useTranslation()
-  const [status, setStatus] = useState<ScanStatus | null>(null)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const stopPolling = useCallback(() => {
-    if (intervalRef.current !== null) {
-      clearInterval(intervalRef.current)
-      intervalRef.current = null
-    }
-  }, [])
+  const { data: status } = useQuery<ScanStatus>({
+    queryKey: ['scan-status'],
+    queryFn: () => LibraryService.getLibraryScanStatus(),
+    refetchInterval: (query) => {
+      // Only poll while RUNNING; stop for any terminal state or before first response
+      const state = query.state.data?.state
+      return state === 'RUNNING' ? POLL_INTERVAL_MS : false
+    },
+  })
 
-  const fetchStatus = useCallback(async () => {
-    try {
-      const s = await LibraryService.getLibraryScanStatus()
-      setStatus(s)
-      if (s.state !== 'RUNNING') {
-        stopPolling()
-      }
-    } catch {
-      stopPolling()
-    }
-  }, [stopPolling])
-
-  useEffect(() => {
-    void fetchStatus()
-
-    intervalRef.current = setInterval(() => {
-      void fetchStatus()
-    }, POLL_INTERVAL_MS)
-
-    return stopPolling
-  }, [fetchStatus, stopPolling])
-
-  if (status === null || status.state === 'IDLE') {
+  if (status === undefined || status.state === 'IDLE') {
     return null
   }
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Album, AlbumsService } from '../../api/generated'
 import { CancelError } from '../../api/generated/core/CancelablePromise'
 import styles from './sync-panel.module.css'
@@ -53,6 +54,7 @@ interface SyncPanelProps {
  */
 export function SyncPanel({ album, onSyncComplete, hasLocalEdits = false }: SyncPanelProps) {
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
   const [downloadImages, setDownloadImages] = useState(false)
   const [syncState, setSyncState] = useState<SyncState>({ status: 'idle' })
   const cancelButtonRef = useRef<HTMLButtonElement>(null)
@@ -63,23 +65,28 @@ export function SyncPanel({ album, onSyncComplete, hasLocalEdits = false }: Sync
     }
   }, [syncState.status])
 
-  if (!album.discogsId) return null
-
-  const executeSync = async () => {
-    setSyncState({ status: 'loading' })
-    const request = AlbumsService.syncAlbumFromDiscogs({
-      albumId: album.id,
-      requestBody: { downloadImages },
-    })
-    const timeoutId = setTimeout(() => { request.cancel() }, SYNC_TIMEOUT_MS)
-    try {
-      const updated = await request
-      clearTimeout(timeoutId)
+  const syncMutation = useMutation({
+    mutationFn: () => {
+      const request = AlbumsService.syncAlbumFromDiscogs({
+        albumId: album.id,
+        requestBody: { downloadImages },
+      })
+      const timeoutId = setTimeout(() => { request.cancel() }, SYNC_TIMEOUT_MS)
+      return request.then((result) => {
+        clearTimeout(timeoutId)
+        return result
+      }).catch((err: unknown) => {
+        clearTimeout(timeoutId)
+        throw err
+      })
+    },
+    onSuccess: (updated) => {
       const fieldsWritten = countChangedFields(album, updated)
       onSyncComplete(updated)
+      queryClient.invalidateQueries({ queryKey: ['albums'] })
       setSyncState({ status: 'success', fieldsWritten })
-    } catch (err: unknown) {
-      clearTimeout(timeoutId)
+    },
+    onError: (err: unknown) => {
       if (err instanceof CancelError) {
         setSyncState({ status: 'error', message: t('syncPanel.syncTimeout') })
         return
@@ -96,7 +103,14 @@ export function SyncPanel({ album, onSyncComplete, hasLocalEdits = false }: Sync
       } else {
         setSyncState({ status: 'error', message })
       }
-    }
+    },
+  })
+
+  if (!album.discogsId) return null
+
+  const executeSync = () => {
+    setSyncState({ status: 'loading' })
+    syncMutation.mutate()
   }
 
   const handleSyncClick = () => {
@@ -104,12 +118,12 @@ export function SyncPanel({ album, onSyncComplete, hasLocalEdits = false }: Sync
       // Show overwrite warning before proceeding
       setSyncState({ status: 'confirmOverwrite' })
     } else {
-      void executeSync()
+      executeSync()
     }
   }
 
   const handleConfirmOverwrite = () => {
-    void executeSync()
+    executeSync()
   }
 
   const handleCancelOverwrite = () => {
