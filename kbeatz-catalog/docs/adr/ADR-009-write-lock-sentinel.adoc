@@ -1,4 +1,4 @@
-= ADR-009 — Write-Lock Sentinel File for Atomic Multi-File FLAC Writes
+= ADR-009 - Write-Lock Sentinel File for Atomic Multi-File FLAC Writes
 :revnumber: 1.0
 :revdate: 2026-06-07
 :author: kbeatz team
@@ -22,7 +22,7 @@ A single-file write therefore cannot corrupt the target file.
 
 However, **across multiple files there is no atomicity guarantee**.
 If the JVM is killed, the host machine loses power, or an unhandled exception
-is thrown after writing some — but not all — FLAC files, the album directory is
+is thrown after writing some (but not all) FLAC files, the album directory is
 left in a partially-updated state:
 
 * Some tracks carry the new tag value.
@@ -41,7 +41,7 @@ required for track-level operations.
 We use a **write-lock sentinel file** (`.kbeatz-write.lock`) as a crash-recovery
 manifest for album-level multi-file writes.
 
-=== Write sequence — album-level
+=== Write sequence - album-level
 
 The album-level write sequence in `TagWriteService.writeAlbumTags` is:
 
@@ -51,14 +51,14 @@ The album-level write sequence in `TagWriteService.writeAlbumTags` is:
 . **Create `.kbeatz-write.lock`** in the album directory.
   The file body is a newline-separated manifest of all target FLAC paths.
 . For each FLAC file in directory order: call `FlacFile.writeTo`
-  (temp-file → atomic rename — each individual file is safe).
+  (temp-file -> atomic rename; each individual file is safe).
 . **Delete `.kbeatz-write.lock`** after all writes succeed.
 . Persist the updated `Album` record to H2.
 
 If any file write throws, the sentinel is left in place and the exception
 propagates to the caller. The partially-written directory is flagged for repair.
 
-=== Startup repair — `repairOnStartup()`
+=== Startup repair - `repairOnStartup()`
 
 `LibraryScanService.repairOnStartup()` is called **synchronously** during
 application startup, before the Ktor server begins accepting HTTP requests
@@ -74,17 +74,17 @@ The repair procedure:
   .. Call `albumRepository.saveAll(...)` with the re-discovered albums,
      performing an upsert against the unique constraint
      `(album_artist, album, album_date, directory_path)`.
-     This re-indexes the directory from whatever state it is currently in —
+     This re-indexes the directory from whatever state it is currently in:
      whether fully written, partially written, or rolled back by OS.
   .. Delete the sentinel file.
   .. Log: `"Repaired album directory: <path>"`.
 . If the walk or repository call throws for a specific directory, the error is
   caught and logged at ERROR level:
-  `"Startup repair failed for <dir> — lock file retained: <lockfile>"`
+  `"Startup repair failed for <dir> - lock file retained: <lockfile>"`
   The sentinel is *not* deleted, and repair continues with any remaining sentinels.
 
 If no sentinels are found, a single INFO log is emitted:
-`"No .kbeatz-write.lock files found — skipping startup repair"`
+`"No .kbeatz-write.lock files found - skipping startup repair"`
 
 === Key implementation files
 
@@ -92,7 +92,7 @@ If no sentinels are found, a single INFO log is emitted:
 |File |Role
 
 |`domain/model/WriteLock.kt`
-|Defines `WRITE_LOCK_FILENAME = ".kbeatz-write.lock"` — single source of truth for the name
+|Defines `WRITE_LOCK_FILENAME = ".kbeatz-write.lock"` - single source of truth for the name
 
 |`application/service/TagWriteService.kt`
 |Creates and deletes the sentinel; writes tags; implements the album-level sequence
@@ -136,16 +136,16 @@ If no sentinels are found, a single INFO log is emitted:
   be stale. Operator action required: inspect the directory, fix the underlying
   cause, then delete the sentinel manually.
 * Log messages to monitor:
-  ** `INFO  "Found N .kbeatz-write.lock file(s) — running startup repair"` — dirty shutdown detected
-  ** `INFO  "Repaired album directory: <path>"` — repair succeeded
-  ** `ERROR "Startup repair failed for <dir> — lock file retained: <lockfile>"` — manual intervention needed
+  ** `INFO  "Found N .kbeatz-write.lock file(s) - running startup repair"` - dirty shutdown detected
+  ** `INFO  "Repaired album directory: <path>"` - repair succeeded
+  ** `ERROR "Startup repair failed for <dir> - lock file retained: <lockfile>"` - manual intervention needed
 
 === Scope limitations
 
 * The sentinel is **not** created for track-level writes. A single `FlacFile.writeTo`
   is atomic; no manifest is needed.
 * The sentinel does **not** contain checksums or expected post-write content.
-  Recovery re-indexes whatever state is on disk — it does not detect or undo partial
+  Recovery re-indexes whatever state is on disk; it does not detect or undo partial
   writes at the byte level. This is sufficient for Vorbis Comment tag updates where
   even a partial write results in a valid-or-invalid FLAC file, not silent corruption.
 * The sentinel file is per-album-directory. Concurrent writes to two different album
@@ -156,7 +156,7 @@ If no sentinels are found, a single INFO log is emitted:
 === Database transaction wrapping
 
 Wrapping all FLAC file writes inside a single database transaction was considered.
-FLAC writes are filesystem operations — they cannot participate in a JDBC/Exposed
+FLAC writes are filesystem operations; they cannot participate in a JDBC/Exposed
 transaction. Transactional semantics apply only to H2 row mutations, not to the
 `FlacFile.writeTo` calls. Rejected: fundamentally out of transactional scope.
 
@@ -181,7 +181,7 @@ pre-write state (full rollback). Rejected because:
 
 * Doubles the disk I/O and temporary space needed per write.
 * FLAC files can be large (lossless audio). A 20-track album may be several GB.
-* The product goal is to persist the user's tag edits — on crash recovery, writing
+* The product goal is to persist the user's tag edits; on crash recovery, writing
   the *new* state (re-index what is there) is preferable to silently reverting it.
 
 === OS-level filesystem journal (ext4, APFS, NTFS journal)
@@ -201,4 +201,4 @@ directories. Rejected because:
   synchronous full scan before accepting requests would add significant startup
   latency unconditionally.
 * The sentinel-based approach limits synchronous startup work to only the
-  affected directories — typically zero on a clean shutdown.
+  affected directories; typically zero on a clean shutdown.

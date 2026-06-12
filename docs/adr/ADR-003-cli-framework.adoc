@@ -10,7 +10,7 @@ Accepted
 
 == Context
 
-`kbeatz-tagger` is a command-line tool that needs structured argument parsing, subcommands,
+`kbeatz-cli` is a command-line tool that needs structured argument parsing, subcommands,
 help text generation, and type-safe option handling.
 
 Two mature options were considered:
@@ -35,7 +35,7 @@ Two mature options were considered:
 
 == Decision
 
-Use **Clikt 4.x** (`com.github.ajalt.clikt:clikt`) for CLI argument parsing in `kbeatz-tagger`.
+Use **Clikt 4.x** (`com.github.ajalt.clikt:clikt`) for CLI argument parsing in `kbeatz-cli`.
 
 == Implementation Notes
 
