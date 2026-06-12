@@ -14,10 +14,10 @@
       <stop offset="100%" stop-color="#8d94a2"/>
     </radialGradient>
 
-    <!-- userSpaceOnUse (letter-local coords): a default objectBoundingBox
-         gradient collapses on the zero-width vertical stem path -->
+    <!-- userSpaceOnUse in font units (y up): violet at the ascender,
+         pink at the baseline -->
     <linearGradient id="k-accent" gradientUnits="userSpaceOnUse"
-                    x1="0" y1="12" x2="0" y2="168">
+                    x1="0" y1="740" x2="0" y2="0">
       <stop offset="0%" stop-color="#7C5CFF"/>
       <stop offset="100%" stop-color="#FF5A8F"/>
     </linearGradient>
@@ -37,31 +37,6 @@
       <circle cx="200" cy="174" r="12" fill="#000000"/>
     </mask>
 
-    <!-- wordmark letter skeletons, stroked with round caps -->
-    <g id="wm-k" fill="none" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M 20 12 L 20 168"/>
-      <path d="M 20 130 L 80 88"/>
-      <path d="M 44 113 L 88 168"/>
-    </g>
-    <g id="wm-b" fill="none" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M 20 12 L 20 168"/>
-      <path d="M 21 127 a 41 41 0 1 0 82 0 a 41 41 0 1 0 -82 0"/>
-    </g>
-    <g id="wm-e" fill="none" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M 96 127 A 41 41 0 1 0 86.4 153.3"/>
-      <path d="M 18 127 L 94 127"/>
-    </g>
-    <g id="wm-a" fill="none" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M 11 127 a 41 41 0 1 0 82 0 a 41 41 0 1 0 -82 0"/>
-      <path d="M 93 90 L 93 168"/>
-    </g>
-    <g id="wm-t" fill="none" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M 48 30 L 48 146 Q 48 168 70 168"/>
-      <path d="M 14 78 L 82 78"/>
-    </g>
-    <g id="wm-z" fill="none" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M 14 86 L 88 86 L 14 168 L 92 168"/>
-    </g>
   </defs>
 
   <rect width="980" height="300" fill="url(#bg-gradient)"/>
@@ -105,14 +80,13 @@
     <circle cx="200" cy="174" r="75.5" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.3"/>
   </g>
 
-  <!-- wordmark -->
-  <g stroke-width="26">
-    <use xlink:href="#wm-k" transform="translate(300,30)" stroke="url(#k-accent)"/>
-    <use xlink:href="#wm-b" transform="translate(410,30)" stroke="#F4F2EE"/>
-    <use xlink:href="#wm-e" transform="translate(530,30)" stroke="#F4F2EE"/>
-    <use xlink:href="#wm-a" transform="translate(642,30)" stroke="#F4F2EE"/>
-    <use xlink:href="#wm-t" transform="translate(752,30)" stroke="#F4F2EE"/>
-    <use xlink:href="#wm-z" transform="translate(854,30)" stroke="#F4F2EE"/>
+  <!-- wordmark: Poppins Bold outlines (SIL OFL), baked to paths in font
+       units (y up), flipped and scaled into place -->
+  <g transform="translate(305,200) scale(0.186,-0.186)">
+    <path fill="url(#k-accent)"
+          d="M403 0L233 234L233 0L62 0L62 740L233 740L233 331L402 558L613 558L381 278L615 0Z"/>
+    <path fill="#F4F2EE" transform="translate(618,0)"
+          d="M233 479Q257 518 302 542Q347 566 405 566Q474 566 530 531Q586 496 618.5 431Q651 366 651 280Q651 194 618.5 128.5Q586 63 530 27.5Q474 -8 405 -8Q346 -8 302 15.5Q258 39 233 78L233 0L62 0L62 740L233 740L233 479ZM477 280Q477 344 441.5 380.5Q406 417 354 417Q303 417 267.5 380Q232 343 232 279Q232 215 267.5 178Q303 141 354 141Q405 141 441 178.5Q477 216 477 280Z M1267 288Q1267 264 1264 238L877 238Q881 186 910.5 158.5Q940 131 983 131Q1047 131 1072 185L1254 185Q1240 130 1203.5 86Q1167 42 1112 17Q1057 -8 989 -8Q907 -8 843 27Q779 62 743 127Q707 192 707 279Q707 366 742.5 431Q778 496 842 531Q906 566 989 566Q1070 566 1133 532Q1196 498 1231.5 435Q1267 372 1267 288ZM1092 333Q1092 377 1062 403Q1032 429 987 429Q944 429 914.5 404Q885 379 878 333Z M1323 280Q1323 366 1355.5 431Q1388 496 1444 531Q1500 566 1569 566Q1628 566 1672.5 542Q1717 518 1741 479L1741 558L1912 558L1912 0L1741 0L1741 79Q1716 40 1671.5 16Q1627 -8 1568 -8Q1500 -8 1444 27.5Q1388 63 1355.5 128.5Q1323 194 1323 280ZM1741 279Q1741 343 1705.5 380Q1670 417 1619 417Q1568 417 1532.5 380.5Q1497 344 1497 280Q1497 216 1532.5 178.5Q1568 141 1619 141Q1670 141 1705.5 178Q1741 215 1741 279Z M2347 145L2347 0L2260 0Q2167 0 2115 45.5Q2063 91 2063 194L2063 416L1995 416L1995 558L2063 558L2063 694L2234 694L2234 558L2346 558L2346 416L2234 416L2234 192Q2234 167 2246 156Q2258 145 2286 145Z M2602 141L2844 141L2844 0L2411 0L2411 136L2643 417L2413 417L2413 558L2839 558L2839 422Z"/>
   </g>
 
   <!-- audio pulse underline -->
