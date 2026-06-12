@@ -1,7 +1,11 @@
+import { type ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
-export function NotFoundPage() {
+// Props interface declared for project consistency; component takes no props.
+export type NotFoundPageProps = Record<string, never>
+
+export function NotFoundPage(): ReactElement {
   const { t } = useTranslation()
 
   return (

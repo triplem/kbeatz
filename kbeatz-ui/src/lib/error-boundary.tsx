@@ -1,5 +1,5 @@
 import { Component, type ReactNode, type ErrorInfo } from 'react'
-import { withTranslation, type WithTranslation } from 'react-i18next'
+import { useTranslation } from 'react-i18next'
 
 const logger = {
   error: (ctx: object, msg: string) => {
@@ -7,24 +7,32 @@ const logger = {
   },
 }
 
-interface ErrorBoundaryProps extends WithTranslation {
+// Internal props used by the class component. `t` is injected by the thin
+// functional wrapper below so the class never imports a hook directly.
+interface ErrorBoundaryInternalProps {
   children: ReactNode
   fallback?: ReactNode
+  t: (key: string) => string
 }
 
 interface ErrorBoundaryState {
   hasError: boolean
-  error: Error | null
 }
 
-class ErrorBoundaryBase extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
+// Public props that callers pass to <ErrorBoundary>.
+export interface ErrorBoundaryProps {
+  children: ReactNode
+  fallback?: ReactNode
+}
+
+class ErrorBoundaryBase extends Component<ErrorBoundaryInternalProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryInternalProps) {
     super(props)
-    this.state = { hasError: false, error: null }
+    this.state = { hasError: false }
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error }
+  static getDerivedStateFromError(): ErrorBoundaryState {
+    return { hasError: true }
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
@@ -61,4 +69,13 @@ class ErrorBoundaryBase extends Component<ErrorBoundaryProps, ErrorBoundaryState
   }
 }
 
-export const ErrorBoundary = withTranslation()(ErrorBoundaryBase)
+// Thin functional wrapper: uses the project-standard useTranslation hook and
+// injects `t` into the class component. Callers import only ErrorBoundary.
+export function ErrorBoundary({ children, fallback }: ErrorBoundaryProps): ReactNode {
+  const { t } = useTranslation()
+  return (
+    <ErrorBoundaryBase t={t} fallback={fallback}>
+      {children}
+    </ErrorBoundaryBase>
+  )
+}

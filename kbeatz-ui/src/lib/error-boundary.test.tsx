@@ -5,12 +5,11 @@ import { ErrorBoundary } from './error-boundary'
 import { NotFoundPage } from '../features/not-found/not-found-page'
 
 // Suppress React's error boundary console.error output during tests
-const originalConsoleError = console.error
 beforeEach(() => {
-  console.error = vi.fn()
+  vi.spyOn(console, 'error').mockImplementation(() => undefined)
 })
 afterEach(() => {
-  console.error = originalConsoleError
+  vi.restoreAllMocks()
 })
 
 function ThrowingComponent(): never {
