@@ -266,7 +266,10 @@ paths:
             image/png:
               schema: { type: string, format: binary }
         "304":
-          description: Not Modified - client cache is still valid
+          description: |
+            Not Modified - browser or proxy cache is still valid.
+            This response is emitted by the HTTP client or intermediary cache based
+            on the Last-Modified and Cache-Control headers; the server always returns 200.
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":

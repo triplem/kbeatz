@@ -60,7 +60,7 @@ private suspend fun handleCoverArt(
             call.response.headers.append(HttpHeaders.CacheControl, "public, max-age=86400")
             outcome.result.lastModified?.let { lastModified ->
                 val httpDate = DateTimeFormatter.RFC_1123_DATE_TIME
-                    .format(lastModified.atOffset(ZoneOffset.UTC))
+                    .format(java.time.Instant.ofEpochMilli(lastModified.toEpochMilliseconds()).atOffset(ZoneOffset.UTC))
                 call.response.headers.append(HttpHeaders.LastModified, httpDate)
             }
             call.respondBytes(

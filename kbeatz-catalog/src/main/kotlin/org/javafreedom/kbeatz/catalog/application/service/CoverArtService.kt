@@ -4,8 +4,8 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.BasicFileAttributes
-import java.time.Instant
 import kotlin.uuid.Uuid
+import kotlin.time.Instant
 import kotlinx.io.files.Path as KtPath
 import org.javafreedom.kbeatz.catalog.domain.model.ImageDescriptor
 import org.javafreedom.kbeatz.catalog.domain.model.ImageSource
@@ -39,7 +39,7 @@ class CoverArtService(
         if (!Files.isDirectory(libraryRoot)) {
             log.warn {
                 "CATALOG_LIBRARY_ROOT does not exist or is not a directory: $libraryRoot" +
-                    " — cover art will return 404 until the directory is created"
+                    " - cover art will return 404 until the directory is created"
             }
         }
     }
@@ -75,7 +75,8 @@ class CoverArtService(
 
     private fun readLastModified(path: Path): Instant? =
         try {
-            Files.readAttributes(path, BasicFileAttributes::class.java).lastModifiedTime().toInstant()
+            val mtime = Files.readAttributes(path, BasicFileAttributes::class.java).lastModifiedTime()
+            Instant.fromEpochMilliseconds(mtime.toMillis())
         } catch (_: Exception) {
             null
         }

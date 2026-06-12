@@ -11,11 +11,11 @@ import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
 import io.mockk.coEvery
 import io.mockk.mockk
-import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import kotlin.time.Instant
 import kotlin.uuid.Uuid
 import kotlinx.serialization.json.Json
 import org.javafreedom.kbeatz.catalog.api.models.ErrorResponse
@@ -63,7 +63,7 @@ class CoverArtHandlerTest {
     }
 
     @Test
-    fun `GET cover sends Last-Modified header when lastModified is set`() = testApplication {
+    fun `GET cover sends Last-Modified header in RFC 1123 format when lastModified is set`() = testApplication {
         install(ContentNegotiation) { json(json) }
         routing { coverArtRoutes(coverArtService) }
 
@@ -74,7 +74,13 @@ class CoverArtHandlerTest {
         val response = client.get("/albums/$albumId/cover")
 
         assertEquals(HttpStatusCode.OK, response.status)
-        assertNotNull(response.headers[HttpHeaders.LastModified], "Last-Modified header must be present")
+        val lastModifiedHeader = response.headers[HttpHeaders.LastModified]
+        assertNotNull(lastModifiedHeader, "Last-Modified header must be present")
+        assertEquals(
+            "Wed, 1 May 2024 12:00:00 GMT",
+            lastModifiedHeader,
+            "Last-Modified must be in RFC 1123 HTTP-date format",
+        )
     }
 
     @Test
@@ -101,12 +107,11 @@ class CoverArtHandlerTest {
 
         coEvery { coverArtService.getCoverArt(albumId) } returns null
 
-        val response = client.get("/albums/$albumId/cover")
         val client2 = createClient { install(ClientContentNegotiation) { json(json) } }
+        val response = client2.get("/albums/$albumId/cover")
 
-        val response2 = client2.get("/albums/$albumId/cover")
-        assertEquals(HttpStatusCode.NotFound, response2.status)
-        val error = response2.body<ErrorResponse>()
+        assertEquals(HttpStatusCode.NotFound, response.status)
+        val error = response.body<ErrorResponse>()
         assertEquals("RESOURCE_NOT_FOUND", error.code)
     }
 
