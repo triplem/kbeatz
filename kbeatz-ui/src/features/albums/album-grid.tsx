@@ -138,7 +138,10 @@ export function AlbumGrid({ albums, totalCount }: AlbumGridProps) {
                     transform: `translateY(${virtualRow.start}px)`,
                   }}
                 >
-                  <div className={styles.albumGridRow}>
+                  <div
+                    className={styles.albumGridRow}
+                    style={{ '--grid-columns': columns } as React.CSSProperties}
+                  >
                     {rowAlbums.map((album) => (
                       <AlbumCard key={album.id} album={album} />
                     ))}
