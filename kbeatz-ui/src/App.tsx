@@ -15,8 +15,11 @@ import { LanguageToggle } from './features/language/language-toggle'
 import { useAlbumFilters } from './features/albums/useAlbumFilters'
 import {
   applyFiltersAndSort,
+  loadSortDirection,
   loadSortPreference,
+  saveSortDirection,
   saveSortPreference,
+  type SortDirection,
   type SortField,
 } from './features/albums/album-filters'
 
@@ -28,6 +31,7 @@ function AlbumListPage() {
   // Filter state synced to URL search params via react-router
   const { filters, setFilters } = useAlbumFilters()
   const [sortBy, setSortBy] = useState<SortField>(() => loadSortPreference())
+  const [sortDirection, setSortDirection] = useState<SortDirection>(() => loadSortDirection())
 
   // Reset to page 0 whenever filters change
   useEffect(() => {
@@ -46,14 +50,20 @@ function AlbumListPage() {
     saveSortPreference(next)
   }, [])
 
+  // Persist sort direction to localStorage
+  const handleDirectionChange = useCallback((next: SortDirection) => {
+    setSortDirection(next)
+    saveSortDirection(next)
+  }, [])
+
   const handleRetry = useCallback(() => {
     void refetch()
   }, [refetch])
 
   // Client-side sort only (no client-side filter - filtering is server-side)
   const visibleAlbums = useMemo(
-    () => applyFiltersAndSort(albums, { ...filters, genres: [], artists: [], composers: [], query: '' }, sortBy),
-    [albums, filters, sortBy],
+    () => applyFiltersAndSort(albums, { ...filters, genres: [], artists: [], composers: [], query: '' }, sortBy, sortDirection),
+    [albums, filters, sortBy, sortDirection],
   )
 
   // Multi-select filters with more than 1 value are applied client-side on the current page
@@ -64,10 +74,10 @@ function AlbumListPage() {
       filters.artists.length > 1 ||
       filters.composers.length > 1
     ) {
-      return applyFiltersAndSort(albums, filters, sortBy)
+      return applyFiltersAndSort(albums, filters, sortBy, sortDirection)
     }
     return visibleAlbums
-  }, [albums, filters, sortBy, visibleAlbums])
+  }, [albums, filters, sortBy, sortDirection, visibleAlbums])
 
   return (
     <div className={styles.app}>
@@ -94,7 +104,12 @@ function AlbumListPage() {
           )}
           <div className={styles.appGridArea}>
             <div className={styles.appToolbar}>
-              <SortPreference value={sortBy} onChange={handleSortChange} />
+              <SortPreference
+                value={sortBy}
+                onChange={handleSortChange}
+                direction={sortDirection}
+                onDirectionChange={handleDirectionChange}
+              />
             </div>
             {isPending && <p className={styles.loadingText}>{t('albumGrid.loading')}</p>}
             {isError && (

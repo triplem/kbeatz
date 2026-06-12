@@ -22,7 +22,10 @@ export const EMPTY_FILTERS: AlbumFilters = {
 
 export type SortField = 'albumArtist' | 'composer'
 
+export type SortDirection = 'asc' | 'desc'
+
 const SORT_STORAGE_KEY = 'kbeatz.sortBy'
+const SORT_DIR_STORAGE_KEY = 'kbeatz.sortDir'
 
 /** Load the user's sort preference from localStorage. Defaults to 'albumArtist'. */
 export function loadSortPreference(): SortField {
@@ -44,6 +47,26 @@ export function saveSortPreference(sort: SortField): void {
   }
 }
 
+/** Load the user's sort direction preference from localStorage. Defaults to 'asc'. */
+export function loadSortDirection(): SortDirection {
+  try {
+    const stored = localStorage.getItem(SORT_DIR_STORAGE_KEY)
+    if (stored === 'asc' || stored === 'desc') return stored
+  } catch {
+    // localStorage unavailable (SSR, private mode) - use default
+  }
+  return 'asc'
+}
+
+/** Persist the sort direction preference to localStorage. */
+export function saveSortDirection(dir: SortDirection): void {
+  try {
+    localStorage.setItem(SORT_DIR_STORAGE_KEY, dir)
+  } catch {
+    // Silently ignore write failures
+  }
+}
+
 /**
  * Filter and sort the album list.
  *
@@ -54,16 +77,17 @@ export function saveSortPreference(sort: SortField): void {
  * - Free-text query matches any of albumArtist, album, composer, label (case-insensitive).
  *
  * Sort rules:
- * - 'albumArtist': alphabetical ascending by albumArtist.
- * - 'composer': alphabetical ascending by composer; albums with null composer appear last.
+ * - 'albumArtist': alphabetical by albumArtist; direction controls order.
+ * - 'composer': alphabetical by composer; albums with null composer appear last regardless of direction.
  */
 export function applyFiltersAndSort(
   albums: ReadonlyArray<Album>,
   filters: AlbumFilters,
   sort: SortField,
+  direction: SortDirection = 'asc',
 ): Album[] {
   const filtered = albums.filter((album) => filterAlbum(album, filters))
-  return sortAlbums(filtered, sort)
+  return sortAlbums(filtered, sort, direction)
 }
 
 function filterAlbum(album: Album, filters: AlbumFilters): boolean {
@@ -110,17 +134,19 @@ function parseYear(date: string | undefined): number | null {
   return isNaN(year) ? null : year
 }
 
-function sortAlbums(albums: Album[], sort: SortField): Album[] {
+function sortAlbums(albums: Album[], sort: SortField, direction: SortDirection): Album[] {
+  const multiplier = direction === 'desc' ? -1 : 1
   return [...albums].sort((a, b) => {
     if (sort === 'composer') {
       const ca = a.composer ?? null
       const cb = b.composer ?? null
-      if (ca === null && cb === null) return a.albumArtist.localeCompare(b.albumArtist)
+      // Null-composer albums always appear last, regardless of direction
+      if (ca === null && cb === null) return multiplier * a.albumArtist.localeCompare(b.albumArtist)
       if (ca === null) return 1
       if (cb === null) return -1
-      return ca.localeCompare(cb)
+      return multiplier * ca.localeCompare(cb)
     }
-    return a.albumArtist.localeCompare(b.albumArtist)
+    return multiplier * a.albumArtist.localeCompare(b.albumArtist)
   })
 }
 
