@@ -1,6 +1,6 @@
 = kbeatz-catalog Operations Guide
-:revnumber: 1.2
-:revdate: 2026-06-08
+:revnumber: 1.3
+:revdate: 2026-06-12
 :author: kbeatz team
 :toc:
 :toc-placement!:
@@ -130,6 +130,10 @@ running (so it can reconnect) rather than be restarted.
 | `DATA_DIR`
 | No (default: `./data`)
 | Directory for runtime data files including `discogs-image-quota.json`. Created automatically on startup if it does not exist. Must be writable by the service process.
+
+| `CATALOG_REPAIR_TIMEOUT_SECONDS`
+| No (default: `60`)
+| Maximum wall-clock seconds the startup lock-file repair phase may run before it is aborted and startup continues. Any lock files not repaired within this window are left in place and will be picked up automatically on the next scan request. See <<startup-repair-failed>>.
 |===
 
 WARNING: Never log, print, or include `DISCOGS_TOKEN` in error messages or API responses.
@@ -329,18 +333,43 @@ or the token-bucket state was reset (service restart) during a burst.
 *Fix*: Ensure only one instance of kbeatz-catalog runs per PAT. If running multiple
 instances is required, each needs its own Discogs PAT.
 
-=== "Startup repair failed" in Logs
+[#startup-repair-failed]
+=== "Startup repair failed" / "Startup repair timed out" in Logs
 
-*Cause*: A `.kbeatz-write.lock` file was found in the library but re-indexing the
-album directory failed (e.g. directory moved or FLAC files deleted).
+*Cause*: One or more `.kbeatz-write.lock` files were found in the library at startup.
+Two distinct situations produce log entries:
 
-*Fix*: Manually delete the lock file after verifying the album directory contents:
+* *Per-directory failure* (`"Startup repair failed for <dir>"`) - re-indexing a specific
+  album directory failed, typically because the directory was moved or FLAC files were
+  deleted while the lock file remained.
+* *Timeout* (`"Startup repair timed out after Ns"`) - the repair phase did not finish
+  within the configured timeout (default 60 seconds; controlled by
+  `CATALOG_REPAIR_TIMEOUT_SECONDS`). Startup continues; unrepaired directories are
+  listed in the ERROR log entry.
+
+*Self-healing behaviour*: In both cases the service starts normally. Lock files that
+were not repaired at startup are picked up automatically on the next
+`POST /api/v1/library/scan` request (and again on the next startup). No operator
+action is required unless the lock is stale or the album directory no longer exists.
+
+*Manual cleanup - only when needed*: If a lock file refers to a directory that has
+been permanently removed, or if you need to clear a lock immediately rather than
+waiting for the next scan, delete the file manually:
 
 [source,bash]
 ----
-find $CATALOG_LIBRARY_ROOT -name ".kbeatz-write.lock" -exec rm {} \;
-systemctl restart kbeatz-catalog
+# Identify unrepaired lock files
+find $CATALOG_LIBRARY_ROOT -name ".kbeatz-write.lock"
+
+# Remove a specific lock file after confirming the directory is gone or corrupt
+rm /path/to/album/.kbeatz-write.lock
+
+# No restart needed - the next scan will process remaining directories normally
 ----
+
+To extend the repair window and reduce timeout occurrences on large libraries, increase
+`CATALOG_REPAIR_TIMEOUT_SECONDS` (e.g. `CATALOG_REPAIR_TIMEOUT_SECONDS=300` for a
+five-minute window).
 
 == Backup and Restore
 
