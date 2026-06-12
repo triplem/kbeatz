@@ -14,14 +14,12 @@ import { ScanProgress } from './features/library/scan-progress'
 import { NotFoundPage } from './features/not-found/not-found-page'
 import { ErrorBoundary } from './lib/error-boundary'
 import { LanguageToggle } from './features/language/language-toggle'
+import { useAlbumFilters } from './features/albums/useAlbumFilters'
 import {
   applyFiltersAndSort,
   deriveFilterOptions,
-  filtersFromParams,
-  filtersToParams,
   loadSortPreference,
   saveSortPreference,
-  type AlbumFilters,
   type SortField,
 } from './features/albums/album-filters'
 
@@ -42,19 +40,9 @@ async function fetchAllAlbums(): Promise<Album[]> {
 function AlbumListPage() {
   const { t } = useTranslation()
 
-  // Filter and sort state - initialised from URL query params and localStorage
-  const [filters, setFilters] = useState<AlbumFilters>(() =>
-    filtersFromParams(new URLSearchParams(window.location.search)),
-  )
+  // Filter state synced to URL search params via react-router
+  const { filters, setFilters } = useAlbumFilters()
   const [sortBy, setSortBy] = useState<SortField>(() => loadSortPreference())
-
-  // Sync filters to URL whenever they change
-  useEffect(() => {
-    const params = filtersToParams(filters)
-    const search = params.toString()
-    const newUrl = search ? `${window.location.pathname}?${search}` : window.location.pathname
-    window.history.replaceState(null, '', newUrl)
-  }, [filters])
 
   // Persist sort preference to localStorage
   const handleSortChange = useCallback((next: SortField) => {

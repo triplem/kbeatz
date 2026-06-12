@@ -283,7 +283,7 @@ describe('AlbumDetail', () => {
 
     expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument()
     expect(screen.getByTestId('album-value-genre')).toHaveTextContent('Jazz')
-    // Escape on the input cancels before the dialog — no dialog, no PATCH
+    // Escape on the input cancels before the dialog - no dialog, no PATCH
     expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
     expect(mockAlbumsService.updateAlbumTags).not.toHaveBeenCalled()
   })
@@ -397,7 +397,7 @@ describe('AlbumDetail', () => {
 
     // PATCH was never called
     expect(mockAlbumsService.updateAlbumTags).not.toHaveBeenCalled()
-    // Field shows original value (rolled back silently — no error shown)
+    // Field shows original value (rolled back silently - no error shown)
     expect(screen.getByTestId('album-value-genre')).toHaveTextContent('Jazz')
     expect(screen.queryByTestId('album-error-genre')).not.toBeInTheDocument()
   })
