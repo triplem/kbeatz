@@ -3,6 +3,7 @@ package org.javafreedom.kbeatz.catalog.application.service
 import kotlin.uuid.Uuid
 import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.model.Track
+import org.javafreedom.kbeatz.catalog.domain.repository.AlbumFilter
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 import org.javafreedom.kbeatz.catalog.domain.repository.TrackRepository
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
@@ -38,6 +39,6 @@ class AlbumService(
         return album to tracks
     }
 
-    suspend fun listAlbums(page: Int, size: Int): Pair<List<Album>, Long> =
-        repository.findAllWithCount(page, size)
+    suspend fun listAlbums(page: Int, size: Int, filter: AlbumFilter = AlbumFilter()): Pair<List<Album>, Long> =
+        repository.findAllWithCount(page, size, filter)
 }
