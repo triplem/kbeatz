@@ -312,6 +312,104 @@ class FlacRoundTripTest {
     }
 
     // -------------------------------------------------------------------------
+    // Unicode round-trip: non-ASCII Vorbis comment values (RFC 9639 §10)
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `should round-trip German umlaut title through write then parse`() {
+        val title = "Über die Brücke"
+        val vc = roundTripVorbisComment("TITLE=$title")
+        assertEquals(title, vc.get("TITLE"))
+    }
+
+    @Test
+    fun `should round-trip CJK characters through write then parse`() {
+        val value = "日本語"
+        val vc = roundTripVorbisComment("ALBUM=$value")
+        assertEquals(value, vc.get("ALBUM"))
+    }
+
+    @Test
+    fun `should round-trip non-BMP emoji character through write then parse`() {
+        val value = "🎵"
+        val vc = roundTripVorbisComment("COMMENT=$value")
+        assertEquals(value, vc.get("COMMENT"))
+    }
+
+    @Test
+    fun `should round-trip empty string value through write then parse`() {
+        val vc = roundTripVorbisComment("TITLE=")
+        assertEquals("", vc.get("TITLE"))
+    }
+
+    @Test
+    fun `should encode comment length as UTF-8 byte count not character count for multi-byte values`() {
+        // "Über die Brücke" has 15 characters but more than 15 UTF-8 bytes (U+00DC and U+00FC
+        // each encode to 2 bytes in UTF-8, so the comment is 17 bytes).
+        // RFC 9639 §10 mandates that the length field is the UTF-8 byte count.
+        // If the writer used character count the decoder would read too few bytes and corrupt the tag.
+        val rawComment = "TITLE=Über die Brücke"
+        val expectedByteLength = rawComment.toByteArray(Charsets.UTF_8).size
+        assertTrue(expectedByteLength > rawComment.length, "Expected byte count to exceed character count")
+
+        val blocks = listOf<FlacMetadataBlock>(streamInfo, FlacMetadataBlock.VorbisComment("test", listOf(rawComment)))
+        val bytes = FlacWriter(targetPaddingBytes = 0).write(blocks, ByteArray(0))
+
+        // Locate the VorbisComment block payload in the raw bytes and read the first comment length.
+        // Layout (offsets from start of VorbisComment payload):
+        //   [0..3]   vendor string length (LE uint32)
+        //   [4..4+vendorLen-1] vendor bytes
+        //   [4+vendorLen..4+vendorLen+3] comment count (LE uint32)
+        //   [4+vendorLen+4..4+vendorLen+7] first comment length (LE uint32)  <- we want this
+        val vcPayload = extractVorbisCommentPayload(bytes)
+        val vcBuf = java.io.DataInputStream(vcPayload.inputStream())
+        val vendorLen = readUInt32Le(vcBuf)
+        vcBuf.skipBytes(vendorLen)
+        @Suppress("UNUSED_VARIABLE") // comment count is read to advance the stream position
+        val commentCount = readUInt32Le(vcBuf)
+        val firstCommentByteLength = readUInt32Le(vcBuf)
+
+        assertEquals(expectedByteLength, firstCommentByteLength,
+            "Comment length field must be UTF-8 byte count ($expectedByteLength) not character count (${rawComment.length})")
+    }
+
+    @Test
+    fun `should round-trip mixed-case field name with non-ASCII value`() {
+        // RFC 9639 field names are ASCII and case-insensitive; values are UTF-8.
+        val blocks = listOf<FlacMetadataBlock>(
+            streamInfo,
+            FlacMetadataBlock.VorbisComment("test", listOf("title=Über die Brücke")),
+        )
+        val bytes = FlacWriter().write(blocks, ByteArray(0))
+        val result = FlacReader().parse(bytes)
+        val vc = result.blocks.filterIsInstance<FlacMetadataBlock.VorbisComment>().first()
+
+        // get() is case-insensitive per spec
+        assertEquals("Über die Brücke", vc.get("TITLE"))
+        assertEquals("Über die Brücke", vc.get("title"))
+        assertEquals("Über die Brücke", vc.get("Title"))
+    }
+
+    @Test
+    fun `should round-trip multiple non-ASCII values in a single VorbisComment block`() {
+        val comments = listOf(
+            "TITLE=Über die Brücke",
+            "ARTIST=日本語バンド",
+            "COMMENT=🎵",
+            "ALBUM=",
+        )
+        val blocks = listOf<FlacMetadataBlock>(streamInfo, FlacMetadataBlock.VorbisComment("test", comments))
+        val bytes = FlacWriter().write(blocks, ByteArray(0))
+        val result = FlacReader().parse(bytes)
+        val vc = result.blocks.filterIsInstance<FlacMetadataBlock.VorbisComment>().first()
+
+        assertEquals("Über die Brücke", vc.get("TITLE"))
+        assertEquals("日本語バンド", vc.get("ARTIST"))
+        assertEquals("🎵", vc.get("COMMENT"))
+        assertEquals("", vc.get("ALBUM"))
+    }
+
+    // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
 
@@ -326,5 +424,51 @@ class FlacRoundTripTest {
         tmpFile.writeBytes(bytes)
         tmpFile.deleteOnExit()
         return kotlinx.io.files.Path(tmpFile.absolutePath)
+    }
+
+    /** Writes a single-comment VorbisComment block and returns the parsed block. */
+    private fun roundTripVorbisComment(rawComment: String): FlacMetadataBlock.VorbisComment {
+        val blocks = listOf<FlacMetadataBlock>(
+            streamInfo,
+            FlacMetadataBlock.VorbisComment("test", listOf(rawComment)),
+        )
+        val bytes = FlacWriter().write(blocks, ByteArray(0))
+        val result = FlacReader().parse(bytes)
+        return result.blocks.filterIsInstance<FlacMetadataBlock.VorbisComment>().first()
+    }
+
+    /**
+     * Extracts the raw VorbisComment block payload bytes from a serialised FLAC file.
+     * Walks the block headers to find the VorbisComment block (type 4) and returns its payload.
+     */
+    @Suppress("MagicNumber") // FLAC binary format constants per RFC 9639 §8-§10
+    private fun extractVorbisCommentPayload(flacBytes: ByteArray): ByteArray {
+        val buf = java.io.DataInputStream(flacBytes.inputStream())
+        // Skip 'fLaC' marker (4 bytes)
+        buf.skipBytes(4)
+        var isLast = false
+        while (!isLast) {
+            val firstByte = buf.readByte().toInt() and 0xFF
+            isLast = (firstByte and 0x80) != 0
+            val blockType = firstByte and 0x7F
+            val b0 = buf.readByte().toInt() and 0xFF
+            val b1 = buf.readByte().toInt() and 0xFF
+            val b2 = buf.readByte().toInt() and 0xFF
+            val length = (b0 shl 16) or (b1 shl 8) or b2
+            val payload = ByteArray(length)
+            buf.readFully(payload)
+            if (blockType == 4) return payload
+        }
+        error("No VorbisComment block found in FLAC bytes")
+    }
+
+    /** Reads a little-endian unsigned 32-bit integer from a DataInputStream as an Int. */
+    @Suppress("MagicNumber") // little-endian bit-shift constants defined by the Vorbis Comment format
+    private fun readUInt32Le(stream: java.io.DataInputStream): Int {
+        val b0 = stream.readByte().toInt() and 0xFF
+        val b1 = stream.readByte().toInt() and 0xFF
+        val b2 = stream.readByte().toInt() and 0xFF
+        val b3 = stream.readByte().toInt() and 0xFF
+        return b0 or (b1 shl 8) or (b2 shl 16) or (b3 shl 24)
     }
 }
