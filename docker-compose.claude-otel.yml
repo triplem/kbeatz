@@ -29,7 +29,7 @@ services:
     image: otel/opentelemetry-collector-contrib:0.127.0
     command: ["--config=/etc/otel/otel-collector-config.yaml"]
     volumes:
-      - ./config/claude-otel/otel-collector-config.yaml:/etc/otel/otel-collector-config.yaml:ro
+      - ./config/claude-otel/otel-collector-config.yaml:/etc/otel/otel-collector-config.yaml
     ports:
       - "4317:4317"   # OTLP gRPC (standard)
       - "4318:4318"   # OTLP HTTP (standard)
@@ -52,7 +52,7 @@ services:
     image: grafana/loki:3.4
     command: -config.file=/etc/loki/loki-config.yaml
     volumes:
-      - ./config/claude-otel/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - ./config/claude-otel/loki-config.yaml:/etc/loki/loki-config.yaml
       - loki_claude_data:/loki
     ports:
       - "3100:3100"   # Loki API (no web UI — use /ready for health, /metrics for metrics)
@@ -82,7 +82,7 @@ services:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.retention.time=7d
     volumes:
-      - ./config/claude-otel/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./config/claude-otel/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_claude_data:/prometheus
     ports:
       - "9090:9090"   # Prometheus UI (standard)
@@ -113,8 +113,8 @@ services:
       GF_USERS_ALLOW_SIGN_UP: "false"
     volumes:
       - grafana_claude_data:/var/lib/grafana
-      - ./config/claude-otel/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./config/claude-otel/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./config/claude-otel/grafana/provisioning:/etc/grafana/provisioning
+      - ./config/claude-otel/grafana/dashboards:/var/lib/grafana/dashboards
     ports:
       - "3000:3000"   # Grafana UI (standard)
     depends_on:

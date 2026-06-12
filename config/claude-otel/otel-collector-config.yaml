@@ -1,0 +1,46 @@
+extensions:
+  health_check:
+    endpoint: "0.0.0.0:13133"
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+  resource:
+    attributes:
+      - key: environment
+        value: "local"
+        action: upsert
+
+exporters:
+  # Exposes scraped metrics at :8889/metrics — Prometheus polls this endpoint.
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+  # Forwards logs to Loki via OTLP HTTP — powers Grafana log-based panels.
+  otlphttp/loki:
+    endpoint: http://claude-loki:3100/otlp
+    tls:
+      insecure: true
+  # Logs forwarded to container stdout; visible via 'podman compose logs'.
+  debug:
+    verbosity: normal
+
+service:
+  extensions: [health_check]
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      processors: [batch, resource]
+      exporters: [prometheus]
+    logs:
+      receivers: [otlp]
+      processors: [batch, resource]
+      exporters: [otlphttp/loki, debug]
