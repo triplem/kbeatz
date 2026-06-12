@@ -13,6 +13,8 @@ export type { AlbumId } from './models/AlbumId';
 export type { AlbumPage } from './models/AlbumPage';
 export type { ErrorResponse } from './models/ErrorResponse';
 export type { HealthResponse } from './models/HealthResponse';
+export type { LivenessResponse } from './models/LivenessResponse';
+export type { ReadinessResponse } from './models/ReadinessResponse';
 export type { ScanStatus } from './models/ScanStatus';
 export type { SyncRequest } from './models/SyncRequest';
 export type { Track } from './models/Track';
