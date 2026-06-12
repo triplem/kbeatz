@@ -1,164 +1,121 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-     viewBox="0 25 920 285" width="920" height="285" role="img" aria-label="kbeatz logo">
+     viewBox="0 0 980 300" width="980" height="300" role="img" aria-label="kbeatz logo">
   <title>kbeatz</title>
   <defs>
-    <!-- Kotlin brand gradient, see https://kotlinlang.org/docs/kotlin-brand-assets.html -->
-    <linearGradient id="kotlin-gradient" x1="99.6%" y1="0.4%" x2="0.4%" y2="99.6%">
-      <stop offset="0%" stop-color="#E44857"/>
-      <stop offset="47%" stop-color="#C711E1"/>
-      <stop offset="100%" stop-color="#7F52FF"/>
-    </linearGradient>
-    <linearGradient id="k-sheen" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.22"/>
-      <stop offset="45%" stop-color="#ffffff" stop-opacity="0"/>
-    </linearGradient>
-
-    <radialGradient id="wall-gradient" cx="50%" cy="45%" r="80%">
-      <stop offset="0%" stop-color="#2e1d24"/>
-      <stop offset="100%" stop-color="#120a0e"/>
+    <radialGradient id="bg-gradient" cx="50%" cy="40%" r="80%">
+      <stop offset="0%" stop-color="#1c1828"/>
+      <stop offset="100%" stop-color="#0d0b12"/>
     </radialGradient>
-    <linearGradient id="floor-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#432822"/>
-      <stop offset="100%" stop-color="#150b0d"/>
+
+    <!-- silver CD surface -->
+    <radialGradient id="disc-base" cx="42%" cy="38%" r="75%">
+      <stop offset="0%" stop-color="#f4f6f9"/>
+      <stop offset="55%" stop-color="#c3c9d4"/>
+      <stop offset="100%" stop-color="#8d94a2"/>
+    </radialGradient>
+
+    <!-- userSpaceOnUse (letter-local coords): a default objectBoundingBox
+         gradient collapses on the zero-width vertical stem path -->
+    <linearGradient id="k-accent" gradientUnits="userSpaceOnUse"
+                    x1="0" y1="12" x2="0" y2="168">
+      <stop offset="0%" stop-color="#7C5CFF"/>
+      <stop offset="100%" stop-color="#FF5A8F"/>
+    </linearGradient>
+    <linearGradient id="pulse-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#2EC4B6"/>
+      <stop offset="55%" stop-color="#7C5CFF"/>
+      <stop offset="100%" stop-color="#FF5A8F"/>
     </linearGradient>
 
-    <!-- perforated wall panel like in the original sign photo -->
-    <pattern id="wall-dots" width="46" height="42" patternUnits="userSpaceOnUse"
-             patternTransform="rotate(-6)">
-      <ellipse cx="23" cy="21" rx="12" ry="8" fill="#e8e4da"/>
-    </pattern>
-
-    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
-      <feGaussianBlur stdDeviation="10"/>
-    </filter>
-    <filter id="hot-core" x="-40%" y="-40%" width="180%" height="180%">
-      <feGaussianBlur stdDeviation="3"/>
-    </filter>
-    <filter id="light-pool" x="-80%" y="-200%" width="260%" height="500%">
-      <feGaussianBlur stdDeviation="12"/>
-    </filter>
-    <filter id="reflection-blur" x="-30%" y="-30%" width="160%" height="160%">
+    <filter id="sheen" x="-30%" y="-30%" width="160%" height="160%">
       <feGaussianBlur stdDeviation="5"/>
     </filter>
 
-    <!-- channel-letter skeletons; stroke colour and width are set per use -->
-    <g id="letter-b" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- punches the centre hole through the whole disc group -->
+    <mask id="disc-hole">
+      <circle cx="200" cy="174" r="79" fill="#ffffff"/>
+      <circle cx="200" cy="174" r="12" fill="#000000"/>
+    </mask>
+
+    <!-- wordmark letter skeletons, stroked with round caps -->
+    <g id="wm-k" fill="none" stroke-linecap="round" stroke-linejoin="round">
       <path d="M 20 12 L 20 168"/>
-      <path d="M 20 127 a 43 43 0 1 0 86 0 a 43 43 0 1 0 -86 0"/>
+      <path d="M 20 130 L 80 88"/>
+      <path d="M 44 113 L 88 168"/>
     </g>
-    <g id="letter-e" fill="none" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M 100 125 A 45 45 0 1 0 89.5 153.9"/>
-      <path d="M 14 125 L 98 125"/>
+    <g id="wm-b" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 20 12 L 20 168"/>
+      <path d="M 21 127 a 41 41 0 1 0 82 0 a 41 41 0 1 0 -82 0"/>
     </g>
-    <g id="letter-a" fill="none" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M 12 127 a 43 43 0 1 0 86 0 a 43 43 0 1 0 -86 0"/>
-      <path d="M 98 88 L 98 170"/>
+    <g id="wm-e" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 96 127 A 41 41 0 1 0 86.4 153.3"/>
+      <path d="M 18 127 L 94 127"/>
     </g>
-    <g id="letter-t" fill="none" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M 50 28 L 50 146 Q 50 170 76 170"/>
-      <path d="M 14 76 L 86 76"/>
+    <g id="wm-a" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 11 127 a 41 41 0 1 0 82 0 a 41 41 0 1 0 -82 0"/>
+      <path d="M 93 90 L 93 168"/>
     </g>
-    <g id="letter-z" fill="none" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M 14 82 L 90 82 L 14 168 L 94 168"/>
+    <g id="wm-t" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 48 30 L 48 146 Q 48 168 70 168"/>
+      <path d="M 14 78 L 82 78"/>
     </g>
-
-    <path id="k-mark" d="M 0 0 H 160 L 80 80 L 160 160 H 0 Z"/>
-
-    <!-- the full sign artwork: each letter is built back to front as
-         glow, extruded dark return (5 offset stamps), trim cap rim,
-         lit acrylic face, hot light core -->
-    <g id="artwork">
-      <!-- Kotlin K mark as a lit sign element -->
-      <g transform="translate(40,116)">
-        <use xlink:href="#k-mark" fill="#B14FE0" filter="url(#glow)" opacity="0.5"/>
-        <g fill="#311447">
-          <use xlink:href="#k-mark" transform="translate(12,9)"/>
-          <use xlink:href="#k-mark" transform="translate(9.6,7.2)"/>
-          <use xlink:href="#k-mark" transform="translate(7.2,5.4)"/>
-          <use xlink:href="#k-mark" transform="translate(4.8,3.6)"/>
-          <use xlink:href="#k-mark" transform="translate(2.4,1.8)"/>
-        </g>
-        <use xlink:href="#k-mark" fill="url(#kotlin-gradient)" stroke="#2a1338" stroke-width="2"/>
-        <use xlink:href="#k-mark" fill="url(#k-sheen)"/>
-      </g>
-
-      <!-- b : orange -->
-      <g transform="translate(235,57) scale(1.18)">
-        <use xlink:href="#letter-b" stroke="#F7941D" stroke-width="30" filter="url(#glow)" opacity="0.75"/>
-        <g stroke="#6b3d05" stroke-width="30">
-          <use xlink:href="#letter-b" transform="translate(12,9)"/>
-          <use xlink:href="#letter-b" transform="translate(9.6,7.2)"/>
-          <use xlink:href="#letter-b" transform="translate(7.2,5.4)"/>
-          <use xlink:href="#letter-b" transform="translate(4.8,3.6)"/>
-          <use xlink:href="#letter-b" transform="translate(2.4,1.8)"/>
-        </g>
-        <use xlink:href="#letter-b" stroke="#1f1b18" stroke-width="35"/>
-        <use xlink:href="#letter-b" stroke="#F7941D" stroke-width="28"/>
-        <use xlink:href="#letter-b" stroke="#FFC46B" stroke-width="12" filter="url(#hot-core)" opacity="0.95"/>
-      </g>
-
-      <!-- e : blue, leaning like in the sign photo -->
-      <g transform="translate(395,128) scale(0.8) rotate(-14 55 125)">
-        <use xlink:href="#letter-e" stroke="#2D9CFF" stroke-width="30" filter="url(#glow)" opacity="0.75"/>
-        <g stroke="#0d4070" stroke-width="30">
-          <use xlink:href="#letter-e" transform="translate(12,9)"/>
-          <use xlink:href="#letter-e" transform="translate(9.6,7.2)"/>
-          <use xlink:href="#letter-e" transform="translate(7.2,5.4)"/>
-          <use xlink:href="#letter-e" transform="translate(4.8,3.6)"/>
-          <use xlink:href="#letter-e" transform="translate(2.4,1.8)"/>
-        </g>
-        <use xlink:href="#letter-e" stroke="#1f1b18" stroke-width="35"/>
-        <use xlink:href="#letter-e" stroke="#2D9CFF" stroke-width="28"/>
-        <use xlink:href="#letter-e" stroke="#8FCBFF" stroke-width="12" filter="url(#hot-core)" opacity="0.95"/>
-      </g>
-
-      <!-- a : red -->
-      <g transform="translate(485,91)">
-        <use xlink:href="#letter-a" stroke="#E8112D" stroke-width="30" filter="url(#glow)" opacity="0.75"/>
-        <g stroke="#6e0a18" stroke-width="30">
-          <use xlink:href="#letter-a" transform="translate(12,9)"/>
-          <use xlink:href="#letter-a" transform="translate(9.6,7.2)"/>
-          <use xlink:href="#letter-a" transform="translate(7.2,5.4)"/>
-          <use xlink:href="#letter-a" transform="translate(4.8,3.6)"/>
-          <use xlink:href="#letter-a" transform="translate(2.4,1.8)"/>
-        </g>
-        <use xlink:href="#letter-a" stroke="#1f1b18" stroke-width="35"/>
-        <use xlink:href="#letter-a" stroke="#E8112D" stroke-width="28"/>
-        <use xlink:href="#letter-a" stroke="#FF6B7A" stroke-width="12" filter="url(#hot-core)" opacity="0.95"/>
-      </g>
-
-      <!-- t : bright orange -->
-      <g transform="translate(610,44) scale(1.25)">
-        <use xlink:href="#letter-t" stroke="#FF8A00" stroke-width="30" filter="url(#glow)" opacity="0.75"/>
-        <g stroke="#6b3a00" stroke-width="30">
-          <use xlink:href="#letter-t" transform="translate(12,9)"/>
-          <use xlink:href="#letter-t" transform="translate(9.6,7.2)"/>
-          <use xlink:href="#letter-t" transform="translate(7.2,5.4)"/>
-          <use xlink:href="#letter-t" transform="translate(4.8,3.6)"/>
-          <use xlink:href="#letter-t" transform="translate(2.4,1.8)"/>
-        </g>
-        <use xlink:href="#letter-t" stroke="#1f1b18" stroke-width="35"/>
-        <use xlink:href="#letter-t" stroke="#FF8A00" stroke-width="28"/>
-        <use xlink:href="#letter-t" stroke="#FFC04D" stroke-width="12" filter="url(#hot-core)" opacity="0.95"/>
-      </g>
-
-      <!-- z : warm white -->
-      <g transform="translate(745,78) scale(1.08)">
-        <use xlink:href="#letter-z" stroke="#F2F0E9" stroke-width="30" filter="url(#glow)" opacity="0.6"/>
-        <g stroke="#8d887e" stroke-width="30">
-          <use xlink:href="#letter-z" transform="translate(12,9)"/>
-          <use xlink:href="#letter-z" transform="translate(9.6,7.2)"/>
-          <use xlink:href="#letter-z" transform="translate(7.2,5.4)"/>
-          <use xlink:href="#letter-z" transform="translate(4.8,3.6)"/>
-          <use xlink:href="#letter-z" transform="translate(2.4,1.8)"/>
-        </g>
-        <use xlink:href="#letter-z" stroke="#1f1b18" stroke-width="35"/>
-        <use xlink:href="#letter-z" stroke="#F2F0E9" stroke-width="28"/>
-        <use xlink:href="#letter-z" stroke="#FFFFFF" stroke-width="12" filter="url(#hot-core)" opacity="0.95"/>
-      </g>
+    <g id="wm-z" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 14 86 L 88 86 L 14 168 L 92 168"/>
     </g>
   </defs>
 
 
-  <use xlink:href="#artwork"/>
+  <!-- icon: a shelf of CD case spines with a disc pulled out in front -->
+  <ellipse cx="170" cy="255" rx="140" ry="10" fill="#000000" opacity="0.35"/>
+
+  <g>
+    <rect x="58"  y="80" width="20" height="172" rx="4" fill="#2EC4B6"/>
+    <rect x="62"  y="92" width="12" height="5"   rx="2.5" fill="#ffffff" opacity="0.35"/>
+    <rect x="84"  y="94" width="20" height="158" rx="4" fill="#FFB627"/>
+    <rect x="88"  y="106" width="12" height="5"  rx="2.5" fill="#ffffff" opacity="0.35"/>
+    <rect x="110" y="74" width="20" height="178" rx="4" fill="#FF5A5F"/>
+    <rect x="114" y="86" width="12" height="5"   rx="2.5" fill="#ffffff" opacity="0.35"/>
+    <g transform="rotate(8 136 252)">
+      <rect x="136" y="82" width="20" height="170" rx="4" fill="#3D9BE9"/>
+      <rect x="140" y="94" width="12" height="5"   rx="2.5" fill="#ffffff" opacity="0.35"/>
+    </g>
+  </g>
+
+  <g mask="url(#disc-hole)">
+    <circle cx="200" cy="174" r="78" fill="url(#disc-base)"/>
+    <!-- iridescent reflections -->
+    <g filter="url(#sheen)">
+      <path d="M 200 174 L 126.7 147.3 A 78 78 0 0 1 161 106.5 Z" fill="#37d6e6" opacity="0.4"/>
+      <path d="M 200 174 L 273.3 200.7 A 78 78 0 0 1 226.7 247.3 Z" fill="#e64fc4" opacity="0.4"/>
+      <path d="M 200 174 L 239 106.5 A 78 78 0 0 1 267.5 135 Z" fill="#ffd84d" opacity="0.35"/>
+      <path d="M 200 174 L 132.5 213 A 78 78 0 0 0 173 250.2 Z" fill="#7C5CFF" opacity="0.3"/>
+    </g>
+    <!-- groove rings -->
+    <circle cx="200" cy="174" r="68" fill="none" stroke="#5e6675" stroke-width="1.5" opacity="0.25"/>
+    <circle cx="200" cy="174" r="56" fill="none" stroke="#5e6675" stroke-width="1.5" opacity="0.25"/>
+    <circle cx="200" cy="174" r="44" fill="none" stroke="#5e6675" stroke-width="1.5" opacity="0.25"/>
+    <!-- hub -->
+    <circle cx="200" cy="174" r="30" fill="#dfe3e9"/>
+    <circle cx="200" cy="174" r="30" fill="none" stroke="#b6bcc7" stroke-width="2"/>
+    <circle cx="200" cy="174" r="18" fill="#eef0f4"/>
+    <circle cx="200" cy="174" r="13.5" fill="none" stroke="#9aa1ad" stroke-width="2"/>
+    <!-- rim -->
+    <circle cx="200" cy="174" r="78" fill="none" stroke="#5d6573" stroke-width="2" opacity="0.8"/>
+    <circle cx="200" cy="174" r="75.5" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.3"/>
+  </g>
+
+  <!-- wordmark -->
+  <g stroke-width="26">
+    <use xlink:href="#wm-k" transform="translate(300,30)" stroke="url(#k-accent)"/>
+    <use xlink:href="#wm-b" transform="translate(410,30)" stroke="#2B2833"/>
+    <use xlink:href="#wm-e" transform="translate(530,30)" stroke="#2B2833"/>
+    <use xlink:href="#wm-a" transform="translate(642,30)" stroke="#2B2833"/>
+    <use xlink:href="#wm-t" transform="translate(752,30)" stroke="#2B2833"/>
+    <use xlink:href="#wm-z" transform="translate(854,30)" stroke="#2B2833"/>
+  </g>
+
+  <!-- audio pulse underline -->
+  <path d="M 310 238 H 590 l 12 -30 l 14 56 l 12 -44 l 10 18 H 952"
+        fill="none" stroke="url(#pulse-gradient)" stroke-width="5"
+        stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
