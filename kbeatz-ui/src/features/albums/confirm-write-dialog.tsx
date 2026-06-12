@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import styles from './confirm-write-dialog.module.css'
 
 interface ConfirmWriteDialogProps {
   /** Whether the dialog is open */
@@ -105,7 +106,7 @@ export function ConfirmWriteDialog({
     // dismiss via the Escape handler on the dialog itself (WCAG 4.1.2).
     <div
       role="presentation"
-      className="confirm-dialog-overlay"
+      className={styles.overlay}
       data-testid="confirm-dialog-overlay"
       onClick={onCancel}
     >
@@ -114,28 +115,28 @@ export function ConfirmWriteDialog({
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
         aria-describedby="confirm-dialog-body confirm-dialog-warning"
-        className="confirm-dialog"
+        className={styles.dialog}
         data-testid="confirm-dialog"
         onKeyDown={handleKeyDown}
         onClick={(e) => { e.stopPropagation() }}
       >
-        <h2 id="confirm-dialog-title" className="confirm-dialog__title">
+        <h2 id="confirm-dialog-title" className={styles.title}>
           {t('confirmDialog.title')}
         </h2>
 
-        <p id="confirm-dialog-body" className="confirm-dialog__body">
+        <p id="confirm-dialog-body" className={styles.body}>
           {t('confirmDialog.body', { count: fileLabel, albumTitle })}
         </p>
 
-        <p id="confirm-dialog-warning" className="confirm-dialog__warning" data-testid="confirm-dialog-warning">
+        <p id="confirm-dialog-warning" className={styles.warning} data-testid="confirm-dialog-warning">
           {t('confirmDialog.warning')}
         </p>
 
-        <div className="confirm-dialog__actions">
+        <div className={styles.actions}>
           <button
             ref={cancelButtonRef}
             type="button"
-            className="confirm-dialog__cancel"
+            className={styles.cancelButton}
             data-testid="confirm-dialog-cancel"
             onClick={onCancel}
           >
@@ -145,7 +146,7 @@ export function ConfirmWriteDialog({
           <button
             ref={confirmButtonRef}
             type="button"
-            className="confirm-dialog__confirm confirm-dialog__confirm--destructive"
+            className={styles.confirmButton}
             data-testid="confirm-dialog-confirm"
             onClick={onConfirm}
           >

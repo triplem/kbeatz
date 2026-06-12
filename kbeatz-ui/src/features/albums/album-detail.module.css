@@ -1,0 +1,117 @@
+/* Album detail page */
+
+.albumDetail {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* ── Navigation ────────────────────────────────────── */
+
+.backButton {
+  align-self: flex-start;
+  min-height: var(--min-touch-target);
+  padding: var(--space-sm) var(--space-md);
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background var(--transition-base),
+    color var(--transition-base);
+}
+
+.backButton:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ── Cover art ─────────────────────────────────────── */
+
+.albumCover {
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+/* ── Section headings ───────────────────────────────── */
+
+.sectionTitle {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-md);
+}
+
+/* ── Edit scope notice ──────────────────────────────── */
+
+.editScopeNotice {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-sm);
+}
+
+/* ── Tag definition list ────────────────────────────── */
+
+.albumTags {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+/* ── Tracks table ───────────────────────────────────── */
+
+.tracksTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.tracksTable th {
+  text-align: left;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tracksTable td {
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.tracksTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.tracksTable tbody tr:hover {
+  background: var(--bg-secondary);
+}
+
+/* ── Responsive ──────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .albumDetail {
+    padding: var(--space-md);
+    gap: var(--space-md);
+  }
+
+  .tracksTable th,
+  .tracksTable td {
+    padding: var(--space-xs) var(--space-sm);
+  }
+}

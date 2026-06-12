@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Album } from './api/generated'
 import { AlbumsService } from './api/generated'
+import styles from './App.module.css'
 import { AlbumGrid } from './features/albums/album-grid'
 import { AlbumDetail } from './features/albums/album-detail'
 import { FilterPanel } from './features/albums/filter-panel'
@@ -102,14 +103,14 @@ function AlbumListPage() {
   )
 
   return (
-    <div className="app">
-      <header className="app-header">
+    <div className={styles.app}>
+      <header className={styles.appHeader}>
         <h1>{t('app.title')}</h1>
         <SearchBox filters={filters} onFiltersChange={setFilters} />
       </header>
-      <main className="app-main">
+      <main className={styles.appMain}>
         <ScanProgress />
-        <div className="app-content">
+        <div className={styles.appContent}>
           {!loading && !error && (
             <FilterPanel
               options={filterOptions}
@@ -117,18 +118,19 @@ function AlbumListPage() {
               onFiltersChange={setFilters}
             />
           )}
-          <div className="app-grid-area">
-            <div className="app-toolbar">
+          <div className={styles.appGridArea}>
+            <div className={styles.appToolbar}>
               <SortPreference value={sortBy} onChange={handleSortChange} />
             </div>
-            {loading && <p>{t('albumGrid.loading')}</p>}
+            {loading && <p className={styles.loadingText}>{t('albumGrid.loading')}</p>}
             {error && (
-              <div role="alert" data-testid="albums-error">
+              <div role="alert" data-testid="albums-error" className={styles.errorBlock}>
                 <p>{t('albumGrid.fetchError')}</p>
                 <button
                   type="button"
                   onClick={handleRetry}
                   data-testid="albums-retry-button"
+                  className={styles.retryButton}
                 >
                   {t('albumGrid.retryButton')}
                 </button>

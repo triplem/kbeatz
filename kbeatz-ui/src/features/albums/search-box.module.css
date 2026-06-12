@@ -1,0 +1,58 @@
+/* Search box */
+
+.searchBox {
+  position: relative;
+  flex: 1;
+  max-width: 400px;
+  display: flex;
+  align-items: center;
+}
+
+.input {
+  width: 100%;
+  min-height: var(--min-touch-target);
+  padding: var(--space-sm) var(--space-md);
+  padding-right: calc(var(--min-touch-target) + var(--space-xs));
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-sans);
+  transition: border-color var(--transition-base);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.input::placeholder {
+  color: var(--text-secondary);
+}
+
+/* Remove the default search clear button (x) in WebKit */
+.input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.clear {
+  position: absolute;
+  right: var(--space-xs);
+  width: var(--min-touch-target);
+  height: var(--min-touch-target);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: var(--font-size-lg);
+  cursor: pointer;
+  border-radius: var(--radius-full);
+  transition: color var(--transition-base);
+}
+
+.clear:hover {
+  color: var(--text-primary);
+}
