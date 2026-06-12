@@ -1,0 +1,148 @@
+{
+  "common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "error": "Etwas ist schiefgelaufen",
+    "loading": "Wird geladen...",
+    "back": "Zurück",
+    "empty": "(leer - zum Setzen klicken)",
+    "noResults": "Keine Ergebnisse gefunden",
+    "retry": "Erneut versuchen",
+    "unknown": "Unbekannt"
+  },
+  "albumGrid": {
+    "noResults": "Keine Alben gefunden. Starten Sie einen Bibliotheksscan, um Ihre Sammlung zu indizieren.",
+    "loading": "Alben werden geladen...",
+    "collectionLabel": "Albumsammlung - {{count}} Alben",
+    "errorPrefix": "Fehler: ",
+    "showingFiltered": "{{visible}} von {{total}} Alben werden angezeigt",
+    "showingAll": "Alle {{count}} Alben werden angezeigt",
+    "fetchError": "Alben konnten nicht geladen werden. Stellen Sie sicher, dass kbeatz-catalog läuft.",
+    "retryButton": "Erneut versuchen"
+  },
+  "albumCard": {
+    "viewDetails": "Details für {{album}} von {{artist}} anzeigen",
+    "coverAlt": "Albumcover für {{album}}",
+    "noCoverAria": "Albumcover nicht verfügbar",
+    "noCoverLabel": "Kein Cover",
+    "unknownAlbum": "Unbekanntes Album",
+    "unknownArtist": "Unbekannter Künstler",
+    "unknownYear": "Unbekanntes Jahr"
+  },
+  "albumDetail": {
+    "title": "Albumdetails",
+    "albumTagsSection": "Album-Tags",
+    "tracksSection": "Titel",
+    "discogsSection": "Discogs-Synchronisierung",
+    "sectionTitle": "Album-Tags",
+    "tracksSectionTitle": "Titel",
+    "coverAlt": "Albumcover für {{album}}",
+    "loading": "Album wird geladen...",
+    "notFound": "Album nicht gefunden.",
+    "errorPrefix": "Fehler: ",
+    "editScopeNotice": "Das Bearbeiten dieser Tags aktualisiert alle {{count}} Dateien im Verzeichnis dieses Albums. Klicken Sie auf ein Feld, um es zu bearbeiten.",
+    "saving": "Tags werden gespeichert...",
+    "fields": {
+      "album": "Album",
+      "albumArtist": "Albumkünstler",
+      "date": "Datum",
+      "genre": "Genre",
+      "label": "Label",
+      "catalogNumber": "Katalog-Nr.",
+      "composer": "Komponist",
+      "conductor": "Dirigent",
+      "ensemble": "Ensemble",
+      "title": "Titel",
+      "trackNumber": "Titelnummer",
+      "artist": "Künstler"
+    },
+    "trackColumns": {
+      "number": "#",
+      "title": "Titel",
+      "artist": "Künstler",
+      "duration": "Dauer"
+    }
+  },
+  "editableField": {
+    "editLabel": "{{label}} bearbeiten",
+    "editWithValue": "{{label}} bearbeiten: {{value}}",
+    "editEmpty": "{{label}} bearbeiten: (leer)",
+    "saveFailed": "Speichern fehlgeschlagen",
+    "saveFailedTimeout": "Speichern fehlgeschlagen: Zeitüberschreitung. Bitte erneut versuchen.",
+    "saveFailedServer": "Speichern fehlgeschlagen: Serverfehler. Überprüfen Sie die Katalogprotokolle.",
+    "saveFailedUnreachable": "Speichern fehlgeschlagen: kbeatz-catalog konnte nicht erreicht werden.",
+    "clickToEdit": "Klicken, um {{label}} zu bearbeiten"
+  },
+  "confirmDialog": {
+    "title": "Tags in FLAC-Dateien schreiben?",
+    "body": "Änderungen in alle {{count}} in \"{{albumTitle}}\" schreiben?",
+    "fileCount_one": "1 FLAC-Datei",
+    "fileCount_other": "{{count}} FLAC-Dateien",
+    "warning": "Dies kann nicht rückgängig gemacht werden.",
+    "cancelButton": "Abbrechen",
+    "confirmButton": "Tags schreiben"
+  },
+  "filterPanel": {
+    "ariaLabel": "Alben filtern",
+    "genre": "Genre",
+    "artist": "Künstler",
+    "composer": "Komponist",
+    "year": "Jahr",
+    "yearFrom": "Jahr von",
+    "yearTo": "Jahr bis",
+    "genreFilter": "Genre-Filter",
+    "artistFilter": "Künstler-Filter",
+    "composerFilter": "Komponisten-Filter"
+  },
+  "searchBox": {
+    "placeholder": "Nach Titel, Künstler, Komponist, Label suchen...",
+    "ariaLabel": "Alben suchen",
+    "clearAriaLabel": "Suche leeren"
+  },
+  "sortPreference": {
+    "label": "Sortieren nach",
+    "ariaLabel": "Alben sortieren nach",
+    "albumArtist": "Albumkünstler",
+    "composer": "Komponist"
+  },
+  "scanProgress": {
+    "running": "Wird gescannt: {{progress}} Alben",
+    "failed": "Scan fehlgeschlagen: {{message}}",
+    "unknownError": "Unbekannter Fehler",
+    "startedAt": "Gestartet: {{time}}",
+    "completedAt": "Abgeschlossen: {{time}}"
+  },
+  "syncPanel": {
+    "heading": "Von Discogs synchronisieren",
+    "discogsId": "Discogs-ID: {{id}}",
+    "downloadImages": "Albumcover ebenfalls aktualisieren",
+    "syncButton": "Von Discogs synchronisieren",
+    "syncButtonLoading": "Wird synchronisiert...",
+    "ariaLabel": "Von Discogs synchronisieren",
+    "loadingMessage": "Synchronisierung mit Discogs...",
+    "successMessage_one": "Synchronisierung abgeschlossen - {{count}} Feld aktualisiert.",
+    "successMessage_other": "Synchronisierung abgeschlossen - {{count}} Felder aktualisiert.",
+    "quotaExhausted": "Bildkontingent erschöpft. Zurückgesetzt am {{resetAt}}.",
+    "downloadImagesAriaLabel": "Albumcover herunterladen",
+    "syncTimeout": "Synchronisierung hat das Zeitlimit überschritten. Überprüfen Sie die Katalogprotokolle.",
+    "overwriteTitle": "Lokale Tag-Bearbeitungen überschreiben?",
+    "overwriteBody": "Die Synchronisierung von Discogs überschreibt Ihre lokalen Tag-Bearbeitungen. Fortfahren?",
+    "overwriteConfirm": "Synchronisierung fortsetzen"
+  },
+  "app": {
+    "title": "kbeatz"
+  },
+  "errorBoundary": {
+    "message": "Etwas ist schiefgelaufen.",
+    "reloadButton": "Erneut versuchen"
+  },
+  "notFound": {
+    "heading": "Seite nicht gefunden",
+    "backToLibrary": "Zuruck zur Bibliothek"
+  },
+  "languageToggle": {
+    "ariaLabel": "Sprache auswählen",
+    "en": "English",
+    "de": "Deutsch"
+  }
+}
