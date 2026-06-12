@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { AlbumFilters } from './album-filters'
+import styles from './search-box.module.css'
 
 const DEBOUNCE_MS = 150
 
@@ -53,21 +54,21 @@ export function SearchBox({ filters, onFiltersChange }: SearchBoxProps) {
   }, [filters, onFiltersChange])
 
   return (
-    <div className="search-box" role="search">
+    <div className={styles.searchBox} role="search">
       <input
         type="search"
         aria-label={t('searchBox.ariaLabel')}
         placeholder={t('searchBox.placeholder')}
         value={displayValue}
         onChange={handleChange}
-        className="search-box__input"
+        className={styles.input}
       />
       {filters.query !== '' && (
         <button
           type="button"
           aria-label={t('searchBox.clearAriaLabel')}
           onClick={handleClear}
-          className="search-box__clear"
+          className={styles.clear}
         >
           {'×'}
         </button>

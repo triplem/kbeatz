@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Album, AlbumsService } from '../../api/generated'
 import { CancelError } from '../../api/generated/core/CancelablePromise'
+import styles from './sync-panel.module.css'
 
 /** Client-side timeout for Discogs sync requests (30 seconds). */
 const SYNC_TIMEOUT_MS = 30_000
@@ -118,13 +119,13 @@ export function SyncPanel({ album, onSyncComplete, hasLocalEdits = false }: Sync
   const isLoading = syncState.status === 'loading'
 
   return (
-    <section aria-label={t('syncPanel.ariaLabel')} className="sync-panel">
+    <section aria-label={t('syncPanel.ariaLabel')} className={styles.syncPanel}>
       <h3>{t('syncPanel.heading')}</h3>
-      <p className="sync-discogs-id" data-testid="discogs-id">
+      <p className={styles.discogsId} data-testid="discogs-id">
         {t('syncPanel.discogsId', { id: album.discogsId })}
       </p>
 
-      <label className="sync-checkbox-label">
+      <label className={styles.checkboxLabel}>
         <input
           type="checkbox"
           checked={downloadImages}
@@ -145,7 +146,7 @@ export function SyncPanel({ album, onSyncComplete, hasLocalEdits = false }: Sync
           ? t('syncPanel.syncButtonLoading')
           : t('syncPanel.syncButton')}
         data-testid="sync-button"
-        className="sync-button"
+        className={styles.syncButton}
       >
         {isLoading ? t('syncPanel.syncButtonLoading') : t('syncPanel.syncButton')}
       </button>
@@ -158,17 +159,17 @@ export function SyncPanel({ album, onSyncComplete, hasLocalEdits = false }: Sync
           aria-labelledby="sync-overwrite-title"
           aria-describedby="sync-overwrite-body"
           data-testid="sync-overwrite-dialog"
-          className="sync-overwrite-dialog"
+          className={styles.overwriteDialog}
         >
           <h4 id="sync-overwrite-title">{t('syncPanel.overwriteTitle')}</h4>
           <p id="sync-overwrite-body">{t('syncPanel.overwriteBody')}</p>
-          <div className="sync-overwrite-dialog__actions">
+          <div className={styles.overwriteActions}>
             <button
               ref={cancelButtonRef}
               type="button"
               onClick={handleCancelOverwrite}
               data-testid="sync-overwrite-cancel"
-              className="sync-overwrite-dialog__cancel"
+              className={styles.overwriteCancelButton}
             >
               {t('common.cancel')}
             </button>
@@ -176,7 +177,7 @@ export function SyncPanel({ album, onSyncComplete, hasLocalEdits = false }: Sync
               type="button"
               onClick={handleConfirmOverwrite}
               data-testid="sync-overwrite-confirm"
-              className="sync-overwrite-dialog__confirm"
+              className={styles.overwriteConfirmButton}
             >
               {t('syncPanel.overwriteConfirm')}
             </button>
@@ -191,19 +192,19 @@ export function SyncPanel({ album, onSyncComplete, hasLocalEdits = false }: Sync
       )}
 
       {syncState.status === 'success' && (
-        <p role="status" aria-live="polite" data-testid="sync-success" className="sync-success">
+        <p role="status" aria-live="polite" data-testid="sync-success" className={styles.successMessage}>
           {t('syncPanel.successMessage', { count: syncState.fieldsWritten })}
         </p>
       )}
 
       {syncState.status === 'error' && (
-        <p role="alert" data-testid="sync-error" className="sync-error">
+        <p role="alert" data-testid="sync-error" className={styles.errorMessage}>
           {syncState.message}
         </p>
       )}
 
       {syncState.status === 'quotaExhausted' && (
-        <p role="alert" data-testid="sync-quota-exhausted" className="sync-quota-exhausted">
+        <p role="alert" data-testid="sync-quota-exhausted" className={styles.quotaMessage}>
           {t('syncPanel.quotaExhausted', { resetAt: syncState.resetAt })}
         </p>
       )}

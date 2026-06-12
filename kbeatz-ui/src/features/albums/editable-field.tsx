@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { CancelledByUserError } from './cancelled-by-user-error'
+import styles from './editable-field.module.css'
 
 // Pencil edit icon (U+270E) - used as a visual affordance for click-to-edit fields
 // Defined as a module constant to avoid i18next lint warnings on JSX string literals
@@ -189,9 +190,9 @@ export function EditableField({
   const inputId = `${prefix}input-${fieldName.toLowerCase()}`
 
   return (
-    <div className="editable-field" data-testid={`${prefix}field-${fieldName.toLowerCase()}`}>
-      <dt className="editable-field__label">{label}</dt>
-      <dd className="editable-field__value">
+    <div className={styles.editableField} data-testid={`${prefix}field-${fieldName.toLowerCase()}`}>
+      <dt className={styles.fieldLabel}>{label}</dt>
+      <dd className={styles.fieldValue}>
         {editing ? (
           <>
             {/* Programmatically associated label. Visually hidden because the
@@ -213,7 +214,7 @@ export function EditableField({
               aria-describedby={scopeDescribedBy}
               aria-busy={saving}
               data-testid={inputId}
-              className="editable-field__input"
+              className={styles.editInput}
             />
           </>
         ) : (
@@ -226,21 +227,21 @@ export function EditableField({
               : t('editableField.editEmpty', { label })}
             aria-describedby={errorId}
             data-testid={`${prefix}value-${fieldName.toLowerCase()}`}
-            className="editable-field__display"
+            className={styles.displayButton}
             title={disabled ? undefined : t('editableField.clickToEdit', { label })}
             disabled={disabled}
             aria-disabled={disabled}
           >
-            {(displayValue ?? value) ?? <span className="editable-field__empty">{t('common.empty')}</span>}
+            {(displayValue ?? value) ?? <span className={styles.emptyValue}>{t('common.empty')}</span>}
             {/* Pencil affordance - hidden from screen readers since aria-label already describes the action */}
-            <span className="editable-field__edit-icon" aria-hidden="true">{EDIT_ICON}</span>
+            <span className={styles.editIcon} aria-hidden="true">{EDIT_ICON}</span>
           </button>
         )}
         {error !== null && (
           <p
             role="alert"
             id={errorId}
-            className="editable-field__error"
+            className={styles.errorMessage}
             data-testid={`${prefix}error-${fieldName.toLowerCase()}`}
           >
             {error}

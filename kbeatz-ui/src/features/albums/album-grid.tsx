@@ -3,6 +3,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { useTranslation } from 'react-i18next'
 import { Album } from '../../api/generated'
 import { AlbumCard } from './album-card'
+import styles from './album-grid.module.css'
 
 interface AlbumGridProps {
   readonly albums: Album[]
@@ -78,7 +79,7 @@ export function AlbumGrid({ albums, totalCount }: AlbumGridProps) {
 
   if (albums.length === 0) {
     return (
-      <p className="album-grid__empty">
+      <p className={styles.empty}>
         {t('albumGrid.noResults')}
       </p>
     )
@@ -98,13 +99,13 @@ export function AlbumGrid({ albums, totalCount }: AlbumGridProps) {
         role="status"
         aria-live="polite"
         aria-atomic="true"
-        className="album-grid__result-count"
+        className={styles.resultCount}
         data-testid="album-grid-result-count"
       >
         {resultCountText}
       </p>
       <section
-        className="album-grid"
+        className={styles.albumGrid}
         aria-label={t('albumGrid.collectionLabel', { count: albums.length })}
         ref={containerRef}
         data-testid="album-grid-section"
@@ -137,7 +138,7 @@ export function AlbumGrid({ albums, totalCount }: AlbumGridProps) {
                     transform: `translateY(${virtualRow.start}px)`,
                   }}
                 >
-                  <div className="album-grid__row">
+                  <div className={styles.albumGridRow}>
                     {rowAlbums.map((album) => (
                       <AlbumCard key={album.id} album={album} />
                     ))}

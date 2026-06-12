@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { ScanStatus } from '../../api/generated'
 import { LibraryService } from '../../api/generated'
 import { formatDateTime } from '../../lib/i18n'
+import styles from './scan-progress.module.css'
 
 const POLL_INTERVAL_MS = 2000
 
@@ -55,7 +56,7 @@ export function ScanProgress() {
 
   if (status.state === 'COMPLETED') {
     return status.completedAt ? (
-      <div className="scan-progress scan-progress--completed" role="status">
+      <div className={`${styles.scanProgress} ${styles.completed}`} role="status">
         {t('scanProgress.completedAt', { time: formatDateTime(status.completedAt) })}
       </div>
     ) : null
@@ -63,7 +64,7 @@ export function ScanProgress() {
 
   if (status.state === 'FAILED') {
     return (
-      <div className="scan-progress scan-progress--failed" role="alert">
+      <div className={`${styles.scanProgress} ${styles.failed}`} role="alert">
         {t('scanProgress.failed', { message: status.errorMessage ?? t('scanProgress.unknownError') })}
       </div>
     )
@@ -76,14 +77,14 @@ export function ScanProgress() {
 
   return (
     <div
-      className="scan-progress scan-progress--running"
+      className={`${styles.scanProgress} ${styles.running}`}
       role="status"
       aria-live="polite"
       aria-atomic="true"
     >
       {t('scanProgress.running', { progress: progressText })}
       {status.startedAt && (
-        <span className="scan-progress__timestamp">
+        <span className={styles.timestamp}>
           {' '}{t('scanProgress.startedAt', { time: formatDateTime(status.startedAt) })}
         </span>
       )}

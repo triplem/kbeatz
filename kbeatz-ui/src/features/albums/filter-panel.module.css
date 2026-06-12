@@ -1,0 +1,104 @@
+/* Filter panel - sidebar of checkboxes and year range inputs */
+
+.filterPanel {
+  width: 260px;
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  align-self: flex-start;
+  position: sticky;
+  top: calc(64px + var(--space-md)); /* below fixed header */
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+}
+
+.section {
+  margin-bottom: var(--space-lg);
+}
+
+.section:last-child {
+  margin-bottom: 0;
+}
+
+.heading {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-sm);
+}
+
+/* ── Checkbox list ─────────────────────────────────── */
+
+.list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  min-height: var(--min-touch-target);
+  padding: var(--space-xs) 0;
+}
+
+.option input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ── Year range ─────────────────────────────────────── */
+
+.yearRange {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.label {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+  display: block;
+}
+
+.yearInput {
+  width: 100%;
+  min-height: var(--min-touch-target);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-sans);
+  transition: border-color var(--transition-base);
+}
+
+.yearInput:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ── Responsive ──────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .filterPanel {
+    width: 100%;
+    position: static;
+    max-height: none;
+  }
+}

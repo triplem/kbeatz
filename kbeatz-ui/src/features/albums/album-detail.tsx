@@ -7,6 +7,7 @@ import { ConfirmWriteDialog } from './confirm-write-dialog'
 import { EditableField } from './editable-field'
 import { SyncPanel } from '../sync/sync-panel'
 import { formatDate } from '../../lib/i18n'
+import styles from './album-detail.module.css'
 
 /**
  * AlbumDetail — shows all Vorbis Comment tag fields for a single album with inline editing.
@@ -196,11 +197,11 @@ export function AlbumDetail() {
         onConfirm={() => { void handleConfirm() }}
         onCancel={handleCancel}
       />
-    <article className="album-detail" aria-label={t('albumDetail.albumTagsSection')}>
+    <article className={styles.albumDetail} aria-label={t('albumDetail.albumTagsSection')}>
       <button
         type="button"
         onClick={() => { navigate(-1) }}
-        className="back-button"
+        className={styles.backButton}
         data-testid="back-button"
       >
         {t('common.back')}
@@ -210,14 +211,14 @@ export function AlbumDetail() {
         <img
           src={`/api/v1/albums/${album.id}/cover`}
           alt={t('albumDetail.coverAlt', { album: album.album })}
-          className="album-cover"
+          className={styles.albumCover}
           loading="lazy"
           data-testid="album-cover"
         />
       )}
 
       <section aria-label={t('albumDetail.albumTagsSection')}>
-        <h2 className="album-detail__section-title">{t('albumDetail.sectionTitle')}</h2>
+        <h2 className={styles.sectionTitle}>{t('albumDetail.sectionTitle')}</h2>
         {isSaving && (
           <p role="status" aria-live="polite" data-testid="album-saving-indicator">
             {t('albumDetail.saving')}
@@ -225,12 +226,12 @@ export function AlbumDetail() {
         )}
         <p
           id="edit-scope-notice"
-          className="album-detail__edit-scope-notice"
+          className={styles.editScopeNotice}
           data-testid="edit-scope-notice"
         >
           {t('albumDetail.editScopeNotice', { count: album.tracks.length })}
         </p>
-        <dl id="album-tags" className="album-tags">
+        <dl id="album-tags" className={styles.albumTags}>
           <EditableField
             label={t('albumDetail.fields.album')}
             value={album.album}
@@ -324,8 +325,8 @@ export function AlbumDetail() {
 
       {album.tracks.length > 0 && (
         <section aria-label={t('albumDetail.tracksSection')}>
-          <h2 className="album-detail__section-title">{t('albumDetail.tracksSectionTitle')}</h2>
-          <table className="tracks-table" role="grid">
+          <h2 className={styles.sectionTitle}>{t('albumDetail.tracksSectionTitle')}</h2>
+          <table className={styles.tracksTable} role="grid">
             <thead>
               <tr>
                 <th scope="col">{t('albumDetail.trackColumns.number')}</th>

@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import type { SortField } from './album-filters'
+import styles from './sort-preference.module.css'
 
 interface SortPreferenceProps {
   readonly value: SortField
@@ -23,15 +24,15 @@ export function SortPreference({ value, onChange }: SortPreferenceProps) {
   }
 
   return (
-    <div className="sort-preference">
-      <label htmlFor="sort-by" className="sort-preference__label">
+    <div className={styles.sortPreference}>
+      <label htmlFor="sort-by" className={styles.sortLabel}>
         {t('sortPreference.label')}
       </label>
       <select
         id="sort-by"
         value={value}
         onChange={handleChange}
-        className="sort-preference__select"
+        className={styles.sortSelect}
         aria-label={t('sortPreference.ariaLabel')}
       >
         <option value="albumArtist">{t('sortPreference.albumArtist')}</option>

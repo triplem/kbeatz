@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Album } from '../../api/generated'
 import { formatDate } from '../../lib/i18n'
+import styles from './album-card.module.css'
 
 interface AlbumCardProps {
   readonly album: Album
@@ -19,7 +20,7 @@ const CoverPlaceholder = () => {
       height="200"
       viewBox="0 0 200 200"
       xmlns="http://www.w3.org/2000/svg"
-      className="album-card__cover-placeholder"
+      className={styles.coverPlaceholder}
     >
       <rect width="200" height="200" fill="#2a2a2a" />
       {/* eslint-disable-next-line i18next/no-literal-string */}
@@ -62,15 +63,14 @@ export function AlbumCard({ album }: AlbumCardProps) {
 
   return (
     <article
-      className="album-card"
+      className={styles.card}
       tabIndex={0}
       role="button"
       aria-label={t('albumCard.viewDetails', { album: albumTitle, artist: primaryAttribution })}
       onClick={handleNavigate}
       onKeyDown={handleKeyDown}
-      style={{ cursor: 'pointer' }}
     >
-      <div className="album-card__cover">
+      <div className={styles.cover}>
         {showCover ? (
           <img
             src={`/api/v1/albums/${album.id}/cover`}
@@ -79,25 +79,25 @@ export function AlbumCard({ album }: AlbumCardProps) {
             height={200}
             loading="lazy"
             onError={() => setCoverError(true)}
-            className="album-card__cover-img"
+            className={styles.coverImg}
           />
         ) : (
           <CoverPlaceholder />
         )}
       </div>
-      <div className="album-card__info">
-        <h2 className="album-card__title" title={albumTitle}>
+      <div className={styles.info}>
+        <h2 className={styles.title} title={albumTitle}>
           {albumTitle}
         </h2>
-        <p className="album-card__attribution" title={primaryAttribution}>
+        <p className={styles.attribution} title={primaryAttribution}>
           {primaryAttribution}
         </p>
-        <div className="album-card__meta">
+        <div className={styles.meta}>
           {album.date && (
-            <span className="album-card__year">{formatDate(album.date)}</span>
+            <span className={styles.year}>{formatDate(album.date)}</span>
           )}
           {album.genre && (
-            <span className="album-card__genre">{album.genre}</span>
+            <span className={styles.genre}>{album.genre}</span>
           )}
         </div>
       </div>

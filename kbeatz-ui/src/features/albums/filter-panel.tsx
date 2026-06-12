@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import type { AlbumFilters, FilterOptions } from './album-filters'
+import styles from './filter-panel.module.css'
 
 interface FilterPanelProps {
   readonly options: FilterOptions
@@ -36,14 +37,14 @@ export function FilterPanel({ options, filters, onFiltersChange }: FilterPanelPr
   }
 
   return (
-    <aside className="filter-panel" aria-label={t('filterPanel.ariaLabel')}>
+    <aside className={styles.filterPanel} aria-label={t('filterPanel.ariaLabel')}>
       {options.genres.length > 0 && (
-        <section className="filter-panel__section">
-          <h3 className="filter-panel__heading">{t('filterPanel.genre')}</h3>
-          <ul className="filter-panel__list" role="group" aria-label={t('filterPanel.genreFilter')}>
+        <section className={styles.section}>
+          <h3 className={styles.heading}>{t('filterPanel.genre')}</h3>
+          <ul className={styles.list} role="group" aria-label={t('filterPanel.genreFilter')}>
             {options.genres.map((genre) => (
               <li key={genre}>
-                <label className="filter-panel__option">
+                <label className={styles.option}>
                   <input
                     type="checkbox"
                     checked={filters.genres.includes(genre)}
@@ -58,12 +59,12 @@ export function FilterPanel({ options, filters, onFiltersChange }: FilterPanelPr
       )}
 
       {options.artists.length > 0 && (
-        <section className="filter-panel__section">
-          <h3 className="filter-panel__heading">{t('filterPanel.artist')}</h3>
-          <ul className="filter-panel__list" role="group" aria-label={t('filterPanel.artistFilter')}>
+        <section className={styles.section}>
+          <h3 className={styles.heading}>{t('filterPanel.artist')}</h3>
+          <ul className={styles.list} role="group" aria-label={t('filterPanel.artistFilter')}>
             {options.artists.map((artist) => (
               <li key={artist}>
-                <label className="filter-panel__option">
+                <label className={styles.option}>
                   <input
                     type="checkbox"
                     checked={filters.artists.includes(artist)}
@@ -78,12 +79,12 @@ export function FilterPanel({ options, filters, onFiltersChange }: FilterPanelPr
       )}
 
       {options.composers.length > 0 && (
-        <section className="filter-panel__section">
-          <h3 className="filter-panel__heading">{t('filterPanel.composer')}</h3>
-          <ul className="filter-panel__list" role="group" aria-label={t('filterPanel.composerFilter')}>
+        <section className={styles.section}>
+          <h3 className={styles.heading}>{t('filterPanel.composer')}</h3>
+          <ul className={styles.list} role="group" aria-label={t('filterPanel.composerFilter')}>
             {options.composers.map((composer) => (
               <li key={composer}>
-                <label className="filter-panel__option">
+                <label className={styles.option}>
                   <input
                     type="checkbox"
                     checked={filters.composers.includes(composer)}
@@ -97,11 +98,11 @@ export function FilterPanel({ options, filters, onFiltersChange }: FilterPanelPr
         </section>
       )}
 
-      <section className="filter-panel__section">
-        <h3 className="filter-panel__heading">{t('filterPanel.year')}</h3>
-        <div className="filter-panel__year-range">
+      <section className={styles.section}>
+        <h3 className={styles.heading}>{t('filterPanel.year')}</h3>
+        <div className={styles.yearRange}>
           <label>
-            <span className="filter-panel__label">{t('filterPanel.yearFrom')}</span>
+            <span className={styles.label}>{t('filterPanel.yearFrom')}</span>
             <input
               type="number"
               aria-label={t('filterPanel.yearFrom')}
@@ -109,11 +110,11 @@ export function FilterPanel({ options, filters, onFiltersChange }: FilterPanelPr
               onChange={handleYearMin}
               min={1900}
               max={2100}
-              className="filter-panel__year-input"
+              className={styles.yearInput}
             />
           </label>
           <label>
-            <span className="filter-panel__label">{t('filterPanel.yearTo')}</span>
+            <span className={styles.label}>{t('filterPanel.yearTo')}</span>
             <input
               type="number"
               aria-label={t('filterPanel.yearTo')}
@@ -121,7 +122,7 @@ export function FilterPanel({ options, filters, onFiltersChange }: FilterPanelPr
               onChange={handleYearMax}
               min={1900}
               max={2100}
-              className="filter-panel__year-input"
+              className={styles.yearInput}
             />
           </label>
         </div>

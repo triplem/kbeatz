@@ -1,0 +1,117 @@
+/* App shell layout */
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ────────────────────────────────────────────── */
+
+.appHeader {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  padding: var(--space-md) var(--space-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.appHeader h1 {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Main content area ─────────────────────────────────── */
+
+.appMain {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.appContent {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--space-md);
+  gap: var(--space-md);
+}
+
+/* ── Grid area (right of the filter panel) ─────────────── */
+
+.appGridArea {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+/* ── Toolbar (sort + count row) ────────────────────────── */
+
+.appToolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
+}
+
+/* ── Error / loading states ────────────────────────────── */
+
+.errorBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--color-error);
+}
+
+.retryButton {
+  min-height: var(--min-touch-target);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--accent-button);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-base);
+}
+
+.retryButton:hover {
+  background: var(--accent-hover);
+}
+
+.loadingText {
+  padding: var(--space-lg);
+  color: var(--text-secondary);
+}
+
+/* ── Responsive breakpoints ────────────────────────────── */
+
+@media (max-width: 768px) {
+  .appContent {
+    flex-direction: column;
+    padding: var(--space-sm);
+  }
+
+  .appHeader {
+    padding: var(--space-sm) var(--space-md);
+  }
+}
