@@ -1,8 +1,10 @@
 import { useCallback, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { AlbumDetail as AlbumDetailModel, Album, AlbumsService, Track } from '../../api/generated'
+import { useQueryClient } from '@tanstack/react-query'
+import { type Album, AlbumsService, type Track } from '../../api/generated'
+import { useAlbum } from './useAlbum'
+import { useAlbumTagSave } from './useAlbumTagSave'
 import { CancelledByUserError } from './cancelled-by-user-error'
 import { ConfirmWriteDialog } from './confirm-write-dialog'
 import { EditableField } from './editable-field'
@@ -53,46 +55,25 @@ export function AlbumDetail() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const queryClient = useQueryClient()
+
+  // Data fetching via custom hook
+  const { data: album, isPending: loading, error: fetchError, refetch } = useAlbum(albumId)
+  // Save mutation via custom hook
+  const { save: saveTag, isPending: isSaving } = useAlbumTagSave(albumId)
+
+  // Local UI state for the confirmation dialog flow
   const [confirmOpen, setConfirmOpen] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
   /** True after any album-level tag has been successfully saved since the last sync. */
   const [hasLocalEdits, setHasLocalEdits] = useState(false)
+  /**
+   * A local copy of the album used for optimistic sync-complete updates.
+   * When set, this overrides `album` from the query for rendering purposes.
+   */
+  const [syncedAlbum, setSyncedAlbum] = useState<typeof album>(undefined)
   const pendingSaveRef = useRef<PendingSave | null>(null)
 
-  const {
-    data: album,
-    isPending,
-    isError,
-    error,
-  } = useQuery({
-    queryKey: ['album', albumId],
-    queryFn: () => AlbumsService.getAlbum({ albumId: albumId! }),
-    enabled: Boolean(albumId),
-  })
-
-  const updateAlbumTagsMutation = useMutation({
-    mutationFn: ({ field, value }: { field: string; value: string }) =>
-      AlbumsService.updateAlbumTags({
-        albumId: albumId!,
-        requestBody: { field, value },
-      }),
-    onSuccess: (updated) => {
-      queryClient.setQueryData(['album', albumId], updated)
-      queryClient.invalidateQueries({ queryKey: ['albums'] })
-    },
-  })
-
-  const updateTrackTagsMutation = useMutation({
-    mutationFn: ({ trackId, field, value }: { trackId: string; field: string; value: string }) =>
-      AlbumsService.updateTrackTags({
-        albumId: albumId!,
-        trackId,
-        requestBody: { field, value },
-      }),
-    onSuccess: (updated) => {
-      queryClient.setQueryData(['album', albumId], updated)
-    },
-  })
+  // Derive the displayed album - prefer synced state over query state
+  const displayAlbum = syncedAlbum ?? album
 
   /**
    * Called by EditableField when the user commits an album-level field edit.
@@ -104,12 +85,11 @@ export function AlbumDetail() {
   const handleAlbumTagSave = useCallback(
     (field: string, value: string): Promise<void> =>
       new Promise((resolve, reject) => {
-        setIsSaving(true)
         pendingSaveRef.current = {
           field,
           value,
-          resolve: () => { setIsSaving(false); resolve() },
-          reject: (err: unknown) => { setIsSaving(false); reject(err) },
+          resolve: () => { resolve() },
+          reject: (err: unknown) => { reject(err) },
         }
         setConfirmOpen(true)
       }),
@@ -129,13 +109,14 @@ export function AlbumDetail() {
     pendingSaveRef.current = null
 
     try {
-      await updateAlbumTagsMutation.mutateAsync({ field: pending.field, value: pending.value })
+      await saveTag({ field: pending.field, value: pending.value })
       setHasLocalEdits(true)
+      setSyncedAlbum(undefined)
       pending.resolve()
     } catch (err) {
       pending.reject(err)
     }
-  }, [albumId, updateAlbumTagsMutation])
+  }, [albumId, saveTag])
 
   /**
    * User clicked "Cancel" or pressed Escape.
@@ -155,19 +136,26 @@ export function AlbumDetail() {
     (trackId: string) =>
       async (field: string, value: string) => {
         if (!albumId) return
-        await updateTrackTagsMutation.mutateAsync({ trackId, field, value })
+        await AlbumsService.updateTrackTags({
+          albumId,
+          trackId,
+          requestBody: { field, value },
+        })
+        // Refetch to get updated track data
+        await refetch()
       },
-    [albumId, updateTrackTagsMutation],
+    [albumId, refetch],
   )
 
   const handleSyncComplete = useCallback((updated: Album) => {
     // Merge the sync result into the current album detail.
     // The sync API returns Album (not AlbumDetail), so we patch only the
     // fields that Album carries; tracks and hasCoverArt are preserved.
-    queryClient.setQueryData<AlbumDetailModel>(['album', albumId], (prev) => {
-      if (!prev) return prev
+    setSyncedAlbum((prev) => {
+      const base = prev ?? album
+      if (!base) return base
       return {
-        ...prev,
+        ...base,
         albumArtist: updated.albumArtist,
         album: updated.album,
         date: updated.date,
@@ -182,21 +170,21 @@ export function AlbumDetail() {
       }
     })
     // Also invalidate the album list so the grid reflects the updated metadata
-    queryClient.invalidateQueries({ queryKey: ['albums'] })
+    void queryClient.invalidateQueries({ queryKey: ['albums'] })
     // Sync completed - local edits are now overwritten by Discogs data
     setHasLocalEdits(false)
-  }, [albumId, queryClient])
+  }, [album, queryClient])
 
-  if (isPending) return <p>{t('albumDetail.loading')}</p>
-  if (isError) return <p role="alert">{t('albumDetail.errorPrefix')}{' '}{error instanceof Error ? error.message : t('common.error')}</p>
-  if (!album) return <p role="alert">{t('albumDetail.notFound')}</p>
+  if (loading) return <p>{t('albumDetail.loading')}</p>
+  if (fetchError) return <p role="alert">{t('albumDetail.errorPrefix')}{fetchError.message}</p>
+  if (!displayAlbum) return <p role="alert">{t('albumDetail.notFound')}</p>
 
   return (
     <>
       <ConfirmWriteDialog
         open={confirmOpen}
-        albumTitle={album.album}
-        trackCount={album.tracks.length}
+        albumTitle={displayAlbum.album}
+        trackCount={displayAlbum.tracks.length}
         onConfirm={() => { void handleConfirm() }}
         onCancel={handleCancel}
       />
@@ -210,10 +198,10 @@ export function AlbumDetail() {
         {t('common.back')}
       </button>
 
-      {album.hasCoverArt && (
+      {displayAlbum.hasCoverArt && (
         <img
-          src={`/api/v1/albums/${album.id}/cover`}
-          alt={t('albumDetail.coverAlt', { album: album.album })}
+          src={`/api/v1/albums/${displayAlbum.id}/cover`}
+          alt={t('albumDetail.coverAlt', { album: displayAlbum.album })}
           className={styles.albumCover}
           loading="lazy"
           data-testid="album-cover"
@@ -232,12 +220,12 @@ export function AlbumDetail() {
           className={styles.editScopeNotice}
           data-testid="edit-scope-notice"
         >
-          {t('albumDetail.editScopeNotice', { count: album.tracks.length })}
+          {t('albumDetail.editScopeNotice', { count: displayAlbum.tracks.length })}
         </p>
         <dl id="album-tags" className={styles.albumTags}>
           <EditableField
             label={t('albumDetail.fields.album')}
-            value={album.album}
+            value={displayAlbum.album}
             fieldName="ALBUM"
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
@@ -246,7 +234,7 @@ export function AlbumDetail() {
           />
           <EditableField
             label={t('albumDetail.fields.albumArtist')}
-            value={album.albumArtist}
+            value={displayAlbum.albumArtist}
             fieldName="ALBUMARTIST"
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
@@ -255,8 +243,8 @@ export function AlbumDetail() {
           />
           <EditableField
             label={t('albumDetail.fields.date')}
-            value={album.date}
-            displayValue={album.date !== undefined ? formatDate(album.date) : undefined}
+            value={displayAlbum.date}
+            displayValue={displayAlbum.date !== undefined ? formatDate(displayAlbum.date) : undefined}
             fieldName="DATE"
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
@@ -265,7 +253,7 @@ export function AlbumDetail() {
           />
           <EditableField
             label={t('albumDetail.fields.genre')}
-            value={album.genre}
+            value={displayAlbum.genre}
             fieldName="GENRE"
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
@@ -274,7 +262,7 @@ export function AlbumDetail() {
           />
           <EditableField
             label={t('albumDetail.fields.label')}
-            value={album.label}
+            value={displayAlbum.label}
             fieldName="LABEL"
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
@@ -283,7 +271,7 @@ export function AlbumDetail() {
           />
           <EditableField
             label={t('albumDetail.fields.catalogNumber')}
-            value={album.catalogNumber}
+            value={displayAlbum.catalogNumber}
             fieldName="CATALOGNUMBER"
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
@@ -292,7 +280,7 @@ export function AlbumDetail() {
           />
           <EditableField
             label={t('albumDetail.fields.composer')}
-            value={album.composer}
+            value={displayAlbum.composer}
             fieldName="COMPOSER"
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
@@ -301,7 +289,7 @@ export function AlbumDetail() {
           />
           <EditableField
             label={t('albumDetail.fields.conductor')}
-            value={album.conductor}
+            value={displayAlbum.conductor}
             fieldName="CONDUCTOR"
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
@@ -310,7 +298,7 @@ export function AlbumDetail() {
           />
           <EditableField
             label={t('albumDetail.fields.ensemble')}
-            value={album.ensemble}
+            value={displayAlbum.ensemble}
             fieldName="ENSEMBLE"
             onSave={handleAlbumTagSave}
             testIdPrefix="album"
@@ -320,13 +308,13 @@ export function AlbumDetail() {
         </dl>
       </section>
 
-      {album.discogsId !== undefined && (
+      {displayAlbum.discogsId !== undefined && (
         <section aria-label={t('albumDetail.discogsSection')}>
-          <SyncPanel album={album} onSyncComplete={handleSyncComplete} hasLocalEdits={hasLocalEdits} />
+          <SyncPanel album={displayAlbum} onSyncComplete={handleSyncComplete} hasLocalEdits={hasLocalEdits} />
         </section>
       )}
 
-      {album.tracks.length > 0 && (
+      {displayAlbum.tracks.length > 0 && (
         <section aria-label={t('albumDetail.tracksSection')}>
           <h2 className={styles.sectionTitle}>{t('albumDetail.tracksSectionTitle')}</h2>
           <table className={styles.tracksTable} role="grid">
@@ -339,7 +327,7 @@ export function AlbumDetail() {
               </tr>
             </thead>
             <tbody>
-              {album.tracks.map((track) => (
+              {displayAlbum.tracks.map((track) => (
                 <TrackRow
                   key={track.id}
                   track={track}

@@ -1,11 +1,7 @@
 import { useTranslation } from 'react-i18next'
-import { useQuery } from '@tanstack/react-query'
-import { ScanStatus } from '../../api/generated'
-import { LibraryService } from '../../api/generated'
+import { useScanStatus } from './useScanStatus'
 import { formatDateTime } from '../../lib/i18n'
 import styles from './scan-progress.module.css'
-
-const POLL_INTERVAL_MS = 2000
 
 /**
  * Scan progress banner.
@@ -18,16 +14,8 @@ const POLL_INTERVAL_MS = 2000
  */
 export function ScanProgress() {
   const { t } = useTranslation()
+  const { status } = useScanStatus()
 
-  const { data: status } = useQuery<ScanStatus>({
-    queryKey: ['scan-status'],
-    queryFn: () => LibraryService.getLibraryScanStatus(),
-    refetchInterval: (query) => {
-      // Only poll while RUNNING; stop for any terminal state or before first response
-      const state = query.state.data?.state
-      return state === 'RUNNING' ? POLL_INTERVAL_MS : false
-    },
-  })
 
   if (status === undefined || status.state === 'IDLE') {
     return null
