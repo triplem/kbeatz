@@ -1,6 +1,7 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AlbumDetail } from './album-detail'
 import type { AlbumDetail as AlbumDetailModel, Track } from '../../api/generated'
 
@@ -70,13 +71,25 @@ function makeAlbum(overrides: Partial<AlbumDetailModel> = {}): AlbumDetailModel 
   }
 }
 
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  })
+}
+
 function renderDetail(albumId = 'album-id-1') {
+  const queryClient = makeQueryClient()
   return render(
-    <MemoryRouter initialEntries={[`/albums/${albumId}`]}>
-      <Routes>
-        <Route path="/albums/:albumId" element={<AlbumDetail />} />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[`/albums/${albumId}`]}>
+        <Routes>
+          <Route path="/albums/:albumId" element={<AlbumDetail />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   )
 }
 

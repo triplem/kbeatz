@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AlbumDetail as AlbumDetailModel, Album, AlbumsService, Track } from '../../api/generated'
 import { CancelledByUserError } from './cancelled-by-user-error'
 import { ConfirmWriteDialog } from './confirm-write-dialog'
@@ -10,7 +11,7 @@ import { formatDate } from '../../lib/i18n'
 import styles from './album-detail.module.css'
 
 /**
- * AlbumDetail — shows all Vorbis Comment tag fields for a single album with inline editing.
+ * AlbumDetail - shows all Vorbis Comment tag fields for a single album with inline editing.
  *
  * ## Album-level editable fields
  * ALBUM, ALBUMARTIST, DATE, GENRE, LABEL, CATALOGNUMBER, COMPOSER, CONDUCTOR, ENSEMBLE
@@ -19,12 +20,12 @@ import styles from './album-detail.module.css'
  * TITLE, TRACKNUMBER, ARTIST
  *
  * ## Edit flow
- * - Click on any album-level field value → inline input pre-filled with current value
- * - Enter → confirmation dialog appears before the PATCH is fired
- * - Blur (click away) → silently cancels edit, restores original value; no dialog, no API call
- * - Confirm → PATCH /albums/{albumId}; optimistic update; rollback + error toast on failure
- * - Cancel / Escape on dialog → abort, keep the form in its edited state
- * - Escape on input → cancel edit, restore original value; no dialog shown; no API call
+ * - Click on any album-level field value - inline input pre-filled with current value
+ * - Enter - confirmation dialog appears before the PATCH is fired
+ * - Blur (click away) - silently cancels edit, restores original value; no dialog, no API call
+ * - Confirm - PATCH /albums/{albumId}; optimistic update; rollback + error toast on failure
+ * - Cancel / Escape on dialog - abort, keep the form in its edited state
+ * - Escape on input - cancel edit, restore original value; no dialog shown; no API call
  *
  * ## Discogs sync
  * - SyncPanel is rendered below the tag fields when the album has a discogsId
@@ -51,38 +52,47 @@ export function AlbumDetail() {
   const { albumId } = useParams<{ albumId: string }>()
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const [album, setAlbum] = useState<AlbumDetailModel | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const queryClient = useQueryClient()
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   /** True after any album-level tag has been successfully saved since the last sync. */
   const [hasLocalEdits, setHasLocalEdits] = useState(false)
   const pendingSaveRef = useRef<PendingSave | null>(null)
 
-  useEffect(() => {
-    if (!albumId) return
+  const {
+    data: album,
+    isPending,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ['album', albumId],
+    queryFn: () => AlbumsService.getAlbum({ albumId: albumId! }),
+    enabled: Boolean(albumId),
+  })
 
-    let cancelled = false
+  const updateAlbumTagsMutation = useMutation({
+    mutationFn: ({ field, value }: { field: string; value: string }) =>
+      AlbumsService.updateAlbumTags({
+        albumId: albumId!,
+        requestBody: { field, value },
+      }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(['album', albumId], updated)
+      queryClient.invalidateQueries({ queryKey: ['albums'] })
+    },
+  })
 
-    const fetchAlbum = async () => {
-      try {
-        const data = await AlbumsService.getAlbum({ albumId })
-        if (!cancelled) setAlbum(data)
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : t('common.error'))
-        }
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-
-    void fetchAlbum()
-    return () => {
-      cancelled = true
-    }
-  }, [albumId, t])
+  const updateTrackTagsMutation = useMutation({
+    mutationFn: ({ trackId, field, value }: { trackId: string; field: string; value: string }) =>
+      AlbumsService.updateTrackTags({
+        albumId: albumId!,
+        trackId,
+        requestBody: { field, value },
+      }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(['album', albumId], updated)
+    },
+  })
 
   /**
    * Called by EditableField when the user commits an album-level field edit.
@@ -108,8 +118,8 @@ export function AlbumDetail() {
 
   /**
    * User clicked "Write tags" in the confirmation dialog.
-   * Fire the actual PATCH call, then resolve/reject the pending promise so
-   * EditableField exits edit mode (or shows an error).
+   * Fire the actual PATCH call via mutation, then resolve/reject the pending
+   * promise so EditableField exits edit mode (or shows an error).
    */
   const handleConfirm = useCallback(async () => {
     const pending = pendingSaveRef.current
@@ -119,22 +129,18 @@ export function AlbumDetail() {
     pendingSaveRef.current = null
 
     try {
-      const updated = await AlbumsService.updateAlbumTags({
-        albumId,
-        requestBody: { field: pending.field, value: pending.value },
-      })
-      setAlbum(updated)
+      await updateAlbumTagsMutation.mutateAsync({ field: pending.field, value: pending.value })
       setHasLocalEdits(true)
       pending.resolve()
     } catch (err) {
       pending.reject(err)
     }
-  }, [albumId])
+  }, [albumId, updateAlbumTagsMutation])
 
   /**
    * User clicked "Cancel" or pressed Escape.
    * Reject the pending promise so EditableField keeps its edited state
-   * (the user's changes remain in the input — they are NOT reset).
+   * (the user's changes remain in the input - they are NOT reset).
    */
   const handleCancel = useCallback(() => {
     const pending = pendingSaveRef.current
@@ -149,21 +155,16 @@ export function AlbumDetail() {
     (trackId: string) =>
       async (field: string, value: string) => {
         if (!albumId) return
-        const updated = await AlbumsService.updateTrackTags({
-          albumId,
-          trackId,
-          requestBody: { field, value },
-        })
-        setAlbum(updated)
+        await updateTrackTagsMutation.mutateAsync({ trackId, field, value })
       },
-    [albumId],
+    [albumId, updateTrackTagsMutation],
   )
 
   const handleSyncComplete = useCallback((updated: Album) => {
-    // Merge the sync result into the current album detail
+    // Merge the sync result into the current album detail.
     // The sync API returns Album (not AlbumDetail), so we patch only the
     // fields that Album carries; tracks and hasCoverArt are preserved.
-    setAlbum((prev) => {
+    queryClient.setQueryData<AlbumDetailModel>(['album', albumId], (prev) => {
       if (!prev) return prev
       return {
         ...prev,
@@ -180,12 +181,14 @@ export function AlbumDetail() {
         hasCoverArt: updated.hasCoverArt,
       }
     })
+    // Also invalidate the album list so the grid reflects the updated metadata
+    queryClient.invalidateQueries({ queryKey: ['albums'] })
     // Sync completed - local edits are now overwritten by Discogs data
     setHasLocalEdits(false)
-  }, [])
+  }, [albumId, queryClient])
 
-  if (loading) return <p>{t('albumDetail.loading')}</p>
-  if (error) return <p role="alert">{t('albumDetail.errorPrefix')}{error}</p>
+  if (isPending) return <p>{t('albumDetail.loading')}</p>
+  if (isError) return <p role="alert">{t('albumDetail.errorPrefix')}{error instanceof Error ? error.message : t('common.error')}</p>
   if (!album) return <p role="alert">{t('albumDetail.notFound')}</p>
 
   return (
