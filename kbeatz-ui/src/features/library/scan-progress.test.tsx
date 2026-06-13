@@ -96,6 +96,31 @@ describe('ScanProgress - render states', () => {
     expect(screen.queryByRole('button', { name: 'Dismiss' })).toBeNull()
   })
 
+  it('shows the completion banner again after a new scan completes', async () => {
+    const user = userEvent.setup()
+    // First scan completes - banner is shown and dismissed
+    mockGetStatus.mockResolvedValue(
+      makeStatus('COMPLETED', { completedAt: '2026-06-09T20:31:20Z' }),
+    )
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ScanProgress />
+      </QueryClientProvider>,
+    )
+    const dismissBtn = await screen.findByRole('button', { name: 'Dismiss' })
+    await user.click(dismissBtn)
+    expect(screen.queryByRole('status')).toBeNull()
+
+    // A second scan completes with a different completedAt timestamp.
+    // The new key on CompletedBanner resets dismissed state automatically.
+    mockGetStatus.mockResolvedValue(
+      makeStatus('COMPLETED', { completedAt: '2026-06-09T21:00:00Z' }),
+    )
+    await queryClient.invalidateQueries()
+    await screen.findByRole('button', { name: 'Dismiss' })
+  })
+
   it('renders startedAt timestamp in running banner when present', async () => {
     mockGetStatus.mockResolvedValue(
       makeStatus('RUNNING', { scannedAlbums: 10, totalAlbums: 100, startedAt: '2026-06-09T20:00:00Z' }),

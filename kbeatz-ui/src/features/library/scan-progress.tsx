@@ -1,9 +1,36 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DismissibleBanner } from '../../lib/dismissible-banner'
 import { formatDateTime } from '../../lib/i18n'
 import { useScanStatus } from './useScanStatus'
 import styles from './scan-progress.module.css'
+
+/**
+ * Dismissible completion banner for a single scan epoch.
+ *
+ * Keyed on `completedAt` so React automatically resets dismissed state when a
+ * new scan completes (a new key means a fresh component instance).
+ */
+interface CompletedBannerProps {
+  readonly completedAt: string
+}
+
+function CompletedBanner({ completedAt }: CompletedBannerProps) {
+  const { t } = useTranslation()
+  const [dismissed, setDismissed] = useState(false)
+
+  if (dismissed) return null
+
+  return (
+    <DismissibleBanner
+      className={`${styles.scanProgress} ${styles.completed}`}
+      role="status"
+      onDismiss={() => { setDismissed(true) }}
+    >
+      {t('scanProgress.completedAt', { time: formatDateTime(completedAt) })}
+    </DismissibleBanner>
+  )
+}
 
 /**
  * Scan progress banner.
@@ -15,38 +42,21 @@ import styles from './scan-progress.module.css'
  * Does not render when state is IDLE.
  *
  * Dismissal is React-state only: the notification reappears after a page refresh
- * because `completedAt` is re-fetched from the API on mount. If the scan transitions
- * from COMPLETED back to RUNNING (a new scan starts) the dismissed flag resets so
- * the next completion notification is shown automatically.
+ * because `completedAt` is re-fetched from the API on mount. Each new scan
+ * completion produces a new `completedAt` value which resets the dismissed state
+ * automatically via the React key on `CompletedBanner`.
  */
 export function ScanProgress() {
   const { t } = useTranslation()
   const { status } = useScanStatus()
-  const [dismissed, setDismissed] = useState(false)
-
-  // Reset dismissed flag whenever a new scan starts so the next completion
-  // notification is shown without requiring a page refresh.
-  useEffect(() => {
-    if (status?.state === 'RUNNING') {
-      setDismissed(false)
-    }
-  }, [status?.state])
 
   if (status === undefined || status.state === 'IDLE') {
     return null
   }
 
   if (status.state === 'COMPLETED') {
-    if (dismissed || !status.completedAt) return null
-    return (
-      <DismissibleBanner
-        className={`${styles.scanProgress} ${styles.completed}`}
-        role="status"
-        onDismiss={() => { setDismissed(true) }}
-      >
-        {t('scanProgress.completedAt', { time: formatDateTime(status.completedAt) })}
-      </DismissibleBanner>
-    )
+    if (!status.completedAt) return null
+    return <CompletedBanner key={status.completedAt} completedAt={status.completedAt} />
   }
 
   if (status.state === 'FAILED') {

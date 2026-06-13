@@ -1,10 +1,10 @@
-import type { ReactNode } from 'react'
+import type { MouseEventHandler, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import styles from './dismissible-banner.module.css'
 
 interface DismissibleBannerProps {
   children: ReactNode
-  onDismiss: () => void
+  onDismiss: MouseEventHandler<HTMLButtonElement>
   className?: string
   role?: 'status' | 'alert'
 }
