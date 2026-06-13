@@ -67,14 +67,18 @@ describe('useTriggerScan', () => {
       result.current.trigger()
     })
 
-    expect(result.current.isPending).toBe(true)
+    await waitFor(() => {
+      expect(result.current.isPending).toBe(true)
+    })
 
     await act(async () => {
       resolvePromise()
       await Promise.resolve()
     })
 
-    expect(result.current.isPending).toBe(false)
+    await waitFor(() => {
+      expect(result.current.isPending).toBe(false)
+    })
   })
 
   it('calls LibraryService.triggerLibraryScan when trigger is invoked', async () => {
