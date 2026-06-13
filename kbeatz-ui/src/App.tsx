@@ -3,6 +3,7 @@ import { Routes, Route, Link, Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import styles from './App.module.css'
 import logoFull from './assets/kbeatz-logo-transparent.svg'
+import logoFullDark from './assets/kbeatz-logo-dark.svg'
 import logoIcon from './assets/kbeatz-icon.svg'
 import { AlbumGrid } from './features/albums/album-grid'
 import { AlbumDetail } from './features/albums/album-detail'
@@ -33,11 +34,10 @@ function AppLayout() {
     <div className={styles.app}>
       <header className={styles.appHeader}>
         <Link to="/" className={styles.appLogoLink} aria-label={t('app.title')}>
-          <img
-            src={logoFull}
-            alt=""
-            className={styles.appLogoFull}
-          />
+          <picture className={styles.appLogoFull}>
+            <source srcSet={logoFullDark} media="(prefers-color-scheme: dark)" />
+            <img src={logoFull} alt="" />
+          </picture>
           <img
             src={logoIcon}
             alt=""
