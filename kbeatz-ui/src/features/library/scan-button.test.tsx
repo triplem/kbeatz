@@ -36,7 +36,7 @@ describe('ScanButton', () => {
 
   it('renders the scan button', async () => {
     mockGetStatus.mockResolvedValue(makeStatus('IDLE'))
-    mockTrigger.mockResolvedValue(undefined)
+    mockTrigger.mockResolvedValue(makeStatus('COMPLETED'))
     renderWithQuery(<ScanButton />)
 
     await waitFor(() => {
@@ -48,7 +48,7 @@ describe('ScanButton', () => {
 
   it('button is enabled when status is IDLE', async () => {
     mockGetStatus.mockResolvedValue(makeStatus('IDLE'))
-    mockTrigger.mockResolvedValue(undefined)
+    mockTrigger.mockResolvedValue(makeStatus('COMPLETED'))
     renderWithQuery(<ScanButton />)
 
     await waitFor(() => {
@@ -60,7 +60,7 @@ describe('ScanButton', () => {
 
   it('button is disabled when a scan is RUNNING', async () => {
     mockGetStatus.mockResolvedValue(makeStatus('RUNNING', { scannedAlbums: 0, totalAlbums: 100 }))
-    mockTrigger.mockResolvedValue(undefined)
+    mockTrigger.mockResolvedValue(makeStatus('COMPLETED'))
     renderWithQuery(<ScanButton />)
 
     await waitFor(() => {
@@ -70,7 +70,7 @@ describe('ScanButton', () => {
 
   it('calls triggerLibraryScan when the button is clicked', async () => {
     mockGetStatus.mockResolvedValue(makeStatus('IDLE'))
-    mockTrigger.mockResolvedValue(undefined)
+    mockTrigger.mockResolvedValue(makeStatus('COMPLETED'))
     renderWithQuery(<ScanButton />)
 
     await waitFor(() => {
@@ -86,7 +86,7 @@ describe('ScanButton', () => {
 
   it('does not show error message when mutation succeeds', async () => {
     mockGetStatus.mockResolvedValue(makeStatus('IDLE'))
-    mockTrigger.mockResolvedValue(undefined)
+    mockTrigger.mockResolvedValue(makeStatus('COMPLETED'))
     renderWithQuery(<ScanButton />)
 
     await waitFor(() => {

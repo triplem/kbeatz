@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createElement } from 'react'
 import { useTriggerScan } from './useTriggerScan'
+import type { ScanStatus } from '../../api/generated'
 
 vi.mock('../../api/generated', () => ({
   LibraryService: {
@@ -12,6 +13,13 @@ vi.mock('../../api/generated', () => ({
 
 import { LibraryService } from '../../api/generated'
 const mockTriggerScan = vi.mocked(LibraryService.triggerLibraryScan)
+
+function makeStatus(
+  state: ScanStatus['state'],
+  overrides: Partial<ScanStatus> = {},
+): ScanStatus {
+  return { state, ...overrides }
+}
 
 function makeWrapper() {
   const queryClient = new QueryClient({
@@ -27,7 +35,7 @@ describe('useTriggerScan', () => {
   })
 
   it('returns trigger function, isPending, and error fields', () => {
-    mockTriggerScan.mockResolvedValue(undefined)
+    mockTriggerScan.mockResolvedValue(makeStatus('COMPLETED'))
     const { result } = renderHook(() => useTriggerScan(), { wrapper: makeWrapper() })
 
     expect(typeof result.current.trigger).toBe('function')
@@ -36,7 +44,7 @@ describe('useTriggerScan', () => {
   })
 
   it('returns an object (not a tuple)', () => {
-    mockTriggerScan.mockResolvedValue(undefined)
+    mockTriggerScan.mockResolvedValue(makeStatus('COMPLETED'))
     const { result } = renderHook(() => useTriggerScan(), { wrapper: makeWrapper() })
 
     expect(Array.isArray(result.current)).toBe(false)
@@ -47,11 +55,10 @@ describe('useTriggerScan', () => {
 
   it('sets isPending=true while the mutation is in-flight', async () => {
     let resolvePromise!: () => void
-    mockTriggerScan.mockReturnValue(
-      new Promise<void>((res) => {
-        resolvePromise = res
-      }),
-    )
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockTriggerScan.mockReturnValue(new Promise<ScanStatus>((res) => {
+      resolvePromise = () => res(makeStatus('COMPLETED'))
+    }) as any)
 
     const { result } = renderHook(() => useTriggerScan(), { wrapper: makeWrapper() })
 
@@ -70,7 +77,7 @@ describe('useTriggerScan', () => {
   })
 
   it('calls LibraryService.triggerLibraryScan when trigger is invoked', async () => {
-    mockTriggerScan.mockResolvedValue(undefined)
+    mockTriggerScan.mockResolvedValue(makeStatus('COMPLETED'))
     const { result } = renderHook(() => useTriggerScan(), { wrapper: makeWrapper() })
 
     act(() => {
