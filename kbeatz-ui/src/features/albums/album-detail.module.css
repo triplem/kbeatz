@@ -36,12 +36,16 @@
     align-items: start;
   }
 
+  /*
+   * Sticky metadata column: stays in view while the user scrolls the tracklist.
+   * No overflow-y: auto here - that would create a nested scroll container and
+   * trap keyboard/touch scrolling inside the column. The page itself scrolls;
+   * the column just sticks at the top.
+   */
   .metadataColumn {
     position: sticky;
     top: 64px;
     align-self: start;
-    max-height: calc(100vh - 80px);
-    overflow-y: auto;
   }
 }
 
