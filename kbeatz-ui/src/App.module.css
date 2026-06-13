@@ -48,6 +48,19 @@
   flex-direction: column;
 }
 
+/* Search bar row (album list page only) */
+
+.appSearchBar {
+  padding: var(--space-sm) var(--space-lg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+@media (max-width: 768px) {
+  .appSearchBar {
+    padding: var(--space-sm) var(--space-md);
+  }
+}
+
 .appContent {
   flex: 1;
   display: flex;
