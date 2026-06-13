@@ -157,14 +157,15 @@ function AlbumListPage() {
               <AlbumGrid albums={clientFilteredAlbums} totalCount={totalElements} />
               {totalPages > 1 && (
                 <div className="app-pagination" data-testid="album-pagination">
-                  <button
-                    type="button"
-                    onClick={() => setPage((p) => Math.max(0, p - 1))}
-                    disabled={page === 0}
-                    data-testid="pagination-prev"
-                  >
-                    {t('pagination.previous')}
-                  </button>
+                  {page > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setPage((p) => p - 1)}
+                      data-testid="pagination-prev"
+                    >
+                      {t('pagination.previous')}
+                    </button>
+                  )}
                   <span data-testid="pagination-info">
                     {t('pagination.pageOf', { current: page + 1, total: totalPages })}
                   </span>
