@@ -156,7 +156,7 @@ function AlbumListPage() {
             <>
               <AlbumGrid albums={clientFilteredAlbums} totalCount={totalElements} />
               {totalPages > 1 && (
-                <div className={styles.appPagination} data-testid="album-pagination">
+                <nav aria-label={t('pagination.ariaLabel')} className={styles.appPagination} data-testid="album-pagination">
                   {page > 0 && (
                     <button
                       type="button"
@@ -166,7 +166,7 @@ function AlbumListPage() {
                       {t('pagination.previous')}
                     </button>
                   )}
-                  <span data-testid="pagination-info">
+                  <span aria-live="polite" aria-atomic="true" data-testid="pagination-info">
                     {t('pagination.pageOf', { current: page + 1, total: totalPages })}
                   </span>
                   {page < totalPages - 1 && (
@@ -178,7 +178,7 @@ function AlbumListPage() {
                       {t('pagination.next')}
                     </button>
                   )}
-                </div>
+                </nav>
               )}
             </>
           )}
