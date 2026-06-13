@@ -38,14 +38,6 @@ describe('useAlbumFilters', () => {
     expect(result.current.filters.genres).toEqual(['Jazz', 'Classical'])
   })
 
-  it('parses yearMin and yearMax from URL', () => {
-    const { result } = renderHook(() => useAlbumFilters(), {
-      wrapper: makeWrapper('yearMin=1950&yearMax=1970'),
-    })
-    expect(result.current.filters.yearMin).toBe(1950)
-    expect(result.current.filters.yearMax).toBe(1970)
-  })
-
   it('parses free-text query from URL', () => {
     const { result } = renderHook(() => useAlbumFilters(), {
       wrapper: makeWrapper('q=miles+davis'),

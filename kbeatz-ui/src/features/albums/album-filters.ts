@@ -5,8 +5,6 @@ export interface AlbumFilters {
   readonly genres: ReadonlyArray<string>
   readonly artists: ReadonlyArray<string>
   readonly composers: ReadonlyArray<string>
-  readonly yearMin: number | null
-  readonly yearMax: number | null
   readonly query: string
 }
 
@@ -15,8 +13,6 @@ export const EMPTY_FILTERS: AlbumFilters = {
   genres: [],
   artists: [],
   composers: [],
-  yearMin: null,
-  yearMax: null,
   query: '',
 }
 
@@ -73,7 +69,6 @@ export function saveSortDirection(dir: SortDirection): void {
  * Filter rules:
  * - Multi-select fields (genre, artist, composer) use OR within the field.
  * - All active filter axes must match (AND across axes).
- * - Year range is inclusive on both ends.
  * - Free-text query matches any of albumArtist, album, composer, label (case-insensitive).
  *
  * Sort rules:
@@ -105,16 +100,6 @@ function filterAlbum(album: Album, filters: AlbumFilters): boolean {
   )
     return false
 
-  if (filters.yearMin !== null) {
-    const year = parseYear(album.date)
-    if (year === null || year < filters.yearMin) return false
-  }
-
-  if (filters.yearMax !== null) {
-    const year = parseYear(album.date)
-    if (year === null || year > filters.yearMax) return false
-  }
-
   if (filters.query.trim() !== '') {
     const q = filters.query.toLowerCase()
     const matches =
@@ -126,12 +111,6 @@ function filterAlbum(album: Album, filters: AlbumFilters): boolean {
   }
 
   return true
-}
-
-function parseYear(date: string | undefined): number | null {
-  if (!date) return null
-  const year = parseInt(date.slice(0, 4), 10)
-  return isNaN(year) ? null : year
 }
 
 function sortAlbums(albums: Album[], sort: SortField, direction: SortDirection): Album[] {
@@ -152,14 +131,10 @@ function sortAlbums(albums: Album[], sort: SortField, direction: SortDirection):
 
 /** Parse filter state from URL search params. */
 export function filtersFromParams(params: URLSearchParams): AlbumFilters {
-  const yearMinRaw = params.get('yearMin')
-  const yearMaxRaw = params.get('yearMax')
   return {
     genres: params.getAll('genre'),
     artists: params.getAll('artist'),
     composers: params.getAll('composer'),
-    yearMin: yearMinRaw ? parseInt(yearMinRaw, 10) || null : null,
-    yearMax: yearMaxRaw ? parseInt(yearMaxRaw, 10) || null : null,
     query: params.get('q') ?? '',
   }
 }
@@ -170,8 +145,6 @@ export function filtersToParams(filters: AlbumFilters): URLSearchParams {
   for (const g of filters.genres) params.append('genre', g)
   for (const a of filters.artists) params.append('artist', a)
   for (const c of filters.composers) params.append('composer', c)
-  if (filters.yearMin !== null) params.set('yearMin', String(filters.yearMin))
-  if (filters.yearMax !== null) params.set('yearMax', String(filters.yearMax))
   if (filters.query.trim() !== '') params.set('q', filters.query)
   return params
 }

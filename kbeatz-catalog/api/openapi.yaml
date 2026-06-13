@@ -133,11 +133,13 @@ paths:
           schema: { type: string, example: "Jazz" }
         - name: yearFrom
           in: query
-          description: "Filter albums released on or after this year (inclusive)"
+          deprecated: true
+          description: "Deprecated: the year range filter has been removed from the UI and will be removed from the API in a future version. Filter albums released on or after this year (inclusive)"
           schema: { type: integer, example: 1950 }
         - name: yearTo
           in: query
-          description: "Filter albums released on or before this year (inclusive)"
+          deprecated: true
+          description: "Deprecated: the year range filter has been removed from the UI and will be removed from the API in a future version. Filter albums released on or before this year (inclusive)"
           schema: { type: integer, example: 1970 }
         - name: q
           in: query

@@ -24,8 +24,6 @@ export function useAlbumPage(page: number, filters: AlbumFilters) {
         albumArtist: filters.artists.length === 1 ? filters.artists[0] : undefined,
         composer: filters.composers.length === 1 ? filters.composers[0] : undefined,
         genre: filters.genres.length === 1 ? filters.genres[0] : undefined,
-        yearFrom: filters.yearMin ?? undefined,
-        yearTo: filters.yearMax ?? undefined,
       },
     ],
     queryFn: () =>
@@ -36,8 +34,6 @@ export function useAlbumPage(page: number, filters: AlbumFilters) {
         albumArtist: filters.artists.length === 1 ? filters.artists[0] : undefined,
         composer: filters.composers.length === 1 ? filters.composers[0] : undefined,
         genre: filters.genres.length === 1 ? filters.genres[0] : undefined,
-        yearFrom: filters.yearMin ?? undefined,
-        yearTo: filters.yearMax ?? undefined,
       }),
     placeholderData: keepPreviousData,
     staleTime: 30_000,
