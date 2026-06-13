@@ -46,6 +46,7 @@ function makeTrack(overrides: Partial<Track> = {}): Track {
     trackNumber: '1',
     artist: undefined,
     path: '01 So What.flac',
+    filePath: '01 So What.flac',
     durationSeconds: 565,
     ...overrides,
   }
@@ -64,7 +65,8 @@ function makeAlbum(overrides: Partial<AlbumDetailModel> = {}): AlbumDetailModel 
     conductor: undefined,
     ensemble: undefined,
     discogsId: undefined,
-    directoryPath: '/music/kind-of-blue',
+    directoryPath: 'Jazz/Miles Davis/Kind of Blue',
+    albumPath: 'Jazz/Miles Davis/Kind of Blue',
     hasCoverArt: false,
     tracks: [makeTrack()],
     ...overrides,
@@ -587,5 +589,67 @@ describe('AlbumDetail', () => {
     await waitFor(() => {
       expect(screen.getByRole('columnheader', { name: 'Position' })).toBeInTheDocument()
     })
+  })
+
+  // ──────────────────────────────────────────────
+  // Path display (#578)
+  // ──────────────────────────────────────────────
+
+  it('renders album path as read-only text', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ albumPath: 'Jazz/Miles Davis/Kind of Blue' }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('album-path')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('album-path')).toHaveTextContent('Jazz/Miles Davis/Kind of Blue')
+  })
+
+  it('renders Copy button for album path', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ albumPath: 'Jazz/Miles Davis/Kind of Blue' }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('album-path-copy')).toBeInTheDocument()
+    })
+    const copyBtn = screen.getByTestId('album-path-copy')
+    expect(copyBtn).toHaveAttribute('aria-label')
+  })
+
+  it('renders track filePath in each track row', async () => {
+    const track = makeTrack({ id: 'track-id-1', filePath: '01 So What.flac' })
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [track] }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('track-track-id-1-file-path')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('track-track-id-1-file-path')).toHaveTextContent('01 So What.flac')
+  })
+
+  it('renders Copy button for track filePath', async () => {
+    const track = makeTrack({ id: 'track-id-1', filePath: '01 So What.flac' })
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [track] }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('track-track-id-1-file-path-copy')).toBeInTheDocument()
+    })
+    const copyBtn = screen.getByTestId('track-track-id-1-file-path-copy')
+    expect(copyBtn).toHaveAttribute('aria-label')
+  })
+
+  it('renders File column header in tracks table', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [makeTrack()] }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByRole('columnheader', { name: 'File' })).toBeInTheDocument()
+    })
+  })
+
+  it('renders paths with special chars and spaces correctly', async () => {
+    const path = "Jazz & Blues (Miles Davis's)/Kind of Blue"
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ albumPath: path }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('album-path')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('album-path')).toHaveTextContent(path)
   })
 })

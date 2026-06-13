@@ -428,7 +428,7 @@ components:
 
     Track:
       type: object
-      required: [id, albumId, path]
+      required: [id, albumId, path, filePath]
       properties:
         id:
           type: string
@@ -477,10 +477,14 @@ components:
           type: string
           description: "Relative path to FLAC file within the album directory"
           example: "01 So What.flac"
+        filePath:
+          type: string
+          description: "Filename of the FLAC file (last path segment of path)"
+          example: "01 - So What.flac"
 
     AlbumDetail:
       type: object
-      required: [id, albumArtist, album, directoryPath, hasCoverArt, tracks]
+      required: [id, albumArtist, album, directoryPath, albumPath, hasCoverArt, tracks]
       properties:
         id:
           type: string
@@ -530,6 +534,10 @@ components:
         directoryPath:
           type: string
           description: "Path of the album directory relative to the configured library root"
+          example: "Jazz/Miles Davis/Kind of Blue"
+        albumPath:
+          type: string
+          description: "Album directory path relative to the library root (same as directoryPath; use this field in UI)"
           example: "Jazz/Miles Davis/Kind of Blue"
         hasCoverArt:
           type: boolean

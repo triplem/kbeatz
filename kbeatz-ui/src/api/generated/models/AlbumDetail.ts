@@ -53,6 +53,10 @@ export type AlbumDetail = {
      */
     directoryPath: string;
     /**
+     * Album directory path relative to the library root (same as directoryPath; use this field in UI)
+     */
+    albumPath: string;
+    /**
      * True when cover art is available via GET /albums/{albumId}/cover
      */
     hasCoverArt: boolean;

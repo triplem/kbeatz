@@ -13,6 +13,59 @@ import { formatDate } from '../../lib/i18n'
 import { formatTrackDuration } from '../../lib/format-duration'
 import styles from './album-detail.module.css'
 
+interface PathDisplayProps {
+  readonly path: string
+  readonly label: string
+  readonly testId?: string
+}
+
+/**
+ * Displays a filesystem path as read-only text with a Copy button.
+ * Long paths are truncated with text-overflow: ellipsis.
+ * The Copy button is always visible (not hover-only) so it works on touch and keyboard.
+ */
+function PathDisplay({ path, label, testId }: PathDisplayProps) {
+  const { t } = useTranslation()
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(path).then(
+      () => {
+        setCopied(true)
+        setTimeout(() => { setCopied(false) }, 1500)
+      },
+      () => {
+        // Fallback: create a temporary input element
+        const el = document.createElement('textarea')
+        el.value = path
+        el.style.position = 'fixed'
+        el.style.opacity = '0'
+        document.body.appendChild(el)
+        el.select()
+        document.execCommand('copy')
+        document.body.removeChild(el)
+        setCopied(true)
+        setTimeout(() => { setCopied(false) }, 1500)
+      },
+    )
+  }, [path])
+
+  return (
+    <span className={styles.pathDisplay} data-testid={testId}>
+      <span className={styles.pathText} title={path}>{path}</span>
+      <button
+        type="button"
+        className={styles.copyButton}
+        onClick={handleCopy}
+        aria-label={t('albumDetail.copyPath', { label })}
+        data-testid={testId !== undefined ? `${testId}-copy` : undefined}
+      >
+        {copied ? t('albumDetail.copied') : t('albumDetail.copy')}
+      </button>
+    </span>
+  )
+}
+
 /**
  * AlbumDetail - shows all Vorbis Comment tag fields for a single album with inline editing.
  *
@@ -216,6 +269,14 @@ export function AlbumDetail() {
             {t('albumDetail.saving')}
           </p>
         )}
+        <div className={styles.albumPathRow}>
+          <span className={styles.albumPathLabel}>{t('albumDetail.fields.albumPath')}</span>
+          <PathDisplay
+            path={displayAlbum.albumPath}
+            label={t('albumDetail.fields.albumPath')}
+            testId="album-path"
+          />
+        </div>
         <p
           id="edit-scope-notice"
           className={styles.editScopeNotice}
@@ -376,6 +437,7 @@ function TrackList({ tracks, onSave }: TrackListProps) {
           <th scope="col">{t('albumDetail.trackColumns.title')}</th>
           <th scope="col">{t('albumDetail.trackColumns.artist')}</th>
           <th scope="col">{t('albumDetail.trackColumns.duration')}</th>
+          <th scope="col">{t('albumDetail.trackColumns.file')}</th>
         </tr>
       </thead>
       <tbody>
@@ -383,7 +445,7 @@ function TrackList({ tracks, onSave }: TrackListProps) {
           <Fragment key={group.discLabel ?? 'no-disc'}>
             {isMultiDisc && group.discLabel !== null && (
               <tr className={styles.discHeader}>
-                <td colSpan={4}>{t('albumDetail.discHeader', { number: group.discLabel })}</td>
+                <td colSpan={5}>{t('albumDetail.discHeader', { number: group.discLabel })}</td>
               </tr>
             )}
             {group.tracks.map((track) => (
@@ -441,6 +503,13 @@ function TrackRow({ track, onSave }: TrackRowProps) {
         />
       </td>
       <td>{durationDisplay}</td>
+      <td>
+        <PathDisplay
+          path={track.filePath}
+          label={t('albumDetail.trackColumns.file')}
+          testId={`track-${track.id}-file-path`}
+        />
+      </td>
     </tr>
   )
 }

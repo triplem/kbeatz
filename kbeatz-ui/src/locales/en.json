@@ -57,15 +57,20 @@
       "ensemble": "Ensemble",
       "title": "Title",
       "trackNumber": "Track number",
-      "artist": "Artist"
+      "artist": "Artist",
+      "albumPath": "Album path"
     },
+    "copy": "Copy",
+    "copied": "Copied!",
+    "copyPath": "Copy {{label}}",
     "noTracks": "No track information available",
     "discHeader": "Disc {{number}}",
     "trackColumns": {
       "position": "Position",
       "title": "Title",
       "artist": "Artist",
-      "duration": "Duration"
+      "duration": "Duration",
+      "file": "File"
     }
   },
   "editableField": {
