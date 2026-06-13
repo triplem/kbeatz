@@ -534,4 +534,58 @@ describe('AlbumDetail', () => {
     fireEvent.click(screen.getByTestId(`track-${trackId}-value-artist`))
     expect(screen.getByTestId(`track-${trackId}-input-artist`)).toHaveValue('John Coltrane')
   })
+
+  // ──────────────────────────────────────────────
+  // Tracklist section - empty state (#564)
+  // ──────────────────────────────────────────────
+
+  it('shows no-tracks placeholder when album has no tracks', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [] }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByText('No track information available')).toBeInTheDocument()
+    })
+  })
+
+  it('does not show no-tracks placeholder when album has tracks', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [makeTrack()] }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.queryByText('No track information available')).not.toBeInTheDocument()
+    })
+  })
+
+  // ──────────────────────────────────────────────
+  // Tracklist section - multi-disc grouping (#564)
+  // ──────────────────────────────────────────────
+
+  it('renders disc header for multi-disc album', async () => {
+    const disc1Track = makeTrack({ id: 'track-d1', discNumber: '1', trackNumber: '1' })
+    const disc2Track = makeTrack({ id: 'track-d2', discNumber: '2', trackNumber: '1', path: '02 disc2.flac' })
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [disc1Track, disc2Track] }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('track-row-track-d1')).toBeInTheDocument()
+    })
+    expect(screen.getByText('Disc 1')).toBeInTheDocument()
+    expect(screen.getByText('Disc 2')).toBeInTheDocument()
+  })
+
+  it('does not render disc headers for single-disc album', async () => {
+    const track = makeTrack({ discNumber: undefined })
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [track] }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('track-row-track-id-1')).toBeInTheDocument()
+    })
+    expect(screen.queryByText(/^Disc /)).not.toBeInTheDocument()
+  })
+
+  it('renders Position column header', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [makeTrack()] }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByRole('columnheader', { name: 'Position' })).toBeInTheDocument()
+    })
+  })
 })

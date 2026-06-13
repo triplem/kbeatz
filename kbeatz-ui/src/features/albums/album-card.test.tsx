@@ -201,4 +201,65 @@ describe('AlbumCard', () => {
     )
     expect(screen.getByText('circa 1970')).toBeInTheDocument()
   })
+
+  // ──────────────────────────────────────────────
+  // Track summary (#564)
+  // ──────────────────────────────────────────────
+
+  it('shows track count when trackCount is present and > 0', () => {
+    render(
+      <MemoryRouter>
+        <AlbumCard album={makeAlbum({ trackCount: 12 })} />
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('12 tracks')).toBeInTheDocument()
+  })
+
+  it('shows singular "1 track" for trackCount of 1', () => {
+    render(
+      <MemoryRouter>
+        <AlbumCard album={makeAlbum({ trackCount: 1 })} />
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('1 track')).toBeInTheDocument()
+  })
+
+  it('shows total duration when totalDurationSeconds is present and > 0', () => {
+    render(
+      <MemoryRouter>
+        {/* 4440 seconds = 1h 14m */}
+        <AlbumCard album={makeAlbum({ totalDurationSeconds: 4440 })} />
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('1h 14m')).toBeInTheDocument()
+  })
+
+  it('does not show track summary when trackCount and totalDurationSeconds are absent', () => {
+    render(
+      <MemoryRouter>
+        <AlbumCard album={makeAlbum({ trackCount: undefined, totalDurationSeconds: undefined })} />
+      </MemoryRouter>,
+    )
+    expect(screen.queryByText(/tracks?/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/h |m$/)).not.toBeInTheDocument()
+  })
+
+  it('does not show track count when trackCount is 0', () => {
+    render(
+      <MemoryRouter>
+        <AlbumCard album={makeAlbum({ trackCount: 0 })} />
+      </MemoryRouter>,
+    )
+    expect(screen.queryByText(/tracks?/)).not.toBeInTheDocument()
+  })
+
+  it('does not show duration when totalDurationSeconds is 0', () => {
+    render(
+      <MemoryRouter>
+        <AlbumCard album={makeAlbum({ totalDurationSeconds: 0 })} />
+      </MemoryRouter>,
+    )
+    // 0 seconds should not display "0m"
+    expect(screen.queryByText('0m')).not.toBeInTheDocument()
+  })
 })

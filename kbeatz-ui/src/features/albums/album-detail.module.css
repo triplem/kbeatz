@@ -102,6 +102,25 @@
   background: var(--bg-secondary);
 }
 
+/* ── No tracks placeholder ──────────────────────────── */
+
+.noTracks {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  padding: var(--space-md) 0;
+}
+
+/* ── Disc header rows ───────────────────────────────── */
+
+.discHeader td {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  padding: var(--space-xs) var(--space-md);
+  border-bottom: 1px solid var(--border-color);
+}
+
 /* ── Responsive ──────────────────────────────────────── */
 
 @media (max-width: 768px) {
