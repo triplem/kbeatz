@@ -47,5 +47,9 @@ export type Track = {
      * Relative path to FLAC file within the album directory
      */
     path: string;
+    /**
+     * Filename of the FLAC file (last path segment of path)
+     */
+    filePath: string;
 };
 

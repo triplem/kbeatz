@@ -35,6 +35,7 @@ export default tseslint.config(
           'jsx-attributes': {
             exclude: [
               'testIdPrefix',
+              'testId',
               'data-testid',
               'className',
               'fieldName',

@@ -155,6 +155,50 @@ class AlbumDetailHandlerTest {
     }
 
     @Test
+    fun `GET albums albumId returns albumPath equal to directoryPath and not starting with slash`() = testApplication {
+        install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        routing { albumDetailRoutes(albumService, libraryRoot) }
+        val client = createClient { install(ClientContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }
+
+        val album = buildAlbum().copy(directoryPath = "/music/Jazz/Miles Davis")
+        coEvery { albumRepository.findById(albumId) } returns album
+        coEvery { trackRepository.findByAlbumId(albumId) } returns emptyList()
+
+        val response = client.get("/albums/${albumId}")
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val detail = response.body<AlbumDetail>()
+        // albumPath must be relative: does not start with '/' and does not contain the library root prefix
+        val expectedRelative = "Jazz/Miles Davis"
+        assertEquals(expectedRelative, detail.albumPath)
+        assert(!detail.albumPath.startsWith("/")) { "albumPath must not start with '/'" }
+        assert(!detail.albumPath.contains(libraryRoot.toString())) {
+            "albumPath must not contain the library root prefix"
+        }
+        // albumPath and directoryPath must be identical
+        assertEquals(detail.directoryPath, detail.albumPath)
+    }
+
+    @Test
+    fun `GET albums albumId returns filePath as filename only for each track`() = testApplication {
+        install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        routing { albumDetailRoutes(albumService, libraryRoot) }
+        val client = createClient { install(ClientContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }
+
+        val track = buildTrack(albumId).copy(path = "01 So What.flac")
+        coEvery { albumRepository.findById(albumId) } returns buildAlbum()
+        coEvery { trackRepository.findByAlbumId(albumId) } returns listOf(track)
+
+        val response = client.get("/albums/${albumId}")
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val detail = response.body<AlbumDetail>()
+        assertEquals(1, detail.tracks.size)
+        // filePath must be just the filename (last path segment)
+        assertEquals("01 So What.flac", detail.tracks[0].filePath)
+    }
+
+    @Test
     fun `GET albums albumId maps all optional fields correctly`() = testApplication {
         install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
         routing { albumDetailRoutes(albumService, libraryRoot) }

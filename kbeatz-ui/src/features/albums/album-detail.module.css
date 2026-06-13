@@ -52,6 +52,63 @@
   margin-bottom: var(--space-md);
 }
 
+/* ── Album path row ────────────────────────────────── */
+
+.albumPathRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  font-size: var(--font-size-sm);
+}
+
+.albumPathLabel {
+  color: var(--text-secondary);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* ── Path display (album path and track file path) ──── */
+
+.pathDisplay {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.pathText {
+  font-family: monospace;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.copyButton {
+  flex-shrink: 0;
+  padding: 2px var(--space-xs);
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  font-size: 0.7rem;
+  cursor: pointer;
+  white-space: nowrap;
+  min-height: var(--min-touch-target);
+  transition:
+    background var(--transition-base),
+    color var(--transition-base);
+}
+
+.copyButton:hover {
+  background: var(--accent-button);
+  color: #fff;
+}
+
 /* ── Edit scope notice ──────────────────────────────── */
 
 .editScopeNotice {

@@ -58,27 +58,32 @@ private suspend fun handleGetAlbum(
     call.respond(HttpStatusCode.OK, album.toDetailApiModel(tracks, libraryRoot))
 }
 
-internal fun Album.toDetailApiModel(tracks: List<Track>, libraryRoot: Path): AlbumDetail = AlbumDetail(
-    id = id.toString(),
-    albumArtist = albumArtist,
-    album = album,
-    directoryPath = libraryRoot.relativize(Path.of(directoryPath)).toString(),
-    hasCoverArt = hasCoverArt,
-    date = date,
-    genre = genre,
-    label = label,
-    catalogNumber = catalogNumber,
-    composer = composer,
-    conductor = conductor,
-    ensemble = ensemble,
-    discogsId = discogsId,
-    tracks = tracks.map { it.toApiModel() },
-)
+internal fun Album.toDetailApiModel(tracks: List<Track>, libraryRoot: Path): AlbumDetail {
+    val relativePath = libraryRoot.relativize(Path.of(directoryPath)).toString()
+    return AlbumDetail(
+        id = id.toString(),
+        albumArtist = albumArtist,
+        album = album,
+        directoryPath = relativePath,
+        albumPath = relativePath,
+        hasCoverArt = hasCoverArt,
+        date = date,
+        genre = genre,
+        label = label,
+        catalogNumber = catalogNumber,
+        composer = composer,
+        conductor = conductor,
+        ensemble = ensemble,
+        discogsId = discogsId,
+        tracks = tracks.map { it.toApiModel() },
+    )
+}
 
 private fun Track.toApiModel(): ApiTrack = ApiTrack(
     id = id.toString(),
     albumId = albumId.toString(),
     path = path,
+    filePath = Path.of(path).fileName?.toString() ?: path,
     title = title,
     trackNumber = trackNumber,
     discNumber = discNumber,
