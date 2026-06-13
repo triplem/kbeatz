@@ -22,8 +22,9 @@ const OVERSCAN_ROWS = 3
 /**
  * Calculate how many columns fit in the available width.
  * Returns at least 1 to avoid division by zero.
+ * Exported for unit testing only - not part of the public API.
  */
-function calcColumns(containerWidth: number): number {
+export function calcColumns(containerWidth: number): number {
   return Math.max(1, Math.floor(containerWidth / MIN_CARD_WIDTH_PX))
 }
 
