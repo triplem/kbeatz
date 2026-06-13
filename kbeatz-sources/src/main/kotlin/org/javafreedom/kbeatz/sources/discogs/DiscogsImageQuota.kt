@@ -23,10 +23,10 @@ private val log = KotlinLogging.logger {}
 private const val DAILY_IMAGE_LIMIT = 1000
 
 /**
- * Timeout in seconds to wait for the cross-process file lock before giving up.
+ * Default timeout in seconds to wait for the cross-process file lock before giving up.
  * Matches the 5-second requirement from the issue acceptance criteria.
  */
-private const val LOCK_TIMEOUT_SECONDS = 5L
+internal const val DEFAULT_LOCK_TIMEOUT_SECONDS = 5L
 
 /**
  * Daily image download quota tracker for the Discogs API (1 000 images/day).
@@ -59,10 +59,13 @@ private const val LOCK_TIMEOUT_SECONDS = 5L
  * @param quotaFile Optional path to the JSON persistence file. When null the quota is
  *   tracked in memory only and resets on every JVM start.
  * @param clock Clock used to obtain today's UTC date (injectable for testing).
+ * @param lockTimeoutSeconds Maximum seconds to wait for the cross-process file lock. Injectable
+ *   for testing so tests can use a short timeout instead of waiting the full 5 seconds.
  */
 class DiscogsImageQuota(
     private val quotaFile: Path? = null,
     private val clock: Clock = Clock.systemUTC(),
+    internal val lockTimeoutSeconds: Long = DEFAULT_LOCK_TIMEOUT_SECONDS,
 ) {
     private val lock = ReentrantLock()
     private var state: QuotaState = loadOrInit()
@@ -160,12 +163,12 @@ class DiscogsImageQuota(
 
         // First attempt failed - another process is holding the lock.
         val waitStart = System.currentTimeMillis()
-        val deadline = waitStart + TimeUnit.SECONDS.toMillis(LOCK_TIMEOUT_SECONDS)
+        val deadline = waitStart + TimeUnit.SECONDS.toMillis(lockTimeoutSeconds)
         var fileLock = tryAcquireLock(channel)
         while (fileLock == null) {
             if (System.currentTimeMillis() >= deadline) {
                 throw QuotaLockTimeoutException(
-                    "Could not acquire quota file lock within ${LOCK_TIMEOUT_SECONDS}s: $lockFile"
+                    "Could not acquire quota file lock within ${lockTimeoutSeconds}s: $lockFile"
                 )
             }
             Thread.sleep(LOCK_POLL_MS)
