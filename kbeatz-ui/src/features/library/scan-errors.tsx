@@ -52,6 +52,7 @@ export function ScanErrors({ errors, totalErrors, onDismiss }: ScanErrorsProps) 
             className={styles.toggleButton}
             onClick={() => setExpanded((prev) => !prev)}
             aria-expanded={expanded}
+            aria-controls="scan-error-list"
           >
             {expanded ? t('scanErrors.hideDetails') : t('scanErrors.showDetails')}
           </button>
@@ -67,7 +68,7 @@ export function ScanErrors({ errors, totalErrors, onDismiss }: ScanErrorsProps) 
       </div>
 
       {expanded && (
-        <ul className={styles.errorList} aria-label="Scan error details">
+        <ul id="scan-error-list" className={styles.errorList} aria-label={t('scanErrors.errorListLabel')}>
           {errors.map((entry) => (
             <li key={entry.albumDir} className={styles.errorEntry}>
               <span className={styles.albumDir}>{entry.albumDir}</span>

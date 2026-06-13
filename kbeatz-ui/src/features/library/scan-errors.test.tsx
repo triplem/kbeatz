@@ -22,6 +22,7 @@ void testI18n.use(initReactI18next).init({
           andMore: '...and {{count}} more',
           dismiss: 'Dismiss',
           entrySuggestion: 'Suggestion: {{suggestion}}',
+          errorListLabel: 'Scan error details',
         },
       },
     },
