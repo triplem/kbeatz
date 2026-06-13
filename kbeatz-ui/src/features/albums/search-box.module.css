@@ -31,8 +31,10 @@
   color: var(--text-secondary);
 }
 
-/* Remove the default search clear button (x) in WebKit */
-.input::-webkit-search-cancel-button {
+/* Remove all browser-native search decorations (cancel button, magnifying glass) in WebKit.
+   A custom clear button (x) is rendered by the component when the field is non-empty. */
+.input::-webkit-search-cancel-button,
+.input::-webkit-search-decoration {
   display: none;
 }
 
