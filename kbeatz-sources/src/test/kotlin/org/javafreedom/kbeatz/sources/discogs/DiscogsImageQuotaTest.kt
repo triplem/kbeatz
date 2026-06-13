@@ -273,6 +273,10 @@ class DiscogsImageQuotaTest {
     fun `QuotaLockTimeoutException is thrown when lock cannot be acquired`() {
         val dir = Files.createTempDirectory("quota-lock-timeout-test")
         val file = dir.resolve("discogs-image-quota.json")
+        // The lock is held on the dedicated lock file, not the data file.
+        // This matches the fix in DiscogsImageQuota.withFileLock() which uses
+        // a stable <quotaFile>.lock file to avoid the inode-replacement race.
+        val lockFile = dir.resolve("discogs-image-quota.json.lock")
 
         // Hold the file lock in a background thread to force a timeout
         val lockHeld = CountDownLatch(1)
@@ -280,7 +284,7 @@ class DiscogsImageQuotaTest {
 
         val holder = Thread {
             java.nio.channels.FileChannel.open(
-                file,
+                lockFile,
                 java.nio.file.StandardOpenOption.READ,
                 java.nio.file.StandardOpenOption.WRITE,
                 java.nio.file.StandardOpenOption.CREATE,
