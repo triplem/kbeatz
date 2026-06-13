@@ -1,5 +1,9 @@
 package org.javafreedom.kbeatz.sources.discogs
 
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import java.nio.file.Files
 import java.time.Clock
 import java.time.LocalDate
@@ -12,6 +16,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import org.slf4j.LoggerFactory
 
 /**
  * Unit tests for [DiscogsImageQuota] covering in-memory, persistence, and day-reset behaviour.
@@ -268,6 +273,97 @@ class DiscogsImageQuotaTest {
     }
 
     // --- lock timeout ---
+
+    // --- contention WARN ---
+
+    /**
+     * Returns a [ListAppender] attached to the package-level logger.
+     *
+     * `KotlinLogging.logger {}` at file scope creates a logger named after the Kotlin file class
+     * (e.g. `DiscogsImageQuotaKt`). Log events propagate up to the package logger via SLF4J
+     * additivity, so the [ListAppender] captures them. The caller must detach after the test.
+     */
+    private fun attachLogCapture(): ListAppender<ILoggingEvent> {
+        val logger = LoggerFactory.getLogger("org.javafreedom.kbeatz.sources.discogs") as Logger
+        val appender = ListAppender<ILoggingEvent>()
+        appender.start()
+        logger.addAppender(appender)
+        return appender
+    }
+
+    private fun detachLogCapture(appender: ListAppender<ILoggingEvent>) {
+        val logger = LoggerFactory.getLogger("org.javafreedom.kbeatz.sources.discogs") as Logger
+        logger.detachAppender(appender)
+    }
+
+    @Test
+    fun `quota_lock_contention WARN is NOT emitted when lock is acquired on first attempt`() {
+        val dir = Files.createTempDirectory("quota-no-contention-test")
+        val file = dir.resolve("discogs-image-quota.json")
+        val appender = attachLogCapture()
+        try {
+            val quota = DiscogsImageQuota(quotaFile = file)
+            quota.recordDownload()
+            val warnMessages = appender.list.filter { event ->
+                event.level == Level.WARN && event.formattedMessage.contains("quota_lock_contention")
+            }
+            assertTrue(warnMessages.isEmpty(), "Expected no quota_lock_contention WARN when no contention occurred")
+        } finally {
+            detachLogCapture(appender)
+        }
+    }
+
+    @Test
+    fun `quota_lock_contention WARN IS emitted when lock is held by another process`() {
+        val dir = Files.createTempDirectory("quota-contention-warn-test")
+        val file = dir.resolve("discogs-image-quota.json")
+        val lockFile = dir.resolve("discogs-image-quota.json.lock")
+
+        val lockHeld = CountDownLatch(1)
+        val releaseLock = CountDownLatch(1)
+
+        // Hold the lock for long enough that recordDownload() must retry at least once.
+        val holder = Thread {
+            java.nio.channels.FileChannel.open(
+                lockFile,
+                java.nio.file.StandardOpenOption.READ,
+                java.nio.file.StandardOpenOption.WRITE,
+                java.nio.file.StandardOpenOption.CREATE,
+            ).use { channel ->
+                channel.lock().use { _ ->
+                    lockHeld.countDown()
+                    releaseLock.await(10, java.util.concurrent.TimeUnit.SECONDS)
+                }
+            }
+        }
+        holder.isDaemon = true
+        holder.start()
+        lockHeld.await() // wait until holder actually has the lock
+
+        val appender = attachLogCapture()
+        try {
+            val quota = DiscogsImageQuota(quotaFile = file)
+            // Run recordDownload() concurrently; release the holder lock after a short delay
+            // so that recordDownload() is guaranteed to have entered the retry loop.
+            val releaser = Thread {
+                Thread.sleep(DiscogsImageQuota.LOCK_POLL_MS * 2)
+                releaseLock.countDown()
+            }
+            releaser.isDaemon = true
+            releaser.start()
+
+            quota.recordDownload()
+            holder.join()
+            releaser.join()
+
+            val warnMessages = appender.list.filter { event ->
+                event.level == Level.WARN && event.formattedMessage.contains("quota_lock_contention")
+            }
+            assertTrue(warnMessages.isNotEmpty(), "Expected quota_lock_contention WARN when contention occurred")
+        } finally {
+            detachLogCapture(appender)
+        }
+    }
 
     @Test
     fun `QuotaLockTimeoutException is thrown when lock cannot be acquired`() {

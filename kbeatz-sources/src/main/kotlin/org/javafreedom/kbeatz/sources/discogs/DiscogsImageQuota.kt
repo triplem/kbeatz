@@ -134,32 +134,46 @@ class DiscogsImageQuota(
      * If the lock cannot be acquired within [LOCK_TIMEOUT_SECONDS] seconds,
      * [QuotaLockTimeoutException] is thrown.
      *
-     * If another instance is already holding the lock (wait > 0 ms), a WARN is emitted:
+     * If another instance is already holding the lock (i.e. the first [tryAcquireLock] attempt
+     * fails and the poll loop retries), a WARN is emitted:
      * `quota_lock_contention file=<path> waitMs=<n>`.
+     * A lock acquired on the very first attempt never produces a WARN.
      */
     @Suppress("TooGenericExceptionCaught") // file-channel errors must not crash the caller silently
     private fun withFileLock(file: Path, block: () -> Unit) {
         val lockFile = file.resolveSibling(file.fileName.toString() + ".lock")
         Files.createDirectories(lockFile.parent)
         FileChannel.open(lockFile, READ, WRITE, CREATE).use { channel ->
-            val waitStart = System.currentTimeMillis()
-            val deadline = waitStart + TimeUnit.SECONDS.toMillis(LOCK_TIMEOUT_SECONDS)
-            var fileLock = tryAcquireLock(channel)
-            while (fileLock == null) {
-                if (System.currentTimeMillis() >= deadline) {
-                    throw QuotaLockTimeoutException(
-                        "Could not acquire quota file lock within ${LOCK_TIMEOUT_SECONDS}s: $lockFile"
-                    )
-                }
-                Thread.sleep(LOCK_POLL_MS)
-                fileLock = tryAcquireLock(channel)
-            }
-            val waitMs = System.currentTimeMillis() - waitStart
-            if (waitMs > 0) {
-                log.warn { "quota_lock_contention file=$lockFile waitMs=$waitMs" }
-            }
+            val fileLock = acquireLock(channel, lockFile)
             fileLock.use { _ -> block() }
         }
+    }
+
+    /**
+     * Attempts to acquire the file lock immediately. If the lock is already held by another
+     * process, enters a polling loop and emits a WARN on the first retry. Returns a non-null
+     * [java.nio.channels.FileLock] or throws [QuotaLockTimeoutException].
+     */
+    private fun acquireLock(channel: FileChannel, lockFile: Path): java.nio.channels.FileLock {
+        val firstAttempt = tryAcquireLock(channel)
+        if (firstAttempt != null) return firstAttempt
+
+        // First attempt failed - another process is holding the lock.
+        val waitStart = System.currentTimeMillis()
+        val deadline = waitStart + TimeUnit.SECONDS.toMillis(LOCK_TIMEOUT_SECONDS)
+        var fileLock = tryAcquireLock(channel)
+        while (fileLock == null) {
+            if (System.currentTimeMillis() >= deadline) {
+                throw QuotaLockTimeoutException(
+                    "Could not acquire quota file lock within ${LOCK_TIMEOUT_SECONDS}s: $lockFile"
+                )
+            }
+            Thread.sleep(LOCK_POLL_MS)
+            fileLock = tryAcquireLock(channel)
+        }
+        val waitMs = System.currentTimeMillis() - waitStart
+        log.warn { "quota_lock_contention file=$lockFile waitMs=$waitMs" }
+        return fileLock
     }
 
     private fun tryAcquireLock(channel: FileChannel) =
