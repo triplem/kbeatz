@@ -480,7 +480,7 @@ components:
         filePath:
           type: string
           description: "Filename of the FLAC file (last path segment of path)"
-          example: "01 - So What.flac"
+          example: "01 So What.flac"
 
     AlbumDetail:
       type: object
