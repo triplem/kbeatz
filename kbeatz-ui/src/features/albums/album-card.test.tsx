@@ -21,7 +21,7 @@ function makeAlbum(overrides: Partial<Album> = {}): Album {
     album: 'Kind of Blue',
     date: '1959',
     genre: 'Jazz',
-    directoryPath: '/music/jazz/kind-of-blue',
+    albumPath: 'Jazz/Miles Davis/Kind of Blue',
     hasCoverArt: false,
     ...overrides,
   }
