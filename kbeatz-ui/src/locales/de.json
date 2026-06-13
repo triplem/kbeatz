@@ -71,7 +71,8 @@
     "saveFailedTimeout": "Speichern fehlgeschlagen: Zeitüberschreitung. Bitte erneut versuchen.",
     "saveFailedServer": "Speichern fehlgeschlagen: Serverfehler. Überprüfen Sie die Katalogprotokolle.",
     "saveFailedUnreachable": "Speichern fehlgeschlagen: kbeatz-catalog konnte nicht erreicht werden.",
-    "clickToEdit": "Klicken, um {{label}} zu bearbeiten"
+    "clickToEdit": "Klicken, um {{label}} zu bearbeiten",
+    "hint": "Änderungen verworfen - Enter zum Speichern drücken"
   },
   "confirmDialog": {
     "title": "Tags in FLAC-Dateien schreiben?",

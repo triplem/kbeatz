@@ -71,7 +71,8 @@
     "saveFailedTimeout": "Save failed: request timed out. Please try again.",
     "saveFailedServer": "Save failed: server error. Check the catalog logs.",
     "saveFailedUnreachable": "Save failed: could not reach kbeatz-catalog.",
-    "clickToEdit": "Click to edit {{label}}"
+    "clickToEdit": "Click to edit {{label}}",
+    "hint": "Changes discarded - press Enter to save"
   },
   "confirmDialog": {
     "title": "Write tags to FLAC files?",

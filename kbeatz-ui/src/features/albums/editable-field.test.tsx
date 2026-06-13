@@ -168,6 +168,79 @@ describe('EditableField', () => {
   })
 
   // ──────────────────────────────────────────────
+  // Bug #541 fix 1: blur during save does not cancel
+  // ──────────────────────────────────────────────
+
+  it('does not cancel editing when blur fires while saving is in progress', async () => {
+    // Simulate a slow onSave - the confirm dialog stealing focus fires blur
+    // while saving === true; the field must stay in editing mode until save resolves.
+    let resolveSave!: () => void
+    const onSave = vi.fn(
+      () => new Promise<void>((resolve) => { resolveSave = resolve }),
+    )
+
+    render(<EditableField {...defaultProps} onSave={onSave} />)
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Rock' } })
+    fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
+
+    // At this point saving is in flight; simulate blur (dialog stole focus)
+    fireEvent.blur(screen.getByTestId('album-input-genre'))
+
+    // Input must still be present - blur must not have cancelled the edit
+    expect(screen.getByTestId('album-input-genre')).toBeInTheDocument()
+
+    // Let the save finish
+    resolveSave()
+    await waitFor(() => {
+      expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument()
+    })
+  })
+
+  // ──────────────────────────────────────────────
+  // Bug #541 fix 2: hint shown on Tab-discard
+  // ──────────────────────────────────────────────
+
+  it('shows hint when blur discards a changed value', async () => {
+    render(<EditableField {...defaultProps} />)
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Electronic' } })
+    fireEvent.blur(screen.getByTestId('album-input-genre'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('album-hint-genre')).toBeInTheDocument()
+    })
+  })
+
+  it('does not show hint when blur discards an unchanged value', async () => {
+    render(<EditableField {...defaultProps} />)
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    // Do not change the value - just blur
+    fireEvent.blur(screen.getByTestId('album-input-genre'))
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('album-hint-genre')).not.toBeInTheDocument()
+  })
+
+  it('clears hint when next edit begins', async () => {
+    render(<EditableField {...defaultProps} />)
+    // First edit: blur with changed value shows hint
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Electronic' } })
+    fireEvent.blur(screen.getByTestId('album-input-genre'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('album-hint-genre')).toBeInTheDocument()
+    })
+
+    // Second edit: hint must be gone
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    expect(screen.queryByTestId('album-hint-genre')).not.toBeInTheDocument()
+  })
+
+  // ──────────────────────────────────────────────
   // Error path + rollback
   // ──────────────────────────────────────────────
 
