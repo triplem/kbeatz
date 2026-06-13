@@ -28,7 +28,9 @@
     "noCoverLabel": "No cover",
     "unknownAlbum": "Unknown Album",
     "unknownArtist": "Unknown Artist",
-    "unknownYear": "Unknown Year"
+    "unknownYear": "Unknown Year",
+    "trackCount_one": "1 track",
+    "trackCount_other": "{{count}} tracks"
   },
   "albumDetail": {
     "title": "Album Detail",
@@ -57,8 +59,10 @@
       "trackNumber": "Track number",
       "artist": "Artist"
     },
+    "noTracks": "No track information available",
+    "discHeader": "Disc {{number}}",
     "trackColumns": {
-      "number": "#",
+      "position": "Position",
       "title": "Title",
       "artist": "Artist",
       "duration": "Duration"

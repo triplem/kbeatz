@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Album } from '../../api/generated'
 import { formatDate } from '../../lib/i18n'
+import { formatAlbumDuration } from '../../lib/format-duration'
 import styles from './album-card.module.css'
 
 interface AlbumCardProps {
@@ -100,6 +101,16 @@ export function AlbumCard({ album }: AlbumCardProps) {
             <span className={styles.genre}>{album.genre}</span>
           )}
         </div>
+        {((album.trackCount ?? 0) > 0 || (album.totalDurationSeconds ?? 0) > 0) && (
+            <div className={styles.trackSummary}>
+              {(album.trackCount ?? 0) > 0 && (
+                <span className={styles.trackCount}>{t('albumCard.trackCount', { count: album.trackCount })}</span>
+              )}
+              {(album.totalDurationSeconds ?? 0) > 0 && (
+                <span className={styles.trackDuration}>{formatAlbumDuration(album.totalDurationSeconds ?? 0)}</span>
+              )}
+            </div>
+          )}
       </div>
     </article>
   )

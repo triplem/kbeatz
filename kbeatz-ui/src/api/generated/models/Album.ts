@@ -55,5 +55,13 @@ export type Album = {
      * True when cover art is available via GET /albums/{albumId}/cover
      */
     hasCoverArt: boolean;
+    /**
+     * Number of tracks in this album (aggregated from tracks table)
+     */
+    trackCount?: number;
+    /**
+     * Sum of all track durations in seconds (aggregated from tracks table)
+     */
+    totalDurationSeconds?: number;
 };
 

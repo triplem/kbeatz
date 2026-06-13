@@ -415,6 +415,16 @@ components:
           type: boolean
           description: "True when cover art is available via GET /albums/{albumId}/cover"
           example: true
+        trackCount:
+          type: integer
+          format: int32
+          description: "Number of tracks in this album (aggregated from tracks table)"
+          example: 12
+        totalDurationSeconds:
+          type: integer
+          format: int32
+          description: "Sum of all track durations in seconds (aggregated from tracks table)"
+          example: 4440
 
     Track:
       type: object

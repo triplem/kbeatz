@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { Fragment, useCallback, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
@@ -10,6 +10,7 @@ import { ConfirmWriteDialog } from './confirm-write-dialog'
 import { EditableField } from './editable-field'
 import { SyncPanel } from '../sync/sync-panel'
 import { formatDate } from '../../lib/i18n'
+import { formatTrackDuration } from '../../lib/format-duration'
 import styles from './album-detail.module.css'
 
 /**
@@ -314,32 +315,88 @@ export function AlbumDetail() {
         </section>
       )}
 
-      {displayAlbum.tracks.length > 0 && (
-        <section aria-label={t('albumDetail.tracksSection')}>
+      <section aria-label={t('albumDetail.tracksSection')}>
           <h2 className={styles.sectionTitle}>{t('albumDetail.tracksSectionTitle')}</h2>
-          <table className={styles.tracksTable} role="grid">
-            <thead>
-              <tr>
-                <th scope="col">{t('albumDetail.trackColumns.number')}</th>
-                <th scope="col">{t('albumDetail.trackColumns.title')}</th>
-                <th scope="col">{t('albumDetail.trackColumns.artist')}</th>
-                <th scope="col">{t('albumDetail.trackColumns.duration')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {displayAlbum.tracks.map((track) => (
-                <TrackRow
-                  key={track.id}
-                  track={track}
-                  onSave={handleTrackTagSave(track.id)}
-                />
-              ))}
-            </tbody>
-          </table>
+          {displayAlbum.tracks.length === 0
+            ? <p className={styles.noTracks}>{t('albumDetail.noTracks')}</p>
+            : (
+              <TrackList
+                tracks={displayAlbum.tracks}
+                onSave={handleTrackTagSave}
+              />
+            )
+          }
         </section>
-      )}
     </article>
     </>
+  )
+}
+
+interface TrackListProps {
+  readonly tracks: Track[]
+  readonly onSave: (trackId: string) => (field: string, value: string) => Promise<void>
+}
+
+/**
+ * Renders the full tracklist, sorted by disc number then track position.
+ * Multi-disc albums are grouped with a "Disc N" header row between groups.
+ */
+function TrackList({ tracks, onSave }: TrackListProps) {
+  const { t } = useTranslation()
+
+  // Sort tracks by disc number (numeric prefix), then by track number (numeric prefix).
+  // Non-numeric values sort lexicographically after numeric ones.
+  const sorted = [...tracks].sort((a, b) => {
+    const discA = parseLeadingInt(a.discNumber)
+    const discB = parseLeadingInt(b.discNumber)
+    if (discA !== discB) return discA - discB
+    return parseLeadingInt(a.trackNumber) - parseLeadingInt(b.trackNumber)
+  })
+
+  // Determine whether any track has a disc number - if so, render disc headers.
+  const isMultiDisc = sorted.some((t) => t.discNumber !== undefined && t.discNumber !== null && t.discNumber !== '')
+
+  // Group by disc number for multi-disc rendering.
+  const groups: { discLabel: string | null; tracks: Track[] }[] = []
+  for (const track of sorted) {
+    const discKey = track.discNumber ?? null
+    const last = groups[groups.length - 1]
+    if (last !== undefined && last.discLabel === discKey) {
+      last.tracks.push(track)
+    } else {
+      groups.push({ discLabel: discKey, tracks: [track] })
+    }
+  }
+
+  return (
+    <table className={styles.tracksTable} role="grid">
+      <thead>
+        <tr>
+          <th scope="col">{t('albumDetail.trackColumns.position')}</th>
+          <th scope="col">{t('albumDetail.trackColumns.title')}</th>
+          <th scope="col">{t('albumDetail.trackColumns.artist')}</th>
+          <th scope="col">{t('albumDetail.trackColumns.duration')}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {groups.map((group) => (
+          <Fragment key={group.discLabel ?? 'no-disc'}>
+            {isMultiDisc && group.discLabel !== null && (
+              <tr className={styles.discHeader}>
+                <td colSpan={4}>{t('albumDetail.discHeader', { number: group.discLabel })}</td>
+              </tr>
+            )}
+            {group.tracks.map((track) => (
+              <TrackRow
+                key={track.id}
+                track={track}
+                onSave={onSave(track.id)}
+              />
+            ))}
+          </Fragment>
+        ))}
+      </tbody>
+    </table>
   )
 }
 
@@ -351,7 +408,7 @@ interface TrackRowProps {
 function TrackRow({ track, onSave }: TrackRowProps) {
   const { t } = useTranslation()
   const durationDisplay = track.durationSeconds !== undefined
-    ? formatDuration(track.durationSeconds)
+    ? formatTrackDuration(track.durationSeconds)
     : '-'
 
   return (
@@ -388,8 +445,9 @@ function TrackRow({ track, onSave }: TrackRowProps) {
   )
 }
 
-function formatDuration(seconds: number): string {
-  const mins = Math.floor(seconds / 60)
-  const secs = seconds % 60
-  return `${mins.toString()}:${secs.toString().padStart(2, '0')}`
+/** Parse the leading integer from a string like "1", "2", "A1". Returns Infinity for null/empty. */
+function parseLeadingInt(value: string | null | undefined): number {
+  if (value === undefined || value === null || value === '') return Infinity
+  const match = /^(\d+)/.exec(value)
+  return match !== null && match[1] !== undefined ? parseInt(match[1], 10) : Infinity
 }

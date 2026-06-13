@@ -12,6 +12,7 @@ import org.jetbrains.exposed.v1.core.LikePattern
 import org.jetbrains.exposed.v1.core.LowerCase
 import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.Sum
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.core.eq
@@ -22,6 +23,7 @@ import org.jetbrains.exposed.v1.core.like
 import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.core.stringParam
 import org.jetbrains.exposed.v1.core.substring
+import org.jetbrains.exposed.v1.core.sum
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -35,6 +37,13 @@ import org.jetbrains.exposed.v1.jdbc.update
  * internally through Exposed's transaction manager.
  * [discogsJson] is excluded from all queries in this repository - it is loaded only by
  * the detail endpoint (story #66) which will query it explicitly.
+ *
+ * ## No N+1 guarantee for track aggregates
+ *
+ * [findAllWithCount] computes [Album.trackCount] and [Album.totalDurationSeconds] in a single
+ * SQL query using a LEFT JOIN on [TracksTable] and GROUP BY on all [AlbumsTable] columns.
+ * No additional query is issued per album; the aggregated values arrive in the same result set
+ * as the album metadata.
  */
 class ExposedAlbumRepository : AlbumRepository {
 
@@ -49,23 +58,34 @@ class ExposedAlbumRepository : AlbumRepository {
 
     override suspend fun findAllWithCount(page: Int, size: Int, filter: AlbumFilter): Pair<List<Album>, Long> =
         suspendTransaction {
-            // COUNT(*) OVER() window function folds the total into each row - one round-trip
+            // Track-count and total-duration aggregates are computed in this single query via a
+            // LEFT JOIN + GROUP BY. No per-album follow-up query is issued (no N+1).
+            val trackCountExpr = Count(TracksTable.id)
+            val durationSumExpr: Sum<Int?> = TracksTable.durationSeconds.sum()
+
+            // COUNT(*) OVER() window function folds the album total into each row - one round-trip
             // instead of two, which matters on a networked PostgreSQL (ADR-006) at scale.
+            // The window function operates over the grouped result (one row per album) so it counts
+            // albums, not tracks.
             val totalExpr = Count(intLiteral(1)).over()
-            val cols: List<Expression<*>> = AlbumsTable.columns + listOf(totalExpr)
+
+            val cols: List<Expression<*>> = AlbumsTable.columns + listOf(trackCountExpr, durationSumExpr, totalExpr)
             val whereClause = buildWhereClause(filter)
+            val joinQuery = AlbumsTable.leftJoin(TracksTable)
             val query = if (whereClause != null) {
-                AlbumsTable.select(cols).where { whereClause }
+                joinQuery.select(cols).where { whereClause }
             } else {
-                AlbumsTable.select(cols)
+                joinQuery.select(cols)
             }
+            @Suppress("SpreadOperator") // Exposed groupBy only accepts vararg; spreading a list is the only option
             val rows = query
+                .groupBy(*AlbumsTable.columns.toTypedArray())
                 .orderBy(AlbumsTable.albumArtist)
                 .limit(size)
                 .offset(page.toLong() * size)
                 .toList()
             val total = rows.firstOrNull()?.get(totalExpr) ?: 0L
-            rows.map { it.toAlbum() } to total
+            rows.map { it.toAlbumWithTrackAggregates(trackCountExpr, durationSumExpr) } to total
         }
 
     /**
@@ -303,3 +323,23 @@ internal fun ResultRow.toAlbum(): Album = Album(
     images = JsonSerde.decodeImages(this[AlbumsTable.images]),
     directoryPath = this[AlbumsTable.directoryPath],
 )
+
+/**
+ * Maps a [ResultRow] from the LEFT JOIN + GROUP BY list query to an [Album], including
+ * the pre-computed track aggregates.
+ *
+ * [trackCountExpr] yields 0 when the album has no tracks (LEFT JOIN produces a null track row,
+ * which COUNT(TracksTable.id) treats as 0). [durationSumExpr] yields null in that case.
+ * Both are converted to null when absent so the UI omits the fields rather than showing zeros.
+ */
+internal fun ResultRow.toAlbumWithTrackAggregates(
+    trackCountExpr: Count,
+    durationSumExpr: Sum<Int?>,
+): Album {
+    val rawCount = this[trackCountExpr]
+    val rawDuration = this[durationSumExpr]
+    return toAlbum().copy(
+        trackCount = if (rawCount > 0L) rawCount.toInt() else null,
+        totalDurationSeconds = rawDuration,
+    )
+}

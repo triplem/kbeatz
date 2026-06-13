@@ -97,3 +97,23 @@
   border-radius: var(--radius-full);
   white-space: nowrap;
 }
+
+/* ── Track summary ──────────────────────────────────── */
+
+.trackSummary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.trackCount {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.trackDuration {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
