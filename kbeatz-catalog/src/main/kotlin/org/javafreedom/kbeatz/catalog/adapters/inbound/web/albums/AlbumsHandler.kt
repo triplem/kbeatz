@@ -60,6 +60,7 @@ internal fun Album.toApiModel(libraryRoot: Path): ApiAlbum = ApiAlbum(
     id = id.toString(),
     albumArtist = albumArtist,
     album = album,
+    albumPath = libraryRoot.relativize(Path.of(directoryPath)).toString(),
     directoryPath = libraryRoot.relativize(Path.of(directoryPath)).toString(),
     hasCoverArt = hasCoverArt,
     date = date,

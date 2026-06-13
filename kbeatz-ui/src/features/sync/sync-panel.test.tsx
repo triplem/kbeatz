@@ -24,7 +24,7 @@ function buildAlbum(overrides: Partial<Album> = {}): Album {
     id: 'test-album-id',
     albumArtist: 'Miles Davis',
     album: 'Kind of Blue',
-    directoryPath: '/music/jazz/miles-davis',
+    albumPath: 'Jazz/Miles Davis/Kind of Blue',
     hasCoverArt: false,
     discogsId: '12345',
     ...overrides,

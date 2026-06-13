@@ -360,7 +360,7 @@ components:
   schemas:
     Album:
       type: object
-      required: [id, albumArtist, album, directoryPath, hasCoverArt]
+      required: [id, albumArtist, album, albumPath, hasCoverArt]
       properties:
         id:
           type: string
@@ -407,9 +407,14 @@ components:
           type: string
           description: "Discogs release ID from metadata.yml"
           example: "12345678"
+        albumPath:
+          type: string
+          description: "Canonical path to the album directory, relative to the library root"
+          example: "Jazz/Miles Davis/Kind of Blue"
         directoryPath:
           type: string
-          description: "Path of the album directory relative to the configured library root"
+          deprecated: true
+          description: "Deprecated: use albumPath instead. Will be removed in v2."
           example: "Jazz/Miles Davis/Kind of Blue"
         hasCoverArt:
           type: boolean

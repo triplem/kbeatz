@@ -9,7 +9,7 @@ function makeAlbum(id: string, title: string): Album {
     id,
     albumArtist: 'Test Artist',
     album: title,
-    directoryPath: `/music/${title}`,
+    albumPath: `Music/Test Artist/${title}`,
     hasCoverArt: false,
   }
 }

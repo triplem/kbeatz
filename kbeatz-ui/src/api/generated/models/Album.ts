@@ -48,9 +48,14 @@ export type Album = {
      */
     discogsId?: string;
     /**
-     * Path of the album directory relative to the configured library root
+     * Canonical path to the album directory, relative to the library root
      */
-    directoryPath: string;
+    albumPath: string;
+    /**
+     * Deprecated: use albumPath instead. Will be removed in v2.
+     * @deprecated
+     */
+    directoryPath?: string;
     /**
      * True when cover art is available via GET /albums/{albumId}/cover
      */
