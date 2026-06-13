@@ -145,7 +145,7 @@
   color: var(--accent);
   border: 1px solid var(--accent);
   border-radius: var(--radius-sm);
-  font-size: 0.7rem;
+  font-size: var(--font-size-xs);
   cursor: pointer;
   white-space: nowrap;
   min-height: var(--min-touch-target);
