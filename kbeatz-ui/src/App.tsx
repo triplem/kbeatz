@@ -77,16 +77,18 @@ function AlbumListPage() {
   const totalElements = data?.totalElements ?? 0
   const totalPages = data?.totalPages ?? 0
 
-  // Persist sort preference to localStorage
+  // Persist sort preference to localStorage and reset pagination to page 0
   const handleSortChange = useCallback((next: SortField) => {
     setSortBy(next)
     saveSortPreference(next)
+    setPage(0)
   }, [])
 
-  // Persist sort direction to localStorage
+  // Persist sort direction to localStorage and reset pagination to page 0
   const handleDirectionChange = useCallback((next: SortDirection) => {
     setSortDirection(next)
     saveSortDirection(next)
+    setPage(0)
   }, [])
 
   const handleRetry = useCallback(() => {
