@@ -55,10 +55,11 @@ describe('useTriggerScan', () => {
 
   it('sets isPending=true while the mutation is in-flight', async () => {
     let resolvePromise!: () => void
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mockTriggerScan.mockReturnValue(new Promise<ScanStatus>((res) => {
+    const pendingPromise = new Promise<ScanStatus>((res) => {
       resolvePromise = () => res(makeStatus('COMPLETED'))
-    }) as any)
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockTriggerScan.mockReturnValue(pendingPromise as any)
 
     const { result } = renderHook(() => useTriggerScan(), { wrapper: makeWrapper() })
 
