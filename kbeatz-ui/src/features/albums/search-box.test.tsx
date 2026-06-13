@@ -11,6 +11,20 @@ describe('SearchBox', () => {
     expect(screen.getByRole('searchbox', { name: 'Search albums' })).toBeInTheDocument()
   })
 
+  it('renders a visible label element linked to the search input', () => {
+    render(<SearchBox filters={EMPTY_FILTERS} onFiltersChange={vi.fn()} />)
+    const label = screen.getByText('Search')
+    expect(label.tagName).toBe('LABEL')
+    expect(label).toHaveAttribute('for', 'album-search')
+    expect(screen.getByRole('searchbox')).toHaveAttribute('id', 'album-search')
+  })
+
+  it('has descriptive placeholder text', () => {
+    render(<SearchBox filters={EMPTY_FILTERS} onFiltersChange={vi.fn()} />)
+    const input = screen.getByRole('searchbox', { name: 'Search albums' })
+    expect(input).toHaveAttribute('placeholder', 'Search by title, artist or composer')
+  })
+
   it('shows clear button when query is non-empty', () => {
     const filtersWithQuery: AlbumFilters = { ...EMPTY_FILTERS, query: 'miles' }
     render(<SearchBox filters={filtersWithQuery} onFiltersChange={vi.fn()} />)
