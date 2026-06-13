@@ -40,31 +40,6 @@
   display: none;
 }
 
-/*
- * Dark-theme logo contrast fix (#557).
- *
- * The SVG wordmark uses fill="#2B2833" for the "beatz" portion - nearly
- * identical to the dark header background (#1c1c1c).  Because the logo is
- * loaded as an <img>, CSS fill overrides cannot reach inside the SVG, so we
- * use a CSS filter instead.
- *
- * filter: invert(1)
- *   - Turns the near-black "beatz" fill into near-white (~#D4D7CC), achieving
- *     a contrast ratio of roughly 13:1 against the #1c1c1c header background -
- *     well above the WCAG AA 4.5:1 threshold for normal text.
- *   - Also inverts the disc and CD-spine colours; the logo remains clearly
- *     recognisable and readable in both themes.
- *
- * The filter is scoped to the dark-theme media query so the light-theme
- * appearance (dark wordmark on pale header) is unchanged.
- */
-@media (prefers-color-scheme: dark) {
-  .appLogoFull,
-  .appLogoIcon {
-    filter: invert(1);
-  }
-}
-
 /* ── Main content area ─────────────────────────────────── */
 
 .appMain {
@@ -140,6 +115,15 @@
 }
 
 /* ── Responsive breakpoints ────────────────────────────── */
+
+/* Dark-theme logo contrast fix (#557): invert brings contrast from ~1.17:1 to ~13:1 (WCAG AA). */
+/* Logo is an <img> so CSS fill overrides cannot reach SVG internals - filter is the only approach. */
+@media (prefers-color-scheme: dark) {
+  .appLogoFull,
+  .appLogoIcon {
+    filter: invert(1);
+  }
+}
 
 @media (max-width: 768px) {
   .appContent {
