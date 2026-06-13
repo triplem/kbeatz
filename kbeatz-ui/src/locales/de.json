@@ -110,6 +110,11 @@
     "sortAscending": "Aufsteigend sortieren",
     "sortDescending": "Absteigend sortieren"
   },
+  "scanButton": {
+    "scan": "Bibliothek scannen",
+    "scanning": "Wird gescannt...",
+    "error": "Scan fehlgeschlagen"
+  },
   "scanProgress": {
     "running": "Wird gescannt: {{progress}} Alben",
     "failed": "Scan fehlgeschlagen: {{message}}",
