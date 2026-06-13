@@ -88,6 +88,17 @@ describe('useScanBannerDismissal', () => {
     expect(result.current.isDismissed).toBe(true)
   })
 
+
+  it('banner is NOT dismissed when localStorage holds an empty string and completedAt is non-empty', () => {
+    // An empty string stored by a prior session (e.g. a bug wrote '' instead of a timestamp)
+    // must NOT suppress a real scan completion banner.
+    // readDismissedAt() returns '' and completedAt is a real timestamp - they differ, so isDismissed is false.
+    vi.stubGlobal('localStorage', makeLocalStorageMock({ [STORAGE_KEY]: '' }))
+
+    const { result } = renderHook(() => useScanBannerDismissal(COMPLETED_AT))
+    expect(result.current.isDismissed).toBe(false)
+  })
+
   it('IDLE state: banner is not dismissed when no completedAt has ever been stored', () => {
     // When scan state is IDLE, ScanProgress returns null before mounting
     // CompletedBanner. This test verifies the hook itself is safe to call with
