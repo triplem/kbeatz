@@ -62,7 +62,6 @@ export function SearchBox({ filters, onFiltersChange }: SearchBoxProps) {
         <input
           id="album-search"
           type="search"
-          aria-label={t('searchBox.ariaLabel')}
           placeholder={t('searchBox.placeholder')}
           value={displayValue}
           onChange={handleChange}
