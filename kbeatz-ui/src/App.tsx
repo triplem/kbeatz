@@ -168,14 +168,15 @@ function AlbumListPage() {
                   <span data-testid="pagination-info">
                     {t('pagination.pageOf', { current: page + 1, total: totalPages })}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                    disabled={page >= totalPages - 1}
-                    data-testid="pagination-next"
-                  >
-                    {t('pagination.next')}
-                  </button>
+                  {page < totalPages - 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setPage((p) => p + 1)}
+                      data-testid="pagination-next"
+                    >
+                      {t('pagination.next')}
+                    </button>
+                  )}
                 </div>
               )}
             </>
