@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SyncPanel } from './sync-panel'
 import { AlbumsService } from '../../api/generated'
-import type { Album } from '../../api/generated'
+import type { Album, AlbumDetail } from '../../api/generated'
 
 vi.mock('../../api/generated', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../api/generated')>()
@@ -31,6 +31,19 @@ function buildAlbum(overrides: Partial<Album> = {}): Album {
   }
 }
 
+function buildAlbumDetail(overrides: Partial<AlbumDetail> = {}): AlbumDetail {
+  return {
+    id: 'test-album-id',
+    albumArtist: 'Miles Davis',
+    album: 'Kind of Blue',
+    albumPath: 'Jazz/Miles Davis/Kind of Blue',
+    hasCoverArt: false,
+    discogsId: '12345',
+    tracks: [],
+    ...overrides,
+  }
+}
+
 function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
@@ -40,7 +53,7 @@ function makeQueryClient() {
   })
 }
 
-function renderSyncPanel(props: { album: Album; onSyncComplete: (a: Album) => void; hasLocalEdits?: boolean }) {
+function renderSyncPanel(props: { album: AlbumDetail; onSyncComplete: (a: Album) => void; hasLocalEdits?: boolean }) {
   const queryClient = makeQueryClient()
   return render(
     <QueryClientProvider client={queryClient}>
@@ -59,13 +72,13 @@ describe('SyncPanel', () => {
   // ---- visibility ----
 
   it('should not render when album has no discogsId', () => {
-    const album = buildAlbum({ discogsId: undefined })
+    const album = buildAlbumDetail({ discogsId: undefined })
     const { container } = renderSyncPanel({ album, onSyncComplete })
     expect(container.firstChild).toBeNull()
   })
 
   it('should render sync panel when album has a discogsId', () => {
-    const album = buildAlbum()
+    const album = buildAlbumDetail()
     renderSyncPanel({ album, onSyncComplete })
     expect(screen.getByTestId('sync-button')).toBeInTheDocument()
     expect(screen.getByTestId('discogs-id')).toHaveTextContent('12345')
@@ -75,7 +88,7 @@ describe('SyncPanel', () => {
   // ---- default checkbox state ----
 
   it('should show "Also update cover art" checkbox unchecked by default', () => {
-    const album = buildAlbum()
+    const album = buildAlbumDetail()
     renderSyncPanel({ album, onSyncComplete })
     const checkbox = screen.getByTestId('download-images-checkbox')
     expect(checkbox).not.toBeChecked()
@@ -84,7 +97,7 @@ describe('SyncPanel', () => {
   // ---- loading state ----
 
   it('should show loading indicator and disable button during sync', async () => {
-    const album = buildAlbum()
+    const album = buildAlbumDetail()
     let resolve: (v: Album) => void = () => {}
     mockSyncAlbum.mockReturnValue(new Promise((r) => { resolve = r }) as ReturnType<typeof mockSyncAlbum>)
 
@@ -104,7 +117,7 @@ describe('SyncPanel', () => {
   // ---- success state ----
 
   it('should show success message after sync completes', async () => {
-    const album = buildAlbum()
+    const album = buildAlbumDetail()
     const updatedAlbum = buildAlbum({ album: 'Kind of Blue (updated)' })
     mockSyncAlbum.mockResolvedValue(updatedAlbum)
 
@@ -116,7 +129,7 @@ describe('SyncPanel', () => {
   })
 
   it('should display fieldsWritten count when fields changed', async () => {
-    const album = buildAlbum({ genre: undefined, date: undefined })
+    const album = buildAlbumDetail({ genre: undefined, date: undefined })
     // Two fields changed: genre and date were added
     const updatedAlbum = buildAlbum({ genre: 'Jazz', date: '1959' })
     mockSyncAlbum.mockResolvedValue(updatedAlbum)
@@ -129,7 +142,7 @@ describe('SyncPanel', () => {
   })
 
   it('should display singular "field" when exactly 1 field changed', async () => {
-    const album = buildAlbum({ genre: undefined })
+    const album = buildAlbumDetail({ genre: undefined })
     const updatedAlbum = buildAlbum({ genre: 'Jazz' })
     mockSyncAlbum.mockResolvedValue(updatedAlbum)
 
@@ -142,7 +155,7 @@ describe('SyncPanel', () => {
   })
 
   it('should display 0 fields updated when nothing changed', async () => {
-    const album = buildAlbum()
+    const album = buildAlbumDetail()
     // Same album returned — no changes
     const updatedAlbum = buildAlbum()
     mockSyncAlbum.mockResolvedValue(updatedAlbum)
@@ -157,7 +170,7 @@ describe('SyncPanel', () => {
   // ---- error state ----
 
   it('should show error message on sync failure', async () => {
-    const album = buildAlbum()
+    const album = buildAlbumDetail()
     mockSyncAlbum.mockRejectedValue({
       body: { code: 'SYNC_FAILED', message: 'Discogs API unavailable. Please try again later.' },
     })
@@ -170,7 +183,7 @@ describe('SyncPanel', () => {
   })
 
   it('should show 404 error message when album not found in Discogs', async () => {
-    const album = buildAlbum()
+    const album = buildAlbumDetail()
     mockSyncAlbum.mockRejectedValue({
       body: { code: 'RESOURCE_NOT_FOUND', message: 'Discogs release 12345 not found' },
     })
@@ -185,7 +198,7 @@ describe('SyncPanel', () => {
   // ---- quota exhausted state ----
 
   it('should show quota exhausted message with reset time', async () => {
-    const album = buildAlbum()
+    const album = buildAlbumDetail()
     mockSyncAlbum.mockRejectedValue({
       body: {
         code: 'IMAGE_QUOTA_EXHAUSTED',
@@ -208,7 +221,7 @@ describe('SyncPanel', () => {
   // ---- downloadImages checkbox ----
 
   it('should send downloadImages=true when checkbox is checked', async () => {
-    const album = buildAlbum()
+    const album = buildAlbumDetail()
     const updatedAlbum = buildAlbum()
     mockSyncAlbum.mockResolvedValue(updatedAlbum)
 
@@ -223,7 +236,7 @@ describe('SyncPanel', () => {
   })
 
   it('should send downloadImages=false when checkbox is not checked', async () => {
-    const album = buildAlbum()
+    const album = buildAlbumDetail()
     mockSyncAlbum.mockResolvedValue(buildAlbum())
 
     renderSyncPanel({ album, onSyncComplete })
@@ -238,17 +251,17 @@ describe('SyncPanel', () => {
   // ---- WCAG AA accessibility (#389) ----
 
   it('sync button is keyboard-accessible (findable by role and label)', () => {
-    renderSyncPanel({ album: buildAlbum(), onSyncComplete })
+    renderSyncPanel({ album: buildAlbumDetail(), onSyncComplete })
     expect(screen.getByRole('button', { name: 'Sync from Discogs' })).toBeInTheDocument()
   })
 
   it('download cover art checkbox is keyboard-accessible', () => {
-    renderSyncPanel({ album: buildAlbum(), onSyncComplete })
+    renderSyncPanel({ album: buildAlbumDetail(), onSyncComplete })
     expect(screen.getByRole('checkbox', { name: 'Download cover art' })).toBeInTheDocument()
   })
 
   it('success message has role=status and aria-live=polite for screen reader announcement', async () => {
-    const album = buildAlbum()
+    const album = buildAlbumDetail()
     mockSyncAlbum.mockResolvedValue(buildAlbum())
 
     renderSyncPanel({ album, onSyncComplete })
@@ -264,7 +277,7 @@ describe('SyncPanel', () => {
   it('error message has role=alert for immediate screen reader announcement', async () => {
     mockSyncAlbum.mockRejectedValue({ body: { message: 'Server error' } })
 
-    renderSyncPanel({ album: buildAlbum(), onSyncComplete })
+    renderSyncPanel({ album: buildAlbumDetail(), onSyncComplete })
     await userEvent.click(screen.getByTestId('sync-button'))
 
     await waitFor(() => {
@@ -283,7 +296,7 @@ describe('SyncPanel', () => {
         }) as ReturnType<typeof AlbumsService.syncAlbumFromDiscogs>,
     )
 
-    renderSyncPanel({ album: buildAlbum(), onSyncComplete })
+    renderSyncPanel({ album: buildAlbumDetail(), onSyncComplete })
     await userEvent.click(screen.getByTestId('sync-button'))
 
     // Button should be disabled immediately after click
@@ -300,7 +313,7 @@ describe('SyncPanel', () => {
   // ---- Overwrite warning (#392) ----
 
   it('sync proceeds without dialog when hasLocalEdits is false', async () => {
-    const album = buildAlbum()
+    const album = buildAlbumDetail()
     mockSyncAlbum.mockResolvedValue(buildAlbum())
 
     renderSyncPanel({ album, onSyncComplete, hasLocalEdits: false })
@@ -313,7 +326,7 @@ describe('SyncPanel', () => {
   })
 
   it('shows overwrite warning dialog when hasLocalEdits is true', async () => {
-    renderSyncPanel({ album: buildAlbum(), onSyncComplete, hasLocalEdits: true })
+    renderSyncPanel({ album: buildAlbumDetail(), onSyncComplete, hasLocalEdits: true })
     await userEvent.click(screen.getByTestId('sync-button'))
 
     // Dialog should appear
@@ -324,7 +337,7 @@ describe('SyncPanel', () => {
   })
 
   it('aborts sync when user cancels the overwrite warning', async () => {
-    renderSyncPanel({ album: buildAlbum(), onSyncComplete, hasLocalEdits: true })
+    renderSyncPanel({ album: buildAlbumDetail(), onSyncComplete, hasLocalEdits: true })
     await userEvent.click(screen.getByTestId('sync-button'))
 
     expect(screen.getByTestId('sync-overwrite-dialog')).toBeInTheDocument()
@@ -337,7 +350,7 @@ describe('SyncPanel', () => {
 
   it('proceeds with sync when user confirms the overwrite warning', async () => {
     mockSyncAlbum.mockResolvedValue(buildAlbum())
-    renderSyncPanel({ album: buildAlbum(), onSyncComplete, hasLocalEdits: true })
+    renderSyncPanel({ album: buildAlbumDetail(), onSyncComplete, hasLocalEdits: true })
     await userEvent.click(screen.getByTestId('sync-button'))
 
     expect(screen.getByTestId('sync-overwrite-dialog')).toBeInTheDocument()

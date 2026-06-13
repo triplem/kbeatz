@@ -52,7 +52,7 @@ export type AlbumDetail = {
      * Deprecated: use albumPath instead. Will be removed in v2.
      * @deprecated
      */
-    directoryPath: string;
+    directoryPath?: string;
     /**
      * Album directory path relative to the library root. Canonical field - use this in all consumers.
      */
