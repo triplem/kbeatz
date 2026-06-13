@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Routes, Route, Link } from 'react-router-dom'
+import { Routes, Route, Link, Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import styles from './App.module.css'
 import logoFull from './assets/kbeatz-logo-transparent.svg'
@@ -25,6 +25,36 @@ import {
   type SortDirection,
   type SortField,
 } from './features/albums/album-filters'
+
+function AppLayout() {
+  const { t } = useTranslation()
+
+  return (
+    <div className={styles.app}>
+      <header className={styles.appHeader}>
+        <Link to="/" className={styles.appLogoLink} aria-label={t('app.title')}>
+          <img
+            src={logoFull}
+            alt=""
+            className={styles.appLogoFull}
+          />
+          <img
+            src={logoIcon}
+            alt=""
+            className={styles.appLogoIcon}
+            aria-hidden="true"
+          />
+        </Link>
+        <ScanButton />
+        <LanguageToggle />
+      </header>
+      <main className={styles.appMain}>
+        <ScanProgress />
+        <Outlet />
+      </main>
+    </div>
+  )
+}
 
 function AlbumListPage() {
   const { t } = useTranslation()
@@ -83,96 +113,78 @@ function AlbumListPage() {
   }, [albums, filters, sortBy, sortDirection, visibleAlbums])
 
   return (
-    <div className={styles.app}>
-      <header className={styles.appHeader}>
-        <Link to="/" className={styles.appLogoLink} aria-label={t('app.title')}>
-          <img
-            src={logoFull}
-            alt=""
-            className={styles.appLogoFull}
-          />
-          <img
-            src={logoIcon}
-            alt=""
-            className={styles.appLogoIcon}
-            aria-hidden="true"
-          />
-        </Link>
+    <>
+      <div className={styles.appSearchBar}>
         <SearchBox filters={filters} onFiltersChange={setFilters} />
-        <ScanButton />
-        <LanguageToggle />
-      </header>
-      <main className={styles.appMain}>
-        <ScanProgress />
-        <div className={styles.appContent}>
-          {!isPending && !isError && (
-            // TODO(#515-follow-up): FilterPanel dropdown options are empty because
-            // server-side options derivation is not yet implemented. A dedicated
-            // GET /api/v1/albums/filter-options endpoint is tracked as a follow-up
-            // story. Until then the dropdowns are visible but unpopulated; free-text
-            // search (q=) and single-value artist/genre/composer filters still work
-            // via the server-side query params sent by useAlbumPage.
-            <FilterPanel
-              options={{ genres: [], artists: [], composers: [] }}
-              filters={filters}
-              onFiltersChange={setFilters}
-            />
-          )}
-          <div className={styles.appGridArea}>
-            <div className={styles.appToolbar}>
-              <SortPreference
-                value={sortBy}
-                onChange={handleSortChange}
-                direction={sortDirection}
-                onDirectionChange={handleDirectionChange}
-              />
-            </div>
-            {isPending && <p className={styles.loadingText}>{t('albumGrid.loading')}</p>}
-            {isError && (
-              <div role="alert" data-testid="albums-error" className={styles.errorBlock}>
-                <p>{t('albumGrid.fetchError')}</p>
+      </div>
+      <div className={styles.appContent}>
+        {!isPending && !isError && (
+          // TODO(#515-follow-up): FilterPanel dropdown options are empty because
+          // server-side options derivation is not yet implemented. A dedicated
+          // GET /api/v1/albums/filter-options endpoint is tracked as a follow-up
+          // story. Until then the dropdowns are visible but unpopulated; free-text
+          // search (q=) and single-value artist/genre/composer filters still work
+          // via the server-side query params sent by useAlbumPage.
+          <FilterPanel
+            options={{ genres: [], artists: [], composers: [] }}
+            filters={filters}
+            onFiltersChange={setFilters}
+          />
+        )}
+        <div className={styles.appGridArea}>
+        <div className={styles.appToolbar}>
+          <SortPreference
+            value={sortBy}
+            onChange={handleSortChange}
+            direction={sortDirection}
+            onDirectionChange={handleDirectionChange}
+          />
+        </div>
+        {isPending && <p className={styles.loadingText}>{t('albumGrid.loading')}</p>}
+        {isError && (
+          <div role="alert" data-testid="albums-error" className={styles.errorBlock}>
+            <p>{t('albumGrid.fetchError')}</p>
+            <button
+              type="button"
+              onClick={handleRetry}
+              data-testid="albums-retry-button"
+              className={styles.retryButton}
+            >
+              {t('albumGrid.retryButton')}
+            </button>
+          </div>
+        )}
+        {!isPending && !isError && (
+          <>
+            <AlbumGrid albums={clientFilteredAlbums} totalCount={totalElements} />
+            {totalPages > 1 && (
+              <div className="app-pagination" data-testid="album-pagination">
                 <button
                   type="button"
-                  onClick={handleRetry}
-                  data-testid="albums-retry-button"
-                  className={styles.retryButton}
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  data-testid="pagination-prev"
                 >
-                  {t('albumGrid.retryButton')}
+                  {t('pagination.previous')}
+                </button>
+                <span data-testid="pagination-info">
+                  {t('pagination.pageOf', { current: page + 1, total: totalPages })}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={page >= totalPages - 1}
+                  data-testid="pagination-next"
+                >
+                  {t('pagination.next')}
                 </button>
               </div>
             )}
-            {!isPending && !isError && (
-              <>
-                <AlbumGrid albums={clientFilteredAlbums} totalCount={totalElements} />
-                {totalPages > 1 && (
-                  <div className="app-pagination" data-testid="album-pagination">
-                    <button
-                      type="button"
-                      onClick={() => setPage((p) => Math.max(0, p - 1))}
-                      disabled={page === 0}
-                      data-testid="pagination-prev"
-                    >
-                      {t('pagination.previous')}
-                    </button>
-                    <span data-testid="pagination-info">
-                      {t('pagination.pageOf', { current: page + 1, total: totalPages })}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                      disabled={page >= totalPages - 1}
-                      data-testid="pagination-next"
-                    >
-                      {t('pagination.next')}
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+          </>
+        )}
         </div>
-      </main>
-    </div>
+      </div>
+    </>
   )
 }
 
@@ -180,16 +192,18 @@ export function App() {
   return (
     <ErrorBoundary>
       <Routes>
-        <Route path="/" element={<AlbumListPage />} />
-        <Route
-          path="/albums/:albumId"
-          element={
-            <ErrorBoundary>
-              <AlbumDetail />
-            </ErrorBoundary>
-          }
-        />
-        <Route path="*" element={<NotFoundPage />} />
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<AlbumListPage />} />
+          <Route
+            path="/albums/:albumId"
+            element={
+              <ErrorBoundary>
+                <AlbumDetail />
+              </ErrorBoundary>
+            }
+          />
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
       </Routes>
     </ErrorBoundary>
   )
