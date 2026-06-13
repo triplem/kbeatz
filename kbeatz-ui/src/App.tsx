@@ -116,6 +116,12 @@ function AlbumListPage() {
     <>
       <div className={styles.appSearchBar}>
         <SearchBox filters={filters} onFiltersChange={setFilters} />
+        <SortPreference
+          value={sortBy}
+          onChange={handleSortChange}
+          direction={sortDirection}
+          onDirectionChange={handleDirectionChange}
+        />
       </div>
       <div className={styles.appContent}>
         {!isPending && !isError && (
@@ -132,14 +138,6 @@ function AlbumListPage() {
           />
         )}
         <div className={styles.appGridArea}>
-          <div className={styles.appToolbar}>
-            <SortPreference
-              value={sortBy}
-              onChange={handleSortChange}
-              direction={sortDirection}
-              onDirectionChange={handleDirectionChange}
-            />
-          </div>
           {isPending && <p className={styles.loadingText}>{t('albumGrid.loading')}</p>}
           {isError && (
             <div role="alert" data-testid="albums-error" className={styles.errorBlock}>
