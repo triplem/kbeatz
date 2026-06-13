@@ -10,11 +10,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.javafreedom.kbeatz.catalog.domain.model.AlbumGroup
 import org.javafreedom.kbeatz.catalog.domain.model.ScanState
+import org.javafreedom.kbeatz.catalog.domain.model.ScanStatus
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -102,7 +104,7 @@ class LibraryScanServiceTest {
     }
 
     @Test
-    fun `startScan transitions to FAILED when repository throws`() = runTest {
+    fun `startScan records per-album error when repository throws for a single album`() = runTest {
         val groups = listOf(albumGroup())
         every { walker.walk(libraryRoot) } returns groups
         coEvery { albumRepository.saveAll(any()) } throws RuntimeException("DB unavailable")
@@ -111,8 +113,13 @@ class LibraryScanServiceTest {
         svc.startScan()
 
         val status = svc.status()
-        assertEquals(ScanState.FAILED, status.state)
-        assertEquals("DB unavailable", status.errorMessage)
+        // A single-album repository failure is a per-album error; the scan still COMPLETE.
+        assertEquals(ScanState.COMPLETE, status.state)
+        assertEquals(1, status.totalErrors)
+        assertEquals(1, status.errors.size)
+        assertEquals("Miles Davis/Kind of Blue", status.errors[0].albumDir)
+        assertNotNull(status.errors[0].reason)
+        assertNotNull(status.errors[0].suggestion)
     }
 
     @Test
@@ -252,5 +259,96 @@ class LibraryScanServiceTest {
         assertNotNull(album1.id)
         assertNotNull(album2.id)
         assertNotEquals(album1.id, album2.id)
+    }
+
+    // --- Per-album error tracking tests ---
+
+    @Test
+    fun `status has empty errors and zero totalErrors when scan completes without issues`() = runTest {
+        val groups = listOf(albumGroup("Miles Davis"), albumGroup("John Coltrane"))
+        every { walker.walk(libraryRoot) } returns groups
+        coEvery { albumRepository.saveAll(any()) } returns Unit
+
+        val svc = service()
+        svc.startScan()
+
+        val status = svc.status()
+        assertEquals(ScanState.COMPLETE, status.state)
+        assertEquals(0, status.totalErrors)
+        assertTrue(status.errors.isEmpty())
+    }
+
+    @Test
+    fun `status reports one error entry when one album fails to index`() = runTest {
+        val goodGroup = albumGroup("Miles Davis", "Kind of Blue")
+        val badGroup = albumGroup("John Coltrane", "A Love Supreme")
+        every { walker.walk(libraryRoot) } returns listOf(goodGroup, badGroup)
+        coEvery { albumRepository.saveAll(match { albums -> albums[0].albumArtist == "Miles Davis" }) } returns Unit
+        coEvery { albumRepository.saveAll(match { albums -> albums[0].albumArtist == "John Coltrane" }) } throws
+            RuntimeException("permission denied")
+
+        val svc = service()
+        svc.startScan()
+
+        val status = svc.status()
+        assertEquals(ScanState.COMPLETE, status.state)
+        assertEquals(1L, status.scannedAlbums)
+        assertEquals(1, status.totalErrors)
+        assertEquals(1, status.errors.size)
+        assertEquals("John Coltrane/A Love Supreme", status.errors[0].albumDir)
+        assertEquals("Permission denied", status.errors[0].reason)
+        assertEquals("Check file permissions", status.errors[0].suggestion)
+    }
+
+    @Test
+    fun `status reports up to 50 error entries when exactly 50 albums fail`() = runTest {
+        @Suppress("MagicNumber") // 50 is the max cap defined by ScanStatus.MAX_REPORTED_ERRORS
+        val groups = (1..50).map { albumGroup("Artist$it", "Album$it") }
+        every { walker.walk(libraryRoot) } returns groups
+        coEvery { albumRepository.saveAll(any()) } throws RuntimeException("IO error")
+
+        val svc = service()
+        svc.startScan()
+
+        val status = svc.status()
+        assertEquals(ScanState.COMPLETE, status.state)
+        assertEquals(ScanStatus.MAX_REPORTED_ERRORS, status.totalErrors)
+        assertEquals(ScanStatus.MAX_REPORTED_ERRORS, status.errors.size)
+    }
+
+    @Test
+    fun `status caps errors list at 50 and reflects full count in totalErrors when 51 albums fail`() = runTest {
+        @Suppress("MagicNumber") // 51 = cap(50) + 1 overflow entry
+        val groups = (1..51).map { albumGroup("Artist$it", "Album$it") }
+        every { walker.walk(libraryRoot) } returns groups
+        coEvery { albumRepository.saveAll(any()) } throws RuntimeException("IO error")
+
+        val svc = service()
+        svc.startScan()
+
+        val status = svc.status()
+        assertEquals(ScanState.COMPLETE, status.state)
+        assertEquals(51, status.totalErrors)
+        assertEquals(ScanStatus.MAX_REPORTED_ERRORS, status.errors.size)
+    }
+
+    @Test
+    fun `errors and totalErrors reset when a new scan starts`() = runTest {
+        val badGroup = albumGroup("Artist", "Album")
+        every { walker.walk(libraryRoot) } returns listOf(badGroup)
+        coEvery { albumRepository.saveAll(any()) } throws RuntimeException("IO error")
+
+        val svc = service()
+        svc.startScan()
+        assertEquals(1, svc.status().totalErrors)
+
+        // Second scan with no errors
+        every { walker.walk(libraryRoot) } returns emptyList()
+        coEvery { albumRepository.saveAll(any()) } returns Unit
+        svc.startScan()
+
+        val status = svc.status()
+        assertEquals(0, status.totalErrors)
+        assertTrue(status.errors.isEmpty())
     }
 }

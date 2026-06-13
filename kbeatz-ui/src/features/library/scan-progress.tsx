@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DismissibleBanner } from '../../lib/dismissible-banner'
+import { ScanErrors } from './scan-errors'
 import { formatDateTime } from '../../lib/i18n'
 import { useScanStatus } from './useScanStatus'
 import styles from './scan-progress.module.css'
@@ -38,8 +39,8 @@ function CompletedBanner({ completedAt }: CompletedBannerProps) {
  * Polls `GET /api/v1/library/scan/status` every 2 seconds while state is RUNNING.
  * Displays a banner with the current progress count and started-at timestamp.
  * When COMPLETED shows the completed-at timestamp with a dismiss button.
+ * When COMPLETED with per-album errors, shows the ScanErrors banner below.
  * When IDLE, renders nothing. Shows an error message when state is FAILED.
- * Does not render when state is IDLE.
  *
  * Dismissal is React-state only: the notification reappears after a page refresh
  * because `completedAt` is re-fetched from the API on mount. Each new scan
@@ -55,8 +56,20 @@ export function ScanProgress() {
   }
 
   if (status.state === 'COMPLETED') {
-    if (!status.completedAt) return null
-    return <CompletedBanner key={status.completedAt} completedAt={status.completedAt} />
+    const hasErrors = (status.totalErrors ?? 0) > 0
+    return (
+      <>
+        {status.completedAt && (
+          <CompletedBanner key={status.completedAt} completedAt={status.completedAt} />
+        )}
+        {hasErrors && (
+          <ScanErrors
+            errors={status.errors ?? []}
+            totalErrors={status.totalErrors ?? 0}
+          />
+        )}
+      </>
+    )
   }
 
   if (status.state === 'FAILED') {

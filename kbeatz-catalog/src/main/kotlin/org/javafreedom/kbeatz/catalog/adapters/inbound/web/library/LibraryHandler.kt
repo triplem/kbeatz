@@ -3,6 +3,7 @@ package org.javafreedom.kbeatz.catalog.adapters.inbound.web.library
 import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.javafreedom.kbeatz.catalog.api.models.ScanErrorEntry as ApiScanErrorEntry
 import org.javafreedom.kbeatz.catalog.api.models.ScanStatus as ApiScanStatus
 import org.javafreedom.kbeatz.catalog.application.service.LibraryScanService
 import org.javafreedom.kbeatz.catalog.domain.model.ScanState
@@ -36,6 +37,9 @@ private fun ScanStatus.toApiModel(): ApiScanStatus = ApiScanStatus(
     startedAt = startedAt?.toString(),
     completedAt = completedAt?.toString(),
     errorMessage = errorMessage,
+    errors = errors.map { ApiScanErrorEntry(albumDir = it.albumDir, reason = it.reason, suggestion = it.suggestion) }
+        .ifEmpty { null },
+    totalErrors = totalErrors.takeIf { it > 0 },
 )
 
 private fun ScanState.toApiState(): ApiScanStatus.State = when (this) {

@@ -7,7 +7,9 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.SimpleFileVisitor
 import java.nio.file.attribute.BasicFileAttributes
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.CoroutineContext
@@ -25,8 +27,10 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.model.AlbumGroup
+import org.javafreedom.kbeatz.catalog.domain.model.ScanErrorEntry
 import org.javafreedom.kbeatz.catalog.domain.model.ScanState
 import org.javafreedom.kbeatz.catalog.domain.model.ScanStatus
+import org.javafreedom.kbeatz.catalog.domain.model.ScanStatus.Companion.MAX_REPORTED_ERRORS
 import org.javafreedom.kbeatz.catalog.domain.model.WRITE_LOCK_FILENAME
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 
@@ -62,6 +66,9 @@ class LibraryScanService(
     private val startedAt = AtomicReference<Instant?>(null)
     private val completedAt = AtomicReference<Instant?>(null)
     private val errorMessage = AtomicReference<String?>(null)
+    // Per-album errors collected during a scan (capped at MAX_REPORTED_ERRORS for the status snapshot).
+    private val scanErrors = CopyOnWriteArrayList<ScanErrorEntry>()
+    private val totalScanErrors = AtomicInteger(0)
 
     // Set to true after repairOnStartup() completes (or when no repair is needed).
     // The readiness probe returns 503 until this is true, so orchestrators do not
@@ -93,6 +100,8 @@ class LibraryScanService(
         startedAt = startedAt.get(),
         completedAt = completedAt.get(),
         errorMessage = errorMessage.get(),
+        errors = scanErrors.toList(),
+        totalErrors = totalScanErrors.get(),
     )
 
     /**
@@ -114,6 +123,8 @@ class LibraryScanService(
         startedAt.set(Clock.System.now())
         completedAt.set(null)
         errorMessage.set(null)
+        scanErrors.clear()
+        totalScanErrors.set(0)
 
         scanScope.launch {
             runScan()
@@ -205,15 +216,19 @@ class LibraryScanService(
             log.info { "Library scan started: $libraryRoot" }
             val groups = walker.walk(libraryRoot)
             totalAlbums.set(groups.size.toLong())
-            log.info { "Discovered ${groups.size} album groups — indexing..." }
+            log.info { "Discovered ${groups.size} album groups - indexing..." }
 
-            val albums = groups.map { it.toAlbum() }
-            albumRepository.saveAll(albums)
-            scannedAlbums.set(albums.size.toLong())
+            groups.forEach { group -> indexAlbum(group) }
 
             completedAt.set(Clock.System.now())
             state.set(ScanState.COMPLETE)
-            log.info { "Library scan complete: ${scannedAlbums.get()} albums indexed" }
+            val indexed = scannedAlbums.get()
+            val errCount = totalScanErrors.get()
+            if (errCount > 0) {
+                log.info { "Library scan complete: $indexed albums indexed, $errCount album(s) with errors" }
+            } else {
+                log.info { "Library scan complete: $indexed albums indexed" }
+            }
         } catch (ex: Exception) {
             val msg = ex.message ?: ex::class.simpleName ?: "Unknown error"
             errorMessage.set(msg)
@@ -222,6 +237,57 @@ class LibraryScanService(
             log.error(ex) { "Library scan FAILED: $msg" }
         }
     }
+
+    @Suppress("TooGenericExceptionCaught") // per-album errors must not abort the whole scan
+    private suspend fun indexAlbum(group: AlbumGroup) {
+        try {
+            albumRepository.saveAll(listOf(group.toAlbum()))
+            scannedAlbums.incrementAndGet()
+        } catch (ex: kotlinx.coroutines.CancellationException) {
+            throw ex
+        } catch (ex: Exception) {
+            val relativeDir = libraryRoot.relativize(group.rootPath).toString()
+            val reason = sanitiseReason(ex)
+            val suggestion = suggestAction(ex)
+            log.warn { "album_scan_error albumDir=$relativeDir reason=$reason" }
+            totalScanErrors.incrementAndGet()
+            if (scanErrors.size < MAX_REPORTED_ERRORS) {
+                scanErrors.add(ScanErrorEntry(albumDir = relativeDir, reason = reason, suggestion = suggestion))
+            }
+        }
+    }
+
+    /**
+     * Returns a short, human-readable error reason stripped of absolute paths,
+     * Java class names, and stack trace fragments.
+     */
+    private fun sanitiseReason(ex: Exception): String =
+        when {
+            ex.message?.contains("permission denied", ignoreCase = true) == true ||
+                ex.message?.contains("access is denied", ignoreCase = true) == true -> "Permission denied"
+            ex.message?.contains("no such file", ignoreCase = true) == true ||
+                ex.message?.contains("does not exist", ignoreCase = true) == true -> "File not found"
+            ex.message?.contains("flac", ignoreCase = true) == true -> "FLAC header unreadable"
+            ex.message?.contains("id file", ignoreCase = true) == true ||
+                ex.message?.contains("idfile", ignoreCase = true) == true -> "ID file missing or malformed"
+            else -> "Album could not be indexed"
+        }
+
+    /**
+     * Returns an actionable suggestion based on the exception type.
+     */
+    private fun suggestAction(ex: Exception): String =
+        when {
+            ex.message?.contains("permission denied", ignoreCase = true) == true ||
+                ex.message?.contains("access is denied", ignoreCase = true) == true ->
+                "Check file permissions"
+            ex.message?.contains("flac", ignoreCase = true) == true ->
+                "FLAC header may be corrupt - re-rip or restore from backup"
+            ex.message?.contains("id file", ignoreCase = true) == true ||
+                ex.message?.contains("idfile", ignoreCase = true) == true ->
+                "Add an id.txt file to the album directory"
+            else -> "Check file permissions or FLAC integrity"
+        }
 
     companion object {
         /**

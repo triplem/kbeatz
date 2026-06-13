@@ -169,6 +169,33 @@ describe('ScanProgress - render states', () => {
     const alert = await screen.findByRole('alert')
     expect(alert).toHaveTextContent('Scan failed: Unknown error')
   })
+
+  it('renders ScanErrors alert when COMPLETED with totalErrors > 0', async () => {
+    mockGetStatus.mockResolvedValue(
+      makeStatus('COMPLETED', {
+        completedAt: '2026-06-09T20:31:20Z',
+        totalErrors: 2,
+        errors: [
+          { albumDir: 'Artist1/Album1', reason: 'Permission denied', suggestion: 'Check file permissions' },
+          { albumDir: 'Artist2/Album2', reason: 'FLAC header unreadable', suggestion: 'Re-rip or restore from backup' },
+        ],
+      }),
+    )
+    renderWithQuery(<ScanProgress />)
+    const alert = await screen.findByRole('alert')
+    expect(alert).toBeInTheDocument()
+    expect(alert.textContent).toContain('2')
+  })
+
+  it('does not render ScanErrors when COMPLETED with totalErrors of 0', async () => {
+    mockGetStatus.mockResolvedValue(
+      makeStatus('COMPLETED', { completedAt: '2026-06-09T20:31:20Z', totalErrors: 0 }),
+    )
+    renderWithQuery(<ScanProgress />)
+    const status = await screen.findByRole('status')
+    expect(status.textContent).toContain('2026')
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
 })
 
 // Tests that verify polling behaviour (fake timers)

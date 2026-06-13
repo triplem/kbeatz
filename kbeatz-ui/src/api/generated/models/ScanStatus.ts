@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { ScanErrorEntry } from './ScanErrorEntry';
 export type ScanStatus = {
     state: 'IDLE' | 'RUNNING' | 'COMPLETED' | 'FAILED';
     /**
@@ -18,5 +19,13 @@ export type ScanStatus = {
      * Set when state=FAILED
      */
     errorMessage?: string;
+    /**
+     * Per-album scan errors (up to 50 entries). Present when one or more albums could not be scanned.
+     */
+    errors?: Array<ScanErrorEntry>;
+    /**
+     * Total number of per-album errors including those beyond the 50-item cap in errors
+     */
+    totalErrors?: number;
 };
 

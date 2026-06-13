@@ -124,6 +124,16 @@
     "startedAt": "Gestartet: {{time}}",
     "completedAt": "Abgeschlossen: {{time}}"
   },
+  "scanErrors": {
+    "summary_one": "{{count}} Album konnte nicht gescannt werden - Dateirechte oder FLAC-Integrität prüfen",
+    "summary_other": "{{count}} Alben konnten nicht gescannt werden - Dateirechte oder FLAC-Integrität prüfen",
+    "showDetails": "Details anzeigen",
+    "hideDetails": "Details ausblenden",
+    "andMore": "...und {{count}} weitere",
+    "dismiss": "Schließen",
+    "entrySuggestion": "Empfehlung: {{suggestion}}",
+    "errorListLabel": "Details zu Scan-Fehlern"
+  },
   "syncPanel": {
     "heading": "Von Discogs synchronisieren",
     "discogsId": "Discogs-ID: {{id}}",
