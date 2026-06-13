@@ -258,8 +258,8 @@ export function AlbumDetail() {
             />
           )}
 
-          <section>
-            <h2 className={styles.sectionTitle}>{t('albumDetail.sectionTitle')}</h2>
+          <section aria-labelledby="album-tags-heading">
+            <h2 id="album-tags-heading" className={styles.sectionTitle}>{t('albumDetail.sectionTitle')}</h2>
             {isSaving && (
               <p role="status" aria-live="polite" data-testid="album-saving-indicator">
                 {t('albumDetail.saving')}
