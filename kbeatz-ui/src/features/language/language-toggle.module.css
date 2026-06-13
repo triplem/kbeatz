@@ -2,6 +2,8 @@
   display: flex;
   gap: 2px;
   align-items: center;
+  /* Push the language toggle to the far right of the header flex row (#581). */
+  margin-left: auto;
 }
 
 .langButton {
@@ -15,6 +17,7 @@
   border-radius: var(--radius-sm);
   cursor: pointer;
   min-height: var(--min-touch-target);
+  min-width: var(--min-touch-target);
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 
