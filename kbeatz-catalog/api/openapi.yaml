@@ -591,6 +591,23 @@ components:
           description: "Download and embed cover art. Default false — preserves the 1 000/day Discogs image quota."
           default: false
 
+    ScanErrorEntry:
+      type: object
+      required: [albumDir, reason, suggestion]
+      properties:
+        albumDir:
+          type: string
+          description: "Album directory path relative to the library root"
+          example: "Miles Davis/Kind of Blue"
+        reason:
+          type: string
+          description: "Human-readable error reason without stack traces or absolute paths"
+          example: "FLAC header unreadable"
+        suggestion:
+          type: string
+          description: "Actionable suggestion for the user"
+          example: "Check file permissions"
+
     ScanStatus:
       type: object
       required: [state]
@@ -620,6 +637,17 @@ components:
         errorMessage:
           type: string
           description: "Set when state=FAILED"
+        errors:
+          type: array
+          description: "Per-album scan errors (up to 50 entries). Present when one or more albums could not be scanned."
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/ScanErrorEntry'
+        totalErrors:
+          type: integer
+          format: int32
+          description: "Total number of per-album errors including those beyond the 50-item cap in errors"
+          example: 3
 
     LivenessResponse:
       type: object

@@ -124,6 +124,15 @@
     "startedAt": "Started: {{time}}",
     "completedAt": "Completed: {{time}}"
   },
+  "scanErrors": {
+    "summary_one": "{{count}} album could not be scanned - check file permissions or FLAC integrity",
+    "summary_other": "{{count}} albums could not be scanned - check file permissions or FLAC integrity",
+    "showDetails": "Show details",
+    "hideDetails": "Hide details",
+    "andMore": "...and {{count}} more",
+    "dismiss": "Dismiss",
+    "entrySuggestion": "Suggestion: {{suggestion}}"
+  },
   "syncPanel": {
     "heading": "Sync from Discogs",
     "discogsId": "Discogs ID: {{id}}",
