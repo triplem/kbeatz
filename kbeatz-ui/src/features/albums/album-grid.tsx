@@ -12,8 +12,8 @@ interface AlbumGridProps {
   readonly totalCount?: number
 }
 
-/** Minimum card width in px - matches the CSS minmax(240px, 1fr) grid definition. */
-const MIN_CARD_WIDTH_PX = 240
+/** Minimum card width in px - matches the CSS minmax(280px, 1fr) grid definition. */
+const MIN_CARD_WIDTH_PX = 280
 /** Estimated row height in px for initial virtualizer estimate. */
 const ESTIMATED_ROW_HEIGHT_PX = 340
 /** Number of extra rows to render above/below the visible area. */
