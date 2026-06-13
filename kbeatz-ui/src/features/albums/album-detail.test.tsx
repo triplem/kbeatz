@@ -652,4 +652,59 @@ describe('AlbumDetail', () => {
     })
     expect(screen.getByTestId('album-path')).toHaveTextContent(path)
   })
+
+  // ──────────────────────────────────────────────
+  // Two-column layout (#579)
+  // ──────────────────────────────────────────────
+
+  it('renders two-column layout container with metadata and tracklist columns', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('two-column-layout')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('metadata-column')).toBeInTheDocument()
+    expect(screen.getByTestId('tracklist-column')).toBeInTheDocument()
+  })
+
+  it('places album tags section inside the metadata column', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-album')).toBeInTheDocument()
+    })
+    const metadataCol = screen.getByTestId('metadata-column')
+    expect(metadataCol).toContainElement(screen.getByTestId('album-value-album'))
+  })
+
+  it('places tracks section inside the tracklist column', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('track-row-track-id-1')).toBeInTheDocument()
+    })
+    const tracklistCol = screen.getByTestId('tracklist-column')
+    expect(tracklistCol).toContainElement(screen.getByTestId('track-row-track-id-1'))
+  })
+
+  it('back button is outside the two-column layout so it stays above both columns', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('back-button')).toBeInTheDocument()
+    })
+    const layout = screen.getByTestId('two-column-layout')
+    // back button must NOT be inside the layout grid
+    expect(layout).not.toContainElement(screen.getByTestId('back-button'))
+  })
+
+  it('SyncPanel is placed inside the metadata column when discogsId is set', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ discogsId: '42' }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('sync-panel')).toBeInTheDocument()
+    })
+    const metadataCol = screen.getByTestId('metadata-column')
+    expect(metadataCol).toContainElement(screen.getByTestId('sync-panel'))
+  })
 })
