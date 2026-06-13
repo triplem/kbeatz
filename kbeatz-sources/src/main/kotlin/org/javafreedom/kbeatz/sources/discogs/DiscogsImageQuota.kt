@@ -115,26 +115,48 @@ class DiscogsImageQuota(
     }
 
     /**
-     * Acquires an exclusive cross-process FileLock on [file] and executes [block].
+     * Acquires an exclusive cross-process FileLock on a **dedicated lock file** and executes [block].
      *
-     * The file is opened with CREATE so it is created if it does not yet exist.
+     * ## Race condition fixed here
+     *
+     * The original implementation locked the quota data file directly. However, [persist] writes
+     * quota state via an atomic temp-file rename (write to `.tmp`, then `Files.move` with
+     * `ATOMIC_MOVE`). An atomic rename replaces the inode: a second instance that opens the quota
+     * file after the rename gets a fresh file descriptor pointing to the new inode. The `FileLock`
+     * held by the first instance is on the *old* inode and does NOT block the second instance -
+     * this is the ABA race that caused lost increments in the concurrent test.
+     *
+     * The fix is to lock a **separate, stable lock file** (`<quotaFile>.lock`) that is never
+     * renamed or replaced. All instances compete for the lock on this stable path, so the lock
+     * remains effective across quota-file renames.
+     *
+     * The lock file is opened with CREATE so it is created if it does not yet exist.
      * If the lock cannot be acquired within [LOCK_TIMEOUT_SECONDS] seconds,
      * [QuotaLockTimeoutException] is thrown.
+     *
+     * If another instance is already holding the lock (wait > 0 ms), a WARN is emitted:
+     * `quota_lock_contention file=<path> waitMs=<n>`.
      */
     @Suppress("TooGenericExceptionCaught") // file-channel errors must not crash the caller silently
     private fun withFileLock(file: Path, block: () -> Unit) {
-        Files.createDirectories(file.parent)
-        FileChannel.open(file, READ, WRITE, CREATE).use { channel ->
-            val deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(LOCK_TIMEOUT_SECONDS)
+        val lockFile = file.resolveSibling(file.fileName.toString() + ".lock")
+        Files.createDirectories(lockFile.parent)
+        FileChannel.open(lockFile, READ, WRITE, CREATE).use { channel ->
+            val waitStart = System.currentTimeMillis()
+            val deadline = waitStart + TimeUnit.SECONDS.toMillis(LOCK_TIMEOUT_SECONDS)
             var fileLock = tryAcquireLock(channel)
             while (fileLock == null) {
                 if (System.currentTimeMillis() >= deadline) {
                     throw QuotaLockTimeoutException(
-                        "Could not acquire quota file lock within ${LOCK_TIMEOUT_SECONDS}s: $file"
+                        "Could not acquire quota file lock within ${LOCK_TIMEOUT_SECONDS}s: $lockFile"
                     )
                 }
                 Thread.sleep(LOCK_POLL_MS)
                 fileLock = tryAcquireLock(channel)
+            }
+            val waitMs = System.currentTimeMillis() - waitStart
+            if (waitMs > 0) {
+                log.warn { "quota_lock_contention file=$lockFile waitMs=$waitMs" }
             }
             fileLock.use { _ -> block() }
         }
