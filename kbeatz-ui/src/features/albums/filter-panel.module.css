@@ -1,4 +1,4 @@
-/* Filter panel - sidebar of checkboxes and year range inputs */
+/* Filter panel - sidebar of checkboxes for genre, artist, and composer */
 
 .filterPanel {
   width: 260px;
@@ -58,51 +58,6 @@
   accent-color: var(--accent);
   cursor: pointer;
   flex-shrink: 0;
-}
-
-/* ── Year range ─────────────────────────────────────── */
-
-.yearRange {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-
-.label {
-  font-size: var(--font-size-xs);
-  color: var(--text-secondary);
-  margin-bottom: 2px;
-  display: block;
-}
-
-.yearInput {
-  width: 100%;
-  min-height: var(--min-touch-target);
-  padding: var(--space-xs) var(--space-sm);
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  font-size: var(--font-size-sm);
-  font-family: var(--font-sans);
-  transition: border-color var(--transition-base);
-}
-
-/* Remove the browser-native spin buttons on number inputs */
-.yearInput::-webkit-outer-spin-button,
-.yearInput::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.yearInput[type='number'] {
-  -moz-appearance: textfield;
-  appearance: textfield;
-}
-
-.yearInput:focus-visible {
-  outline: none;
-  border-color: var(--accent);
 }
 
 /* ── Responsive ──────────────────────────────────────── */
