@@ -56,7 +56,7 @@ export DISCOGS_TOKEN=your_token_here
 ./gradlew build
 
 # 4. Run the catalog service
-cd kbeatz-catalog && ./gradlew run
+./gradlew :kbeatz-catalog:run
 # API available at http://localhost:8080/api/v1
 
 # 5. Open the UI (in a separate terminal, from the repo root)
