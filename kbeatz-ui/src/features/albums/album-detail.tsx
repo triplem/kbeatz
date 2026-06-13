@@ -29,23 +29,17 @@ function PathDisplay({ path, label, testId }: PathDisplayProps) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = useCallback(() => {
+    if (!navigator.clipboard) {
+      console.warn('Clipboard API unavailable - copy not supported in this context')
+      return
+    }
     navigator.clipboard.writeText(path).then(
       () => {
         setCopied(true)
         setTimeout(() => { setCopied(false) }, 1500)
       },
-      () => {
-        // Fallback: create a temporary input element
-        const el = document.createElement('textarea')
-        el.value = path
-        el.style.position = 'fixed'
-        el.style.opacity = '0'
-        document.body.appendChild(el)
-        el.select()
-        document.execCommand('copy')
-        document.body.removeChild(el)
-        setCopied(true)
-        setTimeout(() => { setCopied(false) }, 1500)
+      (err: unknown) => {
+        console.warn('Copy to clipboard failed:', err)
       },
     )
   }, [path])
