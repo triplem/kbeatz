@@ -149,6 +149,7 @@
   cursor: pointer;
   white-space: nowrap;
   min-height: var(--min-touch-target);
+  min-width: var(--min-touch-target);
   transition:
     background var(--transition-base),
     color var(--transition-base);
