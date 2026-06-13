@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
-import { AlbumGrid, calcColumns } from './album-grid'
+import { AlbumGrid } from './album-grid'
 import type { Album } from '../../api/generated'
 
 function makeAlbum(id: string, title: string): Album {
@@ -13,21 +13,6 @@ function makeAlbum(id: string, title: string): Album {
     hasCoverArt: false,
   }
 }
-
-// ResizeObserver is not implemented in jsdom; provide a constructor mock
-class ResizeObserverMock {
-  observe = vi.fn()
-  unobserve = vi.fn()
-  disconnect = vi.fn()
-}
-
-beforeEach(() => {
-  vi.stubGlobal('ResizeObserver', ResizeObserverMock)
-})
-
-afterEach(() => {
-  vi.unstubAllGlobals()
-})
 
 describe('AlbumGrid', () => {
   it('renders empty state message when no albums', () => {
@@ -65,41 +50,14 @@ describe('AlbumGrid', () => {
     expect(screen.getByTestId('album-grid-result-count')).toHaveTextContent('Showing 1 of 100 albums')
   })
 
-  it('renders all albums in fallback mode when layout is unavailable (jsdom)', () => {
-    // In jsdom, document.documentElement has no offsetHeight so totalHeight === 0
-    // and the virtualizer falls back to rendering all items directly.
-    const albums = Array.from({ length: 50 }, (_, i) =>
+  it('renders all albums in the grid', () => {
+    const albums = Array.from({ length: 20 }, (_, i) =>
       makeAlbum(`id-${i}`, `Album ${i}`),
     )
     render(<MemoryRouter><AlbumGrid albums={albums} /></MemoryRouter>)
-
-    // The section container is present
     expect(screen.getByTestId('album-grid-section')).toBeInTheDocument()
-    // All albums are rendered in fallback mode
     expect(screen.getByText('Album 0')).toBeInTheDocument()
-    expect(screen.getByText('Album 49')).toBeInTheDocument()
-    // The virtual container is NOT present (fallback path)
-    expect(screen.queryByTestId('album-grid-virtual-container')).not.toBeInTheDocument()
-  })
-
-  it('renders the virtual container when rows are virtualised', () => {
-    // Simulate a working virtualizer by stubbing document.documentElement.offsetHeight
-    Object.defineProperty(document.documentElement, 'offsetHeight', {
-      configurable: true,
-      get() { return 800 },
-    })
-    Object.defineProperty(document.documentElement, 'clientHeight', {
-      configurable: true,
-      get() { return 800 },
-    })
-
-    const albums = Array.from({ length: 100 }, (_, i) =>
-      makeAlbum(`id-${i}`, `Album ${i}`),
-    )
-    render(<MemoryRouter><AlbumGrid albums={albums} /></MemoryRouter>)
-    // Either the section is rendered (if virtualizer produces rows) or fallback
-    // Either way, the section should be present
-    expect(screen.getByTestId('album-grid-section')).toBeInTheDocument()
+    expect(screen.getByText('Album 19')).toBeInTheDocument()
   })
 
   // ─────────────────────────────────
@@ -128,43 +86,5 @@ describe('AlbumGrid', () => {
     const region = screen.getByTestId('album-grid-result-count')
     expect(region).toHaveAttribute('role', 'status')
     expect(region).toHaveAttribute('aria-live', 'polite')
-  })
-})
-
-// ─────────────────────────────────
-// calcColumns unit tests
-// ─────────────────────────────────
-
-describe('calcColumns', () => {
-  it('returns 1 when container width equals the minimum card width (350px)', () => {
-    expect(calcColumns(350)).toBe(1)
-  })
-
-  it('returns 1 when container width is less than the minimum card width', () => {
-    expect(calcColumns(100)).toBe(1)
-    expect(calcColumns(349)).toBe(1)
-  })
-
-  it('returns 1 for zero-width container (guards against division by zero)', () => {
-    expect(calcColumns(0)).toBe(1)
-  })
-
-  it('returns 2 when container is exactly twice the minimum width (700px)', () => {
-    expect(calcColumns(700)).toBe(2)
-  })
-
-  it('returns 3 columns at 1280px viewport width', () => {
-    // 1280 / 350 = 3.66 -> 3 columns
-    expect(calcColumns(1280)).toBe(3)
-  })
-
-  it('returns 4 columns at 1440px viewport width', () => {
-    // 1440 / 350 = 4.11 -> 4 columns
-    expect(calcColumns(1440)).toBe(4)
-  })
-
-  it('returns 5 columns at 1920px viewport width', () => {
-    // 1920 / 350 = 5.49 -> 5 columns
-    expect(calcColumns(1920)).toBe(5)
   })
 })

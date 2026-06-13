@@ -1,17 +1,10 @@
-/* Album grid - virtualised responsive grid */
+/* Album grid - CSS auto-fill responsive grid */
 
 .albumGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: var(--space-md);
   width: 100%;
-}
-
-/* A single row produced by the virtualiser */
-.albumGridRow {
-  display: grid;
-  grid-template-columns: repeat(var(--grid-columns, 1), 1fr);
-  gap: var(--space-md);
 }
 
 /* Result count live region - visually subtle, accessible */
