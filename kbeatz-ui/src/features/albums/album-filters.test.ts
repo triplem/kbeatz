@@ -4,7 +4,9 @@ import {
   EMPTY_FILTERS,
   filtersFromParams,
   filtersToParams,
+  loadSortDirection,
   loadSortPreference,
+  saveSortDirection,
   saveSortPreference,
   deriveFilterOptions,
 } from './album-filters'
@@ -143,6 +145,51 @@ describe('applyFiltersAndSort', () => {
     })
   })
 
+  describe('sort direction', () => {
+    it('sorts by albumArtist ascending by default', () => {
+      const result = applyFiltersAndSort(ALL_ALBUMS, EMPTY_FILTERS, 'albumArtist', 'asc')
+      expect(result.map((a) => a.albumArtist)).toEqual([
+        'Berlin Philharmoniker',
+        'John Coltrane',
+        'Led Zeppelin',
+        'Miles Davis',
+        'Vienna Philharmoniker',
+      ])
+    })
+
+    it('sorts by albumArtist descending when direction is desc', () => {
+      const result = applyFiltersAndSort(ALL_ALBUMS, EMPTY_FILTERS, 'albumArtist', 'desc')
+      expect(result.map((a) => a.albumArtist)).toEqual([
+        'Vienna Philharmoniker',
+        'Miles Davis',
+        'Led Zeppelin',
+        'John Coltrane',
+        'Berlin Philharmoniker',
+      ])
+    })
+
+    it('sorts by composer descending, null-last regardless of direction', () => {
+      const result = applyFiltersAndSort(ALL_ALBUMS, EMPTY_FILTERS, 'composer', 'desc')
+      const withComposer = result.filter((a) => a.composer)
+      const withoutComposer = result.filter((a) => !a.composer)
+      // Null-composer albums still appear last even in desc mode
+      const lastWithComposerIdx = result.findLastIndex((a) => a.composer)
+      const firstWithoutComposerIdx = result.findIndex((a) => !a.composer)
+      expect(lastWithComposerIdx).toBeLessThan(firstWithoutComposerIdx)
+      // With-composer entries are sorted in reverse alphabetical order
+      expect(withComposer.map((a) => a.composer)).toEqual(
+        [...withComposer.map((a) => a.composer)].sort().reverse(),
+      )
+      expect(withoutComposer.length).toBeGreaterThan(0)
+    })
+
+    it('defaults to ascending when direction is omitted', () => {
+      const withDir = applyFiltersAndSort(ALL_ALBUMS, EMPTY_FILTERS, 'albumArtist', 'asc')
+      const withoutDir = applyFiltersAndSort(ALL_ALBUMS, EMPTY_FILTERS, 'albumArtist')
+      expect(withoutDir).toEqual(withDir)
+    })
+  })
+
   describe('performance', () => {
     it('filters 2000 albums in under 200ms', () => {
       const large: Album[] = Array.from({ length: 2000 }, (_, i) =>
@@ -209,6 +256,39 @@ describe('loadSortPreference / saveSortPreference', () => {
   it('saves preference to localStorage', () => {
     saveSortPreference('composer')
     expect(localStorage.setItem).toHaveBeenCalledWith('kbeatz.sortBy', 'composer')
+  })
+})
+
+describe('loadSortDirection / saveSortDirection', () => {
+  beforeEach(() => {
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn(),
+      setItem: vi.fn(),
+    })
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('returns asc by default', () => {
+    vi.mocked(localStorage.getItem).mockReturnValue(null)
+    expect(loadSortDirection()).toBe('asc')
+  })
+
+  it('returns stored desc preference', () => {
+    vi.mocked(localStorage.getItem).mockReturnValue('desc')
+    expect(loadSortDirection()).toBe('desc')
+  })
+
+  it('returns asc for an unrecognised stored value', () => {
+    vi.mocked(localStorage.getItem).mockReturnValue('invalid')
+    expect(loadSortDirection()).toBe('asc')
+  })
+
+  it('saves direction to localStorage', () => {
+    saveSortDirection('desc')
+    expect(localStorage.setItem).toHaveBeenCalledWith('kbeatz.sortDir', 'desc')
   })
 })
 

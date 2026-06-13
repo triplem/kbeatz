@@ -104,7 +104,11 @@
     "label": "Sort by",
     "ariaLabel": "Sort albums by",
     "albumArtist": "Album Artist",
-    "composer": "Composer"
+    "composer": "Composer",
+    "dirAsc": "A-Z",
+    "dirDesc": "Z-A",
+    "sortAscending": "Sort ascending",
+    "sortDescending": "Sort descending"
   },
   "scanProgress": {
     "running": "Scanning: {{progress}} albums",
