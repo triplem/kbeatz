@@ -1,9 +1,9 @@
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DismissibleBanner } from '../../lib/dismissible-banner'
 import { ScanErrors } from './scan-errors'
 import { formatDateTime } from '../../lib/i18n'
 import { useScanStatus } from './useScanStatus'
+import { useScanBannerDismissal } from './useScanBannerDismissal'
 import styles from './scan-progress.module.css'
 
 /**
@@ -11,6 +11,10 @@ import styles from './scan-progress.module.css'
  *
  * Keyed on `completedAt` so React automatically resets dismissed state when a
  * new scan completes (a new key means a fresh component instance).
+ *
+ * Dismissal is persisted to localStorage so the banner does not reappear after
+ * a page reload. A different `completedAt` value (new scan) always shows the
+ * banner once regardless of prior dismissals.
  */
 interface CompletedBannerProps {
   readonly completedAt: string
@@ -18,15 +22,15 @@ interface CompletedBannerProps {
 
 function CompletedBanner({ completedAt }: CompletedBannerProps) {
   const { t } = useTranslation()
-  const [dismissed, setDismissed] = useState(false)
+  const { isDismissed, dismiss } = useScanBannerDismissal(completedAt)
 
-  if (dismissed) return null
+  if (isDismissed) return null
 
   return (
     <DismissibleBanner
       className={`${styles.scanProgress} ${styles.completed}`}
       role="status"
-      onDismiss={() => { setDismissed(true) }}
+      onDismiss={dismiss}
     >
       {t('scanProgress.completedAt', { time: formatDateTime(completedAt) })}
     </DismissibleBanner>
@@ -42,8 +46,7 @@ function CompletedBanner({ completedAt }: CompletedBannerProps) {
  * When COMPLETED with per-album errors, shows the ScanErrors banner below.
  * When IDLE, renders nothing. Shows an error message when state is FAILED.
  *
- * Dismissal is React-state only: the notification reappears after a page refresh
- * because `completedAt` is re-fetched from the API on mount. Each new scan
+ * Dismissal is persisted via useScanBannerDismissal (localStorage). Each new scan
  * completion produces a new `completedAt` value which resets the dismissed state
  * automatically via the React key on `CompletedBanner`.
  */
