@@ -1,9 +1,22 @@
 /* Search box */
 
 .searchBox {
-  position: relative;
   flex: 1;
-  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+/* Visible label for the search input (WCAG 2.4.6 - descriptive labels) */
+.label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* Wrapper that holds the input and the clear button together */
+.inputWrapper {
+  position: relative;
   display: flex;
   align-items: center;
 }
@@ -14,17 +27,20 @@
   padding: var(--space-sm) var(--space-md);
   padding-right: calc(var(--min-touch-target) + var(--space-xs));
   background: var(--bg-primary);
-  border: 1px solid var(--border-color);
+  /* Border uses text-secondary (#666 light / #8a8a8a dark) for WCAG AA contrast against bg-primary */
+  border: 2px solid var(--text-secondary);
   border-radius: var(--radius-full);
   color: var(--text-primary);
   font-size: var(--font-size-sm);
   font-family: var(--font-sans);
-  transition: border-color var(--transition-base);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
 }
 
+/* Focus ring: accent outline with shadow for strong WCAG AA contrast (>= 4.5:1) */
 .input:focus-visible {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 .input::placeholder {

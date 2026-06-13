@@ -98,7 +98,8 @@
     "composerFilter": "Komponisten-Filter"
   },
   "searchBox": {
-    "placeholder": "Nach Titel, Künstler, Komponist, Label suchen...",
+    "label": "Suche",
+    "placeholder": "Nach Titel, Künstler oder Komponist suchen",
     "ariaLabel": "Alben suchen",
     "clearAriaLabel": "Suche leeren"
   },

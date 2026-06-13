@@ -55,24 +55,30 @@ export function SearchBox({ filters, onFiltersChange }: SearchBoxProps) {
 
   return (
     <div className={styles.searchBox} role="search">
-      <input
-        type="search"
-        aria-label={t('searchBox.ariaLabel')}
-        placeholder={t('searchBox.placeholder')}
-        value={displayValue}
-        onChange={handleChange}
-        className={styles.input}
-      />
-      {filters.query !== '' && (
-        <button
-          type="button"
-          aria-label={t('searchBox.clearAriaLabel')}
-          onClick={handleClear}
-          className={styles.clear}
-        >
-          {'×'}
-        </button>
-      )}
+      <label htmlFor="album-search" className={styles.label}>
+        {t('searchBox.label')}
+      </label>
+      <div className={styles.inputWrapper}>
+        <input
+          id="album-search"
+          type="search"
+          aria-label={t('searchBox.ariaLabel')}
+          placeholder={t('searchBox.placeholder')}
+          value={displayValue}
+          onChange={handleChange}
+          className={styles.input}
+        />
+        {filters.query !== '' && (
+          <button
+            type="button"
+            aria-label={t('searchBox.clearAriaLabel')}
+            onClick={handleClear}
+            className={styles.clear}
+          >
+            {'×'}
+          </button>
+        )}
+      </div>
     </div>
   )
 }
