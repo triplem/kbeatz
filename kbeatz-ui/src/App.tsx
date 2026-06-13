@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import styles from './App.module.css'
 import logoFull from './assets/kbeatz-logo-transparent.svg'
@@ -74,19 +74,19 @@ function AlbumListPage() {
   return (
     <div className={styles.app}>
       <header className={styles.appHeader}>
-        <a href="/" className={styles.appLogoLink} aria-label={t('app.title')}>
+        <Link to="/" className={styles.appLogoLink} aria-label={t('app.title')}>
           <img
             src={logoFull}
-            alt={t('app.title')}
+            alt=""
             className={styles.appLogoFull}
           />
           <img
             src={logoIcon}
-            alt={t('app.title')}
+            alt=""
             className={styles.appLogoIcon}
             aria-hidden="true"
           />
-        </a>
+        </Link>
         <SearchBox filters={filters} onFiltersChange={setFilters} />
         <LanguageToggle />
       </header>
