@@ -88,6 +88,18 @@
   transition: border-color var(--transition-base);
 }
 
+/* Remove the browser-native spin buttons on number inputs */
+.yearInput::-webkit-outer-spin-button,
+.yearInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.yearInput[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 .yearInput:focus-visible {
   outline: none;
   border-color: var(--accent);
