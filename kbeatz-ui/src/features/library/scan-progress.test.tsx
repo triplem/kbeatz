@@ -36,6 +36,12 @@ function renderWithQuery(ui: React.ReactElement) {
 describe('ScanProgress - render states', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Clear localStorage between tests so banner dismissal from one test
+    // does not affect the next. In environments where localStorage is
+    // available (CI jsdom), a prior dismiss would otherwise persist and
+    // cause the banner to start hidden for tests that reuse the same
+    // completedAt timestamp.
+    try { localStorage.clear() } catch { /* unavailable - no-op */ }
   })
 
   it('renders nothing when status is IDLE', async () => {
