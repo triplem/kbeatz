@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi } from 'vitest'
 import { FilterPanel } from './filter-panel'
@@ -44,23 +44,6 @@ describe('FilterPanel', () => {
       ...EMPTY_FILTERS,
       genres: [],
     })
-  })
-
-  it('renders year range inputs', () => {
-    render(<FilterPanel options={OPTIONS} filters={EMPTY_FILTERS} onFiltersChange={vi.fn()} />)
-    expect(screen.getByRole('spinbutton', { name: 'Year from' })).toBeInTheDocument()
-    expect(screen.getByRole('spinbutton', { name: 'Year to' })).toBeInTheDocument()
-  })
-
-  it('calls onFiltersChange with yearMin when year-from input changes', () => {
-    const onChange = vi.fn()
-    render(<FilterPanel options={OPTIONS} filters={EMPTY_FILTERS} onFiltersChange={onChange} />)
-
-    fireEvent.change(screen.getByRole('spinbutton', { name: 'Year from' }), {
-      target: { value: '1970' },
-    })
-
-    expect(onChange).toHaveBeenCalledWith({ ...EMPTY_FILTERS, yearMin: 1970 })
   })
 
   it('renders composer filter checkboxes', () => {

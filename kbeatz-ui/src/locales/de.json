@@ -88,9 +88,6 @@
     "genre": "Genre",
     "artist": "Künstler",
     "composer": "Komponist",
-    "year": "Jahr",
-    "yearFrom": "Jahr von",
-    "yearTo": "Jahr bis",
     "genreFilter": "Genre-Filter",
     "artistFilter": "Künstler-Filter",
     "composerFilter": "Komponisten-Filter"

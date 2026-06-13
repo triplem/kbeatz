@@ -48,15 +48,17 @@ export class AlbumsService {
          */
         composer?: string,
         /**
-         * Filter by exact genre
+         * Filter by exact genre (case-insensitive)
          */
         genre?: string,
         /**
-         * Filter albums released on or after this year
+         * Deprecated: the year range filter has been removed from the UI and will be removed from the API in a future version. Filter albums released on or after this year (inclusive)
+         * @deprecated
          */
         yearFrom?: number,
         /**
-         * Filter albums released on or before this year
+         * Deprecated: the year range filter has been removed from the UI and will be removed from the API in a future version. Filter albums released on or before this year (inclusive)
+         * @deprecated
          */
         yearTo?: number,
         /**
@@ -203,6 +205,11 @@ export class AlbumsService {
                 'albumId': albumId,
             },
             errors: {
+                304: `Not Modified - browser or proxy cache is still valid.
+                This response is emitted by the HTTP client or intermediary cache based
+                on the Last-Modified and Cache-Control headers; the server always returns 200.
+                `,
+                400: `Validation error`,
                 404: `Resource not found`,
             },
         });

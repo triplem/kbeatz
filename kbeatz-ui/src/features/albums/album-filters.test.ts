@@ -9,6 +9,7 @@ import {
   saveSortDirection,
   saveSortPreference,
   deriveFilterOptions,
+  type AlbumFilters,
 } from './album-filters'
 import type { Album } from '../../api/generated'
 
@@ -62,27 +63,6 @@ describe('applyFiltersAndSort', () => {
     it('shows all albums when genre filter is empty', () => {
       const result = applyFiltersAndSort(ALL_ALBUMS, { ...EMPTY_FILTERS, genres: [] }, 'albumArtist')
       expect(result).toHaveLength(ALL_ALBUMS.length)
-    })
-  })
-
-  describe('year range filter', () => {
-    it('filters by yearMin inclusive', () => {
-      const result = applyFiltersAndSort(ALL_ALBUMS, { ...EMPTY_FILTERS, yearMin: 1965, yearMax: null }, 'albumArtist')
-      expect(result.map((a) => a.date)).toEqual(
-        expect.arrayContaining(['1965', '1971', '1985']),
-      )
-      expect(result.find((a) => a.date === '1959')).toBeUndefined()
-    })
-
-    it('filters by yearMax inclusive', () => {
-      const result = applyFiltersAndSort(ALL_ALBUMS, { ...EMPTY_FILTERS, yearMin: null, yearMax: 1965 }, 'albumArtist')
-      const years = result.map((a) => parseInt(a.date ?? '0'))
-      expect(years.every((y) => y <= 1965)).toBe(true)
-    })
-
-    it('filters by year range both inclusive', () => {
-      const result = applyFiltersAndSort(ALL_ALBUMS, { ...EMPTY_FILTERS, yearMin: 1965, yearMax: 1975 }, 'albumArtist')
-      expect(result).toHaveLength(2) // 1965 and 1971
     })
   })
 
@@ -201,7 +181,7 @@ describe('applyFiltersAndSort', () => {
         }),
       )
       const start = performance.now()
-      applyFiltersAndSort(large, { ...EMPTY_FILTERS, genres: ['Jazz'], yearMin: 1970, yearMax: 1990 }, 'albumArtist')
+      applyFiltersAndSort(large, { ...EMPTY_FILTERS, genres: ['Jazz'] }, 'albumArtist')
       const elapsed = performance.now() - start
       expect(elapsed).toBeLessThan(200)
     })
@@ -210,12 +190,10 @@ describe('applyFiltersAndSort', () => {
 
 describe('filtersFromParams / filtersToParams round-trip', () => {
   it('serialises and deserialises filters correctly', () => {
-    const original = {
+    const original: AlbumFilters = {
       genres: ['Jazz', 'Blues'],
       artists: [],
       composers: [],
-      yearMin: 1970,
-      yearMax: 1985,
       query: 'miles',
     }
     const params = filtersToParams(original)
