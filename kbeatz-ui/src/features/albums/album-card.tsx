@@ -101,18 +101,16 @@ export function AlbumCard({ album }: AlbumCardProps) {
             <span className={styles.genre}>{album.genre}</span>
           )}
         </div>
-        {(album.trackCount !== undefined && album.trackCount > 0) || (album.totalDurationSeconds !== undefined && album.totalDurationSeconds > 0)
-          ? (
+        {((album.trackCount ?? 0) > 0 || (album.totalDurationSeconds ?? 0) > 0) && (
             <div className={styles.trackSummary}>
-              {album.trackCount !== undefined && album.trackCount > 0 && (
+              {(album.trackCount ?? 0) > 0 && (
                 <span className={styles.trackCount}>{t('albumCard.trackCount', { count: album.trackCount })}</span>
               )}
-              {album.totalDurationSeconds !== undefined && album.totalDurationSeconds > 0 && (
-                <span className={styles.trackDuration}>{formatAlbumDuration(album.totalDurationSeconds)}</span>
+              {(album.totalDurationSeconds ?? 0) > 0 && (
+                <span className={styles.trackDuration}>{formatAlbumDuration(album.totalDurationSeconds ?? 0)}</span>
               )}
             </div>
-          )
-          : null}
+          )}
       </div>
     </article>
   )

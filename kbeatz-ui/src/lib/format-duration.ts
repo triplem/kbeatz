@@ -13,6 +13,9 @@ const SECONDS_PER_HOUR = 3600
 /**
  * Format a per-track duration in mm:ss notation.
  *
+ * @param totalSeconds - Non-negative integer duration in seconds. Negative values produce
+ *   undefined output; callers must guard against them.
+ *
  * Examples: 225 -> "3:45", 602 -> "10:02", 0 -> "0:00"
  */
 export function formatTrackDuration(totalSeconds: number): string {
@@ -23,6 +26,9 @@ export function formatTrackDuration(totalSeconds: number): string {
 
 /**
  * Format a total album duration in a compact human-readable form.
+ *
+ * @param totalSeconds - Non-negative integer duration in seconds. Negative values produce
+ *   undefined output; callers must guard against them.
  *
  * - Under 60 minutes with whole minutes only: "52m"
  * - Under 60 minutes with leftover seconds: "52m 30s"

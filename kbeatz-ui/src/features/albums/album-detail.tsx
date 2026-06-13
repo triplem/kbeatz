@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { Fragment, useCallback, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
@@ -380,9 +380,9 @@ function TrackList({ tracks, onSave }: TrackListProps) {
       </thead>
       <tbody>
         {groups.map((group) => (
-          <>
+          <Fragment key={group.discLabel ?? 'no-disc'}>
             {isMultiDisc && group.discLabel !== null && (
-              <tr key={`disc-${group.discLabel}`} className={styles.discHeader}>
+              <tr className={styles.discHeader}>
                 <td colSpan={4}>{t('albumDetail.discHeader', { number: group.discLabel })}</td>
               </tr>
             )}
@@ -393,7 +393,7 @@ function TrackList({ tracks, onSave }: TrackListProps) {
                 onSave={onSave(track.id)}
               />
             ))}
-          </>
+          </Fragment>
         ))}
       </tbody>
     </table>
