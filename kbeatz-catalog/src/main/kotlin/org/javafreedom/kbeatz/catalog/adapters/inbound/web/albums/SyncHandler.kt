@@ -96,6 +96,7 @@ internal fun Album.toSyncApiModel(libraryRoot: Path): ApiAlbum = ApiAlbum(
     id = id.toString(),
     albumArtist = albumArtist,
     album = album,
+    albumPath = libraryRoot.relativize(Path.of(directoryPath)).toString(),
     directoryPath = libraryRoot.relativize(Path.of(directoryPath)).toString(),
     hasCoverArt = hasCoverArt,
     date = date,
