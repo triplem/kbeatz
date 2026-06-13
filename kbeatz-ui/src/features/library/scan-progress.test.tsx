@@ -1,4 +1,5 @@
 import { render, screen, waitFor, act } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ScanProgress } from './scan-progress'
@@ -64,6 +65,35 @@ describe('ScanProgress - render states', () => {
     expect(banner).toBeInTheDocument()
     // Should contain the year from the formatted timestamp
     expect(banner.textContent).toContain('2026')
+  })
+
+  it('renders a dismiss button in the COMPLETED state', async () => {
+    mockGetStatus.mockResolvedValue(
+      makeStatus('COMPLETED', { completedAt: '2026-06-09T20:31:20Z' }),
+    )
+    renderWithQuery(<ScanProgress />)
+    const dismissBtn = await screen.findByRole('button', { name: 'Dismiss' })
+    expect(dismissBtn).toBeInTheDocument()
+  })
+
+  it('hides the banner after clicking dismiss', async () => {
+    const user = userEvent.setup()
+    mockGetStatus.mockResolvedValue(
+      makeStatus('COMPLETED', { completedAt: '2026-06-09T20:31:20Z' }),
+    )
+    const { container } = renderWithQuery(<ScanProgress />)
+    const dismissBtn = await screen.findByRole('button', { name: 'Dismiss' })
+    await user.click(dismissBtn)
+    expect(container.firstChild).toBeNull()
+  })
+
+  it('does not render a dismiss button in the RUNNING state', async () => {
+    mockGetStatus.mockResolvedValue(
+      makeStatus('RUNNING', { scannedAlbums: 10, totalAlbums: 100 }),
+    )
+    renderWithQuery(<ScanProgress />)
+    await screen.findByRole('status')
+    expect(screen.queryByRole('button', { name: 'Dismiss' })).toBeNull()
   })
 
   it('renders startedAt timestamp in running banner when present', async () => {

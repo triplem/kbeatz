@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useScanStatus } from './useScanStatus'
+import { DismissibleBanner } from '../../lib/dismissible-banner'
 import { formatDateTime } from '../../lib/i18n'
+import { useScanStatus } from './useScanStatus'
 import styles from './scan-progress.module.css'
 
 /**
@@ -8,25 +10,43 @@ import styles from './scan-progress.module.css'
  *
  * Polls `GET /api/v1/library/scan/status` every 2 seconds while state is RUNNING.
  * Displays a banner with the current progress count and started-at timestamp.
- * When COMPLETED shows the completed-at timestamp. When IDLE, renders nothing.
- * Shows an error message when state is FAILED.
+ * When COMPLETED shows the completed-at timestamp with a dismiss button.
+ * When IDLE, renders nothing. Shows an error message when state is FAILED.
  * Does not render when state is IDLE.
+ *
+ * Dismissal is React-state only: the notification reappears after a page refresh
+ * because `completedAt` is re-fetched from the API on mount. If the scan transitions
+ * from COMPLETED back to RUNNING (a new scan starts) the dismissed flag resets so
+ * the next completion notification is shown automatically.
  */
 export function ScanProgress() {
   const { t } = useTranslation()
   const { status } = useScanStatus()
+  const [dismissed, setDismissed] = useState(false)
 
+  // Reset dismissed flag whenever a new scan starts so the next completion
+  // notification is shown without requiring a page refresh.
+  useEffect(() => {
+    if (status?.state === 'RUNNING') {
+      setDismissed(false)
+    }
+  }, [status?.state])
 
   if (status === undefined || status.state === 'IDLE') {
     return null
   }
 
   if (status.state === 'COMPLETED') {
-    return status.completedAt ? (
-      <div className={`${styles.scanProgress} ${styles.completed}`} role="status">
+    if (dismissed || !status.completedAt) return null
+    return (
+      <DismissibleBanner
+        className={`${styles.scanProgress} ${styles.completed}`}
+        role="status"
+        onDismiss={() => { setDismissed(true) }}
+      >
         {t('scanProgress.completedAt', { time: formatDateTime(status.completedAt) })}
-      </div>
-    ) : null
+      </DismissibleBanner>
+    )
   }
 
   if (status.state === 'FAILED') {
