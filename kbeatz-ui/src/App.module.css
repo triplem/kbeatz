@@ -161,3 +161,13 @@
     display: block;
   }
 }
+
+/* ── Pagination controls ───────────────────────────── */
+
+.appPagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-md);
+  margin-top: var(--space-xl);
+}

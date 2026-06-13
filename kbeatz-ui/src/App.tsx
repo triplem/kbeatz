@@ -156,7 +156,7 @@ function AlbumListPage() {
             <>
               <AlbumGrid albums={clientFilteredAlbums} totalCount={totalElements} />
               {totalPages > 1 && (
-                <div className="app-pagination" data-testid="album-pagination">
+                <div className={styles.appPagination} data-testid="album-pagination">
                   {page > 0 && (
                     <button
                       type="button"
