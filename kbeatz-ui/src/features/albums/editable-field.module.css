@@ -53,12 +53,13 @@
 .editIcon {
   font-size: var(--font-size-xs);
   color: var(--text-secondary);
-  opacity: 0.5;
+  opacity: 0;
   flex-shrink: 0;
   transition: opacity var(--transition-fast);
 }
 
-.displayButton:not(:disabled):hover .editIcon {
+.displayButton:not(:disabled):hover .editIcon,
+.displayButton:not(:disabled):focus-visible .editIcon {
   opacity: 1;
 }
 
