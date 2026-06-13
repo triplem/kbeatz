@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Album, AlbumsService } from '../../api/generated'
+import { Album, AlbumDetail, AlbumsService } from '../../api/generated'
 import { CancelError } from '../../api/generated/core/CancelablePromise'
 import styles from './sync-panel.module.css'
 
 /** Client-side timeout for Discogs sync requests (30 seconds). */
 const SYNC_TIMEOUT_MS = 30_000
 
-/** Tag fields that Discogs sync can update. */
-const SYNC_TAG_FIELDS: ReadonlyArray<keyof Album> = [
+/** Tag fields that Discogs sync can update. These are present on both AlbumDetail and Album. */
+type SyncTagField = 'albumArtist' | 'album' | 'date' | 'genre' | 'label' | 'catalogNumber' | 'composer' | 'conductor' | 'ensemble'
+const SYNC_TAG_FIELDS: ReadonlyArray<SyncTagField> = [
   'albumArtist',
   'album',
   'date',
@@ -22,7 +23,7 @@ const SYNC_TAG_FIELDS: ReadonlyArray<keyof Album> = [
 ]
 
 /** Count how many tag fields differ between the album before and after sync. */
-function countChangedFields(before: Album, after: Album): number {
+function countChangedFields(before: AlbumDetail, after: Album): number {
   return SYNC_TAG_FIELDS.filter((field) => before[field] !== after[field]).length
 }
 
@@ -35,7 +36,9 @@ type SyncState =
   | { status: 'quotaExhausted'; resetAt: string }
 
 interface SyncPanelProps {
-  readonly album: Album
+  /** The album detail being viewed. AlbumDetail is used here because SyncPanel
+   *  is rendered inside the album detail view and receives the full detail object. */
+  readonly album: AlbumDetail
   readonly onSyncComplete: (updated: Album) => void
   /** When true the user has edited tags locally since the last sync; a confirmation
    *  dialog is shown before the sync proceeds to prevent silent overwrites. */

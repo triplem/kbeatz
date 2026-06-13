@@ -484,7 +484,7 @@ components:
 
     AlbumDetail:
       type: object
-      required: [id, albumArtist, album, directoryPath, albumPath, hasCoverArt, tracks]
+      required: [id, albumArtist, album, albumPath, hasCoverArt, tracks]
       properties:
         id:
           type: string
