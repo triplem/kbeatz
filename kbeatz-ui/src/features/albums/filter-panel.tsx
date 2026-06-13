@@ -13,9 +13,18 @@ interface FilterPanelProps {
  *
  * Provides multi-select checkboxes for genre, artist, and composer.
  * Operates on the in-memory album list - no API calls.
+ *
+ * Returns null when all option lists are empty so no container is rendered.
  */
 export function FilterPanel({ options, filters, onFiltersChange }: FilterPanelProps) {
   const { t } = useTranslation()
+
+  // Do not render an empty container when there are no filter options available.
+  const hasOptions =
+    options.genres.length > 0 || options.artists.length > 0 || options.composers.length > 0
+  if (!hasOptions) {
+    return null
+  }
 
   const toggleMultiSelect = (field: 'genres' | 'artists' | 'composers', value: string) => {
     const current = filters[field] as ReadonlyArray<string>

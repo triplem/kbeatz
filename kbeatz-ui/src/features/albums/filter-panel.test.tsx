@@ -12,6 +12,14 @@ const OPTIONS: FilterOptions = {
 }
 
 describe('FilterPanel', () => {
+  it('renders nothing when all option lists are empty', () => {
+    const emptyOptions: FilterOptions = { genres: [], artists: [], composers: [] }
+    const { container } = render(
+      <FilterPanel options={emptyOptions} filters={EMPTY_FILTERS} onFiltersChange={vi.fn()} />,
+    )
+    expect(container).toBeEmptyDOMElement()
+  })
+
   it('renders genre checkboxes from options', () => {
     render(<FilterPanel options={OPTIONS} filters={EMPTY_FILTERS} onFiltersChange={vi.fn()} />)
     expect(screen.getByRole('checkbox', { name: 'Jazz' })).toBeInTheDocument()
@@ -53,10 +61,11 @@ describe('FilterPanel', () => {
     ).toBeInTheDocument()
   })
 
-  it('does not render empty genres section when options.genres is empty', () => {
-    const emptyOptions: FilterOptions = { genres: [], artists: [], composers: [] }
-    render(<FilterPanel options={emptyOptions} filters={EMPTY_FILTERS} onFiltersChange={vi.fn()} />)
+  it('does not render empty genres section when options.genres is empty but others have content', () => {
+    const partialOptions: FilterOptions = { genres: [], artists: ['Miles Davis'], composers: [] }
+    render(<FilterPanel options={partialOptions} filters={EMPTY_FILTERS} onFiltersChange={vi.fn()} />)
     expect(screen.queryByRole('group', { name: 'Genre filter' })).not.toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: 'Miles Davis' })).toBeInTheDocument()
   })
 
   it('does not render any year range or year input element', () => {
