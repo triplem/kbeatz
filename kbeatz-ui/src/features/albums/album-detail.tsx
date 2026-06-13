@@ -252,142 +252,148 @@ export function AlbumDetail() {
         {t('common.back')}
       </button>
 
-      {displayAlbum.hasCoverArt && (
-        <img
-          src={`/api/v1/albums/${displayAlbum.id}/cover`}
-          alt={t('albumDetail.coverAlt', { album: displayAlbum.album })}
-          className={styles.albumCover}
-          loading="lazy"
-          data-testid="album-cover"
-        />
-      )}
+      <div className={styles.twoColumnLayout} data-testid="two-column-layout">
+        <div className={styles.metadataColumn} data-testid="metadata-column">
+          {displayAlbum.hasCoverArt && (
+            <img
+              src={`/api/v1/albums/${displayAlbum.id}/cover`}
+              alt={t('albumDetail.coverAlt', { album: displayAlbum.album })}
+              className={styles.albumCover}
+              loading="lazy"
+              data-testid="album-cover"
+            />
+          )}
 
-      <section aria-label={t('albumDetail.albumTagsSection')}>
-        <h2 className={styles.sectionTitle}>{t('albumDetail.sectionTitle')}</h2>
-        {isSaving && (
-          <p role="status" aria-live="polite" data-testid="album-saving-indicator">
-            {t('albumDetail.saving')}
-          </p>
-        )}
-        <div className={styles.albumPathRow}>
-          <span className={styles.albumPathLabel}>{t('albumDetail.fields.albumPath')}</span>
-          <PathDisplay
-            path={displayAlbum.albumPath}
-            label={t('albumDetail.fields.albumPath')}
-            testId="album-path"
-          />
-        </div>
-        <p
-          id="edit-scope-notice"
-          className={styles.editScopeNotice}
-          data-testid="edit-scope-notice"
-        >
-          {t('albumDetail.editScopeNotice', { count: displayAlbum.tracks.length })}
-        </p>
-        <dl id="album-tags" className={styles.albumTags}>
-          <EditableField
-            label={t('albumDetail.fields.album')}
-            value={displayAlbum.album}
-            fieldName="ALBUM"
-            onSave={handleAlbumTagSave}
-            testIdPrefix="album"
-            disabled={isSaving}
-            scopeDescribedBy="edit-scope-notice"
-          />
-          <EditableField
-            label={t('albumDetail.fields.albumArtist')}
-            value={displayAlbum.albumArtist}
-            fieldName="ALBUMARTIST"
-            onSave={handleAlbumTagSave}
-            testIdPrefix="album"
-            disabled={isSaving}
-            scopeDescribedBy="edit-scope-notice"
-          />
-          <EditableField
-            label={t('albumDetail.fields.date')}
-            value={displayAlbum.date}
-            displayValue={displayAlbum.date !== undefined ? formatDate(displayAlbum.date) : undefined}
-            fieldName="DATE"
-            onSave={handleAlbumTagSave}
-            testIdPrefix="album"
-            disabled={isSaving}
-            scopeDescribedBy="edit-scope-notice"
-          />
-          <EditableField
-            label={t('albumDetail.fields.genre')}
-            value={displayAlbum.genre}
-            fieldName="GENRE"
-            onSave={handleAlbumTagSave}
-            testIdPrefix="album"
-            disabled={isSaving}
-            scopeDescribedBy="edit-scope-notice"
-          />
-          <EditableField
-            label={t('albumDetail.fields.label')}
-            value={displayAlbum.label}
-            fieldName="LABEL"
-            onSave={handleAlbumTagSave}
-            testIdPrefix="album"
-            disabled={isSaving}
-            scopeDescribedBy="edit-scope-notice"
-          />
-          <EditableField
-            label={t('albumDetail.fields.catalogNumber')}
-            value={displayAlbum.catalogNumber}
-            fieldName="CATALOGNUMBER"
-            onSave={handleAlbumTagSave}
-            testIdPrefix="album"
-            disabled={isSaving}
-            scopeDescribedBy="edit-scope-notice"
-          />
-          <EditableField
-            label={t('albumDetail.fields.composer')}
-            value={displayAlbum.composer}
-            fieldName="COMPOSER"
-            onSave={handleAlbumTagSave}
-            testIdPrefix="album"
-            disabled={isSaving}
-            scopeDescribedBy="edit-scope-notice"
-          />
-          <EditableField
-            label={t('albumDetail.fields.conductor')}
-            value={displayAlbum.conductor}
-            fieldName="CONDUCTOR"
-            onSave={handleAlbumTagSave}
-            testIdPrefix="album"
-            disabled={isSaving}
-            scopeDescribedBy="edit-scope-notice"
-          />
-          <EditableField
-            label={t('albumDetail.fields.ensemble')}
-            value={displayAlbum.ensemble}
-            fieldName="ENSEMBLE"
-            onSave={handleAlbumTagSave}
-            testIdPrefix="album"
-            disabled={isSaving}
-            scopeDescribedBy="edit-scope-notice"
-          />
-        </dl>
-      </section>
-
-      {displayAlbum.discogsId !== undefined && (
-        <section aria-label={t('albumDetail.discogsSection')}>
-          <SyncPanel album={displayAlbum} onSyncComplete={handleSyncComplete} hasLocalEdits={hasLocalEdits} />
-        </section>
-      )}
-
-      <section aria-label={t('albumDetail.tracksSection')}>
-          <h2 className={styles.sectionTitle}>{t('albumDetail.tracksSectionTitle')}</h2>
-          {displayAlbum.tracks.length === 0
-            ? <p className={styles.noTracks}>{t('albumDetail.noTracks')}</p>
-            : (
-              <TrackList
-                tracks={displayAlbum.tracks}
-                onSave={handleTrackTagSave}
+          <section aria-label={t('albumDetail.albumTagsSection')}>
+            <h2 className={styles.sectionTitle}>{t('albumDetail.sectionTitle')}</h2>
+            {isSaving && (
+              <p role="status" aria-live="polite" data-testid="album-saving-indicator">
+                {t('albumDetail.saving')}
+              </p>
+            )}
+            <div className={styles.albumPathRow}>
+              <span className={styles.albumPathLabel}>{t('albumDetail.fields.albumPath')}</span>
+              <PathDisplay
+                path={displayAlbum.albumPath}
+                label={t('albumDetail.fields.albumPath')}
+                testId="album-path"
               />
-            )
-          }
-        </section>
+            </div>
+            <p
+              id="edit-scope-notice"
+              className={styles.editScopeNotice}
+              data-testid="edit-scope-notice"
+            >
+              {t('albumDetail.editScopeNotice', { count: displayAlbum.tracks.length })}
+            </p>
+            <dl id="album-tags" className={styles.albumTags}>
+              <EditableField
+                label={t('albumDetail.fields.album')}
+                value={displayAlbum.album}
+                fieldName="ALBUM"
+                onSave={handleAlbumTagSave}
+                testIdPrefix="album"
+                disabled={isSaving}
+                scopeDescribedBy="edit-scope-notice"
+              />
+              <EditableField
+                label={t('albumDetail.fields.albumArtist')}
+                value={displayAlbum.albumArtist}
+                fieldName="ALBUMARTIST"
+                onSave={handleAlbumTagSave}
+                testIdPrefix="album"
+                disabled={isSaving}
+                scopeDescribedBy="edit-scope-notice"
+              />
+              <EditableField
+                label={t('albumDetail.fields.date')}
+                value={displayAlbum.date}
+                displayValue={displayAlbum.date !== undefined ? formatDate(displayAlbum.date) : undefined}
+                fieldName="DATE"
+                onSave={handleAlbumTagSave}
+                testIdPrefix="album"
+                disabled={isSaving}
+                scopeDescribedBy="edit-scope-notice"
+              />
+              <EditableField
+                label={t('albumDetail.fields.genre')}
+                value={displayAlbum.genre}
+                fieldName="GENRE"
+                onSave={handleAlbumTagSave}
+                testIdPrefix="album"
+                disabled={isSaving}
+                scopeDescribedBy="edit-scope-notice"
+              />
+              <EditableField
+                label={t('albumDetail.fields.label')}
+                value={displayAlbum.label}
+                fieldName="LABEL"
+                onSave={handleAlbumTagSave}
+                testIdPrefix="album"
+                disabled={isSaving}
+                scopeDescribedBy="edit-scope-notice"
+              />
+              <EditableField
+                label={t('albumDetail.fields.catalogNumber')}
+                value={displayAlbum.catalogNumber}
+                fieldName="CATALOGNUMBER"
+                onSave={handleAlbumTagSave}
+                testIdPrefix="album"
+                disabled={isSaving}
+                scopeDescribedBy="edit-scope-notice"
+              />
+              <EditableField
+                label={t('albumDetail.fields.composer')}
+                value={displayAlbum.composer}
+                fieldName="COMPOSER"
+                onSave={handleAlbumTagSave}
+                testIdPrefix="album"
+                disabled={isSaving}
+                scopeDescribedBy="edit-scope-notice"
+              />
+              <EditableField
+                label={t('albumDetail.fields.conductor')}
+                value={displayAlbum.conductor}
+                fieldName="CONDUCTOR"
+                onSave={handleAlbumTagSave}
+                testIdPrefix="album"
+                disabled={isSaving}
+                scopeDescribedBy="edit-scope-notice"
+              />
+              <EditableField
+                label={t('albumDetail.fields.ensemble')}
+                value={displayAlbum.ensemble}
+                fieldName="ENSEMBLE"
+                onSave={handleAlbumTagSave}
+                testIdPrefix="album"
+                disabled={isSaving}
+                scopeDescribedBy="edit-scope-notice"
+              />
+            </dl>
+          </section>
+
+          {displayAlbum.discogsId !== undefined && (
+            <section aria-label={t('albumDetail.discogsSection')}>
+              <SyncPanel album={displayAlbum} onSyncComplete={handleSyncComplete} hasLocalEdits={hasLocalEdits} />
+            </section>
+          )}
+        </div>
+
+        <div className={styles.tracklistColumn} data-testid="tracklist-column">
+          <section aria-label={t('albumDetail.tracksSection')}>
+            <h2 className={styles.sectionTitle}>{t('albumDetail.tracksSectionTitle')}</h2>
+            {displayAlbum.tracks.length === 0
+              ? <p className={styles.noTracks}>{t('albumDetail.noTracks')}</p>
+              : (
+                <TrackList
+                  tracks={displayAlbum.tracks}
+                  onSave={handleTrackTagSave}
+                />
+              )
+            }
+          </section>
+        </div>
+      </div>
     </article>
     </>
   )

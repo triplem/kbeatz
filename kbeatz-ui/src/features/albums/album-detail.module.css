@@ -1,12 +1,58 @@
 /* Album detail page */
 
 .albumDetail {
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: var(--space-lg);
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
+}
+
+/* ── Two-column layout (>= 1024 px) ────────────────── */
+
+/*
+ * On wide viewports (>= 1024px) the body switches to a two-column CSS Grid:
+ *   left  (~35%): cover art, metadata, Discogs sync (sticky)
+ *   right (~65%): full tracklist (scrolls naturally in the document)
+ *
+ * The left column is sticky so it stays in view while the user scrolls
+ * the tracklist. The tracklist scrolls in the normal document flow (no
+ * nested overflow container) so keyboard and touch scroll work naturally.
+ *
+ * 64px matches the application header height defined in AppLayout.
+ *
+ * On viewports < 1024px the columns stack vertically (single column).
+ */
+.twoColumnLayout {
+  display: grid;
+  grid-template-columns: 1fr; /* single column: mobile-first */
+  gap: var(--space-lg);
+}
+
+@media (min-width: 1024px) {
+  .twoColumnLayout {
+    grid-template-columns: 35fr 65fr;
+    align-items: start;
+  }
+
+  .metadataColumn {
+    position: sticky;
+    top: 64px;
+    align-self: start;
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+  }
+}
+
+.metadataColumn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.tracklistColumn {
+  min-width: 0; /* prevent grid blowout on wide track tables */
 }
 
 /* ── Navigation ────────────────────────────────────── */
