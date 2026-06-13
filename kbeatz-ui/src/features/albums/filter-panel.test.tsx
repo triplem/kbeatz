@@ -58,4 +58,16 @@ describe('FilterPanel', () => {
     render(<FilterPanel options={emptyOptions} filters={EMPTY_FILTERS} onFiltersChange={vi.fn()} />)
     expect(screen.queryByRole('group', { name: 'Genre filter' })).not.toBeInTheDocument()
   })
+
+  it('does not render any year range or year input element', () => {
+    render(<FilterPanel options={OPTIONS} filters={EMPTY_FILTERS} onFiltersChange={vi.fn()} />)
+    // No year range container (remnant from removed year range filter)
+    expect(document.querySelector('[class*="yearRange"]')).toBeNull()
+    // No year number inputs
+    expect(document.querySelector('[class*="yearInput"]')).toBeNull()
+    // No spinbox role (year number inputs use role=spinbutton)
+    expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument()
+    // No inputs of type number inside the filter panel
+    expect(document.querySelector('aside input[type="number"]')).toBeNull()
+  })
 })
