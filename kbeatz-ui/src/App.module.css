@@ -28,7 +28,14 @@
   text-decoration: none;
 }
 
+/* appLogoFull is applied to the <picture> wrapper; the nested <img> inherits height. */
 .appLogoFull {
+  height: 36px;
+  width: auto;
+  display: block;
+}
+
+.appLogoFull img {
   height: 36px;
   width: auto;
   display: block;
@@ -128,15 +135,6 @@
 }
 
 /* ── Responsive breakpoints ────────────────────────────── */
-
-/* Dark-theme logo contrast fix (#557): invert brings contrast from ~1.17:1 to ~13:1 (WCAG AA). */
-/* Logo is an <img> so CSS fill overrides cannot reach SVG internals - filter is the only approach. */
-@media (prefers-color-scheme: dark) {
-  .appLogoFull,
-  .appLogoIcon {
-    filter: invert(1);
-  }
-}
 
 @media (max-width: 768px) {
   .appContent {
