@@ -8,7 +8,7 @@ import type { AlbumFilters } from './album-filters'
 describe('SearchBox', () => {
   it('renders the search input', () => {
     render(<SearchBox filters={EMPTY_FILTERS} onFiltersChange={vi.fn()} />)
-    expect(screen.getByRole('searchbox', { name: 'Search albums' })).toBeInTheDocument()
+    expect(screen.getByRole('searchbox', { name: 'Search' })).toBeInTheDocument()
   })
 
   it('renders a visible label element linked to the search input', () => {
@@ -21,7 +21,7 @@ describe('SearchBox', () => {
 
   it('has descriptive placeholder text', () => {
     render(<SearchBox filters={EMPTY_FILTERS} onFiltersChange={vi.fn()} />)
-    const input = screen.getByRole('searchbox', { name: 'Search albums' })
+    const input = screen.getByRole('searchbox', { name: 'Search' })
     expect(input).toHaveAttribute('placeholder', 'Search by title, artist or composer')
   })
 
@@ -50,7 +50,7 @@ describe('SearchBox', () => {
   it('input reflects the current filters.query value (controlled)', () => {
     const filtersWithQuery: AlbumFilters = { ...EMPTY_FILTERS, query: 'beethoven' }
     render(<SearchBox filters={filtersWithQuery} onFiltersChange={vi.fn()} />)
-    const input = screen.getByRole('searchbox', { name: 'Search albums' })
+    const input = screen.getByRole('searchbox', { name: 'Search' })
     expect(input).toHaveValue('beethoven')
   })
 
@@ -60,7 +60,7 @@ describe('SearchBox', () => {
     const { rerender } = render(
       <SearchBox filters={filtersWithQuery} onFiltersChange={onChange} />,
     )
-    const input = screen.getByRole('searchbox', { name: 'Search albums' })
+    const input = screen.getByRole('searchbox', { name: 'Search' })
     expect(input).toHaveValue('miles')
 
     // Simulate parent resetting filters to empty
@@ -81,7 +81,7 @@ describe('SearchBox debounce', () => {
   it('calls onFiltersChange after 150ms debounce on input', async () => {
     const onChange = vi.fn()
     render(<SearchBox filters={EMPTY_FILTERS} onFiltersChange={onChange} />)
-    const input = screen.getByRole('searchbox', { name: 'Search albums' })
+    const input = screen.getByRole('searchbox', { name: 'Search' })
 
     // Fire change event directly (bypasses userEvent timing issues with fake timers)
     fireEvent.change(input, { target: { value: 'beethoven' } })
@@ -100,7 +100,7 @@ describe('SearchBox debounce', () => {
   it('debounces rapid changes to a single call', async () => {
     const onChange = vi.fn()
     render(<SearchBox filters={EMPTY_FILTERS} onFiltersChange={onChange} />)
-    const input = screen.getByRole('searchbox', { name: 'Search albums' })
+    const input = screen.getByRole('searchbox', { name: 'Search' })
 
     // Fire multiple rapid changes
     fireEvent.change(input, { target: { value: 'b' } })
