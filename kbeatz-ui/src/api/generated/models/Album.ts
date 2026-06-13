@@ -52,7 +52,7 @@ export type Album = {
      */
     albumPath: string;
     /**
-     * Deprecated: use albumPath instead. Will be removed in v2.
+     * Deprecated: use albumPath instead. Tracked for removal in v2 - see #643.
      * @deprecated
      */
     directoryPath?: string;
