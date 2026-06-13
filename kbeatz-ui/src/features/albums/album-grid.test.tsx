@@ -136,35 +136,35 @@ describe('AlbumGrid', () => {
 // ─────────────────────────────────
 
 describe('calcColumns', () => {
-  it('returns 1 when container width equals the minimum card width (280px)', () => {
-    expect(calcColumns(280)).toBe(1)
+  it('returns 1 when container width equals the minimum card width (350px)', () => {
+    expect(calcColumns(350)).toBe(1)
   })
 
   it('returns 1 when container width is less than the minimum card width', () => {
     expect(calcColumns(100)).toBe(1)
-    expect(calcColumns(279)).toBe(1)
+    expect(calcColumns(349)).toBe(1)
   })
 
   it('returns 1 for zero-width container (guards against division by zero)', () => {
     expect(calcColumns(0)).toBe(1)
   })
 
-  it('returns 2 when container is exactly twice the minimum width (560px)', () => {
-    expect(calcColumns(560)).toBe(2)
+  it('returns 2 when container is exactly twice the minimum width (700px)', () => {
+    expect(calcColumns(700)).toBe(2)
   })
 
-  it('returns 4 columns at 1280px viewport width', () => {
-    // 1280 / 280 = 4.57 -> 4 columns
-    expect(calcColumns(1280)).toBe(4)
+  it('returns 3 columns at 1280px viewport width', () => {
+    // 1280 / 350 = 3.66 -> 3 columns
+    expect(calcColumns(1280)).toBe(3)
   })
 
-  it('returns 5 columns at 1440px viewport width', () => {
-    // 1440 / 280 = 5.14 -> 5 columns
-    expect(calcColumns(1440)).toBe(5)
+  it('returns 4 columns at 1440px viewport width', () => {
+    // 1440 / 350 = 4.11 -> 4 columns
+    expect(calcColumns(1440)).toBe(4)
   })
 
-  it('returns 6 columns at 1920px viewport width', () => {
-    // 1920 / 280 = 6.86 -> 6 columns
-    expect(calcColumns(1920)).toBe(6)
+  it('returns 5 columns at 1920px viewport width', () => {
+    // 1920 / 350 = 5.49 -> 5 columns
+    expect(calcColumns(1920)).toBe(5)
   })
 })
