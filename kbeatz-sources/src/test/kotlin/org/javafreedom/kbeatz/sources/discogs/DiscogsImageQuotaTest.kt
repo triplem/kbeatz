@@ -374,7 +374,9 @@ class DiscogsImageQuotaTest {
         // a stable <quotaFile>.lock file to avoid the inode-replacement race.
         val lockFile = dir.resolve("discogs-image-quota.json.lock")
 
-        // Hold the file lock in a background thread to force a timeout
+        // Hold the file lock in a background thread to force a timeout.
+        // Use a short lockTimeoutSeconds (1L instead of the default 5L) so the test
+        // completes in ~1 second rather than 5 seconds, reducing flakiness on slow CI runners.
         val lockHeld = CountDownLatch(1)
         val releaseLock = CountDownLatch(1)
 
@@ -395,7 +397,7 @@ class DiscogsImageQuotaTest {
         holder.start()
         lockHeld.await() // wait until the holder actually has the lock
 
-        val quota = DiscogsImageQuota(quotaFile = file)
+        val quota = DiscogsImageQuota(quotaFile = file, lockTimeoutSeconds = 1L)
         assertFailsWith<QuotaLockTimeoutException> {
             quota.recordDownload()
         }
