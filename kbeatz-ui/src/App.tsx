@@ -132,56 +132,56 @@ function AlbumListPage() {
           />
         )}
         <div className={styles.appGridArea}>
-        <div className={styles.appToolbar}>
-          <SortPreference
-            value={sortBy}
-            onChange={handleSortChange}
-            direction={sortDirection}
-            onDirectionChange={handleDirectionChange}
-          />
-        </div>
-        {isPending && <p className={styles.loadingText}>{t('albumGrid.loading')}</p>}
-        {isError && (
-          <div role="alert" data-testid="albums-error" className={styles.errorBlock}>
-            <p>{t('albumGrid.fetchError')}</p>
-            <button
-              type="button"
-              onClick={handleRetry}
-              data-testid="albums-retry-button"
-              className={styles.retryButton}
-            >
-              {t('albumGrid.retryButton')}
-            </button>
+          <div className={styles.appToolbar}>
+            <SortPreference
+              value={sortBy}
+              onChange={handleSortChange}
+              direction={sortDirection}
+              onDirectionChange={handleDirectionChange}
+            />
           </div>
-        )}
-        {!isPending && !isError && (
-          <>
-            <AlbumGrid albums={clientFilteredAlbums} totalCount={totalElements} />
-            {totalPages > 1 && (
-              <div className="app-pagination" data-testid="album-pagination">
-                <button
-                  type="button"
-                  onClick={() => setPage((p) => Math.max(0, p - 1))}
-                  disabled={page === 0}
-                  data-testid="pagination-prev"
-                >
-                  {t('pagination.previous')}
-                </button>
-                <span data-testid="pagination-info">
-                  {t('pagination.pageOf', { current: page + 1, total: totalPages })}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                  disabled={page >= totalPages - 1}
-                  data-testid="pagination-next"
-                >
-                  {t('pagination.next')}
-                </button>
-              </div>
-            )}
-          </>
-        )}
+          {isPending && <p className={styles.loadingText}>{t('albumGrid.loading')}</p>}
+          {isError && (
+            <div role="alert" data-testid="albums-error" className={styles.errorBlock}>
+              <p>{t('albumGrid.fetchError')}</p>
+              <button
+                type="button"
+                onClick={handleRetry}
+                data-testid="albums-retry-button"
+                className={styles.retryButton}
+              >
+                {t('albumGrid.retryButton')}
+              </button>
+            </div>
+          )}
+          {!isPending && !isError && (
+            <>
+              <AlbumGrid albums={clientFilteredAlbums} totalCount={totalElements} />
+              {totalPages > 1 && (
+                <div className="app-pagination" data-testid="album-pagination">
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.max(0, p - 1))}
+                    disabled={page === 0}
+                    data-testid="pagination-prev"
+                  >
+                    {t('pagination.previous')}
+                  </button>
+                  <span data-testid="pagination-info">
+                    {t('pagination.pageOf', { current: page + 1, total: totalPages })}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                    disabled={page >= totalPages - 1}
+                    data-testid="pagination-next"
+                  >
+                    {t('pagination.next')}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </>

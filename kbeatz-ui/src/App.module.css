@@ -48,7 +48,7 @@
   flex-direction: column;
 }
 
-/* ── Search bar row (album list page only) ─────────────── */
+/* Search bar row (album list page only) */
 
 .appSearchBar {
   padding: var(--space-sm) var(--space-lg);
