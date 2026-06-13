@@ -533,11 +533,12 @@ components:
           example: "12345678"
         directoryPath:
           type: string
-          description: "Path of the album directory relative to the configured library root"
+          deprecated: true
+          description: "Deprecated: use albumPath instead. Will be removed in v2."
           example: "Jazz/Miles Davis/Kind of Blue"
         albumPath:
           type: string
-          description: "Album directory path relative to the library root (same as directoryPath; use this field in UI)"
+          description: "Album directory path relative to the library root. Canonical field - use this in all consumers."
           example: "Jazz/Miles Davis/Kind of Blue"
         hasCoverArt:
           type: boolean

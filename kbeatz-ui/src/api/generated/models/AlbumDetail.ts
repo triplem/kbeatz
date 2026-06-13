@@ -49,11 +49,12 @@ export type AlbumDetail = {
      */
     discogsId?: string;
     /**
-     * Path of the album directory relative to the configured library root
+     * Deprecated: use albumPath instead. Will be removed in v2.
+     * @deprecated
      */
     directoryPath: string;
     /**
-     * Album directory path relative to the library root (same as directoryPath; use this field in UI)
+     * Album directory path relative to the library root. Canonical field - use this in all consumers.
      */
     albumPath: string;
     /**
