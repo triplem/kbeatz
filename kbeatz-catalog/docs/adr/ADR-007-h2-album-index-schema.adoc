@@ -1,4 +1,4 @@
-= ADR-007 — H2 Album Index Schema Decisions
+= ADR-007 - H2 Album Index Schema Decisions
 :revnumber: 1.0
 :revdate: 2026-06-06
 :author: kbeatz team
@@ -139,7 +139,7 @@ columns are always populated without requiring the application to set them.
 |Date range filter (FR-03)
 
 |`idx_tracks_album_id`
-|FK lookup — tracks by album (ON DELETE CASCADE maintenance)
+|FK lookup - tracks by album (ON DELETE CASCADE maintenance)
 |===
 
 Full-text search (FR-03 free-text) is implemented client-side in v1 over the
@@ -195,7 +195,7 @@ and `ILIKE` closer to PostgreSQL, reducing dialect drift before the v2 migration
 * The `discogs_json` column should migrate to PostgreSQL's native `jsonb` type in v2
   for indexable JSON and `->>` extraction.
 * Column naming (`album_date` etc.) is intentionally chosen to be compatible with
-  PostgreSQL — no rename migration required in v2.
+  PostgreSQL - no rename migration required in v2.
 * See ADR-006 for the PostgreSQL v2 migration plan.
 
 == Alternatives considered

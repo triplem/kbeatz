@@ -122,19 +122,24 @@ on domain interfaces; infrastructure implements those interfaces.
 kbeatz-catalog/src/main/kotlin/org/javafreedom/kbeatz/catalog/
 ├── AppConfig.kt                           # environment variable bindings
 ├── Application.kt                         # Ktor application entry point
+├── DependencyContainer.kt                 # manual DI wiring
 ├── adapters/
 │   └── inbound/
 │       └── web/
 │           ├── albums/
-│           │   └── CoverArtHandler.kt     # Ktor route handler
+│           │   ├── AlbumDetailHandler.kt  # Ktor route handler
+│           │   ├── AlbumsHandler.kt       # Ktor route handler
+│           │   ├── CoverArtHandler.kt     # Ktor route handler
+│           │   ├── SyncHandler.kt         # Ktor route handler
+│           │   └── TagHandler.kt          # Ktor route handler
+│           ├── health/
+│           │   └── HealthHandler.kt       # Ktor route handler
 │           └── library/
 │               └── LibraryHandler.kt      # Ktor route handler
 ├── application/
 │   └── service/
 │       ├── AlbumService.kt                # album CRUD and browsing
 │       ├── CoverArtService.kt             # cover art resolution
-│       ├── DiscogsImageService.kt         # image download from Discogs
-│       ├── DiscogsSyncService.kt          # Discogs release sync
 │       ├── LibraryScanService.kt          # filesystem scan
 │       ├── LibraryWalker.kt               # filesystem traversal
 │       └── TagWriteService.kt             # FLAC tag write via kbeatz-tagger
@@ -147,16 +152,22 @@ kbeatz-catalog/src/main/kotlin/org/javafreedom/kbeatz/catalog/
 │   │   ├── SyncResult.kt
 │   │   ├── Track.kt
 │   │   └── WriteLock.kt
+│   ├── port/
+│   │   └── SyncProvider.kt               # port interface for metadata sync
 │   └── repository/
 │       ├── AlbumRepository.kt             # port interface
 │       └── TrackRepository.kt             # port interface
 ├── infrastructure/
-│   └── persistence/
-│       ├── AlbumsTable.kt                 # Exposed table definition
-│       ├── DatabaseFactory.kt             # H2/Liquibase setup
-│       ├── ExposedAlbumRepository.kt      # adapter: implements AlbumRepository
-│       ├── ExposedTrackRepository.kt      # adapter: implements TrackRepository
-│       └── JsonSerde.kt                   # JSON serialisation helpers
+│   ├── persistence/
+│   │   ├── AlbumsTable.kt                 # Exposed table definition
+│   │   ├── DatabaseFactory.kt             # H2/Liquibase setup
+│   │   ├── ExposedAlbumRepository.kt      # adapter: implements AlbumRepository
+│   │   ├── ExposedTrackRepository.kt      # adapter: implements TrackRepository
+│   │   └── JsonSerde.kt                   # JSON serialisation helpers
+│   └── sync/
+│       ├── DiscogsImageService.kt         # image download from Discogs CDN
+│       ├── DiscogsSyncService.kt          # Discogs release sync (implements SyncProvider)
+│       └── DiscogsSyncWiring.kt           # wires kbeatz-sources into the catalog
 └── plugins/
     ├── PathTraversalGuard.kt
     ├── Routing.kt
@@ -755,25 +766,25 @@ const albums = await api.listAlbums({ page: 0, size: 20 });
 
 === State management
 
-kbeatz-ui uses React hooks and local component state only. There is no Redux or global
-state library. State that needs to be shared between sibling components is lifted to the
-closest common ancestor.
+kbeatz-ui uses TanStack Query for all server state and React `useState` / `useReducer` for
+local ephemeral UI state. There is no Redux or global state library. Server-state fetching
+via `useEffect` is forbidden; use `useQuery` from TanStack Query instead (see ADR-010).
 
 [source,typescript]
 ----
-// Good - local state with a hook
+// Good - TanStack Query manages the fetch, cache, and loading state
+function useAlbum(albumId: string) {
+    return useQuery({
+        queryKey: ['album', albumId],
+        queryFn: () => api.getAlbum({ albumId }),
+    });
+}
+
 function AlbumDetail({ albumId }: { albumId: string }) {
-    const [album, setAlbum] = useState<AlbumResponse | null>(null);
-    const [loading, setLoading] = useState(true);
+    const { data: album, isPending, isError } = useAlbum(albumId);
 
-    useEffect(() => {
-        api.getAlbum({ albumId })
-            .then(setAlbum)
-            .finally(() => setLoading(false));
-    }, [albumId]);
-
-    if (loading) return <Loading />;
-    if (!album) return <NotFound />;
+    if (isPending) return <Loading />;
+    if (isError || !album) return <NotFound />;
     return <AlbumView album={album} />;
 }
 ----

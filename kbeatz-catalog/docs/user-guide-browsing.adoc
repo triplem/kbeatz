@@ -1,6 +1,6 @@
 = kbeatz User Guide: Browsing, Filtering, and Searching Your Music Collection
-:revnumber: 1.0
-:revdate: 2026-06-07
+:revnumber: 1.1
+:revdate: 2026-06-12
 :author: kbeatz team
 :toc:
 :toc-placement!:
@@ -13,27 +13,29 @@ kbeatz is a music collection management platform for FLAC libraries.
 The browser UI at `http://localhost:3005` lets you browse your entire album collection
 at a glance, narrow it with filters and free-text search, and sort by album artist or composer.
 
-All browsing operations are *client-side* — after the initial page load the full collection
-is held in memory and filtering is instant, with no round-trips to the server.
+Album browsing uses *server-side pagination and filtering* via the catalog API.
+The UI requests one page of albums at a time and sends active filters as query parameters.
+Multi-value filters (multiple genres, artists, or composers selected simultaneously) fall back
+to client-side evaluation on the current page until a dedicated multi-value server endpoint is added.
 
 == Album Grid
 
-When the page loads, kbeatz fetches all albums from the catalog service and renders them
+When the page loads, kbeatz fetches the first page of albums from the catalog service and renders them
 as a responsive grid of cards.
 
 Each *album card* shows:
 
-* *Cover art* — the front cover image served by the catalog.
+* *Cover art* - the front cover image served by the catalog.
   If no cover is available, a placeholder icon is shown instead.
-* *Title* — the album (ALBUM Vorbis tag).
-* *Primary attribution* — see <<_classical_music_display>>.
-* *Year* — the DATE Vorbis tag (year or full ISO date).
-* *Genre* chip — the GENRE Vorbis tag.
+* *Title* - the album (ALBUM Vorbis tag).
+* *Primary attribution* - see <<_classical_music_display>>.
+* *Year* - the DATE Vorbis tag (year or full ISO date).
+* *Genre* chip - the GENRE Vorbis tag.
 
 The grid uses CSS auto-fill so cards wrap naturally from a single column on mobile to
 multiple columns on wider screens.
 
-image::placeholder.png[Screenshot placeholder — album grid]
+image::placeholder.png[Screenshot placeholder - album grid]
 
 === Scan Progress Banner
 
@@ -50,14 +52,17 @@ If the scan fails, the banner displays the error message from the server.
 == Filtering the Collection
 
 The *filter panel* appears on the left side of the grid.
-Filters operate on the in-memory album list — no network request is made during filtering.
+Single-value filters (one genre, artist, or composer selected) are applied server-side;
+the catalog returns only matching albums.
+Selecting multiple values in the same filter category applies those filters client-side
+on the current page as an interim measure until a multi-value server endpoint is available.
 
 === Genre Filter
 
 Check one or more genre boxes to show only albums matching those genres.
 Multiple genres use *OR* logic: checking "Jazz" and "Blues" shows albums in either genre.
 
-image::placeholder.png[Screenshot placeholder — genre filter checkboxes]
+image::placeholder.png[Screenshot placeholder - genre filter checkboxes]
 
 === Artist Filter
 
@@ -79,8 +84,8 @@ Leaving either field empty removes that bound.
 
 Different filter axes combine with *AND* logic:
 
-* Genre = Jazz AND Composer = Johann Sebastian Bach → only Jazz albums with that composer
-* Artist = Miles Davis AND Year From = 1955 AND Year To = 1970 → Miles Davis albums from 1955–1970
+* Genre = Jazz AND Composer = Johann Sebastian Bach -> only Jazz albums with that composer
+* Artist = Miles Davis AND Year From = 1955 AND Year To = 1970 -> Miles Davis albums from 1955-1970
 
 Active filters are reflected in the URL query string so you can bookmark or share filtered views:
 
@@ -93,6 +98,7 @@ Refreshing the page restores the same filters.
 == Free-Text Search
 
 The *search box* in the header lets you find albums by typing any part of the title, artist, composer, or label.
+Search queries are sent to the catalog server as the `q` parameter.
 
 Searched fields:
 
@@ -116,8 +122,8 @@ Searched fields:
 Matching is *case-insensitive* and substring-based: typing "blue" matches "Kind of Blue",
 "Blue Note", and "Blue Train".
 
-The search is *debounced* — the grid updates 150 ms after you stop typing.
-No network request is made during or after typing.
+The search is *debounced* - the grid updates 150 ms after you stop typing,
+then a new request is sent to the server with the search term.
 
 === Combining Search and Filters
 
@@ -127,7 +133,7 @@ contain "miles" in title, artist, composer, or label.
 
 === Clearing the Search
 
-Click the *×* button to the right of the search box to clear the query.
+Click the *x* button to the right of the search box to clear the query.
 The grid returns to showing all albums that match the currently active panel filters.
 
 The URL `?q=` parameter is removed when the search is cleared.
@@ -194,10 +200,10 @@ Cover art is served by the catalog service from each album's directory.
 
 Resolution order:
 
-1. *Embedded PICTURE block* (FLAC METADATA_BLOCK_PICTURE type 3, front cover) —
+1. *Embedded PICTURE block* (FLAC METADATA_BLOCK_PICTURE type 3, front cover)
    extracted directly from one of the album's FLAC files.
-2. *folder.jpg* — a JPEG image file named `folder.jpg` in the album directory.
-3. *Placeholder* — a grey icon with a musical note symbol is shown in the UI.
+2. *folder.jpg* - a JPEG image file named `folder.jpg` in the album directory.
+3. *Placeholder* - a grey icon with a musical note symbol is shown in the UI.
 
 If a cover image fails to load after the page has rendered (network error, file removed),
 the placeholder is displayed automatically without requiring a page refresh.

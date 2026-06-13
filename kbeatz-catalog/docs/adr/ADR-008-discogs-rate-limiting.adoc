@@ -1,4 +1,4 @@
-= ADR-008 — Discogs Rate-Limiting Strategy
+= ADR-008 - Discogs Rate-Limiting Strategy
 :revnumber: 1.0
 :revdate: 2026-06-07
 :author: kbeatz team
@@ -16,8 +16,8 @@ responses and a temporary ban that disrupts metadata sync.
 
 kbeatz-catalog calls the Discogs API in two scenarios:
 
-* `GET /releases/{id}` — metadata fetch (triggered by UI sync or CLI tag command)
-* Image CDN download — triggered when `downloadImages=true`
+* `GET /releases/{id}` - metadata fetch (triggered by UI sync or CLI tag command)
+* Image CDN download - triggered when `downloadImages=true`
 
 At 60 req/min, bursts of up to 60 immediate requests are possible, but sustained
 throughput is capped at 1 request/second.
@@ -54,7 +54,7 @@ suspend fun acquire() {
             refill()                    // add elapsed-time tokens (capped at maxTokens)
             if (tokens > 0) { tokens--; 0L } else refillIntervalMs
         }
-        if (waitMs == 0L) return        // token acquired — proceed
+        if (waitMs == 0L) return        // token acquired - proceed
         delay(waitMs)                   // suspend coroutine; no thread is blocked
     }
 }
@@ -96,7 +96,7 @@ a better experience by suspending transparently.
 == Consequences
 
 * Callers (service, CLI) are fully decoupled from rate-limit mechanics.
-* The bucket state is per-JVM and resets on restart — acceptable for personal use
+* The bucket state is per-JVM and resets on restart; acceptable for personal use
   (single user, small library).
 * In tests, `nowMs` is injectable so virtual-time tests run instantly without
   wall-clock waits.
@@ -104,4 +104,4 @@ a better experience by suspending transparently.
   Discogs CDN is technically separate from their API rate limit. This may limit
   image throughput slightly but avoids any risk of hitting real limits.
 * If multiple service instances were deployed (not a v1 concern), they would each
-  have independent buckets — this is acceptable for the LAN-only personal-use target.
+  have independent buckets; this is acceptable for the LAN-only personal-use target.

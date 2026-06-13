@@ -8,7 +8,7 @@ Tagger and ID-file migration tool for FLAC music collections.
 == Prerequisites
 
 * Java 21 or later on the `PATH`
-* A built fat JAR — see <<building-the-jar>>
+* A built fat JAR (see <<building-the-jar>>)
 * A Discogs personal access token (required only for the `tag` command)
 
 [[building-the-jar]]
@@ -66,7 +66,7 @@ java -jar kbeatz-cli-all.jar tag /music/Jazz/Miles\ Davis/Kind\ of\ Blue
 **Expected output:**
 
 ----
-TAGGED /music/Jazz/Miles Davis/Kind of Blue — 9 FLAC files written
+TAGGED /music/Jazz/Miles Davis/Kind of Blue - 9 FLAC files written
 ----
 
 === ID-file resolution order
@@ -90,7 +90,7 @@ java -jar kbeatz-cli-all.jar tag --dry-run /music/Jazz/Miles\ Davis/Kind\ of\ Bl
 ----
 
 ----
-DRY   /music/Jazz/Miles Davis/Kind of Blue → discogs_id=249504
+DRY   /music/Jazz/Miles Davis/Kind of Blue -> discogs_id=249504
 ----
 
 === Embedding cover art
@@ -102,8 +102,8 @@ Download and embed the primary Discogs image as cover art:
 java -jar kbeatz-cli-all.jar tag --download-images /music/Jazz/Miles\ Davis/Kind\ of\ Blue
 ----
 
-NOTE: The Discogs free tier allows 25 image downloads per minute. Use `--download-images` sparingly
-or Discogs will rate-limit the process.
+NOTE: Discogs limits authenticated API requests to 60 per minute. Image downloads count against
+this limit. Use `--download-images` sparingly for large batch runs to avoid Discogs rate limiting.
 
 == Batch Tagging a Library
 
@@ -119,9 +119,9 @@ java -jar kbeatz-cli-all.jar tag --library /music
 
 ----
 Tagging [1/42]: /music/Jazz/Miles Davis/Kind of Blue
-TAGGED /music/Jazz/Miles Davis/Kind of Blue — 9 FLAC files written
+TAGGED /music/Jazz/Miles Davis/Kind of Blue - 9 FLAC files written
 Tagging [2/42]: /music/Jazz/John Coltrane/A Love Supreme
-TAGGED /music/Jazz/John Coltrane/A Love Supreme — 4 FLAC files written
+TAGGED /music/Jazz/John Coltrane/A Love Supreme - 4 FLAC files written
 ...
 Tagged 41 albums, 1 skipped, 0 errors
 ----
@@ -133,20 +133,19 @@ The default scan depth is 3, matching the typical library layout
 
 [source,bash]
 ----
-# Flat layout: just artist/album — depth 2
+# Flat layout: just artist/album - depth 2
 java -jar kbeatz-cli-all.jar tag --library /music --depth 2
 
-# No limit — scan all nested directories
+# No limit - scan all nested directories
 java -jar kbeatz-cli-all.jar tag --library /music --recursive
 ----
 
 === Skipped albums
 
-When an album directory has no recognised ID file, the command writes a warning to stderr
-immediately (so no information is lost if the process exits early) and continues:
+When an album directory has no recognised ID file, the command prints a skip line and continues:
 
 ----
-WARN: no id file found in /music/Misc/Unlabelled — skipped
+SKIP  /music/Misc/Unlabelled - no id file found
 ----
 
 At the end of the run the same warning appears in the skip count:
@@ -210,10 +209,10 @@ Migrated 42 files, 0 skipped, 0 errors
 
 === Skipped directories
 
-Directories where `metadata.yml` already exists are skipped with a warning:
+Directories where `metadata.yml` already exists are skipped:
 
 ----
-SKIP  /music/Jazz/Miles Davis/Kind of Blue — metadata.yml already exists
+SKIP  /music/Jazz/Miles Davis/Kind of Blue - metadata.yml already exists
 ----
 
 == Flag Reference
@@ -226,7 +225,7 @@ SKIP  /music/Jazz/Miles Davis/Kind of Blue — metadata.yml already exists
 
 | `--library <path>`, `-l`
 | Root of the music library to scan
-| —
+| (none)
 
 | `--depth <N>`
 | Maximum directory depth to scan under `--library`
@@ -246,7 +245,7 @@ SKIP  /music/Jazz/Miles Davis/Kind of Blue — metadata.yml already exists
 
 | `--help`, `-h`
 | Show usage
-| —
+| (none)
 |===
 
 === `migrate-ids` command
@@ -269,7 +268,7 @@ SKIP  /music/Jazz/Miles Davis/Kind of Blue — metadata.yml already exists
 
 | `--help`, `-h`
 | Show usage
-| —
+| (none)
 |===
 
 == Exit Codes
@@ -279,7 +278,7 @@ SKIP  /music/Jazz/Miles Davis/Kind of Blue — metadata.yml already exists
 | Code | Meaning
 
 | `0`
-| Success (including partially skipped albums — skips are not fatal)
+| Success (including partially skipped albums; skips are not fatal)
 
 | `1`
 | Fatal error (missing `DISCOGS_TOKEN`, invalid path argument, unrecoverable I/O error)
@@ -298,7 +297,7 @@ export DISCOGS_TOKEN=your_token_here
 
 Obtain a token at https://www.discogs.com/settings/developers[Discogs Developer Settings].
 
-=== "no id file found in <path> — skipped"
+=== "SKIP  <path> - no id file found"
 
 The album directory contains no `metadata.yml`, `id.txt`, or `local_ids.txt`. Either add one manually or run `migrate-ids` first if you have other id files in a different location.
 

@@ -9,7 +9,7 @@ This guide explains how to navigate to an album's detail view, edit individual t
 
 kbeatz provides in-place tag editing directly in the browser.
 Any Vorbis Comment field can be updated without leaving the album detail view.
-Changes are written atomically to the FLAC files on disk — the original file is never left in a partially-written state.
+Changes are written atomically to the FLAC files on disk. The original file is never left in a partially-written state.
 
 The following fields are editable:
 
@@ -69,7 +69,7 @@ The error is cleared automatically the next time you click to edit.
 
 == Editing Track-Level Tags
 
-Track-level tags are written to a *single FLAC file* — the file corresponding to the specific track.
+Track-level tags are written to a *single FLAC file* (the file corresponding to the specific track).
 Use track-level editing to fix per-track fields such as title or track artist in VA (Various Artists) compilations.
 
 === Procedure
@@ -120,7 +120,7 @@ The lock file is removed after all files have been successfully written.
 ==== What Happens If the Service Crashes Mid-Write?
 
 If kbeatz is killed while writing album-level tags, the `.kbeatz-write.lock` file is left on disk.
-This is intentional — it signals that the album directory may contain partially-updated files.
+This is intentional: it signals that the album directory may contain partially-updated files.
 
 == Write-Lock Repair
 
@@ -139,13 +139,13 @@ Files that were not yet written retain their original tag values.
 
 === If You Find a Lock File After a Manual Restart
 
-If you restart kbeatz after a crash, the startup repair runs automatically — you do not need to take any manual action.
+If you restart kbeatz after a crash, the startup repair runs automatically. You do not need to take any manual action.
 The lock file is removed as part of the repair.
 
 If for any reason you need to identify which albums were affected, check the service logs at startup for lines matching:
 
 [source]
 ----
-Found N .kbeatz-write.lock file(s) — running startup repair
+Found N .kbeatz-write.lock file(s) - running startup repair
 Repaired album directory: /path/to/album
 ----
