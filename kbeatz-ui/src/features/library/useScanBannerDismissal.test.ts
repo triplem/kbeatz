@@ -7,24 +7,22 @@ const COMPLETED_AT = '2026-06-09T20:31:20Z'
 const NEW_COMPLETED_AT = '2026-06-10T08:00:00Z'
 
 // Minimal localStorage mock that mirrors the Web Storage API.
-function makeLocalStorageMock() {
-  let store: Record<string, string> = {}
+// Return types are explicit so TypeScript can verify them in strict mode.
+function makeLocalStorageMock(initial: Record<string, string> = {}): Storage {
+  const store: Record<string, string> = { ...initial }
   return {
-    getItem: vi.fn((key: string) => store[key] ?? null),
-    setItem: vi.fn((key: string, value: string) => { store[key] = value }),
-    removeItem: vi.fn((key: string) => { delete store[key] }),
-    clear: vi.fn(() => { store = {} }),
-    get length() { return Object.keys(store).length },
-    key: vi.fn((index: number) => Object.keys(store)[index] ?? null),
+    getItem: vi.fn((key: string): string | null => store[key] ?? null),
+    setItem: vi.fn((key: string, value: string): void => { store[key] = value }),
+    removeItem: vi.fn((key: string): void => { delete store[key] }),
+    clear: vi.fn((): void => { Object.keys(store).forEach(k => { delete store[k] }) }),
+    get length(): number { return Object.keys(store).length },
+    key: vi.fn((index: number): string | null => Object.keys(store)[index] ?? null),
   }
 }
 
 describe('useScanBannerDismissal', () => {
-  let storageMock: ReturnType<typeof makeLocalStorageMock>
-
   beforeEach(() => {
-    storageMock = makeLocalStorageMock()
-    vi.stubGlobal('localStorage', storageMock)
+    vi.stubGlobal('localStorage', makeLocalStorageMock())
   })
 
   it('banner is not dismissed on first render when localStorage has no entry', () => {
@@ -34,15 +32,16 @@ describe('useScanBannerDismissal', () => {
 
   it('banner is dismissed on mount when localStorage already holds the same completedAt', () => {
     // Simulate a previous dismissal stored in localStorage (e.g. from a prior page load)
-    storageMock.getItem.mockImplementation((key: string) =>
-      key === STORAGE_KEY ? COMPLETED_AT : null,
-    )
+    vi.stubGlobal('localStorage', makeLocalStorageMock({ [STORAGE_KEY]: COMPLETED_AT }))
 
     const { result } = renderHook(() => useScanBannerDismissal(COMPLETED_AT))
     expect(result.current.isDismissed).toBe(true)
   })
 
   it('dismiss persists the completedAt to localStorage and sets isDismissed true', () => {
+    const storageMock = makeLocalStorageMock()
+    vi.stubGlobal('localStorage', storageMock)
+
     const { result } = renderHook(() => useScanBannerDismissal(COMPLETED_AT))
     expect(result.current.isDismissed).toBe(false)
 
@@ -55,23 +54,24 @@ describe('useScanBannerDismissal', () => {
   })
 
   it('banner shows again for a new completedAt even after prior scan was dismissed', () => {
-    // Dismiss the first scan
-    storageMock.getItem.mockImplementation((key: string) =>
-      key === STORAGE_KEY ? COMPLETED_AT : null,
-    )
+    // Previous scan dismissed - storage holds the OLD completedAt
+    vi.stubGlobal('localStorage', makeLocalStorageMock({ [STORAGE_KEY]: COMPLETED_AT }))
 
     // A new scan completed with a different timestamp
     const { result } = renderHook(() => useScanBannerDismissal(NEW_COMPLETED_AT))
     expect(result.current.isDismissed).toBe(false)
   })
 
-  it('does not throw when localStorage.getItem throws and falls back gracefully', () => {
-    storageMock.getItem.mockImplementation(() => {
-      throw new Error('localStorage is unavailable')
-    })
-    storageMock.setItem.mockImplementation(() => {
-      throw new Error('localStorage is unavailable')
-    })
+  it('does not throw when localStorage throws and falls back gracefully', () => {
+    const brokenStorage: Storage = {
+      getItem: vi.fn((): string | null => { throw new Error('localStorage is unavailable') }),
+      setItem: vi.fn((): void => { throw new Error('localStorage is unavailable') }),
+      removeItem: vi.fn((): void => { throw new Error('localStorage is unavailable') }),
+      clear: vi.fn((): void => { throw new Error('localStorage is unavailable') }),
+      get length(): number { return 0 },
+      key: vi.fn((): string | null => null),
+    }
+    vi.stubGlobal('localStorage', brokenStorage)
 
     // Mount must not throw
     const { result } = renderHook(() => useScanBannerDismissal(COMPLETED_AT))
