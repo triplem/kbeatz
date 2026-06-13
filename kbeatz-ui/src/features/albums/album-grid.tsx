@@ -12,18 +12,19 @@ interface AlbumGridProps {
   readonly totalCount?: number
 }
 
-/** Minimum card width in px - matches the CSS minmax(200px, 1fr) grid definition. */
-const MIN_CARD_WIDTH_PX = 220
+/** Minimum card width in px - matches the CSS minmax(240px, 1fr) grid definition. */
+const MIN_CARD_WIDTH_PX = 240
 /** Estimated row height in px for initial virtualizer estimate. */
-const ESTIMATED_ROW_HEIGHT_PX = 320
+const ESTIMATED_ROW_HEIGHT_PX = 340
 /** Number of extra rows to render above/below the visible area. */
 const OVERSCAN_ROWS = 3
 
 /**
  * Calculate how many columns fit in the available width.
  * Returns at least 1 to avoid division by zero.
+ * Exported for unit testing only - not part of the public API.
  */
-function calcColumns(containerWidth: number): number {
+export function calcColumns(containerWidth: number): number {
   return Math.max(1, Math.floor(containerWidth / MIN_CARD_WIDTH_PX))
 }
 
