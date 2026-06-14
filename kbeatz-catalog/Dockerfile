@@ -2,7 +2,7 @@
 # Pinned 2026-06-10. Update digest with:
 #   docker pull eclipse-temurin:21-jdk
 #   docker inspect eclipse-temurin:21-jdk --format='{{index .RepoDigests 0}}'
-FROM eclipse-temurin:21-jdk@sha256:949f7645022e8cd5cd65eac4b342e7505c86b721b6338f8b677c6f2edc180262 AS build
+FROM eclipse-temurin:25-jdk@sha256:edb3aa0f621796d8f5f9d602c7611ffdf015cd89e6ddda1894d85a3a99d170a8 AS build
 WORKDIR /workspace
 
 COPY gradle gradle
@@ -20,7 +20,7 @@ RUN ./gradlew :kbeatz-catalog:installDist --no-daemon -q
 # Pinned 2026-06-10. Update digest with:
 #   docker pull eclipse-temurin:21-jre
 #   docker inspect eclipse-temurin:21-jre --format='{{index .RepoDigests 0}}'
-FROM eclipse-temurin:21-jre@sha256:194b590649efee5555de080c634905a30c2885190210e37ada26370ed2a9c781
+FROM eclipse-temurin:25-jre@sha256:5cf92df78f6dba978777d5cffa3c856e583f86814fde82a6c3534ccdfd794f2f
 RUN groupadd --system app && useradd --system --gid app app
 WORKDIR /app
 COPY --from=build /workspace/kbeatz-catalog/build/install/kbeatz-catalog ./
