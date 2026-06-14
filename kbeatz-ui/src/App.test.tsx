@@ -154,6 +154,46 @@ describe('AlbumListPage - pagination visibility', () => {
   })
 })
 
+describe('AlbumListPage - next page navigation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('clicking Next advances the page counter and calls useAlbumPage with page 1', async () => {
+    const user = userEvent.setup()
+    mockUseAlbumPage.mockReturnValue(makePageResult({ totalPages: 3, totalElements: 60, page: 0 }))
+    renderApp()
+
+    expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 1 of 3')
+    expect(screen.queryByTestId('pagination-prev')).not.toBeInTheDocument()
+
+    await user.click(screen.getByTestId('pagination-next'))
+
+    // Page counter must advance to 2
+    expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 2 of 3')
+    // Previous button must appear now that we left page 1
+    expect(screen.getByTestId('pagination-prev')).toBeInTheDocument()
+    // useAlbumPage must have been called with page index 1
+    expect(mockUseAlbumPage).toHaveBeenCalledWith(1, expect.anything())
+  })
+
+  it('clicking Prev decrements the page counter', async () => {
+    const user = userEvent.setup()
+    mockUseAlbumPage.mockReturnValue(makePageResult({ totalPages: 3, totalElements: 60, page: 0 }))
+    renderApp()
+
+    // Navigate to page 1 first
+    await user.click(screen.getByTestId('pagination-next'))
+    expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 2 of 3')
+
+    // Now go back
+    await user.click(screen.getByTestId('pagination-prev'))
+    expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 1 of 3')
+    expect(screen.queryByTestId('pagination-prev')).not.toBeInTheDocument()
+    expect(mockUseAlbumPage).toHaveBeenCalledWith(0, expect.anything())
+  })
+})
+
 describe('AlbumListPage - sort resets page to 0', () => {
   beforeEach(() => {
     vi.clearAllMocks()
