@@ -197,7 +197,8 @@ class ExposedAlbumRepository : AlbumRepository {
      * Persists a single chunk of albums inside one transaction.
      *
      * Existing albums (matched by natural key) are updated using [updateAlbumStructural], which
-     * touches only the four scan-derived columns (albumArtist, album, albumDate, directoryPath).
+     * touches only the scan-derived structural columns (albumArtist, album, albumDate,
+     * directoryPath, mergedDirectories).
      * Enriched Discogs metadata (genre, label, catalogNumber, composer, conductor, ensemble,
      * discogsId, images) is intentionally left unchanged so that a library rescan cannot wipe
      * data that was written by a Discogs sync.

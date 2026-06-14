@@ -133,33 +133,35 @@ class TagWriteService(
             // Collect FLAC files from merged directories (issue #666).
             // Each merged directory is validated to be within libraryRoot.
             // Directories that no longer exist on disk are skipped with a WARN.
-            val mergedDirs = album.mergedDirectories.mapNotNull { dirPath ->
-                val mergedDir = Path.of(dirPath)
-                when {
-                    !Files.isDirectory(mergedDir) -> {
-                        log.warn {
-                            "merged_dir_skip albumId=$albumId path=$dirPath reason=directory_not_found"
+            // The map preserves insertion order for deterministic write sequencing.
+            val mergedDirToFlacFiles: Map<Path, List<Path>> = album.mergedDirectories
+                .mapNotNull { dirPath ->
+                    val mergedDir = Path.of(dirPath)
+                    when {
+                        !Files.isDirectory(mergedDir) -> {
+                            log.warn {
+                                "merged_dir_skip albumId=$albumId path=$dirPath " +
+                                    "reason=directory_not_found"
+                            }
+                            null
                         }
-                        null
-                    }
-                    else -> {
-                        validatePath(mergedDir)
-                        mergedDir
+                        else -> {
+                            validatePath(mergedDir)
+                            mergedDir to findFlacFiles(mergedDir)
+                        }
                     }
                 }
-            }
-            val mergedFlacFiles = mergedDirs.flatMap { findFlacFiles(it) }
+                .toMap()
 
             // The write-lock manifest is written only to the primary directory.
             // It lists all FLAC files (primary + merged) so a crash-recovery scan
             // can identify all affected files.
-            val allFlacFiles = primaryFlacFiles + mergedFlacFiles
+            val allFlacFiles = primaryFlacFiles + mergedDirToFlacFiles.values.flatten()
             writeLockFile(albumDir, allFlacFiles)
 
             try {
                 writeTagToFiles(primaryFlacFiles, normalised, value, albumId)
-                mergedDirs.forEach { mergedDir ->
-                    val mergedFiles = findFlacFiles(mergedDir)
+                mergedDirToFlacFiles.forEach { (mergedDir, mergedFiles) ->
                     writeTagToFiles(mergedFiles, normalised, value, albumId)
                     log.info {
                         "merged_dir_write_complete albumId=$albumId field=$normalised " +
@@ -174,7 +176,8 @@ class TagWriteService(
             albumRepository.save(updatedAlbum)
             log.info {
                 "album_tag_write_complete albumId=$albumId field=$normalised " +
-                    "primaryFiles=${primaryFlacFiles.size} mergedDirCount=${mergedDirs.size}"
+                    "primaryFiles=${primaryFlacFiles.size} " +
+                    "mergedDirCount=${mergedDirToFlacFiles.size}"
             }
             updatedAlbum
         }
