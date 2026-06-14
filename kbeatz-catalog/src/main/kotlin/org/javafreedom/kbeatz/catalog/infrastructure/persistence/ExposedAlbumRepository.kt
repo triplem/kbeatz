@@ -52,6 +52,7 @@ class ExposedAlbumRepository : AlbumRepository {
             AlbumsTable
                 .selectAll()
                 .where { AlbumsTable.id eq id.toJavaUuid() }
+                // id is the primary key (guaranteed unique) - singleOrNull() is safe here
                 .singleOrNull()
                 ?.toAlbum()
         }
@@ -61,7 +62,12 @@ class ExposedAlbumRepository : AlbumRepository {
             AlbumsTable
                 .selectAll()
                 .where { AlbumsTable.directoryPath eq directoryPath }
-                .singleOrNull()
+                // firstOrNull() instead of singleOrNull(): directory_path is no longer uniquely
+                // constrained after migration V1-006a replaced the 4-column unique index with
+                // uq_albums_dedup on (album_artist, album, album_date). Two rows can share the
+                // same directory_path after deduplication; singleOrNull() would throw
+                // IllegalStateException in that case (#672).
+                .firstOrNull()
                 ?.toAlbum()
         }
 
