@@ -14,6 +14,8 @@ import io.mockk.mockk
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.uuid.Uuid
 import kotlinx.serialization.json.Json
 import org.javafreedom.kbeatz.catalog.api.models.AlbumPage
@@ -194,5 +196,25 @@ class AlbumsHandlerTest {
         assertEquals(HttpStatusCode.OK, response.status)
         // blank q should be stripped to null - same as no filter
         coVerify(exactly = 1) { albumRepository.findAllWithCount(0, 20, AlbumFilter()) }
+    }
+
+    @Test
+    fun `GET albums returns albumPath populated and relative in each album`() = testApplication {
+        install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        routing { albumRoutes(albumService, libraryRoot) }
+        val client = createClient { install(ClientContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }
+
+        val albums = listOf(buildAlbum())
+        coEvery { albumRepository.findAllWithCount(0, 20, AlbumFilter()) } returns (albums to 1L)
+
+        val response = client.get("/albums")
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val page = response.body<AlbumPage>()
+        val first = page.content.first()
+        assertNotNull(first.albumPath)
+        assertFalse(first.albumPath!!.isBlank(), "albumPath must not be blank")
+        assertFalse(first.albumPath!!.startsWith("/"), "albumPath must be relative, not absolute")
+        assertEquals("kind-of-blue", first.albumPath)
     }
 }
