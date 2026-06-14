@@ -138,7 +138,7 @@ class AlbumDetailHandlerTest {
     }
 
     @Test
-    fun `GET albums albumId returns relative directoryPath when libraryRoot is configured`() = testApplication {
+    fun `GET albums albumId returns relative albumPath when libraryRoot is configured`() = testApplication {
         install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
         routing { albumDetailRoutes(albumService, libraryRoot) }
         val client = createClient { install(ClientContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }
@@ -150,12 +150,12 @@ class AlbumDetailHandlerTest {
 
         assertEquals(HttpStatusCode.OK, response.status)
         val detail = response.body<AlbumDetail>()
-        // domain: /music/kind-of-blue, libraryRoot: /music → relative: kind-of-blue
-        assertEquals("kind-of-blue", detail.directoryPath)
+        // domain: /music/kind-of-blue, libraryRoot: /music -> relative: kind-of-blue
+        assertEquals("kind-of-blue", detail.albumPath)
     }
 
     @Test
-    fun `GET albums albumId returns albumPath equal to directoryPath and not starting with slash`() = testApplication {
+    fun `GET albums albumId returns albumPath not starting with slash`() = testApplication {
         install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
         routing { albumDetailRoutes(albumService, libraryRoot) }
         val client = createClient { install(ClientContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }
@@ -175,8 +175,6 @@ class AlbumDetailHandlerTest {
         assert(!detail.albumPath.contains(libraryRoot.toString())) {
             "albumPath must not contain the library root prefix"
         }
-        // albumPath and directoryPath must be identical
-        assertEquals(detail.directoryPath, detail.albumPath)
     }
 
     @Test

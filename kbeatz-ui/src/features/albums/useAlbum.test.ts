@@ -27,7 +27,6 @@ function makeAlbum(overrides: Partial<AlbumDetail> = {}): AlbumDetail {
     conductor: undefined,
     ensemble: undefined,
     discogsId: undefined,
-    directoryPath: 'Jazz/Miles Davis/Kind of Blue',
     albumPath: 'Jazz/Miles Davis/Kind of Blue',
     hasCoverArt: false,
     tracks: [],
