@@ -343,7 +343,7 @@ class LibraryScanService(
      * multi-directory write strategy; until then these tracks are skipped.
      */
     private fun isPathOutsideRoot(relativePath: String): Boolean =
-        relativePath.startsWith("..") || relativePath.contains("../")
+        relativePath == ".." || relativePath.startsWith("../") || relativePath.contains("/../")
 
     /**
      * Returns a short, human-readable error reason stripped of absolute paths,
