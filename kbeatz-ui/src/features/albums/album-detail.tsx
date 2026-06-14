@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useBlocker } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import { type Album, AlbumsService, type Track } from '../../api/generated'
@@ -7,6 +7,7 @@ import { useAlbum } from './useAlbum'
 import { useAlbumTagSave } from './useAlbumTagSave'
 import { CancelledByUserError } from './cancelled-by-user-error'
 import { ConfirmWriteDialog } from './confirm-write-dialog'
+import { NavigationGuardDialog } from './navigation-guard-dialog'
 import { EditableField } from './editable-field'
 import { SyncPanel } from '../sync/sync-panel'
 import { formatDate } from '../../lib/i18n'
@@ -127,6 +128,26 @@ export function AlbumDetail() {
   /** Error message from the most recent failed batch save, cleared on next Save attempt. */
   const [batchSaveError, setBatchSaveError] = useState<string | null>(null)
   const pendingSaveRef = useRef<PendingSave | null>(null)
+
+  /**
+   * Navigation blocker: intercepts all React Router navigations (back button,
+   * in-app links, browser history) when there are uncommitted dirty fields.
+   * When blocked, the NavigationGuardDialog is shown; the user can confirm
+   * (proceed and discard dirty changes) or cancel (stay on page).
+   */
+  const blocker = useBlocker(Object.keys(dirtyFields).length > 0)
+
+  const handleNavGuardConfirm = useCallback(() => {
+    if (blocker.state === 'blocked') {
+      blocker.proceed()
+    }
+  }, [blocker])
+
+  const handleNavGuardCancel = useCallback(() => {
+    if (blocker.state === 'blocked') {
+      blocker.reset()
+    }
+  }, [blocker])
 
   // Derive the displayed album - prefer synced state over query state
   const displayAlbum = syncedAlbum ?? album
@@ -294,6 +315,11 @@ export function AlbumDetail() {
         trackCount={displayAlbum.tracks.length}
         onConfirm={() => { void handleConfirm() }}
         onCancel={handleCancel}
+      />
+      <NavigationGuardDialog
+        open={blocker.state === 'blocked'}
+        onConfirm={handleNavGuardConfirm}
+        onCancel={handleNavGuardCancel}
       />
     <article className={styles.albumDetail} aria-label={t('albumDetail.albumTagsSection')}>
       <button
