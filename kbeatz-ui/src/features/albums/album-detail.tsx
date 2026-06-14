@@ -69,13 +69,17 @@ function PathDisplay({ path, label, testId }: PathDisplayProps) {
  * ## Track-level editable fields (per row)
  * TITLE, TRACKNUMBER, ARTIST
  *
- * ## Edit flow
+ * ## Edit flow (album fields)
  * - Click on any album-level field value - inline input pre-filled with current value
- * - Enter - confirmation dialog appears before the PATCH is fired
+ * - Tab or Enter - commits value as a pending dirty change (no network request)
  * - Blur (click away) - silently cancels edit, restores original value; no dialog, no API call
- * - Confirm - PATCH /albums/{albumId}; optimistic update; rollback + error toast on failure
+ * - Save button - confirmation dialog appears; on confirm, batch-PATCHes all dirty fields
  * - Cancel / Escape on dialog - abort, keep the form in its edited state
  * - Escape on input - cancel edit, restore original value; no dialog shown; no API call
+ *
+ * ## Edit flow (track fields)
+ * - Same commit-then-save pattern as album fields: Tab or Enter stages the change as dirty;
+ *   clicking Save (then confirming) writes all dirty album and track fields to FLAC files.
  *
  * ## Discogs sync
  * - SyncPanel is rendered below the tag fields when the album has a discogsId
@@ -110,15 +114,25 @@ export function AlbumDetail() {
    * Cleared after a successful batch Save or after a Discogs sync (which overwrites local edits).
    */
   const [dirtyFields, setDirtyFields] = useState<Record<string, string>>({})
+  /**
+   * Accumulated dirty (pending) track-level tag changes not yet saved to the backend.
+   * Outer key is the track id; inner key is the Vorbis Comment field name (e.g. "TITLE").
+   * Later commits for the same track+field overwrite earlier ones.
+   * Cleared after a successful batch Save or after a Discogs sync.
+   */
+  const [dirtyTrackFields, setDirtyTrackFields] = useState<Record<string, Record<string, string>>>({})
   /** Error message from the most recent failed batch save, cleared on next Save attempt. */
   const [batchSaveError, setBatchSaveError] = useState<string | null>(null)
+
+  const hasAnyDirty = Object.keys(dirtyFields).length > 0 || Object.keys(dirtyTrackFields).length > 0
+
   /**
    * Navigation blocker: intercepts all React Router navigations (back button,
    * in-app links, browser history) when there are uncommitted dirty fields.
    * When blocked, the NavigationGuardDialog is shown; the user can confirm
    * (proceed and discard dirty changes) or cancel (stay on page).
    */
-  const blocker = useBlocker(Object.keys(dirtyFields).length > 0)
+  const blocker = useBlocker(hasAnyDirty)
 
   const handleNavGuardConfirm = useCallback(() => {
     if (blocker.state === 'blocked') {
@@ -167,26 +181,39 @@ export function AlbumDetail() {
    * Clears any previous batch-save error so the user gets a clean retry attempt.
    */
   const handleSaveButtonClick = useCallback(() => {
-    if (Object.keys(dirtyFields).length === 0) return
+    if (!hasAnyDirty) return
     setBatchSaveError(null)
     setConfirmOpen(true)
-  }, [dirtyFields])
+  }, [hasAnyDirty])
 
   /**
    * User clicked "Write tags" in the confirmation dialog.
-   * Batch-saves all dirty album-level fields in sequence and clears them on success.
+   * Batch-saves all dirty album-level fields then all dirty track fields in sequence.
+   * Clears both dirty states on success.
    */
   const handleConfirm = useCallback(async () => {
     setConfirmOpen(false)
 
-    // Batch-save all dirty album-level fields
     if (!albumId) return
-    const fields = Object.entries(dirtyFields)
+    const albumFieldEntries = Object.entries(dirtyFields)
+    const trackEntries = Object.entries(dirtyTrackFields)
     try {
-      for (const [field, value] of fields) {
+      // Patch album-level fields first
+      for (const [field, value] of albumFieldEntries) {
         await saveTag({ field, value })
       }
+      // Patch track-level fields in sequence (one PATCH per track+field)
+      for (const [trackId, fields] of trackEntries) {
+        for (const [field, value] of Object.entries(fields)) {
+          await AlbumsService.updateTrackTags({
+            albumId,
+            trackId,
+            requestBody: { field, value },
+          })
+        }
+      }
       setDirtyFields({})
+      setDirtyTrackFields({})
       setHasLocalEdits(true)
       setSyncedAlbum(undefined)
       // Refetch so EditableField value props update and committedValue is cleared
@@ -195,9 +222,10 @@ export function AlbumDetail() {
       // On failure, keep dirty fields so the user can retry.
       // Show the error message in the save row so the user knows what happened.
       const message = err instanceof Error ? err.message : t('common.error')
+      console.warn('batch save failed - dirty fields retained for retry:', message)
       setBatchSaveError(message)
     }
-  }, [albumId, dirtyFields, saveTag, refetch, t])
+  }, [albumId, dirtyFields, dirtyTrackFields, saveTag, refetch, t])
 
   /**
    * User clicked "Cancel" or pressed Escape on the confirmation dialog.
@@ -208,19 +236,39 @@ export function AlbumDetail() {
     setConfirmOpen(false)
   }, [])
 
-  const handleTrackTagSave = useCallback(
+  /**
+   * Called by track-level EditableField instances when the user presses Tab or Enter.
+   * Accumulates the change into dirtyTrackFields without firing a network request.
+   * Structure: { [trackId]: { [fieldName]: value } }
+   */
+  const handleTrackFieldCommit = useCallback(
     (trackId: string) =>
-      async (field: string, value: string) => {
-        if (!albumId) return
-        await AlbumsService.updateTrackTags({
-          albumId,
-          trackId,
-          requestBody: { field, value },
-        })
-        // Refetch to get updated track data
-        await refetch()
+      (field: string, value: string) => {
+        setDirtyTrackFields((prev) => ({
+          ...prev,
+          [trackId]: { ...(prev[trackId] ?? {}), [field]: value },
+        }))
       },
-    [albumId, refetch],
+    [],
+  )
+
+  /**
+   * Sentinel onSave passed to track-level EditableField instances.
+   * Track fields use onCommit + batch Save; onSave is never called in normal usage
+   * because EditableField only calls onSave when onCommit is absent.
+   * Rejects immediately if somehow invoked so the bug is visible in tests and logs.
+   */
+  const handleTrackTagSaveSentinel = useCallback(
+    // Parameters are intentionally unused: track fields commit via onCommit, not onSave.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    (_trackId: string) =>
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      (_field: string, _value: string): Promise<void> => {
+        const err = new Error('Track field onSave called unexpectedly - use onCommit')
+        err.name = 'InternalSentinelError'
+        return Promise.reject(err)
+      },
+    [],
   )
 
   const handleSyncComplete = useCallback((updated: Album) => {
@@ -251,6 +299,7 @@ export function AlbumDetail() {
     // the Save button does not re-apply stale values on top of the fresh sync result.
     setHasLocalEdits(false)
     setDirtyFields({})
+    setDirtyTrackFields({})
     setBatchSaveError(null)
   }, [album, queryClient])
 
@@ -258,7 +307,13 @@ export function AlbumDetail() {
   if (fetchError) return <p role="alert">{t('albumDetail.errorPrefix')}{fetchError.message}</p>
   if (!displayAlbum) return <p role="alert">{t('albumDetail.notFound')}</p>
 
-  const dirtyCount = Object.keys(dirtyFields).length
+  // Total dirty count = album fields + unique track fields across all tracks
+  const albumDirtyCount = Object.keys(dirtyFields).length
+  const trackDirtyCount = Object.values(dirtyTrackFields).reduce(
+    (sum, fields) => sum + Object.keys(fields).length,
+    0,
+  )
+  const dirtyCount = albumDirtyCount + trackDirtyCount
 
   return (
     <>
@@ -416,7 +471,7 @@ export function AlbumDetail() {
                 type="button"
                 className={styles.saveButton}
                 onClick={handleSaveButtonClick}
-                disabled={dirtyCount === 0 || isSaving}
+                disabled={!hasAnyDirty || isSaving}
                 data-testid="save-button"
                 aria-label={
                   dirtyCount > 0
@@ -458,7 +513,9 @@ export function AlbumDetail() {
               : (
                 <TrackList
                   tracks={displayAlbum.tracks}
-                  onSave={handleTrackTagSave}
+                  onSave={handleTrackTagSaveSentinel}
+                  onCommit={handleTrackFieldCommit}
+                  disabled={isSaving}
                 />
               )
             }
@@ -473,13 +530,16 @@ export function AlbumDetail() {
 interface TrackListProps {
   readonly tracks: Track[]
   readonly onSave: (trackId: string) => (field: string, value: string) => Promise<void>
+  readonly onCommit: (trackId: string) => (field: string, value: string) => void
+  /** When true, all track fields are in read-only mode (e.g. during a batch save in flight). */
+  readonly disabled?: boolean
 }
 
 /**
  * Renders the full tracklist, sorted by disc number then track position.
  * Multi-disc albums are grouped with a "Disc N" header row between groups.
  */
-function TrackList({ tracks, onSave }: TrackListProps) {
+function TrackList({ tracks, onSave, onCommit, disabled = false }: TrackListProps) {
   const { t } = useTranslation()
 
   // Sort tracks by disc number (numeric prefix), then by track number (numeric prefix).
@@ -537,6 +597,8 @@ function TrackList({ tracks, onSave }: TrackListProps) {
                 key={`${track.filePath}-${trackIndex}`}
                 track={track}
                 onSave={onSave(track.id)}
+                onCommit={onCommit(track.id)}
+                disabled={disabled}
               />
             ))}
           </Fragment>
@@ -549,9 +611,12 @@ function TrackList({ tracks, onSave }: TrackListProps) {
 interface TrackRowProps {
   readonly track: Track
   readonly onSave: (field: string, value: string) => Promise<void>
+  readonly onCommit: (field: string, value: string) => void
+  /** When true, all track fields are in read-only mode. */
+  readonly disabled?: boolean
 }
 
-function TrackRow({ track, onSave }: TrackRowProps) {
+function TrackRow({ track, onSave, onCommit, disabled = false }: TrackRowProps) {
   const { t } = useTranslation()
   const durationDisplay = track.durationSeconds !== undefined
     ? formatTrackDuration(track.durationSeconds)
@@ -565,6 +630,8 @@ function TrackRow({ track, onSave }: TrackRowProps) {
           value={track.trackNumber}
           fieldName="TRACKNUMBER"
           onSave={onSave}
+          onCommit={onCommit}
+          disabled={disabled}
           testIdPrefix={`track-${track.id}`}
         />
       </td>
@@ -574,6 +641,8 @@ function TrackRow({ track, onSave }: TrackRowProps) {
           value={track.title}
           fieldName="TITLE"
           onSave={onSave}
+          onCommit={onCommit}
+          disabled={disabled}
           testIdPrefix={`track-${track.id}`}
         />
       </td>
@@ -583,6 +652,8 @@ function TrackRow({ track, onSave }: TrackRowProps) {
           value={track.artist}
           fieldName="ARTIST"
           onSave={onSave}
+          onCommit={onCommit}
+          disabled={disabled}
           testIdPrefix={`track-${track.id}`}
         />
       </td>

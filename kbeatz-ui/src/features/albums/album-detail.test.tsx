@@ -651,10 +651,8 @@ describe('AlbumDetail', () => {
     })
   })
 
-  it('confirmation dialog is NOT shown for track-level field saves', async () => {
-    const updatedAlbum = makeAlbum({ tracks: [makeTrack({ title: 'New Title' })] })
+  it('Enter on track field stages edit as dirty without opening dialog or firing network call', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
-    mockAlbumsService.updateTrackTags.mockResolvedValue(updatedAlbum)
     renderDetail()
 
     const trackId = 'track-id-1'
@@ -668,7 +666,65 @@ describe('AlbumDetail', () => {
     })
     fireEvent.keyDown(screen.getByTestId(`track-${trackId}-input-title`), { key: 'Enter' })
 
-    // No confirmation dialog for track-level edits
+    // Input exits edit mode (dirty commit)
+    await waitFor(() => {
+      expect(screen.queryByTestId(`track-${trackId}-input-title`)).not.toBeInTheDocument()
+    })
+
+    // No dialog and no network call yet - only staged as dirty
+    expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
+    expect(mockAlbumsService.updateTrackTags).not.toHaveBeenCalled()
+  })
+
+  it('Save button becomes enabled after a track field is committed via Enter', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+
+    const trackId = 'track-id-1'
+    await waitFor(() => {
+      expect(screen.getByTestId(`track-${trackId}-value-title`)).toBeInTheDocument()
+    })
+
+    // Save button starts disabled
+    expect(screen.getByTestId('save-button')).toBeDisabled()
+
+    fireEvent.click(screen.getByTestId(`track-${trackId}-value-title`))
+    fireEvent.change(screen.getByTestId(`track-${trackId}-input-title`), {
+      target: { value: 'New Title' },
+    })
+    fireEvent.keyDown(screen.getByTestId(`track-${trackId}-input-title`), { key: 'Enter' })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('save-button')).not.toBeDisabled()
+    })
+  })
+
+  it('calls updateTrackTags when track field is committed then saved via Save button', async () => {
+    const updatedAlbum = makeAlbum({
+      tracks: [makeTrack({ title: 'New Title' })],
+    })
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    mockAlbumsService.updateTrackTags.mockResolvedValue(updatedAlbum)
+    renderDetail()
+
+    const trackId = 'track-id-1'
+    await waitFor(() => {
+      expect(screen.getByTestId(`track-${trackId}-value-title`)).toBeInTheDocument()
+    })
+
+    // Commit track field as dirty via Enter
+    fireEvent.click(screen.getByTestId(`track-${trackId}-value-title`))
+    fireEvent.change(screen.getByTestId(`track-${trackId}-input-title`), {
+      target: { value: 'New Title' },
+    })
+    fireEvent.keyDown(screen.getByTestId(`track-${trackId}-input-title`), { key: 'Enter' })
+    await waitFor(() => { expect(screen.queryByTestId(`track-${trackId}-input-title`)).not.toBeInTheDocument() })
+
+    // Click Save -> dialog -> confirm
+    fireEvent.click(screen.getByTestId('save-button'))
+    await waitFor(() => { expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument() })
+    fireEvent.click(screen.getByTestId('confirm-dialog-confirm'))
+
     await waitFor(() => {
       expect(mockAlbumsService.updateTrackTags).toHaveBeenCalledWith({
         albumId: 'album-id-1',
@@ -676,7 +732,114 @@ describe('AlbumDetail', () => {
         requestBody: { field: 'TITLE', value: 'New Title' },
       })
     })
-    expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
+  })
+
+  it('dirty track fields are cleared after successful save', async () => {
+    const updatedAlbum = makeAlbum({ tracks: [makeTrack({ title: 'New Title' })] })
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    mockAlbumsService.updateTrackTags.mockResolvedValue(updatedAlbum)
+    renderDetail()
+
+    const trackId = 'track-id-1'
+    await waitFor(() => {
+      expect(screen.getByTestId(`track-${trackId}-value-title`)).toBeInTheDocument()
+    })
+
+    // Commit track field
+    fireEvent.click(screen.getByTestId(`track-${trackId}-value-title`))
+    fireEvent.change(screen.getByTestId(`track-${trackId}-input-title`), { target: { value: 'New Title' } })
+    fireEvent.keyDown(screen.getByTestId(`track-${trackId}-input-title`), { key: 'Enter' })
+    await waitFor(() => { expect(screen.getByTestId('save-button')).not.toBeDisabled() })
+
+    // Save and confirm
+    fireEvent.click(screen.getByTestId('save-button'))
+    await waitFor(() => { expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument() })
+    fireEvent.click(screen.getByTestId('confirm-dialog-confirm'))
+
+    // Save button is disabled again after clearing dirty fields
+    await waitFor(() => {
+      expect(screen.getByTestId('save-button')).toBeDisabled()
+    })
+    expect(screen.queryByTestId('dirty-count')).not.toBeInTheDocument()
+  })
+
+  it('retains dirty track fields and shows error when track save fails', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    mockAlbumsService.updateTrackTags.mockRejectedValue(new Error('Server error'))
+    renderDetail()
+
+    const trackId = 'track-id-1'
+    await waitFor(() => {
+      expect(screen.getByTestId(`track-${trackId}-value-title`)).toBeInTheDocument()
+    })
+
+    // Commit track field as dirty
+    fireEvent.click(screen.getByTestId(`track-${trackId}-value-title`))
+    fireEvent.change(screen.getByTestId(`track-${trackId}-input-title`), { target: { value: 'New Title' } })
+    fireEvent.keyDown(screen.getByTestId(`track-${trackId}-input-title`), { key: 'Enter' })
+    await waitFor(() => { expect(screen.queryByTestId(`track-${trackId}-input-title`)).not.toBeInTheDocument() })
+
+    // Open dialog and confirm
+    fireEvent.click(screen.getByTestId('save-button'))
+    await waitFor(() => { expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument() })
+    fireEvent.click(screen.getByTestId('confirm-dialog-confirm'))
+
+    // After failure: dialog closed, dirty count still visible, error message shown
+    await waitFor(() => {
+      expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
+    })
+    // Dirty count still present (track field retained for retry)
+    await waitFor(() => {
+      expect(screen.getByTestId('dirty-count')).toBeInTheDocument()
+    })
+    // Error message displayed
+    await waitFor(() => {
+      expect(screen.getByTestId('batch-save-error')).toBeInTheDocument()
+    })
+    // Save button is re-enabled for retry
+    expect(screen.getByTestId('save-button')).not.toBeDisabled()
+  })
+
+  it('Save button patches both album and track dirty fields in one confirmation', async () => {
+    const updatedAlbum = makeAlbum({ genre: 'Rock', tracks: [makeTrack({ title: 'New Title' })] })
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    mockAlbumsService.updateAlbumTags.mockResolvedValue(updatedAlbum)
+    mockAlbumsService.updateTrackTags.mockResolvedValue(updatedAlbum)
+    renderDetail()
+
+    const trackId = 'track-id-1'
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
+    })
+
+    // Commit album field
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Rock' } })
+    fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
+    await waitFor(() => { expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument() })
+
+    // Commit track field
+    fireEvent.click(screen.getByTestId(`track-${trackId}-value-title`))
+    fireEvent.change(screen.getByTestId(`track-${trackId}-input-title`), { target: { value: 'New Title' } })
+    fireEvent.keyDown(screen.getByTestId(`track-${trackId}-input-title`), { key: 'Enter' })
+    await waitFor(() => { expect(screen.queryByTestId(`track-${trackId}-input-title`)).not.toBeInTheDocument() })
+
+    // Save -> dialog -> confirm
+    fireEvent.click(screen.getByTestId('save-button'))
+    await waitFor(() => { expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument() })
+    fireEvent.click(screen.getByTestId('confirm-dialog-confirm'))
+
+    await waitFor(() => {
+      expect(mockAlbumsService.updateAlbumTags).toHaveBeenCalledWith({
+        albumId: 'album-id-1',
+        requestBody: { field: 'GENRE', value: 'Rock' },
+      })
+      expect(mockAlbumsService.updateTrackTags).toHaveBeenCalledWith({
+        albumId: 'album-id-1',
+        trackId: 'track-id-1',
+        requestBody: { field: 'TITLE', value: 'New Title' },
+      })
+    })
   })
 
   // ──────────────────────────────────────────────
@@ -694,12 +857,8 @@ describe('AlbumDetail', () => {
     expect(screen.getByTestId(`track-${trackId}-input-title`)).toHaveValue('So What')
   })
 
-  it('calls updateTrackTags when track field is saved', async () => {
-    const updatedAlbum = makeAlbum({
-      tracks: [makeTrack({ title: 'New Title' })],
-    })
+  it('Tab key on track field commits as dirty and enables Save button', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
-    mockAlbumsService.updateTrackTags.mockResolvedValue(updatedAlbum)
     renderDetail()
 
     const trackId = 'track-id-1'
@@ -711,15 +870,14 @@ describe('AlbumDetail', () => {
     fireEvent.change(screen.getByTestId(`track-${trackId}-input-title`), {
       target: { value: 'New Title' },
     })
-    fireEvent.keyDown(screen.getByTestId(`track-${trackId}-input-title`), { key: 'Enter' })
+    fireEvent.keyDown(screen.getByTestId(`track-${trackId}-input-title`), { key: 'Tab' })
 
     await waitFor(() => {
-      expect(mockAlbumsService.updateTrackTags).toHaveBeenCalledWith({
-        albumId: 'album-id-1',
-        trackId: 'track-id-1',
-        requestBody: { field: 'TITLE', value: 'New Title' },
-      })
+      expect(screen.queryByTestId(`track-${trackId}-input-title`)).not.toBeInTheDocument()
+      expect(screen.getByTestId('save-button')).not.toBeDisabled()
     })
+    // No network call yet
+    expect(mockAlbumsService.updateTrackTags).not.toHaveBeenCalled()
   })
 
   it('VA track: ARTIST field is editable per track', async () => {
@@ -1101,6 +1259,32 @@ describe('AlbumDetail - navigation guard (dirty fields)', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('list-page')).toBeInTheDocument()
+    })
+  })
+
+  it('shows nav guard dialog when there are dirty track fields and Back is clicked', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+
+    const trackId = 'track-id-1'
+    await waitFor(() => {
+      expect(screen.getByTestId(`track-${trackId}-value-title`)).toBeInTheDocument()
+    })
+
+    // Commit a track field as dirty
+    fireEvent.click(screen.getByTestId(`track-${trackId}-value-title`))
+    fireEvent.change(screen.getByTestId(`track-${trackId}-input-title`), { target: { value: 'New Title' } })
+    fireEvent.keyDown(screen.getByTestId(`track-${trackId}-input-title`), { key: 'Enter' })
+
+    await waitFor(() => {
+      expect(screen.queryByTestId(`track-${trackId}-input-title`)).not.toBeInTheDocument()
+    })
+
+    // Click Back - should trigger blocker due to dirty track field
+    fireEvent.click(screen.getByTestId('back-button'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('nav-guard-dialog')).toBeInTheDocument()
     })
   })
 
