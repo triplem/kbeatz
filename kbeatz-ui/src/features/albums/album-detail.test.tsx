@@ -1,6 +1,6 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { RouterProvider, createMemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AlbumDetail } from './album-detail'
 import type { AlbumDetail as AlbumDetailModel, Track } from '../../api/generated'
@@ -82,15 +82,26 @@ function makeQueryClient() {
   })
 }
 
+/**
+ * Renders AlbumDetail using createMemoryRouter (a data router) so that
+ * useBlocker works correctly. A fake list route '/' is included so that
+ * navigate(-1) has history to navigate back to when needed.
+ */
 function renderDetail(albumId = 'album-id-1') {
   const queryClient = makeQueryClient()
+  const router = createMemoryRouter(
+    [
+      { path: '/', element: <div data-testid="list-page">Album list</div> },
+      { path: '/albums/:albumId', element: <AlbumDetail /> },
+    ],
+    {
+      initialEntries: ['/', `/albums/${albumId}`],
+      initialIndex: 1,
+    },
+  )
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[`/albums/${albumId}`]}>
-        <Routes>
-          <Route path="/albums/:albumId" element={<AlbumDetail />} />
-        </Routes>
-      </MemoryRouter>
+      <RouterProvider router={router} />
     </QueryClientProvider>,
   )
 }
@@ -896,5 +907,165 @@ describe('AlbumDetail', () => {
     })
     const metadataCol = screen.getByTestId('metadata-column')
     expect(metadataCol).toContainElement(screen.getByTestId('sync-panel'))
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Navigation guard (back navigation with unsaved dirty fields)
+// ---------------------------------------------------------------------------
+
+describe('AlbumDetail - navigation guard (dirty fields)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('does not show nav guard dialog when no fields are dirty and Back is clicked', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-album')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByTestId('back-button'))
+
+    // Nav guard must not appear
+    expect(screen.queryByTestId('nav-guard-dialog')).not.toBeInTheDocument()
+    // Should have navigated to list page
+    await waitFor(() => {
+      expect(screen.getByTestId('list-page')).toBeInTheDocument()
+    })
+  })
+
+  it('shows nav guard dialog when there are dirty fields and Back is clicked', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-album')).toBeInTheDocument()
+    })
+
+    // Commit a dirty field via Enter (no network request)
+    fireEvent.click(screen.getByTestId('album-value-album'))
+    fireEvent.change(screen.getByTestId('album-input-album'), { target: { value: 'New Title' } })
+    fireEvent.keyDown(screen.getByTestId('album-input-album'), { key: 'Enter' })
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('album-input-album')).not.toBeInTheDocument()
+    })
+
+    // Click Back - should trigger blocker
+    fireEvent.click(screen.getByTestId('back-button'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('nav-guard-dialog')).toBeInTheDocument()
+    })
+  })
+
+  it('navigates away when user confirms leaving with dirty fields', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-album')).toBeInTheDocument()
+    })
+
+    // Commit a dirty field
+    fireEvent.click(screen.getByTestId('album-value-album'))
+    fireEvent.change(screen.getByTestId('album-input-album'), { target: { value: 'New Title' } })
+    fireEvent.keyDown(screen.getByTestId('album-input-album'), { key: 'Enter' })
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('album-input-album')).not.toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByTestId('back-button'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('nav-guard-dialog')).toBeInTheDocument()
+    })
+
+    // Confirm: leave anyway
+    fireEvent.click(screen.getByTestId('nav-guard-confirm'))
+
+    // Should navigate to the list page
+    await waitFor(() => {
+      expect(screen.getByTestId('list-page')).toBeInTheDocument()
+    })
+  })
+
+  it('stays on album detail when user cancels navigation from nav guard dialog', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-album')).toBeInTheDocument()
+    })
+
+    // Commit a dirty field
+    fireEvent.click(screen.getByTestId('album-value-album'))
+    fireEvent.change(screen.getByTestId('album-input-album'), { target: { value: 'New Title' } })
+    fireEvent.keyDown(screen.getByTestId('album-input-album'), { key: 'Enter' })
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('album-input-album')).not.toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByTestId('back-button'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('nav-guard-dialog')).toBeInTheDocument()
+    })
+
+    // Cancel: stay on page
+    fireEvent.click(screen.getByTestId('nav-guard-cancel'))
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('nav-guard-dialog')).not.toBeInTheDocument()
+    })
+
+    // Still on album detail page
+    expect(screen.getByTestId('album-value-album')).toBeInTheDocument()
+    // Dirty count must still be visible (changes preserved)
+    expect(screen.getByTestId('dirty-count')).toBeInTheDocument()
+  })
+
+  it('does not show nav guard after batch save clears dirty fields', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    mockAlbumsService.updateAlbumTags.mockResolvedValue(makeAlbum({ album: 'New Title' }))
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-album')).toBeInTheDocument()
+    })
+
+    // Commit a dirty field then save
+    fireEvent.click(screen.getByTestId('album-value-album'))
+    fireEvent.change(screen.getByTestId('album-input-album'), { target: { value: 'New Title' } })
+    fireEvent.keyDown(screen.getByTestId('album-input-album'), { key: 'Enter' })
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('album-input-album')).not.toBeInTheDocument()
+    })
+
+    // Save and confirm
+    fireEvent.click(screen.getByTestId('save-button'))
+    await waitFor(() => {
+      expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByTestId('confirm-dialog-confirm'))
+
+    // Wait for dirty count to disappear (fields cleared after save)
+    await waitFor(() => {
+      expect(screen.queryByTestId('dirty-count')).not.toBeInTheDocument()
+    })
+
+    // Now clicking Back should NOT trigger the nav guard
+    fireEvent.click(screen.getByTestId('back-button'))
+    expect(screen.queryByTestId('nav-guard-dialog')).not.toBeInTheDocument()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('list-page')).toBeInTheDocument()
+    })
   })
 })
