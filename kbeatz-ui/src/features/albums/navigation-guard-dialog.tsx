@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useId, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-// Shared dialog styles - same visual language as ConfirmWriteDialog (overlay, card, buttons).
-// Both dialogs are intentionally styled from this single module so changes propagate to both.
-import styles from './confirm-write-dialog.module.css'
+import styles from './navigation-guard-dialog.module.css'
 
 interface NavigationGuardDialogProps {
   /** Whether the dialog is open */
@@ -17,8 +15,9 @@ interface NavigationGuardDialogProps {
  * NavigationGuardDialog - warns the user that navigating away will discard unsaved changes.
  *
  * Shown by AlbumDetail when the user tries to navigate away (back button, browser back,
- * link click) while there are uncommitted dirty field changes. Reuses the
- * confirm-write-dialog CSS module so the visual language is consistent.
+ * link click) while there are uncommitted dirty field changes. Uses its own CSS module
+ * (navigation-guard-dialog.module.css) which mirrors the visual language of
+ * ConfirmWriteDialog while keeping each component independently styled.
  *
  * Accessibility (WCAG AA):
  * - role="dialog" + aria-modal="true" + aria-labelledby + aria-describedby
