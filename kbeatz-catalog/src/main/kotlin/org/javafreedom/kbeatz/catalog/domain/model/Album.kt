@@ -17,6 +17,17 @@ data class Album(
     val directoryPath: String,
     val extraTags: Map<String, String>?,
     val images: List<ImageDescriptor>?,
+    /**
+     * Additional directories that were merged into this album entry during deduplication.
+     *
+     * When [LibraryWalker] groups tracks from multiple sibling directories into a single
+     * [AlbumGroup] (e.g. `jazz/lossless/` and `jazz/backup/` both contain the same release),
+     * all source directories except the primary [directoryPath] are stored here.
+     *
+     * Empty for albums that originate from a single directory.
+     * Used by [TagWriteService] to ensure tag writes reach all merged directories.
+     */
+    val mergedDirectories: List<String> = emptyList(),
     /** Number of tracks; null when no track data is available for this album. */
     val trackCount: Int? = null,
     /** Total playback duration in seconds; null when no track data is available. */

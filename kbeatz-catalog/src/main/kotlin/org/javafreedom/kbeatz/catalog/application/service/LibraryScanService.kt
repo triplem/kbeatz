@@ -403,6 +403,10 @@ class LibraryScanService(
          * If [existingId] is supplied (looked up by natural key from the repository), it is reused
          * so that the album UUID remains stable across rescans and bookmarked UI URLs stay valid.
          * A fresh [Uuid.random] is assigned only for genuinely new albums (where [existingId] is null).
+         *
+         * [Album.mergedDirectories] is populated from [AlbumGroup.sourceDirs] excluding the primary
+         * [AlbumGroup.rootPath]. This allows [TagWriteService] to write tags to all directories that
+         * were merged during deduplication (issue #666).
          */
         fun AlbumGroup.toAlbum(existingId: Uuid? = null): Album = Album(
             id = existingId ?: Uuid.random(),
@@ -419,6 +423,9 @@ class LibraryScanService(
             directoryPath = rootPath.toString(),
             extraTags = null,
             images = null,
+            mergedDirectories = sourceDirs
+                .map { it.toString() }
+                .filterNot { it == rootPath.toString() },
         )
     }
 }

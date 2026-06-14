@@ -3,3 +3,5 @@ databaseChangeLog:
       file: db/changelog/v1/V1__baseline.yaml
   - include:
       file: db/changelog/v1/V1__deduplication.yaml
+  - include:
+      file: db/changelog/v1/V1__merged-directories.yaml

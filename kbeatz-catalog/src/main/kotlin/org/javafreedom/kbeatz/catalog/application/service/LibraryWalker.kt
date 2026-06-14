@@ -139,16 +139,15 @@ class LibraryWalker {
             // path) canonical directory as the representative root.  This is a stable
             // choice: the alphabetically-first shallowest directory wins when two paths
             // have the same depth.
-            val rootPath = tracks
-                .map { it.canonicalDir }
-                .distinct()
-                .minWith(compareBy({ it.nameCount }, { it.toString() }))
+            val allDirs = tracks.map { it.canonicalDir }.distinct()
+            val rootPath = allDirs.minWith(compareBy({ it.nameCount }, { it.toString() }))
 
             // Carry the full date string (not just the year) from the first track.
             val representativeDate = tracks.mapNotNull { it.fullDate }.firstOrNull()
 
             AlbumGroup(
                 rootPath = rootPath,
+                sourceDirs = allDirs,
                 flacPaths = tracks.map { it.path },
                 albumArtist = key.albumArtist,
                 albumTitle = key.albumTitle,

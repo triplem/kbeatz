@@ -1,0 +1,22 @@
+databaseChangeLog:
+  - changeSet:
+      id: V1-007-album-merged-directories
+      author: triplem
+      comment: >
+        Issue #666: add merged_directories column to albums table.
+        Stores a JSON array of absolute directory paths that were merged into this
+        album entry during deduplication (e.g. a re-rip in a sibling directory).
+        Null for albums that come from a single directory.
+        Used by TagWriteService to write tags to ALL merged directories, not just
+        the primary directoryPath.
+      changes:
+        - addColumn:
+            tableName: albums
+            columns:
+              - column:
+                  name: merged_directories
+                  type: TEXT
+                  remarks: >
+                    JSON array of absolute directory paths that were merged into this album
+                    during deduplication. Null for albums from a single directory.
+                    Used by TagWriteService to write tags to all merged directories.

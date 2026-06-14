@@ -80,7 +80,21 @@ class TagWriteService(
     private val albumLocks = ConcurrentHashMap<Uuid, Mutex>()
 
     /**
-     * Writes a single [field]=[value] tag to all FLAC files in the album directory.
+     * Writes a single [field]=[value] tag to all FLAC files in the album directory and any
+     * merged directories stored in [Album.mergedDirectories].
+     *
+     * For deduplicated albums that span multiple sibling directories (e.g. `jazz/lossless/`
+     * and `jazz/backup/` merged by LibraryWalker), tags are written to FLAC files in ALL
+     * directories, not just the primary [Album.directoryPath]. This ensures that the files
+     * in every merged directory remain in sync after a PATCH request (issue #666).
+     *
+     * The write-lock file is created only in the primary [Album.directoryPath]. Merged
+     * directories receive no lock file because they are always written within the same
+     * in-memory [Mutex]-serialised critical section as the primary directory write.
+     *
+     * If a merged directory no longer exists on disk (e.g. it was removed after the last
+     * scan), that directory is skipped and a WARN is logged. The primary directory write
+     * is unaffected.
      *
      * @param albumId Target album UUID.
      * @param field Vorbis Comment field name (case-insensitive; normalised to uppercase).
@@ -113,18 +127,58 @@ class TagWriteService(
                 )
             }
 
-            val flacFiles = findFlacFiles(albumDir)
-            writeLockFile(albumDir, flacFiles)
+            // Collect FLAC files from the primary directory.
+            val primaryFlacFiles = findFlacFiles(albumDir)
+
+            // Collect FLAC files from merged directories (issue #666).
+            // Each merged directory is validated to be within libraryRoot.
+            // Directories that no longer exist on disk are skipped with a WARN.
+            // The map preserves insertion order for deterministic write sequencing.
+            val mergedDirToFlacFiles: Map<Path, List<Path>> = album.mergedDirectories
+                .mapNotNull { dirPath ->
+                    val mergedDir = Path.of(dirPath)
+                    when {
+                        !Files.isDirectory(mergedDir) -> {
+                            log.warn {
+                                "merged_dir_skip albumId=$albumId path=$dirPath " +
+                                    "reason=directory_not_found"
+                            }
+                            null
+                        }
+                        else -> {
+                            validatePath(mergedDir)
+                            mergedDir to findFlacFiles(mergedDir)
+                        }
+                    }
+                }
+                .toMap()
+
+            // The write-lock manifest is written only to the primary directory.
+            // It lists all FLAC files (primary + merged) so a crash-recovery scan
+            // can identify all affected files.
+            val allFlacFiles = primaryFlacFiles + mergedDirToFlacFiles.values.flatten()
+            writeLockFile(albumDir, allFlacFiles)
 
             try {
-                writeTagToFiles(flacFiles, normalised, value, albumId)
+                writeTagToFiles(primaryFlacFiles, normalised, value, albumId)
+                mergedDirToFlacFiles.forEach { (mergedDir, mergedFiles) ->
+                    writeTagToFiles(mergedFiles, normalised, value, albumId)
+                    log.info {
+                        "merged_dir_write_complete albumId=$albumId field=$normalised " +
+                            "dir=$mergedDir fileCount=${mergedFiles.size}"
+                    }
+                }
             } finally {
                 deleteLockFile(albumDir)
             }
 
             val updatedAlbum = album.applyAlbumField(normalised, value)
             albumRepository.save(updatedAlbum)
-            log.info { "Album tag write complete albumId=$albumId field=$normalised" }
+            log.info {
+                "album_tag_write_complete albumId=$albumId field=$normalised " +
+                    "primaryFiles=${primaryFlacFiles.size} " +
+                    "mergedDirCount=${mergedDirToFlacFiles.size}"
+            }
             updatedAlbum
         }
     }
