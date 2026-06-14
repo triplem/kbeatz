@@ -9,10 +9,8 @@ import styles from './sync-panel.module.css'
 const SYNC_TIMEOUT_MS = 30_000
 
 /**
- * Tag fields that Discogs sync can update.
- * `satisfies ReadonlyArray<keyof AlbumDetail & keyof Album>` enforces at compile time
- * that every entry is a field present on both API types, eliminating the manual
- * duplication that the separate SyncTagField union type caused.
+ * Tag fields that Discogs sync can update. Each entry is verified at compile time
+ * to be a key present on both AlbumDetail and Album via the `satisfies` constraint.
  */
 const SYNC_TAG_FIELDS = [
   'albumArtist',
