@@ -154,8 +154,11 @@ export function AlbumDetail() {
   const handleAlbumTagSave = useCallback(
     // Parameters are intentionally unused: album fields commit via onCommit, not onSave.
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    (_field: string, _value: string): Promise<void> =>
-      Promise.reject(new Error('Album field onSave called unexpectedly - use onCommit')),
+    (_field: string, _value: string): Promise<void> => {
+      const err = new Error('Album field onSave called unexpectedly - use onCommit')
+      err.name = 'InternalSentinelError'
+      return Promise.reject(err)
+    },
     [],
   )
 
