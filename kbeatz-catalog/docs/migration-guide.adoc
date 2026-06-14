@@ -34,6 +34,11 @@ rename - no data transformation is required.
 | `directoryPath`
 | `albumPath`
 | PR #641
+
+| `Album` (sync endpoint `POST /albums/{albumId}/sync` response)
+| `directoryPath`
+| `albumPath`
+| PR #641
 |===
 
 === Migration steps
