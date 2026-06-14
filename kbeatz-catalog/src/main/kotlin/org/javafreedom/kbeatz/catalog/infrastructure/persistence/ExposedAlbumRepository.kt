@@ -178,26 +178,30 @@ class ExposedAlbumRepository : AlbumRepository {
      * Persists a single chunk of albums inside one transaction.
      *
      * Existing albums (matched by natural key) are updated using [updateAlbumStructural], which
-     * touches only the four scan-derived columns (albumArtist, album, albumDate, directoryPath).
+     * touches only the three scan-derived columns (albumArtist, album, albumDate) plus directoryPath.
      * Enriched Discogs metadata (genre, label, catalogNumber, composer, conductor, ensemble,
      * discogsId, images) is intentionally left unchanged so that a library rescan cannot wipe
      * data that was written by a Discogs sync.
      *
      * New albums are inserted with all fields from the [Album] object (which will have nulls for
      * the enriched fields on first scan).
+     *
+     * The natural key is (albumArtist, album, albumDate) - directoryPath is NOT part of the key.
+     * Two directories containing the same release (same artist + title + year) map to a single
+     * row.  The directoryPath column is updated to the canonical path supplied by LibraryWalker
+     * on each rescan.  See ADR-010-album-deduplication.adoc and issue #657.
      */
     @Suppress("RedundantSuspendModifier") // suspendTransaction is a suspend function; Detekt false-positive
     private suspend fun saveChunk(chunk: List<Album>) {
         suspendTransaction {
-            // Look up existing albums by natural key to reuse their stable UUIDs.
-            // This prevents duplicate-insert failures from the unique constraint and ensures
-            // URL stability: /albums/<uuid> remains valid across library rescans.
+            // Look up existing albums by natural key (albumArtist, album, albumDate) to reuse
+            // their stable UUIDs.  directoryPath is intentionally excluded from the key so that
+            // albums stored across multiple directories are recognised as the same release.
             val naturalKeyFilter = chunk
                 .map { album ->
                     (AlbumsTable.albumArtist eq album.albumArtist) and
                         (AlbumsTable.album eq album.album) and
-                        (AlbumsTable.albumDate eq (album.date ?: "")) and
-                        (AlbumsTable.directoryPath eq album.directoryPath)
+                        (AlbumsTable.albumDate eq (album.date ?: ""))
                 }
                 .reduce(Op<Boolean>::or)
 
@@ -210,7 +214,6 @@ class ExposedAlbumRepository : AlbumRepository {
                         albumArtist = row[AlbumsTable.albumArtist],
                         album = row[AlbumsTable.album],
                         albumDate = row[AlbumsTable.albumDate],
-                        directoryPath = row[AlbumsTable.directoryPath],
                     ) to row[AlbumsTable.id].value
                 }
 
@@ -219,7 +222,6 @@ class ExposedAlbumRepository : AlbumRepository {
                     albumArtist = album.albumArtist,
                     album = album.album,
                     albumDate = album.date.orEmpty(),
-                    directoryPath = album.directoryPath,
                 )
                 val existingId = existingByNaturalKey[key]
                 if (existingId != null) {
@@ -242,12 +244,16 @@ class ExposedAlbumRepository : AlbumRepository {
     }
 }
 
-/** Key tuple matching the `uq_albums_identity` unique constraint columns. */
+/**
+ * Key tuple matching the `uq_albums_dedup` unique constraint columns.
+ *
+ * directoryPath is intentionally absent: two directories that contain the same
+ * release (same artist + title + year) map to a single row (issue #657).
+ */
 private data class NaturalKey(
     val albumArtist: String,
     val album: String,
     val albumDate: String,
-    val directoryPath: String,
 )
 
 internal fun Uuid.toJavaUuid(): UUID = UUID.fromString(this.toString())

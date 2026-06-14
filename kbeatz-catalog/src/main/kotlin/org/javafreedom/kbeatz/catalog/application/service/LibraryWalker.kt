@@ -96,9 +96,19 @@ class LibraryWalker {
     }
 
     private fun groupFlacFiles(flacFiles: List<Path>, libraryRoot: Path): List<AlbumGroup> {
-        // Map of (canonicalDir, albumArtist, albumTitle) → list of (path, date)
-        data class GroupKey(val canonicalDir: Path, val albumArtist: String, val albumTitle: String)
-        data class TrackMeta(val path: Path, val date: String?)
+        // Deduplication key: (albumArtist, albumTitle, date).
+        //
+        // Rationale: two directories storing the same release (e.g. a re-rip or
+        // a split disc layout not under a disc1/disc2 parent) must produce a single
+        // album entry on the overview.  Including the canonical directory in the key
+        // caused separate entries for such releases (issue #657).
+        //
+        // Disambiguation: albums that truly differ (same title, different year) are
+        // kept separate because the DATE tag differs.  When DATE is absent, tracks
+        // from distinct directories merge into one group; the user can add DATE tags
+        // to their files to force separation.  See ADR-010-album-deduplication.adoc.
+        data class GroupKey(val albumArtist: String, val albumTitle: String, val date: String?)
+        data class TrackMeta(val path: Path, val canonicalDir: Path, val date: String?)
 
         val groups = mutableMapOf<GroupKey, MutableList<TrackMeta>>()
 
@@ -112,18 +122,26 @@ class LibraryWalker {
             val dir = flacPath.parent ?: libraryRoot
             val canonicalDir = if (isDiscSubdir(dir)) dir.parent ?: dir else dir
 
-            val key = GroupKey(canonicalDir, albumArtist, albumTitle)
-            groups.getOrPut(key) { mutableListOf() }.add(TrackMeta(flacPath, date))
+            val key = GroupKey(albumArtist, albumTitle, date)
+            groups.getOrPut(key) { mutableListOf() }.add(TrackMeta(flacPath, canonicalDir, date))
         }
 
         return groups.map { (key, tracks) ->
-            val representativeDate = tracks.mapNotNull { it.date }.firstOrNull()
+            // When tracks come from multiple directories pick the shallowest (shortest
+            // path) canonical directory as the representative root.  This is a stable
+            // choice: the alphabetically-first shallowest directory wins when two paths
+            // have the same depth.
+            val rootPath = tracks
+                .map { it.canonicalDir }
+                .distinct()
+                .minWith(compareBy({ it.nameCount }, { it.toString() }))
+
             AlbumGroup(
-                rootPath = key.canonicalDir,
+                rootPath = rootPath,
                 flacPaths = tracks.map { it.path },
                 albumArtist = key.albumArtist,
                 albumTitle = key.albumTitle,
-                date = representativeDate,
+                date = key.date,
             )
         }
     }

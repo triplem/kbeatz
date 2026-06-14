@@ -533,6 +533,129 @@ class MigrationTest {
         }
     }
 
+    // --- Deduplication tests (issue #657) ---
+
+    @Test
+    fun `unique constraint prevents duplicate albums with same artist album date from different directories`() =
+        runTest {
+            // The new constraint is (album_artist, album, album_date) without directory_path.
+            // Two rows with same (artist, album, date) but DIFFERENT paths must violate the constraint.
+            val ds = DbFactory.init(jdbcUrl)
+            try {
+                val albumId1 = Uuid.random()
+                val albumId2 = Uuid.random()
+                transaction {
+                    AlbumsTable.insert {
+                        it[id] = org.jetbrains.exposed.v1.core.dao.id.EntityID(
+                            albumId1.asJavaUuid(), AlbumsTable
+                        )
+                        it[albumArtist] = "Dedup Artist"
+                        it[album] = "Dedup Album"
+                        it[albumDate] = "2024"
+                        it[directoryPath] = "music/dir1"
+                    }
+                }
+                var uniqueViolated = false
+                try {
+                    transaction {
+                        AlbumsTable.insert {
+                            it[id] = org.jetbrains.exposed.v1.core.dao.id.EntityID(
+                                albumId2.asJavaUuid(), AlbumsTable
+                            )
+                            it[albumArtist] = "Dedup Artist"
+                            it[album] = "Dedup Album"
+                            it[albumDate] = "2024"
+                            it[directoryPath] = "music/dir2" // different path, same album
+                        }
+                    }
+                } catch (e: Exception) {
+                    uniqueViolated = true
+                }
+                assertTrue(uniqueViolated, "Two rows with same (artist, album, date) must violate uq_albums_dedup")
+            } finally {
+                transaction { AlbumsTable.deleteAll() }
+                ds.close()
+            }
+        }
+
+    @Test
+    fun `saveAll deduplicates albums from different directories with same artist album and date`() = runTest {
+        // Issue #657: scanning same album from two different directories must produce ONE entry.
+        val ds = DbFactory.init(jdbcUrl)
+        try {
+            val repo = ExposedAlbumRepository()
+            val albumFromDir1 = Album(
+                id = Uuid.random(),
+                albumArtist = "Miles Davis",
+                album = "Kind of Blue",
+                date = "1959",
+                genre = null,
+                label = null,
+                catalogNumber = null,
+                composer = null,
+                conductor = null,
+                ensemble = null,
+                discogsId = null,
+                extraTags = null,
+                images = null,
+                directoryPath = "jazz/kind-of-blue-lossless",
+            )
+            val albumFromDir2 = albumFromDir1.copy(
+                id = Uuid.random(),
+                directoryPath = "jazz/kind-of-blue-backup",
+            )
+
+            // Save the first album, then call saveAll with BOTH (simulating a rescan that
+            // encounters the same release in two directories after LibraryWalker deduplication).
+            repo.save(albumFromDir1)
+            // saveAll with the same natural key must update, not insert a second row
+            repo.saveAll(listOf(albumFromDir2))
+
+            val (_, total) = repo.findAllWithCount(0, Int.MAX_VALUE)
+            assertEquals(1L, total, "two directories with same (artist, album, date) must produce one catalogue entry")
+        } finally {
+            transaction { AlbumsTable.deleteAll() }
+            ds.close()
+        }
+    }
+
+    @Test
+    fun `saveAll keeps two albums with same artist and title but different dates as separate entries`() = runTest {
+        // Disambiguation: same artist + title + DIFFERENT year = separate albums
+        val ds = DbFactory.init(jdbcUrl)
+        try {
+            val repo = ExposedAlbumRepository()
+            repo.saveAll(listOf(
+                Album(
+                    id = Uuid.random(),
+                    albumArtist = "Miles Davis",
+                    album = "Kind of Blue",
+                    date = "1959",
+                    genre = null, label = null, catalogNumber = null, composer = null,
+                    conductor = null, ensemble = null, discogsId = null,
+                    extraTags = null, images = null,
+                    directoryPath = "jazz/kind-of-blue-original",
+                ),
+                Album(
+                    id = Uuid.random(),
+                    albumArtist = "Miles Davis",
+                    album = "Kind of Blue",
+                    date = "2014", // remaster year
+                    genre = null, label = null, catalogNumber = null, composer = null,
+                    conductor = null, ensemble = null, discogsId = null,
+                    extraTags = null, images = null,
+                    directoryPath = "jazz/kind-of-blue-remaster",
+                ),
+            ))
+
+            val (_, total) = repo.findAllWithCount(0, Int.MAX_VALUE)
+            assertEquals(2L, total, "different DATE tags must produce separate catalogue entries")
+        } finally {
+            transaction { AlbumsTable.deleteAll() }
+            ds.close()
+        }
+    }
+
     @Test
     fun `saveAll called from repair path with null enriched fields does not wipe existing metadata`() = runTest {
         // Regression test for issue #206: repairOnStartup() calls saveAll() with albums produced
