@@ -354,7 +354,7 @@ class LibraryScanService(
      * `Album.directoryPath` (CLI `tag` command, future playback). Issue #666 tracks the
      * multi-directory write strategy; until then these tracks are skipped.
      */
-    private fun isPathOutsideRoot(relativePath: String): Boolean =
+    internal fun isPathOutsideRoot(relativePath: String): Boolean =
         relativePath == ".." || relativePath.startsWith("../") || relativePath.contains("/../")
 
     /**
