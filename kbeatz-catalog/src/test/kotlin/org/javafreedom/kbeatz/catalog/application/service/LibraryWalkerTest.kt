@@ -267,4 +267,92 @@ class LibraryWalkerTest {
         assertEquals(1, groups.size)
         assertEquals(1, groups[0].flacPaths.size)
     }
+
+    // --- Deduplication tests (issue #657) ---
+
+    @Test
+    fun `walk merges same album in two separate directories into one group`() = withTempDir { root ->
+        // Simulates a user who has two rips of the same album in different directories
+        val dir1 = Files.createDirectories(root.resolve("jazz/miles-davis/kind-of-blue-lossless"))
+        val dir2 = Files.createDirectories(root.resolve("jazz/miles-davis/kind-of-blue-backup"))
+
+        writeFile(dir1, "01 - So What.flac", flacBytes(
+            "ALBUMARTIST=Miles Davis", "ALBUM=Kind of Blue", "DATE=1959"
+        ))
+        writeFile(dir2, "01 - So What (backup).flac", flacBytes(
+            "ALBUMARTIST=Miles Davis", "ALBUM=Kind of Blue", "DATE=1959"
+        ))
+
+        val groups = walker.walk(root)
+
+        assertEquals(1, groups.size, "two directories with same (artist, album, date) must merge into one group")
+        assertEquals("Miles Davis", groups[0].albumArtist)
+        assertEquals("Kind of Blue", groups[0].albumTitle)
+        assertEquals("1959", groups[0].date)
+        assertEquals(2, groups[0].flacPaths.size, "tracks from both directories must be included")
+    }
+
+    @Test
+    fun `walk keeps two albums with same artist and title but different dates as separate groups`() =
+        withTempDir { root ->
+            // Same artist + album title but released in different years (e.g. original and re-issue)
+            val dir1 = Files.createDirectories(root.resolve("jazz/miles-davis/kind-of-blue-1959"))
+            val dir2 = Files.createDirectories(root.resolve("jazz/miles-davis/kind-of-blue-2014"))
+
+            writeFile(dir1, "01 - So What.flac", flacBytes(
+                "ALBUMARTIST=Miles Davis", "ALBUM=Kind of Blue", "DATE=1959"
+            ))
+            writeFile(dir2, "01 - So What (remaster).flac", flacBytes(
+                "ALBUMARTIST=Miles Davis", "ALBUM=Kind of Blue", "DATE=2014"
+            ))
+
+            val groups = walker.walk(root)
+
+            assertEquals(2, groups.size, "different DATE tags must produce separate groups")
+            val dates = groups.map { it.date }.toSet()
+            assertTrue("1959" in dates)
+            assertTrue("2014" in dates)
+        }
+
+    @Test
+    fun `walk merges tracks with same year but different DATE formats into one group`() = withTempDir { root ->
+        // "1959" and "1959-05-04" represent the same year; the grouping key normalises to the
+        // 4-digit year prefix so both tracks land in the same AlbumGroup.
+        val dir1 = Files.createDirectories(root.resolve("jazz/miles-davis/kind-of-blue"))
+        val dir2 = Files.createDirectories(root.resolve("jazz/miles-davis/kind-of-blue-full"))
+
+        writeFile(dir1, "01 - So What.flac", flacBytes(
+            "ALBUMARTIST=Miles Davis", "ALBUM=Kind of Blue", "DATE=1959"
+        ))
+        writeFile(dir2, "02 - Freddie.flac", flacBytes(
+            "ALBUMARTIST=Miles Davis", "ALBUM=Kind of Blue", "DATE=1959-05-04"
+        ))
+
+        val groups = walker.walk(root)
+
+        assertEquals(1, groups.size, "DATE=1959 and DATE=1959-05-04 must merge into one group")
+        assertEquals(2, groups[0].flacPaths.size)
+    }
+
+    @Test
+    fun `walk rootPath for merged group is the shallowest directory`() = withTempDir { root ->
+        // Shallowest path (fewest nameCount segments) wins when two directories hold the same album.
+        // shallow = root/miles-davis/kind-of-blue  (2 segments below root)
+        // deep    = root/jazz/miles-davis/kind-of-blue (3 segments below root)
+        // shallow.nameCount < deep.nameCount, so shallow is chosen as rootPath.
+        val shallow = Files.createDirectories(root.resolve("miles-davis/kind-of-blue"))
+        val deep = Files.createDirectories(root.resolve("jazz/miles-davis/kind-of-blue"))
+
+        writeFile(shallow, "01 - So What.flac", flacBytes(
+            "ALBUMARTIST=Miles Davis", "ALBUM=Kind of Blue", "DATE=1959"
+        ))
+        writeFile(deep, "02 - Freddie.flac", flacBytes(
+            "ALBUMARTIST=Miles Davis", "ALBUM=Kind of Blue", "DATE=1959"
+        ))
+
+        val groups = walker.walk(root)
+
+        assertEquals(1, groups.size)
+        assertEquals(shallow, groups[0].rootPath, "shallowest directory must be chosen as rootPath")
+    }
 }

@@ -1,0 +1,40 @@
+databaseChangeLog:
+  - changeSet:
+      id: V1-006-albums-deduplication-constraint
+      author: kbeatz
+      comment: >
+        Issue #657: deduplicate albums by (album_artist, album, album_date).
+        The previous unique constraint uq_albums_identity included directory_path,
+        which caused albums stored across multiple directories (e.g. a re-rip in a
+        different folder) to appear as separate entries on the overview.
+        The new constraint uses only (album_artist, album, album_date) so that two
+        directories containing the same release merge into one catalogue entry.
+        Albums with the same title but a different year remain separate because
+        album_date differs (see ADR-010-album-deduplication.adoc for the full
+        disambiguation strategy).
+        directory_path is retained as a column for cover-art lookup and is updated
+        to the canonical (shallowest) root path by the library walker on each rescan.
+        UPGRADE NOTE: if the existing database contains rows that already violate
+        the new (album_artist, album, album_date) uniqueness (same artist+title+year
+        stored in two different directories as separate rows), addUniqueConstraint
+        will fail. Run the pre-condition query manually before upgrading and
+        deduplicate any conflicting rows.
+      preConditions:
+        - onFail: HALT
+          sqlCheck:
+            expectedResult: "0"
+            sql: >
+              SELECT COUNT(*) FROM (
+                SELECT album_artist, album, album_date, COUNT(*) AS cnt
+                FROM albums
+                GROUP BY album_artist, album, album_date
+                HAVING COUNT(*) > 1
+              ) duplicates
+      changes:
+        - dropUniqueConstraint:
+            tableName: albums
+            constraintName: uq_albums_identity
+        - addUniqueConstraint:
+            tableName: albums
+            columnNames: album_artist, album, album_date
+            constraintName: uq_albums_dedup

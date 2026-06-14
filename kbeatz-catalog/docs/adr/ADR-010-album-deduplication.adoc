@@ -1,0 +1,159 @@
+= ADR-010 - Album Deduplication by (albumArtist, album, date)
+:revnumber: 1.0
+:revdate: 2026-06-14
+:author: kbeatz team
+:status: Accepted
+
+== Status
+
+Accepted
+
+== Context
+
+Prior to this change (issue #657), the album catalogue used
+`(album_artist, album, album_date, directory_path)` as the uniqueness key for
+albums. This caused the album overview to display duplicate cards whenever the
+same release was stored in more than one directory on disk. Common scenarios:
+
+* A user keeps a lossless rip and a separate backup copy under different folder
+  names.
+* A multi-volume box set is ripped into sibling directories that are not named
+  `disc1`/`disc2` (so the existing disc-directory heuristic does not merge them).
+* A user migrates their library and leaves old folders alongside the new ones
+  during the transition.
+
+The duplicate cards were confusing: the user sees "Kind of Blue" twice, each
+card pointing to a different directory, with the same artist and title.
+
+The album index is the canonical source of truth for the UI.  The physical
+directory layout is an implementation detail of the storage layer and should
+not drive the logical catalogue view.
+
+== Decision
+
+=== Natural key
+
+The natural key for an album is `(albumArtist, album, albumDate)`.
+
+* `albumArtist` + `album` identify the release.
+* `albumDate` (the year from the DATE Vorbis Comment tag) disambiguates editions
+  of the same title released in different years (e.g. original 1959 and a 2014
+  remaster).
+* `directoryPath` is no longer part of the unique constraint.
+
+The database constraint `uq_albums_identity` (the old four-column constraint) is
+replaced by `uq_albums_dedup` on `(album_artist, album, album_date)` via
+Liquibase changeset `V1-006-albums-deduplication-constraint`.
+
+=== LibraryWalker grouping key
+
+`LibraryWalker.groupFlacFiles` previously used
+`(canonicalDir, albumArtist, albumTitle)` as the in-memory grouping key, which
+meant FLAC files from different directories always produced separate `AlbumGroup`
+objects even when their tags identified the same release.
+
+The new grouping key is `(albumArtist, albumTitle, date)`.  FLAC files from any
+number of directories that share the same `(ALBUMARTIST, ALBUM, DATE)` tags are
+merged into a single `AlbumGroup`.  All their tracks end up under one album UUID
+in the catalogue, so "clicking the album shows all tracks" (AC-2) is satisfied.
+
+=== rootPath selection for merged groups
+
+When tracks from multiple directories merge into one group, the
+representative `rootPath` (stored as `directory_path`) is chosen as the
+directory with the fewest path segments.  Ties are broken alphabetically.
+This is a stable, deterministic choice that minimises the depth of the path
+shown in the UI and used for cover-art lookup.
+
+=== ExposedAlbumRepository.saveChunk natural-key lookup
+
+The in-process natural-key lookup inside `saveChunk` is updated to use
+`(albumArtist, album, albumDate)` (without `directoryPath`) so that a rescan
+that encounters the album at a different path correctly identifies the existing
+row and updates it structurally rather than inserting a duplicate.
+
+=== Date normalisation in the grouping key
+
+The grouping key uses only the first four characters of the DATE tag (the
+4-digit year).  This means tracks tagged `DATE=1959` and `DATE=1959-05-04`
+are treated as the same release and merged into one group.  The full date
+string is preserved in `AlbumGroup.date` (taken from the first track
+encountered) and stored in the database `album_date` column unchanged.
+
+=== Disambiguation strategy
+
+Two physical directories that contain recordings of the same title by the same
+artist but with different DATE year values are treated as separate catalogue
+entries.  This covers the most common real-world case of needing separate
+entries: original release vs. a remaster issued years later.
+
+If two directories contain the same `(ALBUMARTIST, ALBUM, DATE)` combination
+but are genuinely different recordings (e.g. different performances of the
+same work), the user must differentiate them by editing the DATE tag in one
+directory.  There is no heuristic that can distinguish this case automatically.
+
+When DATE is absent on some tracks, the `date` field in the grouping key is
+`null`.  Null dates do not break the merge: all FLAC files across all
+directories that lack a DATE tag and share the same artist + title merge into
+one group.  Users can add DATE tags to force separation.
+
+== Consequences
+
+=== Positive
+
+* The album overview shows one card per release, satisfying issue #657.
+* Track listing for a grouped album includes files from all directories.
+* Cover-art lookup still works: `directoryPath` is updated to the shallowest
+  canonical path on every rescan.
+* URL stability is preserved: the album UUID remains the same across rescans
+  because `saveChunk` matches on the natural key and reuses the existing UUID.
+* Discogs metadata (genre, label, catalogNumber, discogsId, images) is never
+  overwritten by a rescan, because `updateAlbumStructural` only touches the
+  three scan-derived columns plus `directoryPath`.
+
+=== Negative / risks
+
+* Albums with same artist, title, and year that are genuinely different
+  recordings will be merged into one catalogue entry.  This is an acceptable
+  trade-off for a home music server where such collisions are very rare.  The
+  user can resolve it by editing the DATE tag in one directory.
+* If a database already contains rows that would violate the new
+  `uq_albums_dedup` constraint (same artist + album + date, different path),
+  the Liquibase migration will fail.  In that case the user must manually
+  deduplicate the rows before upgrading.  This scenario is unlikely in practice
+  because the previous four-column constraint already prevented two rows with
+  the same path for the same album.
+
+=== Not affected
+
+* Tag-edit writes: `PATCH /api/v1/albums/{id}` still operates on the
+  `directory_path` stored on the album row and writes tags to all FLAC files
+  found under that path.  If the merged album's `directory_path` was chosen as
+  the shallowest directory, only files under that directory are updated by a
+  tag write.  Files in the other merged directories retain their original tags
+  until the user triggers a rescan.  This is tracked as a known limitation in
+  issue #666: multi-directory tag writes for deduplicated albums.
+
+== Alternatives considered
+
+[cols="1,2,2", options="header"]
+|===
+|Option |Pros |Cons
+
+|Keep directory_path in unique key (status quo)
+|No schema migration; no risk of merging genuinely different recordings
+|Duplicate cards on overview (the reported bug); poor user experience
+
+|Option A - grouping layer in the query (GROUP BY at read time)
+|No schema change; easy to revert
+|Complex SQL; aggregate queries become harder; directoryPath in the
+ response becomes ambiguous (which of the merged paths is shown?)
+
+|Option B - deduplicate at scan/index time (this ADR)
+|Clean data model; one row per logical album; simple read queries
+|Schema migration required; multi-directory tag writes not yet addressed
+
+|===
+
+Option B was chosen because it keeps the data model clean and makes read
+queries simple.  The schema migration is small and safe for new installations.
