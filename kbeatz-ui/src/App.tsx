@@ -99,6 +99,9 @@ function AlbumListPage() {
   // so keyboard users do not lose their position when a button disappears (WCAG 2.1 SC 2.4.3).
   const paginationInfoRef = useRef<HTMLSpanElement>(null)
 
+  // Skip the first render so we do not steal focus on mount.
+  const didMountRef = useRef(false)
+
   // Move focus to the pagination info span after every page navigation.
   // When a button (Next or Prev) is removed from the DOM after page change,
   // the browser silently drops focus to <body>, losing the keyboard user's position.
@@ -106,6 +109,10 @@ function AlbumListPage() {
   // without adding a tab stop to the normal Tab sequence (WCAG 2.1 SC 2.4.3).
   // The optional-chain ensures this is a no-op when the pagination nav is hidden.
   useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true
+      return
+    }
     paginationInfoRef.current?.focus()
   }, [page])
 
