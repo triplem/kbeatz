@@ -61,7 +61,7 @@ class ExposedAlbumRepository : AlbumRepository {
             AlbumsTable
                 .selectAll()
                 .where { AlbumsTable.directoryPath eq directoryPath }
-                .singleOrNull()
+                .firstOrNull()
                 ?.toAlbum()
         }
 
