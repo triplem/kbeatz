@@ -1,5 +1,24 @@
 databaseChangeLog:
   - changeSet:
+      id: V1-006a-dedup-existing-albums
+      author: kbeatz
+      comment: >
+        Pre-step for V1-006: remove duplicate album rows that share (album_artist, album,
+        album_date) before the unique constraint can be applied. The old uq_albums_identity
+        constraint included directory_path, so the same release stored in two directories
+        produced two rows. This changeset keeps the row with the lexicographically smallest
+        id per group (deterministic tiebreaker) and deletes the rest. Associated tracks are
+        removed via ON DELETE CASCADE and will be repopulated on the next library rescan.
+      changes:
+        - sql:
+            sql: >
+              DELETE FROM albums
+              WHERE CAST(id AS VARCHAR) NOT IN (
+                SELECT MIN(CAST(id AS VARCHAR))
+                FROM albums
+                GROUP BY album_artist, album, album_date
+              )
+  - changeSet:
       id: V1-006-albums-deduplication-constraint
       author: kbeatz
       comment: >

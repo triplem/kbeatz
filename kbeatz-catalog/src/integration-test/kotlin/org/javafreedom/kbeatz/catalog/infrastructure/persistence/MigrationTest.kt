@@ -1,6 +1,9 @@
 package org.javafreedom.kbeatz.catalog.infrastructure.persistence
 
+import com.zaxxer.hikari.HikariConfig
+import com.zaxxer.hikari.HikariDataSource
 import java.util.UUID
+import javax.sql.DataSource
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -8,15 +11,45 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.test.runTest
+import liquibase.Liquibase
+import liquibase.database.DatabaseFactory as LiquibaseDatabaseFactory
+import liquibase.database.jvm.JdbcConnection
+import liquibase.resource.ClassLoaderResourceAccessor
 import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.model.Track
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.deleteAll
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 
 private fun Uuid.asJavaUuid(): UUID = UUID.fromString(this.toString())
+
+@Suppress("MagicNumber")
+private fun initDbWithChangelog(jdbcUrl: String, changelog: String): HikariDataSource {
+    val config = HikariConfig().apply {
+        this.jdbcUrl = jdbcUrl
+        username = "sa"
+        password = ""
+        maximumPoolSize = 2
+        minimumIdle = 1
+        isAutoCommit = false
+        transactionIsolation = "TRANSACTION_READ_COMMITTED"
+        validate()
+    }
+    val ds = HikariDataSource(config)
+    applyChangelog(ds, changelog)
+    return ds
+}
+
+private fun applyChangelog(ds: DataSource, changelog: String) {
+    ds.connection.use { conn ->
+        val db = LiquibaseDatabaseFactory.getInstance()
+            .findCorrectDatabaseImplementation(JdbcConnection(conn))
+        Liquibase(changelog, ClassLoaderResourceAccessor(), db).use { it.update() }
+    }
+}
 
 /**
  * Integration tests verifying the V1__baseline Liquibase migration and Exposed ORM.
@@ -716,6 +749,50 @@ class MigrationTest {
             transaction { AlbumsTable.deleteAll() }
             ds.close()
         }
+    }
+
+    @Test
+    fun `dedup migration V1-006a cleans duplicate albums so V1-006 unique constraint applies`() = runTest {
+        val url = "jdbc:h2:mem:dedup_migration_${System.nanoTime()};DB_CLOSE_DELAY=-1;MODE=PostgreSQL"
+
+        // Apply only baseline (V1-001..V1-005): old uq_albums_identity includes directory_path
+        val ds = initDbWithChangelog(url, "db/changelog-baseline-only.yaml")
+        Database.connect(ds)
+
+        // Insert 3 duplicate groups: same (artist, album, date), different paths.
+        // Valid under the old constraint (directory_path is part of the key).
+        transaction {
+            listOf(
+                listOf("Miles Davis", "Kind of Blue", "1959", "jazz/a"),
+                listOf("Miles Davis", "Kind of Blue", "1959", "jazz/b"),
+                listOf("Bach", "Goldberg Variations", "1741", "baroque/a"),
+                listOf("Bach", "Goldberg Variations", "1741", "baroque/b"),
+                listOf("Beethoven", "Symphony No 9", "1824", "classical/a"),
+                listOf("Beethoven", "Symphony No 9", "1824", "classical/b"),
+            ).forEach { (artist, title, date, path) ->
+                AlbumsTable.insert {
+                    it[id] = org.jetbrains.exposed.v1.core.dao.id.EntityID(UUID.randomUUID(), AlbumsTable)
+                    it[albumArtist] = artist
+                    it[album] = title
+                    it[albumDate] = date
+                    it[directoryPath] = path
+                }
+            }
+        }
+
+        // Run full migration - V1-006a must deduplicate, then V1-006 must add the constraint without error
+        applyChangelog(ds, "db/changelog/db.changelog-master.yaml")
+
+        // Exactly 3 rows remain (one per group); migration did not throw
+        transaction {
+            assertEquals(
+                3L,
+                AlbumsTable.selectAll().count(),
+                "dedup must leave one row per (album_artist, album, album_date) group",
+            )
+        }
+
+        ds.close()
     }
 
     @Test
