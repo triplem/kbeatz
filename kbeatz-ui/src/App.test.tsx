@@ -154,6 +154,46 @@ describe('AlbumListPage - pagination visibility', () => {
   })
 })
 
+describe('AlbumListPage - focus management after pagination', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('moves focus to the info span after clicking Next on a 2-page result (Next disappears)', async () => {
+    const user = userEvent.setup()
+    // 2 pages: clicking Next lands on the last page; Next button is removed
+    mockUseAlbumPage.mockReturnValue(makePageResult({ totalPages: 2, totalElements: 40, page: 0 }))
+    renderApp()
+
+    await user.click(screen.getByTestId('pagination-next'))
+
+    // The Next button must be gone
+    expect(screen.queryByTestId('pagination-next')).not.toBeInTheDocument()
+    // Focus should be on the info span, not lost to <body>
+    expect(screen.getByTestId('pagination-info')).toHaveFocus()
+  })
+
+  it('moves focus to the info span after clicking Prev on the first page (Prev disappears)', async () => {
+    const user = userEvent.setup()
+    mockUseAlbumPage.mockReturnValue(makePageResult({ totalPages: 2, totalElements: 40, page: 0 }))
+    renderApp()
+
+    // Go to page 1 first
+    await user.click(screen.getByTestId('pagination-next'))
+    // Now go back to page 0 - Prev disappears
+    await user.click(screen.getByTestId('pagination-prev'))
+
+    expect(screen.queryByTestId('pagination-prev')).not.toBeInTheDocument()
+    expect(screen.getByTestId('pagination-info')).toHaveFocus()
+  })
+
+  it('pagination-info span has tabIndex=-1 so it is focusable but not in Tab order', () => {
+    mockUseAlbumPage.mockReturnValue(makePageResult({ totalPages: 3, totalElements: 60, page: 0 }))
+    renderApp()
+    expect(screen.getByTestId('pagination-info')).toHaveAttribute('tabindex', '-1')
+  })
+})
+
 describe('AlbumListPage - next page navigation', () => {
   beforeEach(() => {
     vi.clearAllMocks()
