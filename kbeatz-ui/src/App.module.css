@@ -171,3 +171,20 @@
   gap: var(--space-md);
   margin-top: var(--space-xl);
 }
+
+.paginationButton {
+  min-height: var(--min-touch-target);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--accent-button);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-base);
+}
+
+.paginationButton:hover {
+  background: var(--accent-hover);
+}
