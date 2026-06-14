@@ -1,11 +1,10 @@
-import { Fragment, useCallback, useRef, useState } from 'react'
+import { Fragment, useCallback, useState } from 'react'
 import { useNavigate, useParams, useBlocker } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import { type Album, AlbumsService, type Track } from '../../api/generated'
 import { useAlbum } from './useAlbum'
 import { useAlbumTagSave } from './useAlbumTagSave'
-import { CancelledByUserError } from './cancelled-by-user-error'
 import { ConfirmWriteDialog } from './confirm-write-dialog'
 import { NavigationGuardDialog } from './navigation-guard-dialog'
 import { EditableField } from './editable-field'
@@ -83,20 +82,6 @@ function PathDisplay({ path, label, testId }: PathDisplayProps) {
  * - On sync complete the album state is updated with the returned Album
  */
 
-/**
- * Pending album-level tag save that is awaiting user confirmation.
- *
- * Used by the batch Save flow: the confirmation dialog captures the full dirty-fields
- * map, then resolves this when all PATCHes succeed or rejects on the first failure.
- */
-interface PendingSave {
-  readonly field: string
-  readonly value: string
-  /** resolve/reject from the Promise returned to EditableField so it can
-   *  show errors or exit edit mode correctly */
-  readonly resolve: () => void
-  readonly reject: (err: unknown) => void
-}
 
 export function AlbumDetail() {
   const { albumId } = useParams<{ albumId: string }>()
@@ -127,8 +112,6 @@ export function AlbumDetail() {
   const [dirtyFields, setDirtyFields] = useState<Record<string, string>>({})
   /** Error message from the most recent failed batch save, cleared on next Save attempt. */
   const [batchSaveError, setBatchSaveError] = useState<string | null>(null)
-  const pendingSaveRef = useRef<PendingSave | null>(null)
-
   /**
    * Navigation blocker: intercepts all React Router navigations (back button,
    * in-app links, browser history) when there are uncommitted dirty fields.
@@ -162,23 +145,17 @@ export function AlbumDetail() {
   }, [])
 
   /**
-   * Called by the Save button click. Shows the confirmation dialog; the dialog
-   * confirmation triggers the actual batch PATCH sequence.
-   * Also used as the onSave prop on album fields only as a fallback (e.g. if a field
-   * is submitted via Enter without the onCommit path - this should not happen in
-   * normal usage, but keeps the Promise contract intact).
+   * Sentinel onSave passed to album-level EditableField instances.
+   * Album fields use onCommit + batch Save; onSave is never called in normal usage
+   * because EditableField only calls onSave when onCommit is absent.
+   * This function exists only to satisfy the required onSave prop type.
+   * Rejects immediately if somehow invoked so the bug is visible in tests and logs.
    */
   const handleAlbumTagSave = useCallback(
-    (field: string, value: string): Promise<void> =>
-      new Promise((resolve, reject) => {
-        pendingSaveRef.current = {
-          field,
-          value,
-          resolve: () => { resolve() },
-          reject: (err: unknown) => { reject(err) },
-        }
-        setConfirmOpen(true)
-      }),
+    // Parameters are intentionally unused: album fields commit via onCommit, not onSave.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    (_field: string, _value: string): Promise<void> =>
+      Promise.reject(new Error('Album field onSave called unexpectedly - use onCommit')),
     [],
   )
 
@@ -194,31 +171,10 @@ export function AlbumDetail() {
 
   /**
    * User clicked "Write tags" in the confirmation dialog.
-   *
-   * When triggered by the Save button (pendingSaveRef is null), batch-saves all dirty
-   * fields in sequence and clears them on success.
-   *
-   * When triggered by a legacy single-field flow (pendingSaveRef is set), fires the
-   * single PATCH and resolves/rejects the pending promise.
+   * Batch-saves all dirty album-level fields in sequence and clears them on success.
    */
   const handleConfirm = useCallback(async () => {
-    const pending = pendingSaveRef.current
     setConfirmOpen(false)
-    pendingSaveRef.current = null
-
-    if (pending !== null) {
-      // Legacy single-field path (track fields still use this)
-      if (!albumId) return
-      try {
-        await saveTag({ field: pending.field, value: pending.value })
-        setHasLocalEdits(true)
-        setSyncedAlbum(undefined)
-        pending.resolve()
-      } catch (err) {
-        pending.reject(err)
-      }
-      return
-    }
 
     // Batch-save all dirty album-level fields
     if (!albumId) return
@@ -242,17 +198,11 @@ export function AlbumDetail() {
 
   /**
    * User clicked "Cancel" or pressed Escape on the confirmation dialog.
-   * Reject the pending promise so EditableField keeps its edited state
-   * (the user's changes remain in the input - they are NOT reset).
-   * For the batch Save button flow (no pending ref), just close the dialog.
+   * Closes the dialog without applying any changes; dirty fields remain intact
+   * so the user can retry the batch Save.
    */
   const handleCancel = useCallback(() => {
-    const pending = pendingSaveRef.current
     setConfirmOpen(false)
-    pendingSaveRef.current = null
-    // Reject with a sentinel so EditableField rolls back to original value
-    // and shows no error (the user deliberately cancelled).
-    pending?.reject(new CancelledByUserError())
   }, [])
 
   const handleTrackTagSave = useCallback(
