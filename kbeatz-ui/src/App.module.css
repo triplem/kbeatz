@@ -162,6 +162,14 @@
   }
 }
 
+/* ── Page indicator (below album grid, above pagination nav) ─ */
+
+.pageIndicator {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  text-align: center;
+}
+
 /* ── Pagination controls ───────────────────────────── */
 
 .appPagination {

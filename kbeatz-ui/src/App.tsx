@@ -179,6 +179,16 @@ function AlbumListPage() {
             <>
               <AlbumGrid albums={clientFilteredAlbums} totalCount={totalElements} />
               {totalPages > 1 && (
+                <p
+                  className={styles.pageIndicator}
+                  data-testid="page-indicator"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
+                  {t('pagination.pageIndicator', { current: page + 1, total: totalPages })}
+                </p>
+              )}
+              {totalPages > 1 && (
                 <nav aria-label={t('pagination.ariaLabel')} className={styles.appPagination} data-testid="album-pagination">
                   {page > 0 && (
                     <button

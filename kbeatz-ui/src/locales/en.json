@@ -177,6 +177,7 @@
     "ariaLabel": "Album page navigation",
     "previous": "Previous",
     "next": "Next",
-    "pageOf": "Page {{current}} of {{total}}"
+    "pageOf": "Page {{current}} of {{total}}",
+    "pageIndicator": "Showing page {{current}} of {{total}}"
   }
 }
