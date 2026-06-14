@@ -242,3 +242,40 @@
     padding: var(--space-xs) var(--space-sm);
   }
 }
+
+/* ── Save row (batch save) ───────────────────────────── */
+
+.saveRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.saveButton {
+  min-height: var(--min-touch-target);
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-base);
+}
+
+.saveButton:hover:not(:disabled) {
+  background: var(--accent-dark, var(--accent));
+  filter: brightness(0.9);
+}
+
+.saveButton:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.dirtyCount {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}

@@ -349,4 +349,98 @@ describe('EditableField', () => {
       )
     })
   })
+
+  // ──────────────────────────────────────────────
+  // onCommit dirty-mode (#654)
+  // ──────────────────────────────────────────────
+
+  describe('when onCommit is provided (dirty-commit mode)', () => {
+    const commitProps = {
+      label: 'Genre',
+      value: 'Jazz',
+      fieldName: 'GENRE',
+      onSave: vi.fn(),
+      onCommit: vi.fn(),
+      testIdPrefix: 'album',
+    }
+
+    it('Enter calls onCommit instead of onSave', async () => {
+      const onCommit = vi.fn()
+      const onSave = vi.fn()
+      render(<EditableField {...commitProps} onCommit={onCommit} onSave={onSave} />)
+
+      fireEvent.click(screen.getByTestId('album-value-genre'))
+      fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Rock' } })
+      fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
+
+      await waitFor(() => {
+        expect(onCommit).toHaveBeenCalledWith('GENRE', 'Rock')
+      })
+      expect(onSave).not.toHaveBeenCalled()
+    })
+
+    it('Tab calls onCommit and exits edit mode', async () => {
+      const onCommit = vi.fn()
+      render(<EditableField {...commitProps} onCommit={onCommit} />)
+
+      fireEvent.click(screen.getByTestId('album-value-genre'))
+      fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Electronic' } })
+      fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Tab' })
+
+      await waitFor(() => {
+        expect(onCommit).toHaveBeenCalledWith('GENRE', 'Electronic')
+        expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument()
+      })
+    })
+
+    it('Tab does not show "changes discarded" hint', async () => {
+      const onCommit = vi.fn()
+      render(<EditableField {...commitProps} onCommit={onCommit} />)
+
+      fireEvent.click(screen.getByTestId('album-value-genre'))
+      fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Electronic' } })
+      fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Tab' })
+      // Simulate the blur that the browser fires after Tab
+      const input = screen.queryByTestId('album-input-genre')
+      if (input !== null) fireEvent.blur(input)
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument()
+      })
+      expect(screen.queryByTestId('album-hint-genre')).not.toBeInTheDocument()
+    })
+
+    it('committed value is shown in display mode after Tab commit', async () => {
+      const onCommit = vi.fn()
+      render(<EditableField {...commitProps} onCommit={onCommit} />)
+
+      fireEvent.click(screen.getByTestId('album-value-genre'))
+      fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Folk' } })
+      fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Tab' })
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument()
+        // Display shows the committed pending value, not the original 'Jazz'
+        expect(screen.getByTestId('album-value-genre')).toHaveTextContent('Folk')
+      })
+    })
+
+    it('clicking a dirty-committed field pre-fills with the committed value', async () => {
+      const onCommit = vi.fn()
+      render(<EditableField {...commitProps} onCommit={onCommit} />)
+
+      // First commit: Tab
+      fireEvent.click(screen.getByTestId('album-value-genre'))
+      fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Folk' } })
+      fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Tab' })
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument()
+      })
+
+      // Re-open the field - should pre-fill with 'Folk' (committed value), not 'Jazz'
+      fireEvent.click(screen.getByTestId('album-value-genre'))
+      expect(screen.getByTestId('album-input-genre')).toHaveValue('Folk')
+    })
+  })
 })

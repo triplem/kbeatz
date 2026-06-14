@@ -95,11 +95,23 @@ function renderDetail(albumId = 'album-id-1') {
   )
 }
 
-/** Helper: open edit mode for a field, type a new value, press Enter, then confirm in dialog. */
+/**
+ * Helper: open edit mode for a field, type a new value, press Enter to commit dirty,
+ * then click the Save button, then click Confirm in the dialog.
+ */
 async function editAlbumFieldAndConfirm(fieldTestId: string, inputTestId: string, newValue: string) {
   fireEvent.click(screen.getByTestId(fieldTestId))
   fireEvent.change(screen.getByTestId(inputTestId), { target: { value: newValue } })
+  // Enter now commits as dirty (no dialog yet)
   fireEvent.keyDown(screen.getByTestId(inputTestId), { key: 'Enter' })
+
+  // Wait for input to disappear (dirty commit exits edit mode)
+  await waitFor(() => {
+    expect(screen.queryByTestId(inputTestId)).not.toBeInTheDocument()
+  })
+
+  // Click the Save button to trigger the confirmation dialog
+  fireEvent.click(screen.getByTestId('save-button'))
 
   await waitFor(() => {
     expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument()
@@ -290,7 +302,7 @@ describe('AlbumDetail', () => {
     expect(mockAlbumsService.updateAlbumTags).not.toHaveBeenCalled()
   })
 
-  it('rolls back and shows error when updateAlbumTags fails after confirmation', async () => {
+  it('retains dirty fields and closes dialog when batch save fails', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     mockAlbumsService.updateAlbumTags.mockRejectedValue(new Error('Server error'))
     renderDetail()
@@ -299,20 +311,30 @@ describe('AlbumDetail', () => {
       expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
     })
 
-    await editAlbumFieldAndConfirm('album-value-genre', 'album-input-genre', 'Rock')
+    // Commit as dirty
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Rock' } })
+    fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
+    await waitFor(() => { expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument() })
 
+    // Open dialog and confirm
+    fireEvent.click(screen.getByTestId('save-button'))
+    await waitFor(() => { expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument() })
+    fireEvent.click(screen.getByTestId('confirm-dialog-confirm'))
+
+    // After failure, dialog closes but dirty fields are retained for retry
     await waitFor(() => {
-      expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument()
-      expect(screen.getByTestId('album-value-genre')).toHaveTextContent('Jazz')
-      expect(screen.getByTestId('album-error-genre')).toHaveTextContent('Server error')
+      expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
     })
+    // Dirty count still visible (fields retained for retry)
+    expect(screen.getByTestId('dirty-count')).toBeInTheDocument()
   })
 
   // ──────────────────────────────────────────────
   // Confirmation dialog behaviour
   // ──────────────────────────────────────────────
 
-  it('shows confirmation dialog before the PATCH fires', async () => {
+  it('shows confirmation dialog before the PATCH fires (dialog triggered by Save button)', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     mockAlbumsService.updateAlbumTags.mockResolvedValue(makeAlbum({ genre: 'Rock' }))
     renderDetail()
@@ -321,11 +343,18 @@ describe('AlbumDetail', () => {
       expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
     })
 
+    // Commit field as dirty via Enter
     fireEvent.click(screen.getByTestId('album-value-genre'))
     fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Rock' } })
     fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
 
-    // Dialog appears; PATCH has NOT been called yet
+    // Wait for input to exit edit mode (dirty commit)
+    await waitFor(() => {
+      expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument()
+    })
+
+    // Click Save button to trigger dialog; PATCH has NOT been called yet
+    fireEvent.click(screen.getByTestId('save-button'))
     await waitFor(() => {
       expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument()
     })
@@ -344,9 +373,12 @@ describe('AlbumDetail', () => {
       expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
     })
 
+    // Commit as dirty then open dialog via Save button
     fireEvent.click(screen.getByTestId('album-value-genre'))
     fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Rock' } })
     fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
+    await waitFor(() => { expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument() })
+    fireEvent.click(screen.getByTestId('save-button'))
 
     await waitFor(() => {
       expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument()
@@ -364,16 +396,19 @@ describe('AlbumDetail', () => {
       expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
     })
 
+    // Commit as dirty then open dialog via Save button
     fireEvent.click(screen.getByTestId('album-value-genre'))
     fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Rock' } })
     fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
+    await waitFor(() => { expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument() })
+    fireEvent.click(screen.getByTestId('save-button'))
 
     await waitFor(() => {
       expect(screen.getByTestId('confirm-dialog-warning')).toHaveTextContent('This cannot be undone')
     })
   })
 
-  it('Cancel button prevents the PATCH and leaves field in edited state', async () => {
+  it('Cancel button prevents the PATCH and retains dirty fields for retry', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     renderDetail()
 
@@ -381,16 +416,18 @@ describe('AlbumDetail', () => {
       expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
     })
 
-    // Edit and trigger dialog
+    // Commit as dirty then open dialog via Save button
     fireEvent.click(screen.getByTestId('album-value-genre'))
     fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Rock' } })
     fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
+    await waitFor(() => { expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument() })
+    fireEvent.click(screen.getByTestId('save-button'))
 
     await waitFor(() => {
       expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument()
     })
 
-    // Cancel
+    // Cancel - dialog closes, dirty fields are retained (user can retry Save)
     fireEvent.click(screen.getByTestId('confirm-dialog-cancel'))
 
     await waitFor(() => {
@@ -399,8 +436,8 @@ describe('AlbumDetail', () => {
 
     // PATCH was never called
     expect(mockAlbumsService.updateAlbumTags).not.toHaveBeenCalled()
-    // Field shows original value (rolled back silently - no error shown)
-    expect(screen.getByTestId('album-value-genre')).toHaveTextContent('Jazz')
+    // Dirty count still shown - the committed value stays pending
+    expect(screen.getByTestId('dirty-count')).toBeInTheDocument()
     expect(screen.queryByTestId('album-error-genre')).not.toBeInTheDocument()
   })
 
@@ -412,9 +449,12 @@ describe('AlbumDetail', () => {
       expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
     })
 
+    // Commit as dirty then open dialog via Save button
     fireEvent.click(screen.getByTestId('album-value-genre'))
     fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Rock' } })
     fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
+    await waitFor(() => { expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument() })
+    fireEvent.click(screen.getByTestId('save-button'))
 
     await waitFor(() => {
       expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument()
@@ -448,6 +488,128 @@ describe('AlbumDetail', () => {
 
     await waitFor(() => {
       expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
+    })
+  })
+
+  // ──────────────────────────────────────────────
+  // Save button / dirty-field batch-save (#654)
+  // ──────────────────────────────────────────────
+
+  it('Save button is disabled when no fields are dirty', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('save-button')).toBeInTheDocument()
+    })
+
+    expect(screen.getByTestId('save-button')).toBeDisabled()
+  })
+
+  it('Save button becomes enabled after a field is committed via Enter', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Rock' } })
+    fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('save-button')).not.toBeDisabled()
+    })
+  })
+
+  it('Tab key commits field as dirty and enables Save button', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Electronic' } })
+    fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Tab' })
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument()
+      expect(screen.getByTestId('save-button')).not.toBeDisabled()
+    })
+  })
+
+  it('dirty count shows number of uncommitted fields', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
+    })
+
+    // Commit genre as dirty
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Rock' } })
+    fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('dirty-count')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('dirty-count')).toHaveTextContent('1 unsaved change')
+  })
+
+  it('Enter on album field commits as dirty without opening dialog', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Rock' } })
+    fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument()
+    })
+
+    // No dialog - dirty commit only
+    expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
+    // PATCH not called yet
+    expect(mockAlbumsService.updateAlbumTags).not.toHaveBeenCalled()
+  })
+
+  it('Save button sends all dirty fields in sequence', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    mockAlbumsService.updateAlbumTags.mockResolvedValue(makeAlbum({ genre: 'Rock', label: 'Blue Note' }))
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
+    })
+
+    // Commit genre
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Rock' } })
+    fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
+    await waitFor(() => { expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument() })
+
+    // Commit label
+    fireEvent.click(screen.getByTestId('album-value-label'))
+    fireEvent.change(screen.getByTestId('album-input-label'), { target: { value: 'Blue Note' } })
+    fireEvent.keyDown(screen.getByTestId('album-input-label'), { key: 'Enter' })
+    await waitFor(() => { expect(screen.queryByTestId('album-input-label')).not.toBeInTheDocument() })
+
+    // Click Save -> dialog -> confirm
+    fireEvent.click(screen.getByTestId('save-button'))
+    await waitFor(() => { expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument() })
+    fireEvent.click(screen.getByTestId('confirm-dialog-confirm'))
+
+    await waitFor(() => {
+      expect(mockAlbumsService.updateAlbumTags).toHaveBeenCalledTimes(2)
     })
   })
 

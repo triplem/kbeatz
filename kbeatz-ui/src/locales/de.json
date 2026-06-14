@@ -63,6 +63,11 @@
     "copy": "Kopieren",
     "copied": "Kopiert!",
     "copyPath": "{{label}} kopieren",
+    "saveButton": "Speichern",
+    "saveButtonLabel": "{{count}} ausstehende Tag-Änderung(en) in FLAC-Dateien schreiben",
+    "saveButtonLabelClean": "Speichern - keine ausstehenden Änderungen",
+    "dirtyCount_one": "{{count}} ungespeicherte Änderung",
+    "dirtyCount_other": "{{count}} ungespeicherte Änderungen",
     "noTracks": "Keine Titelinformationen verfügbar",
     "discHeader": "Disc {{number}}",
     "trackColumns": {
