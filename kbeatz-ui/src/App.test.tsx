@@ -190,7 +190,8 @@ describe('AlbumListPage - next page navigation', () => {
     await user.click(screen.getByTestId('pagination-prev'))
     expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 1 of 3')
     expect(screen.queryByTestId('pagination-prev')).not.toBeInTheDocument()
-    expect(mockUseAlbumPage).toHaveBeenCalledWith(0, expect.anything())
+    // Use toHaveBeenLastCalledWith to target the decrement call specifically
+    expect(mockUseAlbumPage).toHaveBeenLastCalledWith(0, expect.anything())
   })
 })
 
