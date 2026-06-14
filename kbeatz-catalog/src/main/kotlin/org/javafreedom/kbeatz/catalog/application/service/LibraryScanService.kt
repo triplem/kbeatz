@@ -203,10 +203,21 @@ class LibraryScanService(
 
     /**
      * Looks up the album by [AlbumGroup.rootPath], then deletes existing tracks and saves
-     * fresh ones read from the FLAC files. Skips silently if the album is not found in the DB.
+     * fresh ones read from the FLAC files.
+     *
+     * Logs a WARN and returns early if the album cannot be found in the DB after [saveAll].
+     * This should not happen in normal operation and indicates a natural-key mismatch or
+     * data race; the WARN provides an observable signal instead of silently dropping tracks.
      */
     private suspend fun saveTracksForGroup(group: AlbumGroup) {
-        val savedAlbum = albumRepository.findByDirectoryPath(group.rootPath.toString()) ?: return
+        val savedAlbum = albumRepository.findByDirectoryPath(group.rootPath.toString())
+        if (savedAlbum == null) {
+            log.warn {
+                "track_save_skip rootPath=${group.rootPath} " +
+                    "reason=album_not_found_in_db_after_saveAll - tracks will not be indexed"
+            }
+            return
+        }
         val tracks = group.flacPaths.mapNotNull { readTrack(it, savedAlbum.id, group.rootPath) }
         trackRepository.deleteByAlbumId(savedAlbum.id)
         if (tracks.isNotEmpty()) {
