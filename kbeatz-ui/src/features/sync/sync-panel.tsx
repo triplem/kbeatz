@@ -8,9 +8,11 @@ import styles from './sync-panel.module.css'
 /** Client-side timeout for Discogs sync requests (30 seconds). */
 const SYNC_TIMEOUT_MS = 30_000
 
-/** Tag fields that Discogs sync can update. These are present on both AlbumDetail and Album. */
-type SyncTagField = 'albumArtist' | 'album' | 'date' | 'genre' | 'label' | 'catalogNumber' | 'composer' | 'conductor' | 'ensemble'
-const SYNC_TAG_FIELDS: ReadonlyArray<SyncTagField> = [
+/**
+ * Tag fields that Discogs sync can update. Each entry is verified at compile time
+ * to be a key present on both AlbumDetail and Album via the `satisfies` constraint.
+ */
+const SYNC_TAG_FIELDS = [
   'albumArtist',
   'album',
   'date',
@@ -20,7 +22,7 @@ const SYNC_TAG_FIELDS: ReadonlyArray<SyncTagField> = [
   'composer',
   'conductor',
   'ensemble',
-]
+] as const satisfies ReadonlyArray<keyof AlbumDetail & keyof Album>
 
 /** Count how many tag fields differ between the album before and after sync. */
 function countChangedFields(before: AlbumDetail, after: Album): number {
