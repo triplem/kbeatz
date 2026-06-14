@@ -164,6 +164,7 @@ function AlbumListPage() {
                       type="button"
                       onClick={() => setPage((p) => p - 1)}
                       data-testid="pagination-prev"
+                      className={styles.paginationButton}
                     >
                       {t('pagination.previous')}
                     </button>
@@ -176,6 +177,7 @@ function AlbumListPage() {
                       type="button"
                       onClick={() => setPage((p) => p + 1)}
                       data-testid="pagination-next"
+                      className={styles.paginationButton}
                     >
                       {t('pagination.next')}
                     </button>
