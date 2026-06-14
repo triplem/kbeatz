@@ -11,6 +11,7 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.uuid.Uuid
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -18,6 +19,7 @@ import org.javafreedom.kbeatz.catalog.domain.model.AlbumGroup
 import org.javafreedom.kbeatz.catalog.domain.model.ScanState
 import org.javafreedom.kbeatz.catalog.domain.model.ScanStatus
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
+import org.javafreedom.kbeatz.catalog.domain.repository.TrackRepository
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class LibraryScanServiceTest {
@@ -25,11 +27,13 @@ class LibraryScanServiceTest {
     private val libraryRoot: Path = Path.of("/music")
     private val walker: LibraryWalker = mockk()
     private val albumRepository: AlbumRepository = mockk()
+    private val trackRepository: TrackRepository = mockk()
 
     private fun service() = LibraryScanService(
         libraryRoot = libraryRoot,
         walker = walker,
         albumRepository = albumRepository,
+        trackRepository = trackRepository,
         scanDispatcher = UnconfinedTestDispatcher(),
     )
 
@@ -54,11 +58,17 @@ class LibraryScanServiceTest {
         assertNull(status.errorMessage)
     }
 
+    // Stubs for track-saving path: findByDirectoryPath returns null so track logic is skipped.
+    private fun stubNoTracks() {
+        coEvery { albumRepository.findByDirectoryPath(any()) } returns null
+    }
+
     @Test
     fun `startScan transitions to COMPLETE with correct counts`() = runTest {
         val groups = listOf(albumGroup("Miles Davis"), albumGroup("John Coltrane"))
         every { walker.walk(libraryRoot) } returns groups
         coEvery { albumRepository.saveAll(any()) } returns Unit
+        stubNoTracks()
 
         val svc = service()
         svc.startScan()
@@ -80,6 +90,7 @@ class LibraryScanServiceTest {
             emptyList()
         }
         coEvery { albumRepository.saveAll(any()) } returns Unit
+        stubNoTracks()
 
         val svc = service()
         svc.startScan() // First scan — completes synchronously
@@ -127,6 +138,7 @@ class LibraryScanServiceTest {
         val groups = listOf(albumGroup("Bach", "Goldberg Variations"))
         every { walker.walk(libraryRoot) } returns groups
         coEvery { albumRepository.saveAll(any()) } returns Unit
+        stubNoTracks()
 
         val svc = service()
         svc.startScan()
@@ -144,6 +156,7 @@ class LibraryScanServiceTest {
     fun `startScan with empty library completes with zero counts`() = runTest {
         every { walker.walk(libraryRoot) } returns emptyList()
         coEvery { albumRepository.saveAll(any()) } returns Unit
+        stubNoTracks()
 
         val svc = service()
         svc.startScan()
@@ -161,6 +174,7 @@ class LibraryScanServiceTest {
             libraryRoot = libraryRoot,
             walker = walker,
             albumRepository = albumRepository,
+            trackRepository = trackRepository,
             scanDispatcher = dispatcher,
         )
 
@@ -178,6 +192,7 @@ class LibraryScanServiceTest {
         val groups = listOf(albumGroup())
         every { walker.walk(libraryRoot) } returns groups
         coEvery { albumRepository.saveAll(any()) } returns Unit
+        stubNoTracks()
 
         val svc = service()
         svc.startScan()
@@ -268,6 +283,7 @@ class LibraryScanServiceTest {
         val groups = listOf(albumGroup("Miles Davis"), albumGroup("John Coltrane"))
         every { walker.walk(libraryRoot) } returns groups
         coEvery { albumRepository.saveAll(any()) } returns Unit
+        stubNoTracks()
 
         val svc = service()
         svc.startScan()
@@ -286,6 +302,7 @@ class LibraryScanServiceTest {
         coEvery { albumRepository.saveAll(match { albums -> albums[0].albumArtist == "Miles Davis" }) } returns Unit
         coEvery { albumRepository.saveAll(match { albums -> albums[0].albumArtist == "John Coltrane" }) } throws
             RuntimeException("permission denied")
+        stubNoTracks()
 
         val svc = service()
         svc.startScan()
@@ -345,10 +362,123 @@ class LibraryScanServiceTest {
         // Second scan with no errors
         every { walker.walk(libraryRoot) } returns emptyList()
         coEvery { albumRepository.saveAll(any()) } returns Unit
+        stubNoTracks()
         svc.startScan()
 
         val status = svc.status()
         assertEquals(0, status.totalErrors)
         assertTrue(status.errors.isEmpty())
+    }
+
+    // --- Track indexing tests ---
+
+    @Test
+    fun `startScan deletes and re-saves tracks when album is found after save`() = runTest {
+        val albumId = Uuid.random()
+        val savedAlbum = org.javafreedom.kbeatz.catalog.domain.model.Album(
+            id = albumId,
+            albumArtist = "Miles Davis",
+            album = "Kind of Blue",
+            date = "1959",
+            genre = null,
+            label = null,
+            catalogNumber = null,
+            composer = null,
+            conductor = null,
+            ensemble = null,
+            discogsId = null,
+            directoryPath = "/music/Miles Davis/Kind of Blue",
+            extraTags = null,
+            images = null,
+        )
+        val groups = listOf(albumGroup("Miles Davis"))
+        every { walker.walk(libraryRoot) } returns groups
+        coEvery { albumRepository.saveAll(any()) } returns Unit
+        // findByDirectoryPath returns the saved album so track saving is triggered
+        coEvery { albumRepository.findByDirectoryPath("/music/Miles Davis/Kind of Blue") } returns savedAlbum
+        // readTrack() will fail to open the fake FLAC path and return null, so saveAll is not called
+        coEvery { trackRepository.deleteByAlbumId(albumId) } returns Unit
+
+        val svc = service()
+        svc.startScan()
+
+        // deleteByAlbumId must be called to clear stale tracks before re-indexing
+        coVerify(exactly = 1) { trackRepository.deleteByAlbumId(albumId) }
+        // saveAll is NOT called when all FLAC reads fail (fake paths return null from readTrack)
+        coVerify(exactly = 0) { trackRepository.saveAll(any()) }
+        assertEquals(ScanState.COMPLETE, svc.status().state)
+    }
+
+    @Test
+    fun `startScan skips track saving when findByDirectoryPath returns null`() = runTest {
+        val groups = listOf(albumGroup("Miles Davis"))
+        every { walker.walk(libraryRoot) } returns groups
+        coEvery { albumRepository.saveAll(any()) } returns Unit
+        coEvery { albumRepository.findByDirectoryPath(any()) } returns null
+
+        val svc = service()
+        svc.startScan()
+
+        // Neither deleteByAlbumId nor trackRepository.saveAll should be called
+        coVerify(exactly = 0) { trackRepository.deleteByAlbumId(any()) }
+        coVerify(exactly = 0) { trackRepository.saveAll(any()) }
+        assertEquals(ScanState.COMPLETE, svc.status().state)
+    }
+
+    @Test
+    fun `readTrack extracts Vorbis Comment tags and duration from a real FLAC file`() = runTest {
+        // Uses the with-tags.flac fixture (generated by kbeatz-tagger FixtureGenerator).
+        // TITLE="Kind of Blue", TRACKNUMBER="1", ARTIST="Miles Davis", SAMPLE_RATE=44100, TOTAL_SAMPLES=4410
+        val flacResource = checkNotNull(
+            LibraryScanServiceTest::class.java.classLoader.getResource("with-tags.flac"),
+        ) { "with-tags.flac fixture not found in test resources" }
+        val flacPath = java.nio.file.Path.of(flacResource.toURI())
+        val albumRoot = flacPath.parent
+        val albumId = Uuid.random()
+        val savedAlbum = org.javafreedom.kbeatz.catalog.domain.model.Album(
+            id = albumId,
+            albumArtist = "Miles Davis",
+            album = "Kind of Blue",
+            date = "1959",
+            genre = null,
+            label = null,
+            catalogNumber = null,
+            composer = null,
+            conductor = null,
+            ensemble = null,
+            discogsId = null,
+            directoryPath = albumRoot.toString(),
+            extraTags = null,
+            images = null,
+        )
+        val group = AlbumGroup(
+            rootPath = albumRoot,
+            flacPaths = listOf(flacPath),
+            albumArtist = "Miles Davis",
+            albumTitle = "Kind of Blue",
+            date = "1959",
+        )
+        every { walker.walk(libraryRoot) } returns listOf(group)
+        coEvery { albumRepository.saveAll(any()) } returns Unit
+        coEvery { albumRepository.findByDirectoryPath(albumRoot.toString()) } returns savedAlbum
+        coEvery { trackRepository.deleteByAlbumId(albumId) } returns Unit
+        coEvery { trackRepository.saveAll(any()) } returns Unit
+
+        val svc = service()
+        svc.startScan()
+
+        // Track data must be derived from the real FLAC file: TITLE="Kind of Blue", TRACKNUMBER="1"
+        coVerify(exactly = 1) {
+            trackRepository.saveAll(match { tracks ->
+                tracks.size == 1 &&
+                    tracks[0].title == "Kind of Blue" &&
+                    tracks[0].trackNumber == "1" &&
+                    tracks[0].artist == "Miles Davis" &&
+                    // duration = 4410 samples / 44100 Hz = 0.1s → 0 rounded (int division)
+                    tracks[0].durationSeconds != null &&
+                    tracks[0].albumId == albumId
+            })
+        }
+        assertEquals(ScanState.COMPLETE, svc.status().state)
     }
 }

@@ -16,6 +16,7 @@ import kotlinx.coroutines.test.runTest
 import org.javafreedom.kbeatz.catalog.domain.model.AlbumGroup
 import org.javafreedom.kbeatz.catalog.domain.model.WRITE_LOCK_FILENAME
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
+import org.javafreedom.kbeatz.catalog.domain.repository.TrackRepository
 
 /**
  * Unit tests for [LibraryScanService.repairOnStartup].
@@ -27,6 +28,7 @@ class RepairOnStartupTest {
 
     private val walker: LibraryWalker = mockk()
     private val albumRepository: AlbumRepository = mockk()
+    private val trackRepository: TrackRepository = mockk()
 
     @Suppress("MagicNumber") // default 60s timeout for the test helper
     private fun withTempLibrary(
@@ -39,6 +41,7 @@ class RepairOnStartupTest {
                 libraryRoot = root,
                 walker = walker,
                 albumRepository = albumRepository,
+                trackRepository = trackRepository,
                 scanDispatcher = UnconfinedTestDispatcher(),
                 repairTimeoutSeconds = repairTimeoutSeconds,
             )
@@ -46,6 +49,11 @@ class RepairOnStartupTest {
         } finally {
             root.toFile().deleteRecursively()
         }
+    }
+
+    // Stub for track-saving path: findByDirectoryPath returns null so track logic is skipped.
+    private fun stubNoTracks() {
+        coEvery { albumRepository.findByDirectoryPath(any()) } returns null
     }
 
     private fun albumGroup(dir: Path, artist: String = "Bach", album: String = "BWV 998") =
@@ -73,6 +81,7 @@ class RepairOnStartupTest {
 
         every { walker.walk(albumDir) } returns listOf(albumGroup(albumDir))
         coEvery { albumRepository.saveAll(any()) } returns Unit
+        stubNoTracks()
 
         svc.repairOnStartup()
 
@@ -100,6 +109,7 @@ class RepairOnStartupTest {
             every { walker.walk(dir1) } returns listOf(albumGroup(dir1, "Bach", "BWV 998"))
             every { walker.walk(dir2) } returns listOf(albumGroup(dir2, "Miles Davis", "Kind of Blue"))
             coEvery { albumRepository.saveAll(any()) } returns Unit
+            stubNoTracks()
 
             svc.repairOnStartup()
 
@@ -145,6 +155,7 @@ class RepairOnStartupTest {
                 @Suppress("MagicNumber") // 5000ms delay to exceed the 1-second timeout
                 delay(5_000L)
             }
+            stubNoTracks()
 
             svc.repairOnStartup()
 
@@ -165,6 +176,7 @@ class RepairOnStartupTest {
             every { walker.walk(dir1) } throws RuntimeException("Read error")
             every { walker.walk(dir2) } returns listOf(albumGroup(dir2, "Coltrane", "A Love Supreme"))
             coEvery { albumRepository.saveAll(any()) } returns Unit
+            stubNoTracks()
 
             svc.repairOnStartup()
 

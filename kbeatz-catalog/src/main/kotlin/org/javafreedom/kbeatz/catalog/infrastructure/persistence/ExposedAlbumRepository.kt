@@ -56,6 +56,15 @@ class ExposedAlbumRepository : AlbumRepository {
                 ?.toAlbum()
         }
 
+    override suspend fun findByDirectoryPath(directoryPath: String): Album? =
+        suspendTransaction {
+            AlbumsTable
+                .selectAll()
+                .where { AlbumsTable.directoryPath eq directoryPath }
+                .singleOrNull()
+                ?.toAlbum()
+        }
+
     override suspend fun findAllWithCount(page: Int, size: Int, filter: AlbumFilter): Pair<List<Album>, Long> =
         suspendTransaction {
             // Track-count and total-duration aggregates are computed in this single query via a
