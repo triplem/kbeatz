@@ -763,6 +763,43 @@ describe('AlbumDetail', () => {
     expect(screen.queryByTestId('dirty-count')).not.toBeInTheDocument()
   })
 
+  it('retains dirty track fields and shows error when track save fails', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    mockAlbumsService.updateTrackTags.mockRejectedValue(new Error('Server error'))
+    renderDetail()
+
+    const trackId = 'track-id-1'
+    await waitFor(() => {
+      expect(screen.getByTestId(`track-${trackId}-value-title`)).toBeInTheDocument()
+    })
+
+    // Commit track field as dirty
+    fireEvent.click(screen.getByTestId(`track-${trackId}-value-title`))
+    fireEvent.change(screen.getByTestId(`track-${trackId}-input-title`), { target: { value: 'New Title' } })
+    fireEvent.keyDown(screen.getByTestId(`track-${trackId}-input-title`), { key: 'Enter' })
+    await waitFor(() => { expect(screen.queryByTestId(`track-${trackId}-input-title`)).not.toBeInTheDocument() })
+
+    // Open dialog and confirm
+    fireEvent.click(screen.getByTestId('save-button'))
+    await waitFor(() => { expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument() })
+    fireEvent.click(screen.getByTestId('confirm-dialog-confirm'))
+
+    // After failure: dialog closed, dirty count still visible, error message shown
+    await waitFor(() => {
+      expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
+    })
+    // Dirty count still present (track field retained for retry)
+    await waitFor(() => {
+      expect(screen.getByTestId('dirty-count')).toBeInTheDocument()
+    })
+    // Error message displayed
+    await waitFor(() => {
+      expect(screen.getByTestId('batch-save-error')).toBeInTheDocument()
+    })
+    // Save button is re-enabled for retry
+    expect(screen.getByTestId('save-button')).not.toBeDisabled()
+  })
+
   it('Save button patches both album and track dirty fields in one confirmation', async () => {
     const updatedAlbum = makeAlbum({ genre: 'Rock', tracks: [makeTrack({ title: 'New Title' })] })
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
