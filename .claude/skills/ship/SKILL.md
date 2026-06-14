@@ -131,12 +131,13 @@ For EACH issue, follow this lifecycle:
   8. git push -u origin <branch>
   9. gh pr create --title "..." --body "..."
  10. Challenge the PR from all 9 specialist perspectives (see §Challenge below)
- 11. Comment BLOCKER/MAJOR/MINOR/NIT findings on the PR
- 12. Fix all BLOCKER and MAJOR findings; re-run quality gates
+ 11. Comment ALL findings (BLOCKER through NIT) as a single consolidated comment on the PR
+ 12. Fix ALL findings directly on the branch (including MINOR and NIT) — not just BLOCKER/MAJOR; re-run quality gates after fixes
  13. gh pr checks <pr-num>  # wait for CI green
  14. gh pr merge <pr-num> --squash --delete-branch
  15. gh issue close NNN --comment "Fixed in PR #PR_NUM."
- 16. git checkout main && git pull origin main
+ 16. git branch -D <branch>  # delete local branch in your worktree
+ 17. git fetch origin && git checkout -b <next-type>/<next-NNN>-<slug> origin/main  # sync for next issue
 
 Implement issues in this order to respect dependencies: [ordered list]
 Never start an issue until its listed dependencies are merged.
@@ -194,10 +195,12 @@ EOF
 | 9 | Operations | Structured logging, health check impact, graceful shutdown |
 
 Severity guide:
-- **BLOCKER**: data loss, security hole, broken critical path — fix before merge
-- **MAJOR**: correctness bug, missing test for a stated AC, design smell — fix before merge
-- **MINOR**: style/naming, unlikely edge case, missing optional test — fix if quick
-- **NIT**: whitespace, comment wording, pedantic — fix only if trivial
+- **BLOCKER**: data loss, security hole, broken critical path — fix directly on the PR branch before merge
+- **MAJOR**: correctness bug, missing test for a stated AC, design smell — fix directly on the PR branch before merge
+- **MINOR**: style/naming, unlikely edge case, missing optional test — fix directly on the PR branch before merge
+- **NIT**: whitespace, comment wording, pedantic — fix directly on the PR branch before merge
+
+**Default behavior**: Fix ALL findings (BLOCKER through NIT) directly on the branch and push before merging. Do NOT open separate GitHub issues for individual PR findings. The Phase 5 issue-creation step applies only to Phase 4 main branch challenge findings.
 
 ---
 
@@ -444,3 +447,14 @@ Long-running agents (implementing 7+ stories) can hit network idle timeouts. Bef
 
 ### CI must cover all modules before final merge
 The main branch challenge consistently reveals gaps when CI only covers the backend. Add frontend build/lint/test as a parallel CI job early — before the first wave merges.
+
+### Fix ALL challenge findings directly on the PR branch - do not defer to follow-up issues
+The user prefers that every PR challenge finding (BLOCKER through NIT) is fixed directly on the feature branch and pushed before merging. Do not open separate GitHub issues for findings from individual PR challenges; only Phase 4 main branch challenge findings become issues. This keeps the main branch clean after each merge without leaving a trail of NIT-level debt.
+
+In practice this means step 12 in the agent lifecycle is "Fix ALL findings (not just BLOCKER/MAJOR), re-run quality gates, push." The consolidated PR comment still lists all findings so the review record exists.
+
+### Local branch cleanup is a mandatory step in each agent lifecycle
+After `gh pr merge --squash --delete-branch`, delete the local branch with `git branch -D <branch>` inside the worktree. Without this, worktrees accumulate stale branches that can conflict with subsequent issues in the same agent session.
+
+### Worktree initialization: use `--detach` or a holding branch, never share `main`
+When a worktree is created with `git worktree add <path> -b wt-agent-X`, the holding branch (`wt-agent-X`) is used only as an anchor. For each issue, create the feature branch with `git checkout -b <type>/<NNN>-<slug> origin/main` (not from the holding branch). After the ship run, delete holding branches with `git branch | grep "wt-agent-" | xargs git branch -D` and worktrees with `git worktree remove -f -f <path>`.
