@@ -302,7 +302,7 @@ describe('AlbumDetail', () => {
     expect(mockAlbumsService.updateAlbumTags).not.toHaveBeenCalled()
   })
 
-  it('retains dirty fields and closes dialog when batch save fails', async () => {
+  it('retains dirty fields and shows error when batch save fails', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     mockAlbumsService.updateAlbumTags.mockRejectedValue(new Error('Server error'))
     renderDetail()
@@ -322,12 +322,40 @@ describe('AlbumDetail', () => {
     await waitFor(() => { expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument() })
     fireEvent.click(screen.getByTestId('confirm-dialog-confirm'))
 
-    // After failure, dialog closes but dirty fields are retained for retry
+    // After failure: dialog closed, dirty fields retained for retry, error visible
     await waitFor(() => {
       expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
     })
     // Dirty count still visible (fields retained for retry)
     expect(screen.getByTestId('dirty-count')).toBeInTheDocument()
+    // Error message displayed
+    await waitFor(() => {
+      expect(screen.getByTestId('batch-save-error')).toBeInTheDocument()
+    })
+  })
+
+  it('clears dirty fields when Discogs sync completes', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ discogsId: '12345' }))
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
+    })
+
+    // Commit a dirty field
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Rock' } })
+    fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
+    await waitFor(() => { expect(screen.getByTestId('save-button')).not.toBeDisabled() })
+
+    // Trigger sync complete (which overwrites local edits)
+    fireEvent.click(screen.getByTestId('mock-sync-complete'))
+
+    // Dirty fields should be cleared; Save button should be disabled again
+    await waitFor(() => {
+      expect(screen.getByTestId('save-button')).toBeDisabled()
+    })
+    expect(screen.queryByTestId('dirty-count')).not.toBeInTheDocument()
   })
 
   // ──────────────────────────────────────────────

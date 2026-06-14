@@ -279,3 +279,9 @@
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
 }
+
+.batchSaveError {
+  color: var(--error, #c0392b);
+  font-size: var(--font-size-sm);
+  margin: 0;
+}

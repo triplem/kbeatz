@@ -121,9 +121,11 @@ export function AlbumDetail() {
    * Accumulated dirty (pending) album-level tag changes not yet saved to the backend.
    * Keys are Vorbis Comment field names (e.g. "ALBUM", "ALBUMARTIST").
    * Values are the edited strings. Later commits for the same field overwrite earlier ones.
-   * Cleared after a successful batch Save.
+   * Cleared after a successful batch Save or after a Discogs sync (which overwrites local edits).
    */
   const [dirtyFields, setDirtyFields] = useState<Record<string, string>>({})
+  /** Error message from the most recent failed batch save, cleared on next Save attempt. */
+  const [batchSaveError, setBatchSaveError] = useState<string | null>(null)
   const pendingSaveRef = useRef<PendingSave | null>(null)
 
   // Derive the displayed album - prefer synced state over query state
@@ -161,10 +163,11 @@ export function AlbumDetail() {
 
   /**
    * Opens the confirmation dialog for the batch save triggered by the Save button.
-   * The pending save ref is set to a sentinel that batch-saves all dirty fields.
+   * Clears any previous batch-save error so the user gets a clean retry attempt.
    */
   const handleSaveButtonClick = useCallback(() => {
     if (Object.keys(dirtyFields).length === 0) return
+    setBatchSaveError(null)
     setConfirmOpen(true)
   }, [dirtyFields])
 
@@ -210,10 +213,11 @@ export function AlbumDetail() {
       await refetch()
     } catch (err) {
       // On failure, keep dirty fields so the user can retry.
-      // Show the error via the save mutation error state (handled by useAlbumTagSave).
-      console.warn('Batch save failed:', err)
+      // Show the error message in the save row so the user knows what happened.
+      const message = err instanceof Error ? err.message : t('common.error')
+      setBatchSaveError(message)
     }
-  }, [albumId, dirtyFields, saveTag, refetch])
+  }, [albumId, dirtyFields, saveTag, refetch, t])
 
   /**
    * User clicked "Cancel" or pressed Escape on the confirmation dialog.
@@ -269,13 +273,18 @@ export function AlbumDetail() {
     })
     // Also invalidate the album list so the grid reflects the updated metadata
     void queryClient.invalidateQueries({ queryKey: ['albums'] })
-    // Sync completed - local edits are now overwritten by Discogs data
+    // Sync completed - Discogs data overwrites any local edits; clear dirty state so
+    // the Save button does not re-apply stale values on top of the fresh sync result.
     setHasLocalEdits(false)
+    setDirtyFields({})
+    setBatchSaveError(null)
   }, [album, queryClient])
 
   if (loading) return <p>{t('albumDetail.loading')}</p>
   if (fetchError) return <p role="alert">{t('albumDetail.errorPrefix')}{fetchError.message}</p>
   if (!displayAlbum) return <p role="alert">{t('albumDetail.notFound')}</p>
+
+  const dirtyCount = Object.keys(dirtyFields).length
 
   return (
     <>
@@ -428,20 +437,29 @@ export function AlbumDetail() {
                 type="button"
                 className={styles.saveButton}
                 onClick={handleSaveButtonClick}
-                disabled={Object.keys(dirtyFields).length === 0 || isSaving}
+                disabled={dirtyCount === 0 || isSaving}
                 data-testid="save-button"
                 aria-label={
-                  Object.keys(dirtyFields).length > 0
-                    ? t('albumDetail.saveButtonLabel', { count: Object.keys(dirtyFields).length })
+                  dirtyCount > 0
+                    ? t('albumDetail.saveButtonLabel', { count: dirtyCount })
                     : t('albumDetail.saveButtonLabelClean')
                 }
               >
                 {isSaving ? t('albumDetail.saving') : t('albumDetail.saveButton')}
               </button>
-              {Object.keys(dirtyFields).length > 0 && (
+              {dirtyCount > 0 && (
                 <span className={styles.dirtyCount} data-testid="dirty-count">
-                  {t('albumDetail.dirtyCount', { count: Object.keys(dirtyFields).length })}
+                  {t('albumDetail.dirtyCount', { count: dirtyCount })}
                 </span>
+              )}
+              {batchSaveError !== null && (
+                <p
+                  role="alert"
+                  className={styles.batchSaveError}
+                  data-testid="batch-save-error"
+                >
+                  {t('editableField.saveFailed')}: {batchSaveError}
+                </p>
               )}
             </div>
           </section>

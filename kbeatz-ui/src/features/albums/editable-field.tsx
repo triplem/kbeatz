@@ -88,7 +88,9 @@ interface EditableFieldProps {
  *
  * Behaviour:
  * - Click on value text - input appears pre-filled with current value
- * - Enter - calls onSave; triggers confirmation dialog before the PATCH is fired
+ * - Enter (no onCommit) - calls onSave; triggers confirmation dialog before the PATCH is fired
+ * - Enter/Tab (with onCommit) - commits value as a pending dirty change; no network request;
+ *   parent collects dirty changes and batch-saves on Save button click
  * - Blur (click away) - silently cancels edit, restores original value; no dialog, no API call
  * - Escape - cancels edit, restores original value; no API call made; focus returns to button
  * - On save error - rolls back to pre-edit value and sets error message
