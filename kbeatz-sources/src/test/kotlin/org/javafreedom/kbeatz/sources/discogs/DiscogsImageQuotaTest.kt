@@ -365,6 +365,17 @@ class DiscogsImageQuotaTest {
         }
     }
 
+    // --- default constant ---
+
+    @Test
+    fun `default lock timeout is 5 seconds per acceptance criteria`() {
+        // The 5-second requirement is stated in issue #501 acceptance criteria and
+        // referenced in KDoc. This test guards against accidental changes to the default.
+        assertEquals(5L, DEFAULT_LOCK_TIMEOUT_SECONDS)
+        val quota = DiscogsImageQuota()
+        assertEquals(5L, quota.lockTimeoutSeconds)
+    }
+
     @Test
     fun `QuotaLockTimeoutException is thrown when lock cannot be acquired`() {
         val dir = Files.createTempDirectory("quota-lock-timeout-test")
