@@ -2,7 +2,9 @@ package org.javafreedom.kbeatz.catalog.infrastructure.persistence
 
 import java.util.UUID
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.jdbc.deleteAll
@@ -72,7 +74,7 @@ class FindByDirectoryPathDuplicateTest {
         try {
             val repo = ExposedAlbumRepository()
             val result = repo.findByDirectoryPath("jazz/nonexistent-directory")
-            kotlin.test.assertNull(result, "findByDirectoryPath must return null for an unknown path")
+            assertNull(result, "findByDirectoryPath must return null for an unknown path")
         } finally {
             ds.close()
         }
@@ -96,8 +98,8 @@ class FindByDirectoryPathDuplicateTest {
             val result = repo.findByDirectoryPath("baroque/bach/goldberg")
 
             assertNotNull(result, "findByDirectoryPath must return the album when exactly one row matches")
-            kotlin.test.assertEquals("Bach", result.albumArtist)
-            kotlin.test.assertEquals("Goldberg Variations", result.album)
+            assertEquals("Bach", result.albumArtist)
+            assertEquals("Goldberg Variations", result.album)
         } finally {
             transaction { AlbumsTable.deleteAll() }
             ds.close()
