@@ -1,9 +1,9 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { MemoryRouter } from 'react-router-dom'
+import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { App } from './App'
+import { AlbumListPage } from './App'
 import type { AlbumPage } from './api/generated'
 import { EMPTY_FILTERS } from './features/albums/album-filters'
 
@@ -78,11 +78,13 @@ function renderApp() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })
+  const router = createMemoryRouter(
+    [{ index: true, element: <AlbumListPage /> }],
+    { initialEntries: ['/'] },
+  )
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/']}>
-        <App />
-      </MemoryRouter>
+      <RouterProvider router={router} />
     </QueryClientProvider>,
   )
 }
