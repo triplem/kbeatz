@@ -294,6 +294,7 @@ private fun insertAlbum(album: Album) {
         it[extraTags] = JsonSerde.encodeExtraTags(album.extraTags)
         it[images] = JsonSerde.encodeImages(album.images)
         it[directoryPath] = album.directoryPath
+        it[mergedDirectories] = JsonSerde.encodeMergedDirectories(album.mergedDirectories)
     }
 }
 
@@ -312,16 +313,20 @@ private fun updateAlbum(album: Album) {
         it[extraTags] = JsonSerde.encodeExtraTags(album.extraTags)
         it[images] = JsonSerde.encodeImages(album.images)
         it[directoryPath] = album.directoryPath
+        it[mergedDirectories] = JsonSerde.encodeMergedDirectories(album.mergedDirectories)
     }
 }
 
 /**
- * Updates only the four scan-derived structural columns for an album that already exists.
+ * Updates only the scan-derived structural columns for an album that already exists.
  *
  * Intentionally does NOT touch enriched Discogs fields (genre, label, catalogNumber, composer,
  * conductor, ensemble, discogsId, images). Called from [ExposedAlbumRepository.saveChunk] during
  * library rescan and startup repair so that Discogs-synced data is never overwritten by a rescan
  * that produces Album objects with null enriched fields.
+ *
+ * [mergedDirectories] IS updated here because it is a scan-derived structural field:
+ * each rescan may discover that the album now spans more or fewer directories.
  */
 private fun updateAlbumStructural(album: Album) {
     AlbumsTable.update({ AlbumsTable.id eq album.id.toJavaUuid() }) {
@@ -329,6 +334,7 @@ private fun updateAlbumStructural(album: Album) {
         it[AlbumsTable.album] = album.album
         it[albumDate] = album.date.orEmpty()
         it[directoryPath] = album.directoryPath
+        it[mergedDirectories] = JsonSerde.encodeMergedDirectories(album.mergedDirectories)
     }
 }
 
@@ -347,6 +353,7 @@ internal fun ResultRow.toAlbum(): Album = Album(
     extraTags = JsonSerde.decodeExtraTags(this[AlbumsTable.extraTags]),
     images = JsonSerde.decodeImages(this[AlbumsTable.images]),
     directoryPath = this[AlbumsTable.directoryPath],
+    mergedDirectories = JsonSerde.decodeMergedDirectories(this[AlbumsTable.mergedDirectories]),
 )
 
 /**

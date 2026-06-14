@@ -59,6 +59,7 @@ class RepairOnStartupTest {
     private fun albumGroup(dir: Path, artist: String = "Bach", album: String = "BWV 998") =
         AlbumGroup(
             rootPath = dir,
+            sourceDirs = listOf(dir),
             flacPaths = listOf(dir.resolve("01.flac")),
             albumArtist = artist,
             albumTitle = album,

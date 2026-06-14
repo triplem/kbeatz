@@ -355,4 +355,43 @@ class LibraryWalkerTest {
         assertEquals(1, groups.size)
         assertEquals(shallow, groups[0].rootPath, "shallowest directory must be chosen as rootPath")
     }
+
+    @Test
+    fun `walk sourceDirs contains all directories that contributed FLAC files to the group`() =
+        withTempDir { root ->
+            // Two sibling directories with the same album (deduplication scenario, issue #666).
+            val lossless = Files.createDirectories(root.resolve("kind-of-blue-lossless"))
+            val backup = Files.createDirectories(root.resolve("kind-of-blue-backup"))
+
+            writeFile(lossless, "01 - So What.flac", flacBytes(
+                "ALBUMARTIST=Miles Davis", "ALBUM=Kind of Blue", "DATE=1959"
+            ))
+            writeFile(backup, "01 - So What.flac", flacBytes(
+                "ALBUMARTIST=Miles Davis", "ALBUM=Kind of Blue", "DATE=1959"
+            ))
+
+            val groups = walker.walk(root)
+
+            assertEquals(1, groups.size, "Both directories must be merged into one group")
+            assertEquals(
+                setOf(lossless, backup),
+                groups[0].sourceDirs.toSet(),
+                "sourceDirs must contain both the lossless and backup directories",
+            )
+        }
+
+    @Test
+    fun `walk sourceDirs contains single directory for albums from one source`() =
+        withTempDir { root ->
+            val albumDir = Files.createDirectories(root.resolve("kind-of-blue"))
+            writeFile(albumDir, "01 - So What.flac", flacBytes(
+                "ALBUMARTIST=Miles Davis", "ALBUM=Kind of Blue", "DATE=1959"
+            ))
+
+            val groups = walker.walk(root)
+
+            assertEquals(1, groups.size)
+            assertEquals(listOf(albumDir), groups[0].sourceDirs,
+                "Single-directory album must have exactly one entry in sourceDirs")
+        }
 }

@@ -413,6 +413,68 @@ class TagWriteServiceTest {
     }
 
     // ──────────────────────────────────────────────
+    // Multi-directory write path (issue #666)
+    // ──────────────────────────────────────────────
+
+    @Test
+    fun `writeAlbumTags writes tags to FLAC files in merged directories`() = runTest {
+        // Set up a second directory (merged) alongside the primary albumDir.
+        val mergedDir: Path = Files.createTempDirectory(libraryRoot, "kind-of-blue-backup")
+
+        // Place a FLAC file in each directory.
+        val primaryFlac = albumDir.resolve("01.flac")
+        val mergedFlac = mergedDir.resolve("01.flac")
+        copyMinimalFlac(primaryFlac)
+        copyMinimalFlac(mergedFlac)
+
+        // Build album with a merged directory recorded.
+        val album = buildAlbum().copy(mergedDirectories = listOf(mergedDir.toString()))
+        coEvery { albumRepository.findById(albumId) } returns album
+        coEvery { albumRepository.save(any()) } answers { firstArg() }
+
+        service.writeAlbumTags(albumId, "GENRE", "Jazz")
+
+        // Both FLAC files must still exist after the write (not truncated or deleted).
+        assertTrue(primaryFlac.toFile().exists(), "Primary FLAC file must exist after multi-dir write")
+        assertTrue(mergedFlac.toFile().exists(), "Merged FLAC file must exist after multi-dir write")
+
+        // Lock file must be cleaned up in the primary directory.
+        assertFalse(
+            albumDir.resolve(WRITE_LOCK_FILENAME).toFile().exists(),
+            "Write-lock file must be removed after multi-dir write",
+        )
+    }
+
+    @Test
+    fun `writeAlbumTags skips merged directory that no longer exists on disk`() = runTest {
+        val phantomDir = libraryRoot.resolve("phantom-does-not-exist")
+        // phantomDir is NOT created on disk.
+
+        val album = buildAlbum().copy(mergedDirectories = listOf(phantomDir.toString()))
+        coEvery { albumRepository.findById(albumId) } returns album
+        coEvery { albumRepository.save(any()) } answers { firstArg() }
+
+        // Must succeed without throwing; phantom dir is skipped with a WARN.
+        val result = service.writeAlbumTags(albumId, "GENRE", "Jazz")
+        assertEquals("Jazz", result.genre)
+    }
+
+    @Test
+    fun `writeAlbumTags with empty mergedDirectories writes only to primary directory`() = runTest {
+        val flacFile = albumDir.resolve("01.flac")
+        copyMinimalFlac(flacFile)
+
+        val album = buildAlbum() // mergedDirectories defaults to emptyList()
+        coEvery { albumRepository.findById(albumId) } returns album
+        coEvery { albumRepository.save(any()) } answers { firstArg() }
+
+        val result = service.writeAlbumTags(albumId, "GENRE", "Rock")
+
+        assertEquals("Rock", result.genre)
+        assertTrue(flacFile.toFile().exists(), "Primary FLAC file must exist after single-dir write")
+    }
+
+    // ──────────────────────────────────────────────
     // Helpers
     // ──────────────────────────────────────────────
 
