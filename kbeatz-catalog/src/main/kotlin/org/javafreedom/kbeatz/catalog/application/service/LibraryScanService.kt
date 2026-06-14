@@ -214,6 +214,7 @@ class LibraryScanService(
         if (savedAlbum == null) {
             log.warn {
                 "track_save_skip rootPath=${group.rootPath} " +
+                    "albumArtist=${group.albumArtist} albumTitle=${group.albumTitle} " +
                     "reason=album_not_found_in_db_after_saveAll - tracks will not be indexed"
             }
             return
