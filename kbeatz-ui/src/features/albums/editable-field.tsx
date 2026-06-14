@@ -44,6 +44,11 @@ function classifyTagWriteError(err: unknown, t: TFunction): string {
   if (apiErr.status === 500 || apiErr.status === 503) {
     return t('editableField.saveFailedServer')
   }
+  // InternalSentinelError means a sentinel onSave was called unexpectedly.
+  // Map it to a generic user-facing message rather than exposing the developer string.
+  if (err instanceof Error && err.name === 'InternalSentinelError') {
+    return t('editableField.saveFailed')
+  }
   if (err instanceof Error) return err.message
   return t('editableField.saveFailed')
 }

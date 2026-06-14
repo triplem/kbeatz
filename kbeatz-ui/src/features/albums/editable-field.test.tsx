@@ -350,6 +350,29 @@ describe('EditableField', () => {
     })
   })
 
+  it('shows generic save-failed message when InternalSentinelError fires, not the raw developer string', async () => {
+    // Simulates the sentinel onSave from album-detail.tsx being called unexpectedly.
+    // classifyTagWriteError must map err.name === 'InternalSentinelError' to the
+    // generic i18n key rather than exposing the developer-facing error.message.
+    const sentinelErr = new Error('Album field onSave called unexpectedly - use onCommit')
+    sentinelErr.name = 'InternalSentinelError'
+    const onSave = vi.fn().mockRejectedValue(sentinelErr)
+    render(<EditableField {...defaultProps} onSave={onSave} />)
+
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    await userEvent.clear(screen.getByTestId('album-input-genre'))
+    await userEvent.type(screen.getByTestId('album-input-genre'), 'NewValue')
+    fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
+
+    await waitFor(() => {
+      // Must show the generic user-facing message, NOT the developer string
+      expect(screen.getByTestId('album-error-genre')).not.toHaveTextContent(
+        'Album field onSave called unexpectedly - use onCommit',
+      )
+      expect(screen.getByTestId('album-error-genre')).toHaveTextContent('Save failed')
+    })
+  })
+
   // ──────────────────────────────────────────────
   // onCommit dirty-mode (#654)
   // ──────────────────────────────────────────────
