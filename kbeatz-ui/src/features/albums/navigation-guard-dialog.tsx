@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useId, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+// Shared dialog styles - same visual language as ConfirmWriteDialog (overlay, card, buttons).
+// Both dialogs are intentionally styled from this single module so changes propagate to both.
 import styles from './confirm-write-dialog.module.css'
 
 interface NavigationGuardDialogProps {
@@ -24,6 +26,8 @@ interface NavigationGuardDialogProps {
  * - Focus returns to the triggering element when the dialog closes
  * - Escape dismisses as Cancel
  * - Tab focus is trapped inside the dialog while open
+ * - Element IDs are generated with useId() to prevent collisions when multiple
+ *   dialogs render simultaneously (e.g. nav guard + write confirm).
  */
 export function NavigationGuardDialog({
   open,
@@ -34,6 +38,9 @@ export function NavigationGuardDialog({
   const cancelButtonRef = useRef<HTMLButtonElement>(null)
   const confirmButtonRef = useRef<HTMLButtonElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
+  const id = useId()
+  const titleId = `${id}-title`
+  const bodyId = `${id}-body`
 
   // Save the currently focused element and move focus into dialog when it opens.
   // Cancel is the safe default - the destructive action is leaving and losing changes.
@@ -98,18 +105,18 @@ export function NavigationGuardDialog({
       <div
         role="dialog"
         aria-modal="true"
-        aria-labelledby="nav-guard-title"
-        aria-describedby="nav-guard-body"
+        aria-labelledby={titleId}
+        aria-describedby={bodyId}
         className={styles.dialog}
         data-testid="nav-guard-dialog"
         onKeyDown={handleKeyDown}
         onClick={(e) => { e.stopPropagation() }}
       >
-        <h2 id="nav-guard-title" className={styles.title}>
+        <h2 id={titleId} className={styles.title}>
           {t('navGuard.title')}
         </h2>
 
-        <p id="nav-guard-body" className={styles.body}>
+        <p id={bodyId} className={styles.body}>
           {t('navGuard.body')}
         </p>
 

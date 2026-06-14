@@ -176,7 +176,7 @@
   },
   "navGuard": {
     "title": "You have unsaved changes",
-    "body": "Leaving this page will discard all pending tag edits. Leave anyway?",
+    "body": "Leaving this page will discard all pending tag edits.",
     "cancelButton": "Stay on page",
     "confirmButton": "Leave anyway"
   },

@@ -175,8 +175,8 @@
     "backToLibrary": "Zuruck zur Bibliothek"
   },
   "navGuard": {
-    "title": "Sie haben ungespeicherte Anderungen",
-    "body": "Wenn Sie diese Seite verlassen, werden alle ausstehenden Tag-Bearbeitungen verworfen. Trotzdem verlassen?",
+    "title": "Sie haben ungespeicherte Änderungen",
+    "body": "Wenn Sie diese Seite verlassen, werden alle ausstehenden Tag-Bearbeitungen verworfen.",
     "cancelButton": "Auf Seite bleiben",
     "confirmButton": "Trotzdem verlassen"
   },

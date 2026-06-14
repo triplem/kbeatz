@@ -1068,4 +1068,39 @@ describe('AlbumDetail - navigation guard (dirty fields)', () => {
       expect(screen.getByTestId('list-page')).toBeInTheDocument()
     })
   })
+
+  it('pressing Escape on nav guard dialog keeps user on album detail page with dirty changes intact', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-album')).toBeInTheDocument()
+    })
+
+    // Commit a dirty field
+    fireEvent.click(screen.getByTestId('album-value-album'))
+    fireEvent.change(screen.getByTestId('album-input-album'), { target: { value: 'New Title' } })
+    fireEvent.keyDown(screen.getByTestId('album-input-album'), { key: 'Enter' })
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('album-input-album')).not.toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByTestId('back-button'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('nav-guard-dialog')).toBeInTheDocument()
+    })
+
+    // Press Escape - equivalent to Cancel (stay on page)
+    fireEvent.keyDown(screen.getByTestId('nav-guard-dialog'), { key: 'Escape' })
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('nav-guard-dialog')).not.toBeInTheDocument()
+    })
+
+    // Still on album detail page with dirty count visible
+    expect(screen.getByTestId('album-value-album')).toBeInTheDocument()
+    expect(screen.getByTestId('dirty-count')).toBeInTheDocument()
+  })
 })
