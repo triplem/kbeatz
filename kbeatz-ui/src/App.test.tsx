@@ -167,7 +167,7 @@ describe('AlbumListPage - focus management after pagination', () => {
   it('moves focus to the info span after clicking Next on a 2-page result (Next disappears)', async () => {
     const user = userEvent.setup()
     // 2 pages: clicking Next lands on the last page; Next button is removed
-    mockUseAlbumPage.mockReturnValue(makePageResult({ totalPages: 2, totalElements: 40, page: 0 }))
+    mockUseAlbumPage.mockReturnValue(asMockResult(makePageResult({ totalPages: 2, totalElements: 40, page: 0 })))
     renderApp()
 
     await user.click(screen.getByTestId('pagination-next'))
@@ -180,7 +180,7 @@ describe('AlbumListPage - focus management after pagination', () => {
 
   it('moves focus to the info span after clicking Prev on the first page (Prev disappears)', async () => {
     const user = userEvent.setup()
-    mockUseAlbumPage.mockReturnValue(makePageResult({ totalPages: 2, totalElements: 40, page: 0 }))
+    mockUseAlbumPage.mockReturnValue(asMockResult(makePageResult({ totalPages: 2, totalElements: 40, page: 0 })))
     renderApp()
 
     // Go to page 1 first
@@ -193,7 +193,7 @@ describe('AlbumListPage - focus management after pagination', () => {
   })
 
   it('pagination-info span has tabIndex=-1 so it is focusable but not in Tab order', () => {
-    mockUseAlbumPage.mockReturnValue(makePageResult({ totalPages: 3, totalElements: 60, page: 0 }))
+    mockUseAlbumPage.mockReturnValue(asMockResult(makePageResult({ totalPages: 3, totalElements: 60, page: 0 })))
     renderApp()
     expect(screen.getByTestId('pagination-info')).toHaveAttribute('tabindex', '-1')
   })
@@ -205,7 +205,7 @@ describe('AlbumListPage - page indicator', () => {
   })
 
   it('shows page indicator when there are multiple pages', () => {
-    mockUseAlbumPage.mockReturnValue(makePageResult({ totalPages: 5, totalElements: 100, page: 0 }))
+    mockUseAlbumPage.mockReturnValue(asMockResult(makePageResult({ totalPages: 5, totalElements: 100, page: 0 })))
     renderApp()
     const indicator = screen.getByTestId('page-indicator')
     expect(indicator).toBeInTheDocument()
@@ -213,20 +213,20 @@ describe('AlbumListPage - page indicator', () => {
   })
 
   it('does not show page indicator when there is only one page', () => {
-    mockUseAlbumPage.mockReturnValue(makePageResult({ totalPages: 1, totalElements: 20, page: 0 }))
+    mockUseAlbumPage.mockReturnValue(asMockResult(makePageResult({ totalPages: 1, totalElements: 20, page: 0 })))
     renderApp()
     expect(screen.queryByTestId('page-indicator')).not.toBeInTheDocument()
   })
 
   it('does not show page indicator when totalPages is 0', () => {
-    mockUseAlbumPage.mockReturnValue(makePageResult({ totalPages: 0, totalElements: 0 }))
+    mockUseAlbumPage.mockReturnValue(asMockResult(makePageResult({ totalPages: 0, totalElements: 0 })))
     renderApp()
     expect(screen.queryByTestId('page-indicator')).not.toBeInTheDocument()
   })
 
   it('updates page indicator text after navigating to next page', async () => {
     const user = userEvent.setup()
-    mockUseAlbumPage.mockReturnValue(makePageResult({ totalPages: 3, totalElements: 60, page: 0 }))
+    mockUseAlbumPage.mockReturnValue(asMockResult(makePageResult({ totalPages: 3, totalElements: 60, page: 0 })))
     renderApp()
     expect(screen.getByTestId('page-indicator')).toHaveTextContent('Showing page 1 of 3')
 

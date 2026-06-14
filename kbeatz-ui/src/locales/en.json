@@ -63,6 +63,12 @@
     "copy": "Copy",
     "copied": "Copied!",
     "copyPath": "Copy {{label}}",
+    "saveButton": "Save",
+    "saveButtonLabel_one": "Save 1 pending tag change to FLAC files",
+    "saveButtonLabel_other": "Save {{count}} pending tag changes to FLAC files",
+    "saveButtonLabelClean": "Save - no pending changes",
+    "dirtyCount_one": "{{count}} unsaved change",
+    "dirtyCount_other": "{{count}} unsaved changes",
     "noTracks": "No track information available",
     "discHeader": "Disc {{number}}",
     "trackColumns": {

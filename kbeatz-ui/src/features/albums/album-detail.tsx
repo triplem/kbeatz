@@ -85,9 +85,8 @@ function PathDisplay({ path, label, testId }: PathDisplayProps) {
 /**
  * Pending album-level tag save that is awaiting user confirmation.
  *
- * When an EditableField triggers onSave we do NOT fire the PATCH immediately.
- * Instead we capture the intent here, show the confirmation dialog, and only
- * call the API once the user clicks "Write tags".
+ * Used by the batch Save flow: the confirmation dialog captures the full dirty-fields
+ * map, then resolves this when all PATCHes succeed or rejects on the first failure.
  */
 interface PendingSave {
   readonly field: string
@@ -118,17 +117,35 @@ export function AlbumDetail() {
    * When set, this overrides `album` from the query for rendering purposes.
    */
   const [syncedAlbum, setSyncedAlbum] = useState<typeof album>(undefined)
+  /**
+   * Accumulated dirty (pending) album-level tag changes not yet saved to the backend.
+   * Keys are Vorbis Comment field names (e.g. "ALBUM", "ALBUMARTIST").
+   * Values are the edited strings. Later commits for the same field overwrite earlier ones.
+   * Cleared after a successful batch Save or after a Discogs sync (which overwrites local edits).
+   */
+  const [dirtyFields, setDirtyFields] = useState<Record<string, string>>({})
+  /** Error message from the most recent failed batch save, cleared on next Save attempt. */
+  const [batchSaveError, setBatchSaveError] = useState<string | null>(null)
   const pendingSaveRef = useRef<PendingSave | null>(null)
 
   // Derive the displayed album - prefer synced state over query state
   const displayAlbum = syncedAlbum ?? album
 
   /**
-   * Called by EditableField when the user commits an album-level field edit.
-   *
-   * Instead of firing the PATCH immediately, we capture the pending save and
-   * open the confirmation dialog. The returned Promise resolves/rejects only
-   * after the user has confirmed (or cancelled).
+   * Called by EditableField when the user presses Tab or Enter on an album-level field
+   * (dirty-commit mode). Accumulates the change into dirtyFields without firing a network
+   * request. The Save button becomes enabled when at least one dirty field exists.
+   */
+  const handleAlbumTagCommit = useCallback((field: string, value: string) => {
+    setDirtyFields((prev) => ({ ...prev, [field]: value }))
+  }, [])
+
+  /**
+   * Called by the Save button click. Shows the confirmation dialog; the dialog
+   * confirmation triggers the actual batch PATCH sequence.
+   * Also used as the onSave prop on album fields only as a fallback (e.g. if a field
+   * is submitted via Enter without the onCommit path - this should not happen in
+   * normal usage, but keeps the Promise contract intact).
    */
   const handleAlbumTagSave = useCallback(
     (field: string, value: string): Promise<void> =>
@@ -145,31 +162,68 @@ export function AlbumDetail() {
   )
 
   /**
+   * Opens the confirmation dialog for the batch save triggered by the Save button.
+   * Clears any previous batch-save error so the user gets a clean retry attempt.
+   */
+  const handleSaveButtonClick = useCallback(() => {
+    if (Object.keys(dirtyFields).length === 0) return
+    setBatchSaveError(null)
+    setConfirmOpen(true)
+  }, [dirtyFields])
+
+  /**
    * User clicked "Write tags" in the confirmation dialog.
-   * Fire the actual PATCH call via mutation, then resolve/reject the pending
-   * promise so EditableField exits edit mode (or shows an error).
+   *
+   * When triggered by the Save button (pendingSaveRef is null), batch-saves all dirty
+   * fields in sequence and clears them on success.
+   *
+   * When triggered by a legacy single-field flow (pendingSaveRef is set), fires the
+   * single PATCH and resolves/rejects the pending promise.
    */
   const handleConfirm = useCallback(async () => {
     const pending = pendingSaveRef.current
-    if (!pending || !albumId) return
-
     setConfirmOpen(false)
     pendingSaveRef.current = null
 
+    if (pending !== null) {
+      // Legacy single-field path (track fields still use this)
+      if (!albumId) return
+      try {
+        await saveTag({ field: pending.field, value: pending.value })
+        setHasLocalEdits(true)
+        setSyncedAlbum(undefined)
+        pending.resolve()
+      } catch (err) {
+        pending.reject(err)
+      }
+      return
+    }
+
+    // Batch-save all dirty album-level fields
+    if (!albumId) return
+    const fields = Object.entries(dirtyFields)
     try {
-      await saveTag({ field: pending.field, value: pending.value })
+      for (const [field, value] of fields) {
+        await saveTag({ field, value })
+      }
+      setDirtyFields({})
       setHasLocalEdits(true)
       setSyncedAlbum(undefined)
-      pending.resolve()
+      // Refetch so EditableField value props update and committedValue is cleared
+      await refetch()
     } catch (err) {
-      pending.reject(err)
+      // On failure, keep dirty fields so the user can retry.
+      // Show the error message in the save row so the user knows what happened.
+      const message = err instanceof Error ? err.message : t('common.error')
+      setBatchSaveError(message)
     }
-  }, [albumId, saveTag])
+  }, [albumId, dirtyFields, saveTag, refetch, t])
 
   /**
-   * User clicked "Cancel" or pressed Escape.
+   * User clicked "Cancel" or pressed Escape on the confirmation dialog.
    * Reject the pending promise so EditableField keeps its edited state
    * (the user's changes remain in the input - they are NOT reset).
+   * For the batch Save button flow (no pending ref), just close the dialog.
    */
   const handleCancel = useCallback(() => {
     const pending = pendingSaveRef.current
@@ -219,13 +273,18 @@ export function AlbumDetail() {
     })
     // Also invalidate the album list so the grid reflects the updated metadata
     void queryClient.invalidateQueries({ queryKey: ['albums'] })
-    // Sync completed - local edits are now overwritten by Discogs data
+    // Sync completed - Discogs data overwrites any local edits; clear dirty state so
+    // the Save button does not re-apply stale values on top of the fresh sync result.
     setHasLocalEdits(false)
+    setDirtyFields({})
+    setBatchSaveError(null)
   }, [album, queryClient])
 
   if (loading) return <p>{t('albumDetail.loading')}</p>
   if (fetchError) return <p role="alert">{t('albumDetail.errorPrefix')}{fetchError.message}</p>
   if (!displayAlbum) return <p role="alert">{t('albumDetail.notFound')}</p>
+
+  const dirtyCount = Object.keys(dirtyFields).length
 
   return (
     <>
@@ -286,6 +345,7 @@ export function AlbumDetail() {
                 value={displayAlbum.album}
                 fieldName="ALBUM"
                 onSave={handleAlbumTagSave}
+                onCommit={handleAlbumTagCommit}
                 testIdPrefix="album"
                 disabled={isSaving}
                 scopeDescribedBy="edit-scope-notice"
@@ -295,6 +355,7 @@ export function AlbumDetail() {
                 value={displayAlbum.albumArtist}
                 fieldName="ALBUMARTIST"
                 onSave={handleAlbumTagSave}
+                onCommit={handleAlbumTagCommit}
                 testIdPrefix="album"
                 disabled={isSaving}
                 scopeDescribedBy="edit-scope-notice"
@@ -305,6 +366,7 @@ export function AlbumDetail() {
                 displayValue={displayAlbum.date !== undefined ? formatDate(displayAlbum.date) : undefined}
                 fieldName="DATE"
                 onSave={handleAlbumTagSave}
+                onCommit={handleAlbumTagCommit}
                 testIdPrefix="album"
                 disabled={isSaving}
                 scopeDescribedBy="edit-scope-notice"
@@ -314,6 +376,7 @@ export function AlbumDetail() {
                 value={displayAlbum.genre}
                 fieldName="GENRE"
                 onSave={handleAlbumTagSave}
+                onCommit={handleAlbumTagCommit}
                 testIdPrefix="album"
                 disabled={isSaving}
                 scopeDescribedBy="edit-scope-notice"
@@ -323,6 +386,7 @@ export function AlbumDetail() {
                 value={displayAlbum.label}
                 fieldName="LABEL"
                 onSave={handleAlbumTagSave}
+                onCommit={handleAlbumTagCommit}
                 testIdPrefix="album"
                 disabled={isSaving}
                 scopeDescribedBy="edit-scope-notice"
@@ -332,6 +396,7 @@ export function AlbumDetail() {
                 value={displayAlbum.catalogNumber}
                 fieldName="CATALOGNUMBER"
                 onSave={handleAlbumTagSave}
+                onCommit={handleAlbumTagCommit}
                 testIdPrefix="album"
                 disabled={isSaving}
                 scopeDescribedBy="edit-scope-notice"
@@ -341,6 +406,7 @@ export function AlbumDetail() {
                 value={displayAlbum.composer}
                 fieldName="COMPOSER"
                 onSave={handleAlbumTagSave}
+                onCommit={handleAlbumTagCommit}
                 testIdPrefix="album"
                 disabled={isSaving}
                 scopeDescribedBy="edit-scope-notice"
@@ -350,6 +416,7 @@ export function AlbumDetail() {
                 value={displayAlbum.conductor}
                 fieldName="CONDUCTOR"
                 onSave={handleAlbumTagSave}
+                onCommit={handleAlbumTagCommit}
                 testIdPrefix="album"
                 disabled={isSaving}
                 scopeDescribedBy="edit-scope-notice"
@@ -359,11 +426,42 @@ export function AlbumDetail() {
                 value={displayAlbum.ensemble}
                 fieldName="ENSEMBLE"
                 onSave={handleAlbumTagSave}
+                onCommit={handleAlbumTagCommit}
                 testIdPrefix="album"
                 disabled={isSaving}
                 scopeDescribedBy="edit-scope-notice"
               />
             </dl>
+            <div className={styles.saveRow}>
+              <button
+                type="button"
+                className={styles.saveButton}
+                onClick={handleSaveButtonClick}
+                disabled={dirtyCount === 0 || isSaving}
+                data-testid="save-button"
+                aria-label={
+                  dirtyCount > 0
+                    ? t('albumDetail.saveButtonLabel', { count: dirtyCount })
+                    : t('albumDetail.saveButtonLabelClean')
+                }
+              >
+                {isSaving ? t('albumDetail.saving') : t('albumDetail.saveButton')}
+              </button>
+              {dirtyCount > 0 && (
+                <span className={styles.dirtyCount} data-testid="dirty-count">
+                  {t('albumDetail.dirtyCount', { count: dirtyCount })}
+                </span>
+              )}
+              {batchSaveError !== null && (
+                <p
+                  role="alert"
+                  className={styles.batchSaveError}
+                  data-testid="batch-save-error"
+                >
+                  {t('editableField.saveFailed')}: {batchSaveError}
+                </p>
+              )}
+            </div>
           </section>
 
           {displayAlbum.discogsId !== undefined && (
