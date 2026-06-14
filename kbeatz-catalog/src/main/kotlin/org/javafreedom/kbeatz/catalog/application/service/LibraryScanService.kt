@@ -281,7 +281,9 @@ class LibraryScanService(
     /**
      * Reads a single FLAC file and maps it to a [Track] domain object.
      *
-     * Returns null if the file cannot be read (unreadable FLAC files are skipped with a WARN log).
+     * Returns null if the file cannot be read (unreadable FLAC files are skipped with a WARN log),
+     * or if the track's resolved path contains `..` segments indicating it lies outside
+     * [albumRootPath] (skipped until multi-directory write strategy is defined in #666).
      *
      * [albumRootPath] is the album directory used to compute the track's relative [Track.path].
      * For single-disc albums this is the album directory. For multi-disc albums (disc1/, disc2/)
@@ -290,6 +292,14 @@ class LibraryScanService(
     @Suppress("TooGenericExceptionCaught") // intentional: any I/O or parse error skips the track
     private fun readTrack(flacPath: Path, albumId: Uuid, albumRootPath: Path): Track? =
         try {
+            val relativePath = albumRootPath.relativize(flacPath).toString()
+            if (isPathOutsideRoot(relativePath)) {
+                log.warn {
+                    "track_skip rootPath=$albumRootPath flacPath=$flacPath " +
+                        "reason=path_outside_root - skipping until multi-directory write strategy is defined (#666)"
+                }
+                return null
+            }
             val flacFile = FlacFile.read(KtPath(flacPath.toString()))
             val tags = flacFile.vorbisComment?.toMap()?.mapValues { (_, v) -> v.firstOrNull().orEmpty() }
                 ?: emptyMap()
@@ -297,7 +307,6 @@ class LibraryScanService(
             val durationSeconds = streamInfo?.let { info ->
                 if (info.sampleRate > 0) (info.totalSamples / info.sampleRate).toInt() else null
             }
-            val relativePath = albumRootPath.relativize(flacPath).toString()
             Track(
                 id = Uuid.random(),
                 albumId = albumId,
@@ -319,6 +328,22 @@ class LibraryScanService(
             log.warn(ex) { "track_scan_error flacPath=$flacPath - skipping track" }
             null
         }
+
+    /**
+     * Returns true when a relativized track path contains `..` segments, indicating the track
+     * file lives outside the album root directory.
+     *
+     * This happens when [LibraryWalker] merges sibling directories into one [AlbumGroup] during
+     * deduplication (ADR-010): all directories for the same release share a single DB row, but
+     * only the shallowest directory is stored as `directoryPath`. Tracks from secondary
+     * directories relativize against the primary root with leading `..` segments.
+     *
+     * Storing such paths would break any feature that resolves `Track.path` relative to
+     * `Album.directoryPath` (CLI `tag` command, future playback). Issue #666 tracks the
+     * multi-directory write strategy; until then these tracks are skipped.
+     */
+    private fun isPathOutsideRoot(relativePath: String): Boolean =
+        relativePath.startsWith("..") || relativePath.contains("../")
 
     /**
      * Returns a short, human-readable error reason stripped of absolute paths,
