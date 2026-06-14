@@ -315,8 +315,31 @@ class LibraryWalkerTest {
         }
 
     @Test
+    fun `walk merges tracks with same year but different DATE formats into one group`() = withTempDir { root ->
+        // "1959" and "1959-05-04" represent the same year; the grouping key normalises to the
+        // 4-digit year prefix so both tracks land in the same AlbumGroup.
+        val dir1 = Files.createDirectories(root.resolve("jazz/miles-davis/kind-of-blue"))
+        val dir2 = Files.createDirectories(root.resolve("jazz/miles-davis/kind-of-blue-full"))
+
+        writeFile(dir1, "01 - So What.flac", flacBytes(
+            "ALBUMARTIST=Miles Davis", "ALBUM=Kind of Blue", "DATE=1959"
+        ))
+        writeFile(dir2, "02 - Freddie.flac", flacBytes(
+            "ALBUMARTIST=Miles Davis", "ALBUM=Kind of Blue", "DATE=1959-05-04"
+        ))
+
+        val groups = walker.walk(root)
+
+        assertEquals(1, groups.size, "DATE=1959 and DATE=1959-05-04 must merge into one group")
+        assertEquals(2, groups[0].flacPaths.size)
+    }
+
+    @Test
     fun `walk rootPath for merged group is the shallowest directory`() = withTempDir { root ->
-        // Shallowest path wins when two directories hold the same album
+        // Shallowest path (fewest nameCount segments) wins when two directories hold the same album.
+        // shallow = root/miles-davis/kind-of-blue  (2 segments below root)
+        // deep    = root/jazz/miles-davis/kind-of-blue (3 segments below root)
+        // shallow.nameCount < deep.nameCount, so shallow is chosen as rootPath.
         val shallow = Files.createDirectories(root.resolve("miles-davis/kind-of-blue"))
         val deep = Files.createDirectories(root.resolve("jazz/miles-davis/kind-of-blue"))
 
@@ -330,7 +353,6 @@ class LibraryWalkerTest {
         val groups = walker.walk(root)
 
         assertEquals(1, groups.size)
-        // shallow has fewer path segments than deep; it should be chosen as rootPath
-        assertEquals(shallow, groups[0].rootPath)
+        assertEquals(shallow, groups[0].rootPath, "shallowest directory must be chosen as rootPath")
     }
 }

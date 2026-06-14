@@ -72,12 +72,20 @@ The in-process natural-key lookup inside `saveChunk` is updated to use
 that encounters the album at a different path correctly identifies the existing
 row and updates it structurally rather than inserting a duplicate.
 
+=== Date normalisation in the grouping key
+
+The grouping key uses only the first four characters of the DATE tag (the
+4-digit year).  This means tracks tagged `DATE=1959` and `DATE=1959-05-04`
+are treated as the same release and merged into one group.  The full date
+string is preserved in `AlbumGroup.date` (taken from the first track
+encountered) and stored in the database `album_date` column unchanged.
+
 === Disambiguation strategy
 
 Two physical directories that contain recordings of the same title by the same
-artist but with different DATE tags are treated as separate catalogue entries.
-This covers the most common real-world case of needing separate entries:
-original release vs. a remaster issued years later.
+artist but with different DATE year values are treated as separate catalogue
+entries.  This covers the most common real-world case of needing separate
+entries: original release vs. a remaster issued years later.
 
 If two directories contain the same `(ALBUMARTIST, ALBUM, DATE)` combination
 but are genuinely different recordings (e.g. different performances of the
@@ -123,8 +131,8 @@ one group.  Users can add DATE tags to force separation.
   found under that path.  If the merged album's `directory_path` was chosen as
   the shallowest directory, only files under that directory are updated by a
   tag write.  Files in the other merged directories retain their original tags
-  until the user triggers a rescan.  A follow-up story should address
-  multi-directory tag writes for merged albums.
+  until the user triggers a rescan.  This is tracked as a known limitation in
+  issue #666: multi-directory tag writes for deduplicated albums.
 
 == Alternatives considered
 
@@ -149,4 +157,3 @@ one group.  Users can add DATE tags to force separation.
 
 Option B was chosen because it keeps the data model clean and makes read
 queries simple.  The schema migration is small and safe for new installations.
-|===

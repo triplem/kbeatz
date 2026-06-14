@@ -96,7 +96,7 @@ class LibraryWalker {
     }
 
     private fun groupFlacFiles(flacFiles: List<Path>, libraryRoot: Path): List<AlbumGroup> {
-        // Deduplication key: (albumArtist, albumTitle, date).
+        // Deduplication key: (albumArtist, albumTitle, yearKey).
         //
         // Rationale: two directories storing the same release (e.g. a re-rip or
         // a split disc layout not under a disc1/disc2 parent) must produce a single
@@ -104,11 +104,16 @@ class LibraryWalker {
         // caused separate entries for such releases (issue #657).
         //
         // Disambiguation: albums that truly differ (same title, different year) are
-        // kept separate because the DATE tag differs.  When DATE is absent, tracks
-        // from distinct directories merge into one group; the user can add DATE tags
-        // to their files to force separation.  See ADR-010-album-deduplication.adoc.
-        data class GroupKey(val albumArtist: String, val albumTitle: String, val date: String?)
-        data class TrackMeta(val path: Path, val canonicalDir: Path, val date: String?)
+        // kept separate because the DATE tag year component differs.  When DATE is
+        // absent, tracks from distinct directories merge into one group; the user can
+        // add DATE tags to their files to force separation.
+        //
+        // Date normalisation: the grouping key uses only the first 4 characters of
+        // the DATE tag (the year) so that tracks tagged "1959" and "1959-05-04"
+        // are treated as the same release.  The AlbumGroup carries the full date
+        // string from the first track encountered.  See ADR-010-album-deduplication.adoc.
+        data class GroupKey(val albumArtist: String, val albumTitle: String, val yearKey: String?)
+        data class TrackMeta(val path: Path, val canonicalDir: Path, val fullDate: String?)
 
         val groups = mutableMapOf<GroupKey, MutableList<TrackMeta>>()
 
@@ -117,13 +122,16 @@ class LibraryWalker {
 
             val albumArtist = tags["ALBUMARTIST"] ?: tags["ARTIST"] ?: UNKNOWN_ARTIST_FALLBACK
             val albumTitle = tags["ALBUM"].orEmpty()
-            val date = tags["DATE"]?.takeIf { it.isNotBlank() }
+            val fullDate = tags["DATE"]?.takeIf { it.isNotBlank() }
+            // Normalise to 4-digit year for grouping so that "1959" and "1959-05-04" merge.
+            @Suppress("MagicNumber") // 4 = length of 4-digit year prefix in ISO date strings
+            val yearKey = fullDate?.take(4)
 
             val dir = flacPath.parent ?: libraryRoot
             val canonicalDir = if (isDiscSubdir(dir)) dir.parent ?: dir else dir
 
-            val key = GroupKey(albumArtist, albumTitle, date)
-            groups.getOrPut(key) { mutableListOf() }.add(TrackMeta(flacPath, canonicalDir, date))
+            val key = GroupKey(albumArtist, albumTitle, yearKey)
+            groups.getOrPut(key) { mutableListOf() }.add(TrackMeta(flacPath, canonicalDir, fullDate))
         }
 
         return groups.map { (key, tracks) ->
@@ -136,12 +144,15 @@ class LibraryWalker {
                 .distinct()
                 .minWith(compareBy({ it.nameCount }, { it.toString() }))
 
+            // Carry the full date string (not just the year) from the first track.
+            val representativeDate = tracks.mapNotNull { it.fullDate }.firstOrNull()
+
             AlbumGroup(
                 rootPath = rootPath,
                 flacPaths = tracks.map { it.path },
                 albumArtist = key.albumArtist,
                 albumTitle = key.albumTitle,
-                date = key.date,
+                date = representativeDate,
             )
         }
     }

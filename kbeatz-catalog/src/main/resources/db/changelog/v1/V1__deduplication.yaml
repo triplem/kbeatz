@@ -14,6 +14,22 @@ databaseChangeLog:
         disambiguation strategy).
         directory_path is retained as a column for cover-art lookup and is updated
         to the canonical (shallowest) root path by the library walker on each rescan.
+        UPGRADE NOTE: if the existing database contains rows that already violate
+        the new (album_artist, album, album_date) uniqueness (same artist+title+year
+        stored in two different directories as separate rows), addUniqueConstraint
+        will fail. Run the pre-condition query manually before upgrading and
+        deduplicate any conflicting rows.
+      preConditions:
+        - onFail: HALT
+          sqlCheck:
+            expectedResult: "0"
+            sql: >
+              SELECT COUNT(*) FROM (
+                SELECT album_artist, album, album_date, COUNT(*) AS cnt
+                FROM albums
+                GROUP BY album_artist, album, album_date
+                HAVING COUNT(*) > 1
+              ) duplicates
       changes:
         - dropUniqueConstraint:
             tableName: albums
