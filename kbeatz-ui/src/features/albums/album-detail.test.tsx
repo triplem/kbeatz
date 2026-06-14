@@ -758,6 +758,42 @@ describe('AlbumDetail', () => {
   })
 
   // ──────────────────────────────────────────────
+  // Tracklist - distinct data per row (#701)
+  // ──────────────────────────────────────────────
+
+  it('renders 3 tracks with distinct titles, track numbers, and file paths', async () => {
+    // Regression test: each track row must show its own distinct metadata.
+    // Previously, duplicate keys could cause React to reuse the same DOM node for every
+    // row, making all tracks appear to reference the same file.
+    const tracks = [
+      makeTrack({ id: 'track-1', trackNumber: '1', title: 'So What', filePath: '01 So What.flac' }),
+      makeTrack({ id: 'track-2', trackNumber: '2', title: 'Freddie Freeloader', filePath: '02 Freddie Freeloader.flac' }),
+      makeTrack({ id: 'track-3', trackNumber: '3', title: 'Blue in Green', filePath: '03 Blue in Green.flac' }),
+    ]
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks }))
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('track-row-track-1')).toBeInTheDocument()
+    })
+
+    // Each row must show its own title
+    expect(screen.getByTestId('track-track-1-value-title')).toHaveTextContent('So What')
+    expect(screen.getByTestId('track-track-2-value-title')).toHaveTextContent('Freddie Freeloader')
+    expect(screen.getByTestId('track-track-3-value-title')).toHaveTextContent('Blue in Green')
+
+    // Each row must show its own track number
+    expect(screen.getByTestId('track-track-1-value-tracknumber')).toHaveTextContent('1')
+    expect(screen.getByTestId('track-track-2-value-tracknumber')).toHaveTextContent('2')
+    expect(screen.getByTestId('track-track-3-value-tracknumber')).toHaveTextContent('3')
+
+    // Each row must show its own file path
+    expect(screen.getByTestId('track-track-1-file-path')).toHaveTextContent('01 So What.flac')
+    expect(screen.getByTestId('track-track-2-file-path')).toHaveTextContent('02 Freddie Freeloader.flac')
+    expect(screen.getByTestId('track-track-3-file-path')).toHaveTextContent('03 Blue in Green.flac')
+  })
+
+  // ──────────────────────────────────────────────
   // Tracklist section - multi-disc grouping (#564)
   // ──────────────────────────────────────────────
 

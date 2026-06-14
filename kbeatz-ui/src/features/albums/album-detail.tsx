@@ -518,16 +518,23 @@ function TrackList({ tracks, onSave }: TrackListProps) {
         </tr>
       </thead>
       <tbody>
-        {groups.map((group) => (
-          <Fragment key={group.discLabel ?? 'no-disc'}>
+        {groups.map((group, groupIndex) => (
+          // Use groupIndex as tiebreaker so Fragment keys are always unique even if
+          // two non-consecutive null-disc groups end up in the list (edge case).
+          <Fragment key={`${group.discLabel ?? 'no-disc'}-${groupIndex}`}>
             {isMultiDisc && group.discLabel !== null && (
               <tr className={styles.discHeader}>
                 <td colSpan={5}>{t('albumDetail.discHeader', { number: group.discLabel })}</td>
               </tr>
             )}
-            {group.tracks.map((track) => (
+            {group.tracks.map((track, trackIndex) => (
+              // Use track.filePath as part of the key: each track maps to exactly one
+              // file on disk, so filePath is a stable, unique identity for a track row.
+              // The trackIndex tiebreaker guards against duplicate IDs from the backend
+              // (which would otherwise cause React to reuse the same DOM node for every
+              // row and display identical data for all tracks).
               <TrackRow
-                key={track.id}
+                key={`${track.filePath}-${trackIndex}`}
                 track={track}
                 onSave={onSave(track.id)}
               />
