@@ -27,6 +27,12 @@ data class AlbumFilter(
 interface AlbumRepository {
     suspend fun findById(id: Uuid): Album?
     /**
+     * Returns the album whose [Album.directoryPath] matches [directoryPath], or null if not found.
+     * Directory paths are unique in practice (one album per directory) even though the DB unique
+     * constraint spans four columns.
+     */
+    suspend fun findByDirectoryPath(directoryPath: String): Album?
+    /**
      * Returns the paginated album list and the total album count in a single atomic transaction,
      * preventing a race condition where a rescan between two separate calls could produce an
      * inconsistent page response (e.g. count reflects new albums not yet in the page).

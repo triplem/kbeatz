@@ -25,14 +25,19 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import kotlinx.io.files.Path as KtPath
 import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.model.AlbumGroup
 import org.javafreedom.kbeatz.catalog.domain.model.ScanErrorEntry
 import org.javafreedom.kbeatz.catalog.domain.model.ScanState
 import org.javafreedom.kbeatz.catalog.domain.model.ScanStatus
 import org.javafreedom.kbeatz.catalog.domain.model.ScanStatus.Companion.MAX_REPORTED_ERRORS
+import org.javafreedom.kbeatz.catalog.domain.model.Track
 import org.javafreedom.kbeatz.catalog.domain.model.WRITE_LOCK_FILENAME
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
+import org.javafreedom.kbeatz.catalog.domain.repository.TrackRepository
+import org.javafreedom.kbeatz.tagger.codec.flac.FlacFile
+import org.javafreedom.kbeatz.tagger.codec.flac.FlacMetadataBlock
 
 private val log = KotlinLogging.logger {}
 
@@ -56,6 +61,7 @@ class LibraryScanService(
     private val libraryRoot: Path,
     private val walker: LibraryWalker,
     private val albumRepository: AlbumRepository,
+    private val trackRepository: TrackRepository,
     scanDispatcher: CoroutineContext = Dispatchers.IO,
     private val repairTimeoutSeconds: Long = DEFAULT_REPAIR_TIMEOUT_SECONDS,
 ) {
@@ -183,6 +189,7 @@ class LibraryScanService(
             val groups = walker.walk(albumDir)
             if (groups.isNotEmpty()) {
                 albumRepository.saveAll(groups.map { it.toAlbum() })
+                groups.forEach { group -> saveTracksForGroup(group) }
             }
             lockFile.deleteIfExists()
             log.info { "Repaired album directory: $albumDir" }
@@ -191,6 +198,19 @@ class LibraryScanService(
             throw ex
         } catch (ex: Exception) {
             log.error(ex) { "Startup repair failed for $albumDir - lock file retained: $lockFile" }
+        }
+    }
+
+    /**
+     * Looks up the album by [AlbumGroup.rootPath], then deletes existing tracks and saves
+     * fresh ones read from the FLAC files. Skips silently if the album is not found in the DB.
+     */
+    private suspend fun saveTracksForGroup(group: AlbumGroup) {
+        val savedAlbum = albumRepository.findByDirectoryPath(group.rootPath.toString()) ?: return
+        val tracks = group.flacPaths.mapNotNull { readTrack(it, savedAlbum.id, group.rootPath) }
+        trackRepository.deleteByAlbumId(savedAlbum.id)
+        if (tracks.isNotEmpty()) {
+            trackRepository.saveAll(tracks)
         }
     }
 
@@ -242,6 +262,7 @@ class LibraryScanService(
     private suspend fun indexAlbum(group: AlbumGroup) {
         try {
             albumRepository.saveAll(listOf(group.toAlbum()))
+            saveTracksForGroup(group)
             scannedAlbums.incrementAndGet()
         } catch (ex: kotlinx.coroutines.CancellationException) {
             throw ex
@@ -256,6 +277,48 @@ class LibraryScanService(
             }
         }
     }
+
+    /**
+     * Reads a single FLAC file and maps it to a [Track] domain object.
+     *
+     * Returns null if the file cannot be read (unreadable FLAC files are skipped with a WARN log).
+     *
+     * [albumRootPath] is the album directory used to compute the track's relative [Track.path].
+     * For single-disc albums this is the album directory. For multi-disc albums (disc1/, disc2/)
+     * it is the parent of the disc subdirectories, so the path includes the disc subfolder.
+     */
+    @Suppress("TooGenericExceptionCaught") // intentional: any I/O or parse error skips the track
+    private fun readTrack(flacPath: Path, albumId: Uuid, albumRootPath: Path): Track? =
+        try {
+            val flacFile = FlacFile.read(KtPath(flacPath.toString()))
+            val tags = flacFile.vorbisComment?.toMap()?.mapValues { (_, v) -> v.firstOrNull().orEmpty() }
+                ?: emptyMap()
+            val streamInfo = flacFile.metadataBlocks.filterIsInstance<FlacMetadataBlock.StreamInfo>().firstOrNull()
+            val durationSeconds = streamInfo?.let { info ->
+                if (info.sampleRate > 0) (info.totalSamples / info.sampleRate).toInt() else null
+            }
+            val relativePath = albumRootPath.relativize(flacPath).toString()
+            Track(
+                id = Uuid.random(),
+                albumId = albumId,
+                title = tags["TITLE"]?.takeIf { it.isNotBlank() },
+                trackNumber = tags["TRACKNUMBER"]?.takeIf { it.isNotBlank() },
+                discNumber = tags["DISCNUMBER"]?.takeIf { it.isNotBlank() },
+                trackTotal = tags["TRACKTOTAL"]?.takeIf { it.isNotBlank() },
+                discTotal = tags["DISCTOTAL"]?.takeIf { it.isNotBlank() },
+                artist = tags["ARTIST"]?.takeIf { it.isNotBlank() },
+                composer = tags["COMPOSER"]?.takeIf { it.isNotBlank() },
+                conductor = tags["CONDUCTOR"]?.takeIf { it.isNotBlank() },
+                ensemble = tags["ENSEMBLE"]?.takeIf { it.isNotBlank() },
+                durationSeconds = durationSeconds,
+                path = relativePath,
+                images = null,
+                extraTags = null,
+            )
+        } catch (ex: Exception) {
+            log.warn(ex) { "track_scan_error flacPath=$flacPath - skipping track" }
+            null
+        }
 
     /**
      * Returns a short, human-readable error reason stripped of absolute paths,

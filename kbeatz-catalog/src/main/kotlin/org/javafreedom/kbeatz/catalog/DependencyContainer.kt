@@ -45,6 +45,7 @@ class DependencyContainer(config: AppConfig, libraryRootPath: Path, dataDirPath:
         libraryRoot = libraryRootPath,
         walker = LibraryWalker(),
         albumRepository = albumRepository,
+        trackRepository = trackRepository,
         repairTimeoutSeconds = config.repairTimeoutSeconds,
         scanDispatcher = Dispatchers.IO.limitedParallelism(config.scanParallelism),
     )
