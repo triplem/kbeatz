@@ -49,7 +49,10 @@ const mockUseAlbumPage = vi.mocked(useAlbumPage)
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makePageResult(overrides: Partial<AlbumPage> = {}): ReturnType<typeof useAlbumPage> {
+/** The fields AlbumListPage actually reads from the useAlbumPage query result. */
+type AlbumPageQueryResult = Pick<ReturnType<typeof useAlbumPage>, 'data' | 'isPending' | 'isError' | 'refetch'>
+
+function makePageResult(overrides: Partial<AlbumPage> = {}): AlbumPageQueryResult {
   const page: AlbumPage = {
     content: [],
     page: 0,
@@ -62,11 +65,13 @@ function makePageResult(overrides: Partial<AlbumPage> = {}): ReturnType<typeof u
     data: page,
     isPending: false,
     isError: false,
-    isSuccess: true,
-    error: null,
     refetch: vi.fn(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any
+  }
+}
+
+/** Cast the partial query result to the full type expected by the mock boundary. */
+function asMockResult(result: AlbumPageQueryResult): ReturnType<typeof useAlbumPage> {
+  return result as ReturnType<typeof useAlbumPage>
 }
 
 function renderApp() {
@@ -92,25 +97,25 @@ describe('AlbumListPage - pagination visibility', () => {
   })
 
   it('does not render pagination when totalPages is 0', () => {
-    mockUseAlbumPage.mockReturnValue(makePageResult({ totalPages: 0 }))
+    mockUseAlbumPage.mockReturnValue(asMockResult(makePageResult({ totalPages: 0 })))
     renderApp()
     expect(screen.queryByTestId('album-pagination')).not.toBeInTheDocument()
   })
 
   it('does not render pagination when totalPages is 1', () => {
-    mockUseAlbumPage.mockReturnValue(makePageResult({ totalPages: 1, totalElements: 1 }))
+    mockUseAlbumPage.mockReturnValue(asMockResult(makePageResult({ totalPages: 1, totalElements: 1 })))
     renderApp()
     expect(screen.queryByTestId('album-pagination')).not.toBeInTheDocument()
   })
 
   it('renders pagination nav landmark when totalPages > 1', () => {
-    mockUseAlbumPage.mockReturnValue(makePageResult({ totalPages: 3, totalElements: 60, page: 0 }))
+    mockUseAlbumPage.mockReturnValue(asMockResult(makePageResult({ totalPages: 3, totalElements: 60, page: 0 })))
     renderApp()
     expect(screen.getByRole('navigation', { name: 'Album page navigation' })).toBeInTheDocument()
   })
 
   it('hides prev button and shows next button on first page (page 0 of 3)', () => {
-    mockUseAlbumPage.mockReturnValue(makePageResult({ totalPages: 3, totalElements: 60, page: 0 }))
+    mockUseAlbumPage.mockReturnValue(asMockResult(makePageResult({ totalPages: 3, totalElements: 60, page: 0 })))
     renderApp()
     // On page 0, prev should be hidden and next should be visible
     expect(screen.queryByTestId('pagination-prev')).not.toBeInTheDocument()
@@ -120,7 +125,7 @@ describe('AlbumListPage - pagination visibility', () => {
   it('shows both prev and next buttons on a middle page', async () => {
     const user = userEvent.setup()
     // Start on page 0 of 3
-    mockUseAlbumPage.mockReturnValue(makePageResult({ totalPages: 3, totalElements: 60, page: 0 }))
+    mockUseAlbumPage.mockReturnValue(asMockResult(makePageResult({ totalPages: 3, totalElements: 60, page: 0 })))
     renderApp()
 
     // Click next to advance to page 1 (middle page)
@@ -134,7 +139,7 @@ describe('AlbumListPage - pagination visibility', () => {
   it('hides next button and shows prev button on last page', async () => {
     const user = userEvent.setup()
     // Start on page 0 of 2 so one next click lands on the last page
-    mockUseAlbumPage.mockReturnValue(makePageResult({ totalPages: 2, totalElements: 40, page: 0 }))
+    mockUseAlbumPage.mockReturnValue(asMockResult(makePageResult({ totalPages: 2, totalElements: 40, page: 0 })))
     renderApp()
 
     // Click next to advance to page 1 (last page of 2)
@@ -145,7 +150,7 @@ describe('AlbumListPage - pagination visibility', () => {
   })
 
   it('shows page info text in the aria-live span', () => {
-    mockUseAlbumPage.mockReturnValue(makePageResult({ totalPages: 3, totalElements: 60, page: 0 }))
+    mockUseAlbumPage.mockReturnValue(asMockResult(makePageResult({ totalPages: 3, totalElements: 60, page: 0 })))
     renderApp()
     const info = screen.getByTestId('pagination-info')
     expect(info).toHaveTextContent('Page 1 of 3')
@@ -161,7 +166,7 @@ describe('AlbumListPage - next page navigation', () => {
 
   it('clicking Next advances the page counter and calls useAlbumPage with page 1', async () => {
     const user = userEvent.setup()
-    mockUseAlbumPage.mockReturnValue(makePageResult({ totalPages: 3, totalElements: 60, page: 0 }))
+    mockUseAlbumPage.mockReturnValue(asMockResult(makePageResult({ totalPages: 3, totalElements: 60, page: 0 })))
     renderApp()
 
     expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 1 of 3')
@@ -179,7 +184,7 @@ describe('AlbumListPage - next page navigation', () => {
 
   it('clicking Prev decrements the page counter', async () => {
     const user = userEvent.setup()
-    mockUseAlbumPage.mockReturnValue(makePageResult({ totalPages: 3, totalElements: 60, page: 0 }))
+    mockUseAlbumPage.mockReturnValue(asMockResult(makePageResult({ totalPages: 3, totalElements: 60, page: 0 })))
     renderApp()
 
     // Navigate to page 1 first
@@ -202,7 +207,7 @@ describe('AlbumListPage - sort resets page to 0', () => {
 
   it('resets to page 1 display when sort field changes after navigating to a later page', async () => {
     const user = userEvent.setup()
-    mockUseAlbumPage.mockReturnValue(makePageResult({ totalPages: 3, totalElements: 60, page: 0 }))
+    mockUseAlbumPage.mockReturnValue(asMockResult(makePageResult({ totalPages: 3, totalElements: 60, page: 0 })))
     renderApp()
 
     // Navigate to page 1 (displays "Page 2 of 3")
@@ -218,7 +223,7 @@ describe('AlbumListPage - sort resets page to 0', () => {
 
   it('resets to page 1 display when sort direction changes after navigating to a later page', async () => {
     const user = userEvent.setup()
-    mockUseAlbumPage.mockReturnValue(makePageResult({ totalPages: 3, totalElements: 60, page: 0 }))
+    mockUseAlbumPage.mockReturnValue(asMockResult(makePageResult({ totalPages: 3, totalElements: 60, page: 0 })))
     renderApp()
 
     // Navigate to page 1 (displays "Page 2 of 3")
