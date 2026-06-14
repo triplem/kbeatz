@@ -1,5 +1,6 @@
 package org.javafreedom.kbeatz.catalog.infrastructure.persistence
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import java.util.UUID
 import kotlin.uuid.Uuid
 import kotlin.uuid.toKotlinUuid
@@ -45,6 +46,8 @@ import org.jetbrains.exposed.v1.jdbc.update
  * No additional query is issued per album; the aggregated values arrive in the same result set
  * as the album metadata.
  */
+private val log = KotlinLogging.logger {}
+
 class ExposedAlbumRepository : AlbumRepository {
 
     override suspend fun findById(id: Uuid): Album? =
@@ -59,16 +62,17 @@ class ExposedAlbumRepository : AlbumRepository {
 
     override suspend fun findByDirectoryPath(directoryPath: String): Album? =
         suspendTransaction {
-            AlbumsTable
+            val results = AlbumsTable
                 .selectAll()
                 .where { AlbumsTable.directoryPath eq directoryPath }
-                // firstOrNull() instead of singleOrNull(): directory_path is no longer uniquely
-                // constrained after migration V1-006a replaced the 4-column unique index with
-                // uq_albums_dedup on (album_artist, album, album_date). Two rows can share the
-                // same directory_path after deduplication; singleOrNull() would throw
-                // IllegalStateException in that case (#672).
-                .firstOrNull()
-                ?.toAlbum()
+                .map { it.toAlbum() }
+            if (results.size > 1) {
+                log.warn {
+                    "findByDirectoryPath_duplicate directoryPath=$directoryPath " +
+                        "count=${results.size} - returning first; run dedup migration to resolve"
+                }
+            }
+            results.firstOrNull()
         }
 
     override suspend fun findAllWithCount(page: Int, size: Int, filter: AlbumFilter): Pair<List<Album>, Long> =
