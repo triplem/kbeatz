@@ -52,11 +52,6 @@ export type Album = {
      */
     albumPath: string;
     /**
-     * Deprecated: use albumPath instead. Tracked for removal in v2 - see #643.
-     * @deprecated
-     */
-    directoryPath?: string;
-    /**
      * True when cover art is available via GET /albums/{albumId}/cover
      */
     hasCoverArt: boolean;

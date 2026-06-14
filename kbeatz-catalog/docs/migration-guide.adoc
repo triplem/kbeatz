@@ -1,0 +1,61 @@
+= kbeatz-catalog API Migration Guide
+:toc:
+:toc-title: Contents
+
+== Migrating from directoryPath to albumPath
+
+=== Context
+
+The `directoryPath` field was deprecated in PR #609 when `albumPath` was introduced as its
+canonical replacement. `directoryPath` was made optional in PR #638 and `albumPath` was added
+to the `Album` schema in PR #641. The field has now been removed from both the `Album` and
+`AlbumDetail` response schemas in PR #643.
+
+=== Impact
+
+Any API consumer that reads `directoryPath` from a `/albums` or `/albums/{albumId}` response
+must switch to `albumPath`.
+
+Both fields carried the same value: the album directory path relative to the configured library
+root (for example `Jazz/Miles Davis/Kind of Blue`). The migration is a straightforward field
+rename - no data transformation is required.
+
+=== What changed
+
+|===
+| Schema | Field removed | Field to use instead | Available since
+
+| `Album` (list endpoint `GET /albums`)
+| `directoryPath`
+| `albumPath`
+| PR #641
+
+| `AlbumDetail` (detail endpoint `GET /albums/{albumId}`)
+| `directoryPath`
+| `albumPath`
+| PR #641
+
+| `Album` (sync endpoint `POST /albums/{albumId}/sync` response)
+| `directoryPath`
+| `albumPath`
+| PR #641
+|===
+
+=== Migration steps
+
+. Search your codebase for any use of `directoryPath` on `Album` or `AlbumDetail` objects:
++
+[source,bash]
+----
+grep -r "directoryPath" src/
+----
+
+. Replace every occurrence with `albumPath`. The value is identical - no transformation needed.
+
+. If you use the auto-generated TypeScript client from `kbeatz-ui`, regenerate it after upgrading
+  to pick up the updated model:
++
+[source,bash]
+----
+npm run api:generate
+----

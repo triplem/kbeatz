@@ -411,11 +411,6 @@ components:
           type: string
           description: "Canonical path to the album directory, relative to the library root"
           example: "Jazz/Miles Davis/Kind of Blue"
-        directoryPath:
-          type: string
-          deprecated: true
-          description: "Deprecated: use albumPath instead. Tracked for removal in v2 - see #643."
-          example: "Jazz/Miles Davis/Kind of Blue"
         hasCoverArt:
           type: boolean
           description: "True when cover art is available via GET /albums/{albumId}/cover"
@@ -536,11 +531,6 @@ components:
           type: string
           description: "Discogs release ID from metadata.yml"
           example: "12345678"
-        directoryPath:
-          type: string
-          deprecated: true
-          description: "Deprecated: use albumPath instead. Tracked for removal in v2 - see #643."
-          example: "Jazz/Miles Davis/Kind of Blue"
         albumPath:
           type: string
           description: "Album directory path relative to the library root. Canonical field - use this in all consumers."

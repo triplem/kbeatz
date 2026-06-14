@@ -26,7 +26,7 @@ import org.javafreedom.kbeatz.catalog.domain.model.Track
  * - 400: albumId is not a valid UUID
  * - 404: album not found in H2 index
  *
- * @param libraryRoot Used to compute relative [directoryPath] in API responses.
+ * @param libraryRoot Used to compute relative [albumPath] in API responses.
  * No auth in v1 (trusted LAN deployment).
  */
 fun Route.albumDetailRoutes(albumService: AlbumService, libraryRoot: Path) {
@@ -64,7 +64,6 @@ internal fun Album.toDetailApiModel(tracks: List<Track>, libraryRoot: Path): Alb
         id = id.toString(),
         albumArtist = albumArtist,
         album = album,
-        directoryPath = relativePath,
         albumPath = relativePath,
         hasCoverArt = hasCoverArt,
         date = date,

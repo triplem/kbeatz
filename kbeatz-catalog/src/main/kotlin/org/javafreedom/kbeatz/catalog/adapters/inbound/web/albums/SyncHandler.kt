@@ -33,7 +33,7 @@ private val log = KotlinLogging.logger {}
  * - 429: image quota exhausted (only when `downloadImages=true`)
  * - 503: provider API unavailable (network error)
  *
- * @param libraryRoot Used to compute relative [directoryPath] in API responses.
+ * @param libraryRoot Used to compute relative [albumPath] in API responses.
  * No auth in v1 (trusted LAN deployment).
  */
 @Suppress("TooGenericExceptionCaught") // Ktor route must catch all errors to return structured responses
@@ -97,7 +97,6 @@ internal fun Album.toSyncApiModel(libraryRoot: Path): ApiAlbum = ApiAlbum(
     albumArtist = albumArtist,
     album = album,
     albumPath = libraryRoot.relativize(Path.of(directoryPath)).toString(),
-    directoryPath = libraryRoot.relativize(Path.of(directoryPath)).toString(),
     hasCoverArt = hasCoverArt,
     date = date,
     genre = genre,

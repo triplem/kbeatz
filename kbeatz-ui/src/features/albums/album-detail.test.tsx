@@ -22,7 +22,7 @@ vi.mock('../sync/sync-panel', () => ({
       <button
         type="button"
         data-testid="mock-sync-complete"
-        onClick={() => onSyncComplete({ id: 'album-id-1', albumArtist: 'Updated Artist', album: 'Updated Album', directoryPath: '/music', hasCoverArt: false })}
+        onClick={() => onSyncComplete({ id: 'album-id-1', albumArtist: 'Updated Artist', album: 'Updated Album', albumPath: '/music', hasCoverArt: false })}
       >
         Trigger sync complete
       </button>
@@ -65,7 +65,6 @@ function makeAlbum(overrides: Partial<AlbumDetailModel> = {}): AlbumDetailModel 
     conductor: undefined,
     ensemble: undefined,
     discogsId: undefined,
-    directoryPath: 'Jazz/Miles Davis/Kind of Blue',
     albumPath: 'Jazz/Miles Davis/Kind of Blue',
     hasCoverArt: false,
     tracks: [makeTrack()],

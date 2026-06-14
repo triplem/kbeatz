@@ -18,7 +18,7 @@ import org.javafreedom.kbeatz.catalog.domain.repository.AlbumFilter
  * `genre`, `yearFrom`, and `yearTo` query parameters. All filter parameters are
  * applied server-side. Results are always wrapped in an [AlbumPage] pagination envelope.
  *
- * @param libraryRoot Used to compute relative [directoryPath] in API responses.
+ * @param libraryRoot Used to compute relative [albumPath] in API responses.
  * No auth in v1 (trusted LAN deployment).
  */
 fun Route.albumRoutes(albumService: AlbumService, libraryRoot: Path) {
@@ -61,7 +61,6 @@ internal fun Album.toApiModel(libraryRoot: Path): ApiAlbum = ApiAlbum(
     albumArtist = albumArtist,
     album = album,
     albumPath = libraryRoot.relativize(Path.of(directoryPath)).toString(),
-    directoryPath = libraryRoot.relativize(Path.of(directoryPath)).toString(),
     hasCoverArt = hasCoverArt,
     date = date,
     genre = genre,
