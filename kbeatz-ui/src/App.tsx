@@ -1,20 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Routes, Route, Link, Outlet } from 'react-router-dom'
+import { Link, Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import styles from './App.module.css'
 import logoFull from './assets/kbeatz-logo-transparent.svg'
 import logoFullDark from './assets/kbeatz-logo-dark.svg'
 import logoIcon from './assets/kbeatz-icon.svg'
 import { AlbumGrid } from './features/albums/album-grid'
-import { AlbumDetail } from './features/albums/album-detail'
 import { FilterPanel } from './features/albums/filter-panel'
 import { SearchBox } from './features/albums/search-box'
 import { SortPreference } from './features/albums/sort-preference'
 import { useAlbumPage } from './features/albums/use-album-page'
 import { ScanProgress } from './features/library/scan-progress'
 import { ScanButton } from './features/library/scan-button'
-import { NotFoundPage } from './features/not-found/not-found-page'
-import { ErrorBoundary } from './lib/error-boundary'
 import { LanguageToggle } from './features/language/language-toggle'
 import { useAlbumFilters } from './features/albums/useAlbumFilters'
 import {
@@ -27,7 +24,7 @@ import {
   type SortField,
 } from './features/albums/album-filters'
 
-function AppLayout() {
+export function AppLayout() {
   const { t } = useTranslation()
 
   return (
@@ -56,7 +53,7 @@ function AppLayout() {
   )
 }
 
-function AlbumListPage() {
+export function AlbumListPage() {
   const { t } = useTranslation()
 
   const [page, setPage] = useState(0)
@@ -229,23 +226,3 @@ function AlbumListPage() {
   )
 }
 
-export function App() {
-  return (
-    <ErrorBoundary>
-      <Routes>
-        <Route element={<AppLayout />}>
-          <Route path="/" element={<AlbumListPage />} />
-          <Route
-            path="/albums/:albumId"
-            element={
-              <ErrorBoundary>
-                <AlbumDetail />
-              </ErrorBoundary>
-            }
-          />
-          <Route path="*" element={<NotFoundPage />} />
-        </Route>
-      </Routes>
-    </ErrorBoundary>
-  )
-}
