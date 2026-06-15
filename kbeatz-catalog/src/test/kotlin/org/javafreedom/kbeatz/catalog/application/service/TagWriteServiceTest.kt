@@ -465,6 +465,19 @@ class TagWriteServiceTest {
 
     @Test
     fun `writeAlbumTags rethrows exception and cleans up lock file when merged directory write fails`() = runTest {
+        // This test uses filesystem permissions to simulate a write failure. On systems where
+        // the test runner executes as root (e.g. some Docker CI environments), setWritable(false)
+        // is ignored and the test would pass vacuously. The assumption below skips it in that case.
+        val canEnforcePermissions = Files.createTempFile("perm-check", null).also { tmp ->
+            tmp.toFile().setWritable(false)
+        }.let { tmp ->
+            val writable = tmp.toFile().canWrite()
+            tmp.toFile().setWritable(true)
+            tmp.toFile().delete()
+            !writable
+        }
+        if (!canEnforcePermissions) return@runTest
+
         // Set up a merged directory with a FLAC file.
         val mergedDir: Path = Files.createTempDirectory(libraryRoot, "kind-of-blue-readonly")
         val primaryFlac = albumDir.resolve("01-primary.flac")
@@ -480,9 +493,10 @@ class TagWriteServiceTest {
         mergedDir.toFile().setWritable(false)
 
         try {
-            // The write to the primary directory succeeds, then the merged dir write fails.
-            // The service must rethrow the exception so the caller knows the write was incomplete.
-            assertFailsWith<Exception> {
+            // The write to the primary directory succeeds, then the merged dir write fails
+            // with a FileNotFoundException (permission denied creating the temp file).
+            // The service must rethrow so the caller knows the write was incomplete.
+            assertFailsWith<java.io.FileNotFoundException> {
                 service.writeAlbumTags(albumId, "GENRE", "Jazz")
             }
 
