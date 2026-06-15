@@ -141,3 +141,4 @@ warranted.
 * `kbeatz-catalog/src/main/resources/db/changelog/v1/V1__deduplication.yaml` - earlier
   deduplication schema changes that set the context for this column
 * Issue #666 - feature story that introduced multi-directory FLAC tag writes
+* PR #723 - implementation of issue #666
