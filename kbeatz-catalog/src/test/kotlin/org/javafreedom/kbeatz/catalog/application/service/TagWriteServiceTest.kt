@@ -459,6 +459,47 @@ class TagWriteServiceTest {
         assertEquals("Jazz", result.genre)
     }
 
+    // ──────────────────────────────────────────────
+    // Partial failure: merged directory write fails (issue #725)
+    // ──────────────────────────────────────────────
+
+    @Test
+    fun `writeAlbumTags rethrows exception and cleans up lock file when merged directory write fails`() = runTest {
+        // Set up a merged directory with a FLAC file.
+        val mergedDir: Path = Files.createTempDirectory(libraryRoot, "kind-of-blue-readonly")
+        val primaryFlac = albumDir.resolve("01-primary.flac")
+        val mergedFlac = mergedDir.resolve("01-merged.flac")
+        copyMinimalFlac(primaryFlac)
+        copyMinimalFlac(mergedFlac)
+
+        val album = buildAlbum().copy(mergedDirectories = listOf(mergedDir.toString()))
+        coEvery { albumRepository.findById(albumId) } returns album
+        coEvery { albumRepository.save(any()) } answers { firstArg() }
+
+        // Make the merged directory read-only so the FLAC write cannot create a temp file.
+        mergedDir.toFile().setWritable(false)
+
+        try {
+            // The write to the primary directory succeeds, then the merged dir write fails.
+            // The service must rethrow the exception so the caller knows the write was incomplete.
+            assertFailsWith<Exception> {
+                service.writeAlbumTags(albumId, "GENRE", "Jazz")
+            }
+
+            // The finally block must still run: the lock file must be deleted from the primary dir.
+            assertFalse(
+                albumDir.resolve(WRITE_LOCK_FILENAME).toFile().exists(),
+                "Write-lock file must be removed even when a merged directory write fails",
+            )
+
+            // The primary FLAC file must still exist (write succeeded before merged dir failed).
+            assertTrue(primaryFlac.toFile().exists(), "Primary FLAC must exist after partial failure")
+        } finally {
+            // Restore write permissions so the temp directory can be cleaned up after the test.
+            mergedDir.toFile().setWritable(true)
+        }
+    }
+
     @Test
     fun `writeAlbumTags with empty mergedDirectories writes only to primary directory`() = runTest {
         val flacFile = albumDir.resolve("01.flac")
