@@ -1,6 +1,7 @@
 package org.javafreedom.kbeatz.cli.command
 
 import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.Context
 import com.github.ajalt.clikt.core.ProgramResult
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.convert
@@ -24,8 +25,10 @@ import org.javafreedom.kbeatz.tagger.idfile.SourceConfig
  */
 class MigrateIdFilesCommand : CliktCommand(
     name = "migrate-ids",
-    help = "Convert INI-style id.txt / local_ids.txt files to YAML metadata.yml.",
 ) {
+    override fun help(context: Context) =
+        "Convert INI-style id.txt / local_ids.txt files to YAML metadata.yml."
+
     private val logger = KotlinLogging.logger {}
 
     private val rootDir: Path by argument(
