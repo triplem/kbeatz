@@ -5,6 +5,7 @@
 import type { Album } from '../models/Album';
 import type { AlbumDetail } from '../models/AlbumDetail';
 import type { AlbumPage } from '../models/AlbumPage';
+import type { BulkUpdateTagsRequest } from '../models/BulkUpdateTagsRequest';
 import type { SyncRequest } from '../models/SyncRequest';
 import type { UpdateTagFieldRequest } from '../models/UpdateTagFieldRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -139,6 +140,45 @@ export class AlbumsService {
             errors: {
                 400: `Validation error`,
                 404: `Resource not found`,
+            },
+        });
+    }
+    /**
+     * Bulk update album and track tags in one request
+     * Writes multiple album-level and track-level tag fields to FLAC files in a single
+     * request. Album-level fields are written first (acquiring the per-album Mutex once),
+     * then track-level fields are written in order.
+     * This replaces N sequential PATCH requests with a single round-trip.
+     * Album-level allowed fields: ALBUM, ALBUMARTIST, DATE, GENRE, LABEL, CATALOGNUMBER,
+     * COMPOSER, CONDUCTOR, ENSEMBLE.
+     * Track-level allowed fields: TITLE, TRACKNUMBER, ARTIST.
+     * Field names are case-insensitive (normalised to uppercase before validation).
+     *
+     * @returns AlbumDetail All tags updated; returns the refreshed album detail
+     * @throws ApiError
+     */
+    public static bulkUpdateAlbumTags({
+        albumId,
+        requestBody,
+    }: {
+        /**
+         * Album UUID
+         */
+        albumId: string,
+        requestBody: BulkUpdateTagsRequest,
+    }): CancelablePromise<AlbumDetail> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/albums/{albumId}/tags',
+            path: {
+                'albumId': albumId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Validation error`,
+                404: `Resource not found`,
+                409: `Write lock conflict - CLI is concurrently writing to the album directory. Retry after a short delay.`,
             },
         });
     }

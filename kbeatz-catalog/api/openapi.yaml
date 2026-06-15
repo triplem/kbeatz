@@ -203,6 +203,43 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /albums/{albumId}/tags:
+    patch:
+      operationId: bulkUpdateAlbumTags
+      summary: Bulk update album and track tags in one request
+      description: |
+        Writes multiple album-level and track-level tag fields to FLAC files in a single
+        request. Album-level fields are written first (acquiring the per-album Mutex once),
+        then track-level fields are written in order.
+        This replaces N sequential PATCH requests with a single round-trip.
+        Album-level allowed fields: ALBUM, ALBUMARTIST, DATE, GENRE, LABEL, CATALOGNUMBER,
+        COMPOSER, CONDUCTOR, ENSEMBLE.
+        Track-level allowed fields: TITLE, TRACKNUMBER, ARTIST.
+        Field names are case-insensitive (normalised to uppercase before validation).
+      tags: [Albums]
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/AlbumId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkUpdateTagsRequest"
+      responses:
+        "200":
+          description: All tags updated; returns the refreshed album detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlbumDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
   /albums/{albumId}/tracks/{trackId}:
     patch:
       operationId: updateTrackTags
@@ -587,12 +624,65 @@ components:
           description: "New field value"
           example: "Progressive Rock"
 
+    AlbumTagFieldUpdate:
+      type: object
+      required: [field, value]
+      description: "A single album-level Vorbis Comment field update."
+      properties:
+        field:
+          type: string
+          description: "Vorbis Comment field name (case-insensitive). Allowed: ALBUM, ALBUMARTIST, DATE, GENRE, LABEL, CATALOGNUMBER, COMPOSER, CONDUCTOR, ENSEMBLE."
+          example: "GENRE"
+        value:
+          type: string
+          description: "New field value"
+          example: "Progressive Rock"
+
+    TrackTagFieldUpdate:
+      type: object
+      required: [trackId, field, value]
+      description: "A single track-level Vorbis Comment field update."
+      properties:
+        trackId:
+          type: string
+          format: uuid
+          description: "Track UUID"
+          example: "550e8400-e29b-41d4-a716-446655440001"
+        field:
+          type: string
+          description: "Vorbis Comment field name (case-insensitive). Allowed: TITLE, TRACKNUMBER, ARTIST."
+          example: "TITLE"
+        value:
+          type: string
+          description: "New field value"
+          example: "So What"
+
+    BulkUpdateTagsRequest:
+      type: object
+      description: |
+        Bulk tag update request. Album-level fields are applied first (all within one Mutex
+        acquisition), then track-level fields are applied in order. Both lists may be empty.
+      required: [albumFields, trackFields]
+      properties:
+        albumFields:
+          type: array
+          description: "Album-level tag field updates (applied to all FLAC files in the album directory)."
+          items:
+            $ref: "#/components/schemas/AlbumTagFieldUpdate"
+          default: []
+        trackFields:
+          type: array
+          description: "Track-level tag field updates (one per track field change)."
+          items:
+            $ref: "#/components/schemas/TrackTagFieldUpdate"
+          default: []
+
     SyncRequest:
       type: object
       properties:
         downloadImages:
           type: boolean
-          description: "Download and embed cover art. Default false — preserves the 1 000/day Discogs image quota."
+          description: "Download and embed cover art. Default false - preserves the 1 000/day Discogs image quota."
           default: false
 
     ScanErrorEntry:
@@ -711,6 +801,12 @@ components:
             $ref: "#/components/schemas/ErrorResponse"
     NotFound:
       description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Conflict:
+      description: Write lock conflict - CLI is concurrently writing to the album directory. Retry after a short delay.
       content:
         application/json:
           schema:
