@@ -574,6 +574,27 @@ class TagWriteServiceTest {
     }
 
     @Test
+    fun `writeBulkTags throws ConflictException when write-lock file exists (CLI conflict)`() = runTest {
+        val album = buildAlbum()
+        coEvery { albumRepository.findById(albumId) } returns album
+
+        // Simulate CLI holding the write-lock file
+        Files.writeString(albumDir.resolve(WRITE_LOCK_FILENAME), "cli-write-in-progress")
+
+        try {
+            assertFailsWith<ConflictException> {
+                service.writeBulkTags(
+                    albumId,
+                    albumFields = listOf("GENRE" to "Jazz"),
+                    trackFields = emptyList(),
+                )
+            }
+        } finally {
+            Files.deleteIfExists(albumDir.resolve(WRITE_LOCK_FILENAME))
+        }
+    }
+
+    @Test
     fun `writeBulkTags applies track-level fields after album-level fields`() = runTest {
         val flacFile = albumDir.resolve("01.flac")
         copyMinimalFlac(flacFile)

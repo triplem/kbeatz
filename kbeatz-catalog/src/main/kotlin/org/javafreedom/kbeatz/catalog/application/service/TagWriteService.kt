@@ -296,8 +296,16 @@ class TagWriteService(
             }
         }
 
+        @Suppress("TooGenericExceptionCaught") // log-and-rethrow: all writeTrackTags errors need structured log
         trackFields.forEach { (trackId, field, value) ->
-            writeTrackTags(albumId, trackId, field, value)
+            try {
+                writeTrackTags(albumId, trackId, field, value)
+            } catch (ex: Exception) {
+                log.warn(ex) {
+                    "bulk_track_tag_write_failed albumId=$albumId trackId=$trackId field=$field"
+                }
+                throw ex
+            }
         }
 
         return finalAlbum

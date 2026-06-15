@@ -13,10 +13,10 @@ export type BulkUpdateTagsRequest = {
     /**
      * Album-level tag field updates (applied to all FLAC files in the album directory).
      */
-    albumFields?: Array<AlbumTagFieldUpdate>;
+    albumFields: Array<AlbumTagFieldUpdate>;
     /**
      * Track-level tag field updates (one per track field change).
      */
-    trackFields?: Array<TrackTagFieldUpdate>;
+    trackFields: Array<TrackTagFieldUpdate>;
 };
 

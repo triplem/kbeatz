@@ -237,6 +237,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
 
   /albums/{albumId}/tracks/{trackId}:
     patch:
@@ -660,6 +662,7 @@ components:
       description: |
         Bulk tag update request. Album-level fields are applied first (all within one Mutex
         acquisition), then track-level fields are applied in order. Both lists may be empty.
+      required: [albumFields, trackFields]
       properties:
         albumFields:
           type: array
@@ -798,6 +801,12 @@ components:
             $ref: "#/components/schemas/ErrorResponse"
     NotFound:
       description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Conflict:
+      description: Write lock conflict - CLI is concurrently writing to the album directory. Retry after a short delay.
       content:
         application/json:
           schema:

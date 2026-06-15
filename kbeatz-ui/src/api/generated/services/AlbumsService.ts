@@ -178,6 +178,7 @@ export class AlbumsService {
             errors: {
                 400: `Validation error`,
                 404: `Resource not found`,
+                409: `Write lock conflict - CLI is concurrently writing to the album directory. Retry after a short delay.`,
             },
         });
     }

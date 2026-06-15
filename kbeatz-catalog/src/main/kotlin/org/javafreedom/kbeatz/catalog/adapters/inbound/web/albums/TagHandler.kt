@@ -171,7 +171,7 @@ private suspend fun handleBulkPatch(
             val trackId = runCatching { Uuid.parse(update.trackId) }.getOrElse {
                 call.respond(
                     HttpStatusCode.BadRequest,
-                    ErrorResponse(code = "INVALID_TRACK_ID", message = "Invalid track UUID: ${update.trackId}"),
+                    ErrorResponse(code = "INVALID_TRACK_ID", message = "Invalid track UUID in trackFields"),
                 )
                 return
             }
