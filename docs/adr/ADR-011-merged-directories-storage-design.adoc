@@ -81,9 +81,9 @@ The key reasons are:
 
 === Accepted limitations in v1
 
-* No SQL-level querying by individual directory path. It is not possible to write
-  `SELECT * FROM albums WHERE merged_directories CONTAINS '/path/to/dir'` in standard SQL
-  against this column. If such a query is ever needed in v1 it must be implemented in
+* No SQL-level querying by individual directory path. H2 does not support JSON array containment
+  predicates on a TEXT column, so it is not possible to filter albums by a single merged
+  directory path in SQL. If such a query is ever needed in v1 it must be implemented in
   application code by loading all albums and filtering in memory.
 
 * No referential integrity. The JSON paths are plain strings. There is no database constraint
