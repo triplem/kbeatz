@@ -63,10 +63,16 @@ export function AlbumListPage() {
   const [sortBy, setSortBy] = useState<SortField>(() => loadSortPreference())
   const [sortDirection, setSortDirection] = useState<SortDirection>(() => loadSortDirection())
 
-  // Reset to page 0 whenever filters change
-  useEffect(() => {
+  // Reset to page 0 whenever filter content changes.
+  // During-render state adjustment avoids cascading renders from setState-in-effect.
+  // Filters is a new object reference every render (filtersFromParams always allocates),
+  // so we compare by serialised content rather than reference.
+  const filtersKey = `${filters.query}|${filters.genres.join(',')}|${filters.artists.join(',')}|${filters.composers.join(',')}`
+  const [prevFiltersKey, setPrevFiltersKey] = useState(filtersKey)
+  if (prevFiltersKey !== filtersKey) {
+    setPrevFiltersKey(filtersKey)
     setPage(0)
-  }, [filters])
+  }
 
   const { data, isPending, isError, refetch } = useAlbumPage(page, filters)
 
