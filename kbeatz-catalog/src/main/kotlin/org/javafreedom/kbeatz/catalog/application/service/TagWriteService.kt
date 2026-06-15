@@ -19,6 +19,19 @@ import org.javafreedom.kbeatz.tagger.codec.flac.FlacFile
 
 private val log = KotlinLogging.logger {}
 
+/** Maximum length of user-controlled values included in log messages (log injection guard). */
+private const val LOG_VALUE_MAX_LENGTH = 200
+
+/**
+ * Sanitizes a user-controlled string for safe inclusion in log messages.
+ *
+ * Replaces newlines, carriage returns, and tabs with spaces to prevent log injection via
+ * crafted FLAC tag values or filesystem paths. Truncates to [LOG_VALUE_MAX_LENGTH] characters
+ * to bound log volume from unusually long tag values.
+ */
+private fun String.sanitizeForLog(): String =
+    this.replace(Regex("[\r\n\t]"), " ").take(LOG_VALUE_MAX_LENGTH)
+
 /** Allowed Vorbis Comment fields for album-level writes. Field names are uppercase. */
 val ALBUM_LEVEL_FIELDS: Set<String> = setOf(
     "ALBUM", "ALBUMARTIST", "DATE", "GENRE", "LABEL", "CATALOGNUMBER",
@@ -157,7 +170,7 @@ class TagWriteService(
                     validatePath(mergedDir)
                     if (!Files.isDirectory(mergedDir)) {
                         log.warn {
-                            "merged_dir_skip albumId=$albumId path=$dirPath " +
+                            "merged_dir_skip albumId=$albumId path=${dirPath.sanitizeForLog()} " +
                                 "reason=directory_not_found"
                         }
                         null
