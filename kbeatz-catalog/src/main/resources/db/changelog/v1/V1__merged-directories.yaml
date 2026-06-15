@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: V1-007-album-merged-directories
-      author: triplem
+      author: kbeatz
       comment: >
         Issue #666: add merged_directories column to albums table.
         Stores a JSON array of absolute directory paths that were merged into this
