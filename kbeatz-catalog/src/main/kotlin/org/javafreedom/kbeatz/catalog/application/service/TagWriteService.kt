@@ -131,24 +131,23 @@ class TagWriteService(
             val primaryFlacFiles = findFlacFiles(albumDir)
 
             // Collect FLAC files from merged directories (issue #666).
-            // Each merged directory is validated to be within libraryRoot.
-            // Directories that no longer exist on disk are skipped with a WARN.
+            // validatePath is always called first (even for non-existent paths) so that paths
+            // with traversal sequences (e.g. ../../etc) are rejected regardless of whether
+            // the directory exists on disk (issue #724).
+            // Directories that no longer exist on disk are skipped with a WARN after validation.
             // The map preserves insertion order for deterministic write sequencing.
             val mergedDirToFlacFiles: Map<Path, List<Path>> = album.mergedDirectories
                 .mapNotNull { dirPath ->
                     val mergedDir = Path.of(dirPath)
-                    when {
-                        !Files.isDirectory(mergedDir) -> {
-                            log.warn {
-                                "merged_dir_skip albumId=$albumId path=$dirPath " +
-                                    "reason=directory_not_found"
-                            }
-                            null
+                    validatePath(mergedDir)
+                    if (!Files.isDirectory(mergedDir)) {
+                        log.warn {
+                            "merged_dir_skip albumId=$albumId path=$dirPath " +
+                                "reason=directory_not_found"
                         }
-                        else -> {
-                            validatePath(mergedDir)
-                            mergedDir to findFlacFiles(mergedDir)
-                        }
+                        null
+                    } else {
+                        mergedDir to findFlacFiles(mergedDir)
                     }
                 }
                 .toMap()
