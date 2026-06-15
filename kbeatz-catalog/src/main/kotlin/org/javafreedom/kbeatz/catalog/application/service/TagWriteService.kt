@@ -107,9 +107,9 @@ class TagWriteService(
      * write or a full library rescan corrects the inconsistency. This is intentional:
      * the current design prioritises simplicity over cross-directory atomicity.
      *
-     * Operators can identify partial failures via the `merged_dir_write_failed` structured
-     * log entry, which includes the failed directory path and how many merged directories
-     * completed before the failure.
+     * Operators can identify partial failures via structured error log entries emitted
+     * during the merged directory write phase, which include the failed directory path
+     * and how many merged directories completed before the failure.
      *
      * @param albumId Target album UUID.
      * @param field Vorbis Comment field name (case-insensitive; normalised to uppercase).
