@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { AlbumFilters } from './album-filters'
 import styles from './search-box.module.css'
@@ -25,10 +25,13 @@ export function SearchBox({ filters, onFiltersChange }: SearchBoxProps) {
   const [displayValue, setDisplayValue] = useState(filters.query)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Sync display value when filters.query changes externally (e.g., "Clear all")
-  useEffect(() => {
+  // Sync display value when filters.query changes externally (e.g., "Clear all").
+  // Use during-render state adjustment instead of useEffect to avoid cascading renders.
+  const [prevQuery, setPrevQuery] = useState(filters.query)
+  if (prevQuery !== filters.query) {
+    setPrevQuery(filters.query)
     setDisplayValue(filters.query)
-  }, [filters.query])
+  }
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
