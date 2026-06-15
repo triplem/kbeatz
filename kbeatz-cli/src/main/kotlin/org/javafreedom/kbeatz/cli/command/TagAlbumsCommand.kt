@@ -1,6 +1,7 @@
 package org.javafreedom.kbeatz.cli.command
 
 import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.Context
 import com.github.ajalt.clikt.core.ProgramResult
 import com.github.ajalt.clikt.core.UsageError
 import com.github.ajalt.clikt.parameters.arguments.argument
@@ -37,8 +38,10 @@ class TagAlbumsCommand(
     private val taggerServiceOverride: TaggerService? = null,
 ) : CliktCommand(
     name = "tag",
-    help = "Fetch Discogs metadata and write FLAC tags for the given album directories.",
 ) {
+    override fun help(context: Context) =
+        "Fetch Discogs metadata and write FLAC tags for the given album directories."
+
     private val logger = KotlinLogging.logger {}
 
     private val albumDirs: List<Path> by argument(
