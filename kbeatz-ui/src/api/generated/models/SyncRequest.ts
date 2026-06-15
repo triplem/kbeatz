@@ -4,7 +4,7 @@
 /* eslint-disable */
 export type SyncRequest = {
     /**
-     * Download and embed cover art. Default false — preserves the 1 000/day Discogs image quota.
+     * Download and embed cover art. Default false - preserves the 1 000/day Discogs image quota.
      */
     downloadImages?: boolean;
 };

@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import { type Album, AlbumsService, type Track } from '../../api/generated'
 import { useAlbum } from './useAlbum'
-import { useAlbumTagSave } from './useAlbumTagSave'
 import { ConfirmWriteDialog } from './confirm-write-dialog'
 import { NavigationGuardDialog } from './navigation-guard-dialog'
 import { EditableField } from './editable-field'
@@ -95,8 +94,8 @@ export function AlbumDetail() {
 
   // Data fetching via custom hook
   const { data: album, isPending: loading, error: fetchError, refetch } = useAlbum(albumId)
-  // Save mutation via custom hook
-  const { save: saveTag, isPending: isSaving } = useAlbumTagSave(albumId)
+  /** True while the bulk PATCH request is in flight; disables all edit fields during save. */
+  const [isSaving, setIsSaving] = useState(false)
 
   // Local UI state for the confirmation dialog flow
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -188,30 +187,28 @@ export function AlbumDetail() {
 
   /**
    * User clicked "Write tags" in the confirmation dialog.
-   * Batch-saves all dirty album-level fields then all dirty track fields in sequence.
+   * Sends all dirty album-level and track-level fields in a single bulk PATCH request.
+   * Album-level fields are applied first on the server (one Mutex acquisition for all),
+   * then track-level fields are applied in order.
    * Clears both dirty states on success.
    */
   const handleConfirm = useCallback(async () => {
     setConfirmOpen(false)
 
     if (!albumId) return
-    const albumFieldEntries = Object.entries(dirtyFields)
-    const trackEntries = Object.entries(dirtyTrackFields)
+
+    // Build the bulk request: album fields first, then track fields
+    const albumFields = Object.entries(dirtyFields).map(([field, value]) => ({ field, value }))
+    const trackFields = Object.entries(dirtyTrackFields).flatMap(([trackId, fields]) =>
+      Object.entries(fields).map(([field, value]) => ({ trackId, field, value }))
+    )
+
+    setIsSaving(true)
     try {
-      // Patch album-level fields first
-      for (const [field, value] of albumFieldEntries) {
-        await saveTag({ field, value })
-      }
-      // Patch track-level fields in sequence (one PATCH per track+field)
-      for (const [trackId, fields] of trackEntries) {
-        for (const [field, value] of Object.entries(fields)) {
-          await AlbumsService.updateTrackTags({
-            albumId,
-            trackId,
-            requestBody: { field, value },
-          })
-        }
-      }
+      await AlbumsService.bulkUpdateAlbumTags({
+        albumId,
+        requestBody: { albumFields, trackFields },
+      })
       setDirtyFields({})
       setDirtyTrackFields({})
       setHasLocalEdits(true)
@@ -223,8 +220,10 @@ export function AlbumDetail() {
       // Log the raw technical message for debugging but show a generic user-friendly message.
       console.warn('batch save failed - dirty fields retained for retry:', err instanceof Error ? err.message : err)
       setBatchSaveError(t('common.error'))
+    } finally {
+      setIsSaving(false)
     }
-  }, [albumId, dirtyFields, dirtyTrackFields, saveTag, refetch, t])
+  }, [albumId, dirtyFields, dirtyTrackFields, refetch, t])
 
   /**
    * User clicked "Cancel" or pressed Escape on the confirmation dialog.

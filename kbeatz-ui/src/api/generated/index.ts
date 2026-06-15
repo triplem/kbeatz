@@ -11,6 +11,8 @@ export type { Album } from './models/Album';
 export type { AlbumDetail } from './models/AlbumDetail';
 export type { AlbumId } from './models/AlbumId';
 export type { AlbumPage } from './models/AlbumPage';
+export type { AlbumTagFieldUpdate } from './models/AlbumTagFieldUpdate';
+export type { BulkUpdateTagsRequest } from './models/BulkUpdateTagsRequest';
 export type { ErrorResponse } from './models/ErrorResponse';
 export type { HealthResponse } from './models/HealthResponse';
 export type { LivenessResponse } from './models/LivenessResponse';
@@ -19,6 +21,7 @@ export type { ScanErrorEntry } from './models/ScanErrorEntry';
 export type { ScanStatus } from './models/ScanStatus';
 export type { SyncRequest } from './models/SyncRequest';
 export type { Track } from './models/Track';
+export type { TrackTagFieldUpdate } from './models/TrackTagFieldUpdate';
 export type { UpdateTagFieldRequest } from './models/UpdateTagFieldRequest';
 
 export { AlbumsService } from './services/AlbumsService';
