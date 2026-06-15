@@ -19,6 +19,19 @@ import org.javafreedom.kbeatz.tagger.codec.flac.FlacFile
 
 private val log = KotlinLogging.logger {}
 
+/** Maximum length of user-controlled values included in log messages (log injection guard). */
+private const val LOG_VALUE_MAX_LENGTH = 200
+
+/**
+ * Sanitizes a user-controlled string for safe inclusion in log messages.
+ *
+ * Replaces newlines, carriage returns, and tabs with spaces to prevent log injection via
+ * crafted FLAC tag values or filesystem paths. Truncates to [LOG_VALUE_MAX_LENGTH] characters
+ * to bound log volume from unusually long tag values.
+ */
+private fun String.sanitizeForLog(): String =
+    this.replace(Regex("[\r\n\t]"), " ").take(LOG_VALUE_MAX_LENGTH)
+
 /** Allowed Vorbis Comment fields for album-level writes. Field names are uppercase. */
 val ALBUM_LEVEL_FIELDS: Set<String> = setOf(
     "ALBUM", "ALBUMARTIST", "DATE", "GENRE", "LABEL", "CATALOGNUMBER",
@@ -157,7 +170,7 @@ class TagWriteService(
                     validatePath(mergedDir)
                     if (!Files.isDirectory(mergedDir)) {
                         log.warn {
-                            "merged_dir_skip albumId=$albumId path=$dirPath " +
+                            "merged_dir_skip albumId=$albumId path=${dirPath.sanitizeForLog()} " +
                                 "reason=directory_not_found"
                         }
                         null
@@ -175,11 +188,23 @@ class TagWriteService(
 
             try {
                 writeTagToFiles(primaryFlacFiles, normalised, value, albumId)
+                var mergedDirsCompleted = 0
+                @Suppress("TooGenericExceptionCaught") // intentional: any write failure is logged then rethrown
                 mergedDirToFlacFiles.forEach { (mergedDir, mergedFiles) ->
-                    writeTagToFiles(mergedFiles, normalised, value, albumId)
-                    log.info {
-                        "merged_dir_write_complete albumId=$albumId field=$normalised " +
-                            "dir=$mergedDir fileCount=${mergedFiles.size}"
+                    try {
+                        writeTagToFiles(mergedFiles, normalised, value, albumId)
+                        mergedDirsCompleted++
+                        log.info {
+                            "merged_dir_write_complete albumId=$albumId field=$normalised " +
+                                "dir=$mergedDir fileCount=${mergedFiles.size}"
+                        }
+                    } catch (e: Exception) {
+                        log.error(e) {
+                            "merged_dir_write_failed albumId=$albumId field=$normalised " +
+                                "dir=$mergedDir mergedDirsCompleted=$mergedDirsCompleted " +
+                                "mergedDirsTotal=${mergedDirToFlacFiles.size}"
+                        }
+                        throw e
                     }
                 }
             } finally {
@@ -195,6 +220,135 @@ class TagWriteService(
             }
             updatedAlbum
         }
+    }
+
+    /**
+     * Writes multiple album-level tag fields in a single Mutex acquisition, then writes
+     * multiple track-level fields sequentially.
+     *
+     * Album-level fields are applied first (all within one lock-file lifecycle):
+     * 1. Acquire in-memory [Mutex] for [albumId].
+     * 2. Check and create `.kbeatz-write.lock`.
+     * 3. Write each field in [albumFields] to all FLAC files in the album directory.
+     * 4. Delete `.kbeatz-write.lock`.
+     * 5. Persist the updated [Album].
+     *
+     * Track-level fields are then applied in order via [writeTrackTags].
+     *
+     * @param albumId Target album UUID.
+     * @param albumFields List of (field, value) pairs for album-level writes. May be empty.
+     * @param trackFields List of (trackId, field, value) triples for track-level writes. May be empty.
+     * @return Updated [Album] reflecting all album-level changes (track changes do not affect the Album model).
+     * @throws ResourceNotFoundException if the album or any referenced track is not found.
+     * @throws IllegalArgumentException if any field is not in the allowed set.
+     * @throws SecurityException if the album directory is outside [libraryRoot].
+     */
+    suspend fun writeBulkTags(
+        albumId: Uuid,
+        albumFields: List<Pair<String, String>>,
+        trackFields: List<Triple<Uuid, String, String>>,
+    ): Album {
+        val normalisedAlbumFields = albumFields.map { (field, value) ->
+            val n = field.uppercase()
+            require(n in ALBUM_LEVEL_FIELDS) {
+                "Unknown album-level tag field: '$field'. Allowed: ${ALBUM_LEVEL_FIELDS.sorted()}"
+            }
+            n to value
+        }
+
+        trackFields.forEach { (_, field, _) ->
+            val n = field.uppercase()
+            require(n in TRACK_LEVEL_FIELDS) {
+                "Unknown track-level tag field: '$field'. Allowed: ${TRACK_LEVEL_FIELDS.sorted()}"
+            }
+        }
+
+        val mutex = albumLocks.getOrPut(albumId) { Mutex() }
+        val finalAlbum: Album = mutex.withLock {
+            val album = albumRepository.findById(albumId)
+                ?: throw ResourceNotFoundException("Album", albumId.toString())
+
+            if (normalisedAlbumFields.isEmpty()) {
+                album
+            } else {
+                val albumDir = Path.of(album.directoryPath)
+                validatePath(albumDir)
+
+                if (Files.exists(albumDir.resolve(WRITE_LOCK_FILENAME))) {
+                    throw ConflictException(
+                        "Album write in progress, retry later (write lock found in $albumDir)"
+                    )
+                }
+
+                val primaryFlacFiles = findFlacFiles(albumDir)
+
+                // validatePath is always called first (even for non-existent paths) so that paths
+                // with traversal sequences (e.g. ../../etc) are rejected regardless of whether
+                // the directory exists on disk (issue #765 / same invariant as #724).
+                val mergedDirToFlacFiles: Map<Path, List<Path>> = album.mergedDirectories
+                    .mapNotNull { dirPath ->
+                        val mergedDir = Path.of(dirPath)
+                        validatePath(mergedDir)
+                        if (!Files.isDirectory(mergedDir)) {
+                            log.warn {
+                                "merged_dir_skip albumId=$albumId path=${dirPath.sanitizeForLog()} " +
+                                    "reason=directory_not_found"
+                            }
+                            null
+                        } else {
+                            mergedDir to findFlacFiles(mergedDir)
+                        }
+                    }
+                    .toMap()
+
+                val allFlacFiles = primaryFlacFiles + mergedDirToFlacFiles.values.flatten()
+                writeLockFile(albumDir, allFlacFiles)
+
+                try {
+                    normalisedAlbumFields.forEach { (normalised, value) ->
+                        writeTagToFiles(primaryFlacFiles, normalised, value, albumId)
+                        mergedDirToFlacFiles.forEach { (mergedDir, mergedFiles) ->
+                            writeTagToFiles(mergedFiles, normalised, value, albumId)
+                            log.info {
+                                "merged_dir_write_complete albumId=$albumId field=$normalised " +
+                                    "dir=$mergedDir fileCount=${mergedFiles.size}"
+                            }
+                        }
+                        log.info {
+                            "album_tag_write_complete albumId=$albumId field=$normalised " +
+                                "primaryFiles=${primaryFlacFiles.size} " +
+                                "mergedDirCount=${mergedDirToFlacFiles.size}"
+                        }
+                    }
+                } finally {
+                    deleteLockFile(albumDir)
+                }
+
+                var updatedAlbum = album
+                normalisedAlbumFields.forEach { (normalised, value) ->
+                    updatedAlbum = updatedAlbum.applyAlbumField(normalised, value)
+                }
+                albumRepository.save(updatedAlbum)
+                log.info {
+                    "bulk_album_tag_write_complete albumId=$albumId fieldCount=${normalisedAlbumFields.size}"
+                }
+                updatedAlbum
+            }
+        }
+
+        @Suppress("TooGenericExceptionCaught") // log-and-rethrow: all writeTrackTags errors need structured log
+        trackFields.forEach { (trackId, field, value) ->
+            try {
+                writeTrackTags(albumId, trackId, field, value)
+            } catch (ex: Exception) {
+                log.warn(ex) {
+                    "bulk_track_tag_write_failed albumId=$albumId trackId=$trackId field=$field"
+                }
+                throw ex
+            }
+        }
+
+        return finalAlbum
     }
 
     /**

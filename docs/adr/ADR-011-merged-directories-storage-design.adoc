@@ -1,0 +1,144 @@
+= ADR-011: merged_directories Storage Design - JSON TEXT Column vs Junction Table
+:toc: left
+:icons: font
+:revdate: 2026-06-15
+:status: Accepted
+
+== Status
+
+Accepted
+
+== Context
+
+`kbeatz-catalog` deduplicates albums that appear in multiple sibling directories (for example,
+the same album re-ripped at different quality levels or in different formats such as FLAC 16-bit
+and FLAC 24-bit). When a set of sibling directories is identified as one logical album, the
+catalog merges them into a single `albums` row and must remember all the contributing directory
+paths so that `TagWriteService` can write tag changes to every directory, not just the primary
+one.
+
+This requirement was introduced in issue #666 and shipped in PR #723.
+
+=== What was stored and where
+
+The `merged_directories` column was added to the `albums` table via Liquibase changeset
+`V1-007-album-merged-directories` (file `V1__merged-directories.yaml`). It is declared as a
+`TEXT` column and holds a JSON array of absolute directory paths:
+
+[source,json]
+----
+["/music/Pink Floyd/The Wall [FLAC 16-bit]", "/music/Pink Floyd/The Wall [FLAC 24-bit]"]
+----
+
+`NULL` is stored for albums that come from a single directory (the common case).
+
+=== Existing pattern
+
+The `extra_tags` and `images` columns on the same `albums` table already use the identical
+pattern: a `TEXT` column containing a JSON array. Adopting the same pattern for
+`merged_directories` is therefore consistent with the established H2 v1 storage convention.
+
+=== The alternative design
+
+A normalised junction table would look like:
+
+[source,sql]
+----
+CREATE TABLE album_directories (
+  album_id    BIGINT  NOT NULL REFERENCES albums(id),
+  directory   TEXT    NOT NULL,
+  is_primary  BOOLEAN NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (album_id, directory)
+);
+----
+
+This design allows per-directory SQL queries, foreign-key referential integrity, and an explicit
+distinction between the primary directory and merged peers.
+
+== Decision
+
+Use a `TEXT` column containing a JSON array for `merged_directories`, consistent with
+`extra_tags` and `images`.
+
+The key reasons are:
+
+. *H2 is a temporary v1 store.* The schema will be replaced when migrating to PostgreSQL (see
+  ADR-006). Designing a junction table for a database that will be replaced is over-engineering.
+
+. *Write-once, read-by-TagWriteService only.* The `merged_directories` value is written once
+  per album group during a scan and is consumed by `TagWriteService` in a single bulk load.
+  No application code queries albums by a specific merged directory path via SQL. The whole JSON
+  array is deserialised in memory by the ORM layer.
+
+. *Low cardinality in practice.* The realistic case is 1 to 3 merged directories per album
+  (e.g. one 16-bit and one 24-bit rip). The TEXT field size is negligible.
+
+. *Consistency.* Adding a junction table for `merged_directories` while `extra_tags` and
+  `images` remain as TEXT columns would introduce an inconsistent schema without a clear benefit
+  in v1.
+
+== Consequences
+
+=== Accepted limitations in v1
+
+* No SQL-level querying by individual directory path. H2 does not support JSON array containment
+  predicates on a TEXT column, so it is not possible to filter albums by a single merged
+  directory path in SQL. If such a query is ever needed in v1 it must be implemented in
+  application code by loading all albums and filtering in memory.
+
+* No referential integrity. The JSON paths are plain strings. There is no database constraint
+  preventing a stale or incorrect path from being stored.
+
+* Large box-sets. An album merged from 50+ directories (an extreme edge case for large box-set
+  re-rips across many format variants) would produce a TEXT value several kilobytes in size.
+  This is not a concern for H2 in v1 and is bounded by the realistic size of a personal music
+  collection.
+
+=== v2 migration target
+
+The junction table design (`album_directories(album_id, directory, is_primary)`) described in
+the Context section is the correct design for the PostgreSQL v2 target (ADR-006 scope). When
+the catalog migrates to PostgreSQL:
+
+. A Liquibase migration should decompose the `merged_directories` TEXT column into the
+  `album_directories` junction table.
+. The primary `directoryPath` column on `albums` becomes the row where `is_primary = TRUE`.
+. `TagWriteService` is updated to query `album_directories` instead of deserialising the JSON
+  field.
+
+Future maintainers should not introduce the junction table in H2/v1 without also migrating to
+PostgreSQL. Doing so adds migration complexity for no runtime benefit in the current setup.
+
+== Alternatives Considered
+
+=== Junction table in v1 (rejected)
+
+Introducing `album_directories(album_id, directory, is_primary)` in the H2 v1 schema was
+considered and rejected for the following reasons:
+
+* *Premature normalisation.* No current feature requires per-directory SQL queries.
+  `TagWriteService` loads the full list at once.
+* *Migration overhead.* The junction table would require a second Liquibase migration to
+  decompose it when moving to PostgreSQL, adding complexity to an already-planned migration.
+* *Inconsistency with existing columns.* `extra_tags` and `images` use the TEXT/JSON pattern.
+  A single exception for `merged_directories` would make the schema harder to reason about
+  without a clear benefit.
+
+=== PostgreSQL-native `jsonb` column (not applicable in v1)
+
+PostgreSQL's `jsonb` type supports indexed queries against JSON content
+(`WHERE merged_directories @> '["path"]'`). This option is only available once the catalog has
+migrated to PostgreSQL and falls outside the scope of this ADR. It may be considered in v2 if
+per-directory queries become a requirement before a full junction-table decomposition is
+warranted.
+
+== See Also
+
+* link:ADR-006-database-choice.adoc[ADR-006: H2 as the Embedded Database (v1); PostgreSQL as
+  the v2 Migration Target] - overall database choice rationale and v2 migration path
+* `kbeatz-catalog/src/main/resources/db/changelog/v1/V1__merged-directories.yaml` - Liquibase
+  changeset that introduces the `merged_directories` column
+* `kbeatz-catalog/src/main/resources/db/changelog/v1/V1__deduplication.yaml` - earlier
+  deduplication schema changes that set the context for this column
+* Issue #666 - feature story that introduced multi-directory FLAC tag writes
+* PR #723 - implementation of issue #666

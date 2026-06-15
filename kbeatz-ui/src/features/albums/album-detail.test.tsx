@@ -11,6 +11,7 @@ vi.mock('../../api/generated', () => ({
     getAlbum: vi.fn(),
     updateAlbumTags: vi.fn(),
     updateTrackTags: vi.fn(),
+    bulkUpdateAlbumTags: vi.fn(),
     syncAlbumFromDiscogs: vi.fn(),
   },
 }))
@@ -36,6 +37,7 @@ const mockAlbumsService = AlbumsService as unknown as {
   getAlbum: ReturnType<typeof vi.fn>
   updateAlbumTags: ReturnType<typeof vi.fn>
   updateTrackTags: ReturnType<typeof vi.fn>
+  bulkUpdateAlbumTags: ReturnType<typeof vi.fn>
 }
 
 function makeTrack(overrides: Partial<Track> = {}): Track {
@@ -273,10 +275,10 @@ describe('AlbumDetail', () => {
     expect(screen.getByTestId('album-input-genre')).toHaveValue('Jazz')
   })
 
-  it('calls updateAlbumTags and updates album after confirmation', async () => {
+  it('calls bulkUpdateAlbumTags and updates album after confirmation', async () => {
     const updatedAlbum = makeAlbum({ genre: 'Progressive Rock' })
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
-    mockAlbumsService.updateAlbumTags.mockResolvedValue(updatedAlbum)
+    mockAlbumsService.bulkUpdateAlbumTags.mockResolvedValue(updatedAlbum)
     renderDetail()
 
     await waitFor(() => {
@@ -286,9 +288,12 @@ describe('AlbumDetail', () => {
     await editAlbumFieldAndConfirm('album-value-genre', 'album-input-genre', 'Progressive Rock')
 
     await waitFor(() => {
-      expect(mockAlbumsService.updateAlbumTags).toHaveBeenCalledWith({
+      expect(mockAlbumsService.bulkUpdateAlbumTags).toHaveBeenCalledWith({
         albumId: 'album-id-1',
-        requestBody: { field: 'GENRE', value: 'Progressive Rock' },
+        requestBody: {
+          albumFields: [{ field: 'GENRE', value: 'Progressive Rock' }],
+          trackFields: [],
+        },
       })
     })
   })
@@ -314,7 +319,7 @@ describe('AlbumDetail', () => {
 
   it('retains dirty fields and shows error when batch save fails', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
-    mockAlbumsService.updateAlbumTags.mockRejectedValue(new Error('Server error'))
+    mockAlbumsService.bulkUpdateAlbumTags.mockRejectedValue(new Error('Server error'))
     renderDetail()
 
     await waitFor(() => {
@@ -379,7 +384,7 @@ describe('AlbumDetail', () => {
 
   it('shows confirmation dialog before the PATCH fires (dialog triggered by Save button)', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
-    mockAlbumsService.updateAlbumTags.mockResolvedValue(makeAlbum({ genre: 'Rock' }))
+    mockAlbumsService.bulkUpdateAlbumTags.mockResolvedValue(makeAlbum({ genre: 'Rock' }))
     renderDetail()
 
     await waitFor(() => {
@@ -401,7 +406,7 @@ describe('AlbumDetail', () => {
     await waitFor(() => {
       expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument()
     })
-    expect(mockAlbumsService.updateAlbumTags).not.toHaveBeenCalled()
+    expect(mockAlbumsService.bulkUpdateAlbumTags).not.toHaveBeenCalled()
   })
 
   it('dialog shows album title and track count', async () => {
@@ -478,7 +483,7 @@ describe('AlbumDetail', () => {
     })
 
     // PATCH was never called
-    expect(mockAlbumsService.updateAlbumTags).not.toHaveBeenCalled()
+    expect(mockAlbumsService.bulkUpdateAlbumTags).not.toHaveBeenCalled()
     // Dirty count still shown - the committed value stays pending
     expect(screen.getByTestId('dirty-count')).toBeInTheDocument()
     expect(screen.queryByTestId('album-error-genre')).not.toBeInTheDocument()
@@ -510,13 +515,13 @@ describe('AlbumDetail', () => {
       expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
     })
 
-    expect(mockAlbumsService.updateAlbumTags).not.toHaveBeenCalled()
+    expect(mockAlbumsService.bulkUpdateAlbumTags).not.toHaveBeenCalled()
     expect(screen.queryByTestId('album-error-genre')).not.toBeInTheDocument()
   })
 
-  it('Confirm button fires the PATCH', async () => {
+  it('Confirm button fires the bulk PATCH', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
-    mockAlbumsService.updateAlbumTags.mockResolvedValue(makeAlbum({ genre: 'Rock' }))
+    mockAlbumsService.bulkUpdateAlbumTags.mockResolvedValue(makeAlbum({ genre: 'Rock' }))
     renderDetail()
 
     await waitFor(() => {
@@ -526,7 +531,7 @@ describe('AlbumDetail', () => {
     await editAlbumFieldAndConfirm('album-value-genre', 'album-input-genre', 'Rock')
 
     await waitFor(() => {
-      expect(mockAlbumsService.updateAlbumTags).toHaveBeenCalledOnce()
+      expect(mockAlbumsService.bulkUpdateAlbumTags).toHaveBeenCalledOnce()
     })
 
     await waitFor(() => {
@@ -622,12 +627,12 @@ describe('AlbumDetail', () => {
     // No dialog - dirty commit only
     expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
     // PATCH not called yet
-    expect(mockAlbumsService.updateAlbumTags).not.toHaveBeenCalled()
+    expect(mockAlbumsService.bulkUpdateAlbumTags).not.toHaveBeenCalled()
   })
 
-  it('Save button sends all dirty fields in sequence', async () => {
+  it('Save button sends all dirty fields in one bulk request', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
-    mockAlbumsService.updateAlbumTags.mockResolvedValue(makeAlbum({ genre: 'Rock', label: 'Blue Note' }))
+    mockAlbumsService.bulkUpdateAlbumTags.mockResolvedValue(makeAlbum({ genre: 'Rock', label: 'Blue Note' }))
     renderDetail()
 
     await waitFor(() => {
@@ -652,7 +657,21 @@ describe('AlbumDetail', () => {
     fireEvent.click(screen.getByTestId('confirm-dialog-confirm'))
 
     await waitFor(() => {
-      expect(mockAlbumsService.updateAlbumTags).toHaveBeenCalledTimes(2)
+      // Both fields sent in one bulk request (order may vary as Object.entries order)
+      expect(mockAlbumsService.bulkUpdateAlbumTags).toHaveBeenCalledOnce()
+      const call = mockAlbumsService.bulkUpdateAlbumTags.mock.calls[0][0] as {
+        albumId: string
+        requestBody: { albumFields: Array<{ field: string; value: string }>; trackFields: unknown[] }
+      }
+      expect(call.albumId).toBe('album-id-1')
+      expect(call.requestBody.albumFields).toHaveLength(2)
+      expect(call.requestBody.albumFields).toEqual(
+        expect.arrayContaining([
+          { field: 'GENRE', value: 'Rock' },
+          { field: 'LABEL', value: 'Blue Note' },
+        ])
+      )
+      expect(call.requestBody.trackFields).toEqual([])
     })
   })
 
@@ -678,7 +697,7 @@ describe('AlbumDetail', () => {
 
     // No dialog and no network call yet - only staged as dirty
     expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
-    expect(mockAlbumsService.updateTrackTags).not.toHaveBeenCalled()
+    expect(mockAlbumsService.bulkUpdateAlbumTags).not.toHaveBeenCalled()
   })
 
   it('Save button becomes enabled after a track field is committed via Enter', async () => {
@@ -704,12 +723,12 @@ describe('AlbumDetail', () => {
     })
   })
 
-  it('calls updateTrackTags when track field is committed then saved via Save button', async () => {
+  it('calls bulkUpdateAlbumTags with track field when track field is committed then saved', async () => {
     const updatedAlbum = makeAlbum({
       tracks: [makeTrack({ title: 'New Title' })],
     })
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
-    mockAlbumsService.updateTrackTags.mockResolvedValue(updatedAlbum)
+    mockAlbumsService.bulkUpdateAlbumTags.mockResolvedValue(updatedAlbum)
     renderDetail()
 
     const trackId = 'track-id-1'
@@ -731,10 +750,12 @@ describe('AlbumDetail', () => {
     fireEvent.click(screen.getByTestId('confirm-dialog-confirm'))
 
     await waitFor(() => {
-      expect(mockAlbumsService.updateTrackTags).toHaveBeenCalledWith({
+      expect(mockAlbumsService.bulkUpdateAlbumTags).toHaveBeenCalledWith({
         albumId: 'album-id-1',
-        trackId: 'track-id-1',
-        requestBody: { field: 'TITLE', value: 'New Title' },
+        requestBody: {
+          albumFields: [],
+          trackFields: [{ trackId: 'track-id-1', field: 'TITLE', value: 'New Title' }],
+        },
       })
     })
   })
@@ -742,7 +763,7 @@ describe('AlbumDetail', () => {
   it('dirty track fields are cleared after successful save', async () => {
     const updatedAlbum = makeAlbum({ tracks: [makeTrack({ title: 'New Title' })] })
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
-    mockAlbumsService.updateTrackTags.mockResolvedValue(updatedAlbum)
+    mockAlbumsService.bulkUpdateAlbumTags.mockResolvedValue(updatedAlbum)
     renderDetail()
 
     const trackId = 'track-id-1'
@@ -770,7 +791,7 @@ describe('AlbumDetail', () => {
 
   it('retains dirty track fields and shows error when track save fails', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
-    mockAlbumsService.updateTrackTags.mockRejectedValue(new Error('Server error'))
+    mockAlbumsService.bulkUpdateAlbumTags.mockRejectedValue(new Error('Server error'))
     renderDetail()
 
     const trackId = 'track-id-1'
@@ -805,11 +826,10 @@ describe('AlbumDetail', () => {
     expect(screen.getByTestId('save-button')).not.toBeDisabled()
   })
 
-  it('Save button patches both album and track dirty fields in one confirmation', async () => {
+  it('Save button patches both album and track dirty fields in one bulk request', async () => {
     const updatedAlbum = makeAlbum({ genre: 'Rock', tracks: [makeTrack({ title: 'New Title' })] })
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
-    mockAlbumsService.updateAlbumTags.mockResolvedValue(updatedAlbum)
-    mockAlbumsService.updateTrackTags.mockResolvedValue(updatedAlbum)
+    mockAlbumsService.bulkUpdateAlbumTags.mockResolvedValue(updatedAlbum)
     renderDetail()
 
     const trackId = 'track-id-1'
@@ -835,14 +855,12 @@ describe('AlbumDetail', () => {
     fireEvent.click(screen.getByTestId('confirm-dialog-confirm'))
 
     await waitFor(() => {
-      expect(mockAlbumsService.updateAlbumTags).toHaveBeenCalledWith({
+      expect(mockAlbumsService.bulkUpdateAlbumTags).toHaveBeenCalledWith({
         albumId: 'album-id-1',
-        requestBody: { field: 'GENRE', value: 'Rock' },
-      })
-      expect(mockAlbumsService.updateTrackTags).toHaveBeenCalledWith({
-        albumId: 'album-id-1',
-        trackId: 'track-id-1',
-        requestBody: { field: 'TITLE', value: 'New Title' },
+        requestBody: {
+          albumFields: [{ field: 'GENRE', value: 'Rock' }],
+          trackFields: [{ trackId: 'track-id-1', field: 'TITLE', value: 'New Title' }],
+        },
       })
     })
   })
@@ -882,7 +900,7 @@ describe('AlbumDetail', () => {
       expect(screen.getByTestId('save-button')).not.toBeDisabled()
     })
     // No network call yet
-    expect(mockAlbumsService.updateTrackTags).not.toHaveBeenCalled()
+    expect(mockAlbumsService.bulkUpdateAlbumTags).not.toHaveBeenCalled()
   })
 
   it('VA track: ARTIST field is editable per track', async () => {
@@ -1269,7 +1287,7 @@ describe('AlbumDetail - navigation guard (dirty fields)', () => {
 
   it('does not show nav guard after batch save clears dirty fields', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
-    mockAlbumsService.updateAlbumTags.mockResolvedValue(makeAlbum({ album: 'New Title' }))
+    mockAlbumsService.bulkUpdateAlbumTags.mockResolvedValue(makeAlbum({ album: 'New Title' }))
     renderDetail()
 
     await waitFor(() => {
