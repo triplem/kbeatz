@@ -40,6 +40,7 @@ class LibraryScanServiceTest {
     private fun albumGroup(artist: String = "Miles Davis", album: String = "Kind of Blue") =
         AlbumGroup(
             rootPath = Path.of("/music/$artist/$album"),
+            sourceDirs = listOf(Path.of("/music/$artist/$album")),
             flacPaths = listOf(Path.of("/music/$artist/$album/01.flac")),
             albumArtist = artist,
             albumTitle = album,
@@ -226,6 +227,7 @@ class LibraryScanServiceTest {
     fun `AlbumGroup toAlbum maps fields correctly`() {
         val group = AlbumGroup(
             rootPath = Path.of("/music/classical/bach"),
+            sourceDirs = listOf(Path.of("/music/classical/bach")),
             flacPaths = emptyList(),
             albumArtist = "Bach",
             albumTitle = "BWV 998",
@@ -242,9 +244,49 @@ class LibraryScanServiceTest {
     }
 
     @Test
+    fun `AlbumGroup toAlbum populates mergedDirectories for multi-directory groups`() {
+        // Simulates a deduplicated album from two sibling directories (issue #666).
+        // sourceDirs contains both; rootPath is the shallowest directory.
+        val primary = Path.of("/music/jazz/miles-davis/kind-of-blue")
+        val merged = Path.of("/music/jazz/miles-davis/kind-of-blue-backup")
+        val group = AlbumGroup(
+            rootPath = primary,
+            sourceDirs = listOf(primary, merged),
+            flacPaths = emptyList(),
+            albumArtist = "Miles Davis",
+            albumTitle = "Kind of Blue",
+            date = "1959",
+        )
+
+        val album = with(LibraryScanService.Companion) { group.toAlbum() }
+
+        assertEquals(primary.toString(), album.directoryPath)
+        assertEquals(listOf(merged.toString()), album.mergedDirectories,
+            "mergedDirectories must contain all sourceDirs except the primary rootPath")
+    }
+
+    @Test
+    fun `AlbumGroup toAlbum produces empty mergedDirectories for single-directory groups`() {
+        val group = AlbumGroup(
+            rootPath = Path.of("/music/jazz/coltrane"),
+            sourceDirs = listOf(Path.of("/music/jazz/coltrane")),
+            flacPaths = emptyList(),
+            albumArtist = "John Coltrane",
+            albumTitle = "A Love Supreme",
+            date = "1964",
+        )
+
+        val album = with(LibraryScanService.Companion) { group.toAlbum() }
+
+        assertEquals(emptyList<String>(), album.mergedDirectories,
+            "Single-directory albums must have empty mergedDirectories")
+    }
+
+    @Test
     fun `AlbumGroup toAlbum uses existingId when provided — UUID stability across rescans`() {
         val group = AlbumGroup(
             rootPath = Path.of("/music/jazz/miles"),
+            sourceDirs = listOf(Path.of("/music/jazz/miles")),
             flacPaths = emptyList(),
             albumArtist = "Miles Davis",
             albumTitle = "Kind of Blue",
@@ -261,6 +303,7 @@ class LibraryScanServiceTest {
     fun `AlbumGroup toAlbum generates fresh UUID when existingId is null`() {
         val group = AlbumGroup(
             rootPath = Path.of("/music/jazz/coltrane"),
+            sourceDirs = listOf(Path.of("/music/jazz/coltrane")),
             flacPaths = emptyList(),
             albumArtist = "John Coltrane",
             albumTitle = "A Love Supreme",
@@ -453,6 +496,7 @@ class LibraryScanServiceTest {
         )
         val group = AlbumGroup(
             rootPath = albumRoot,
+            sourceDirs = listOf(albumRoot),
             flacPaths = listOf(flacPath),
             albumArtist = "Miles Davis",
             albumTitle = "Kind of Blue",

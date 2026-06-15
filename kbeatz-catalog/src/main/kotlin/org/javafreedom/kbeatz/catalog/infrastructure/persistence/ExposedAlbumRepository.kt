@@ -1,5 +1,6 @@
 package org.javafreedom.kbeatz.catalog.infrastructure.persistence
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import java.util.UUID
 import kotlin.uuid.Uuid
 import kotlin.uuid.toKotlinUuid
@@ -45,6 +46,8 @@ import org.jetbrains.exposed.v1.jdbc.update
  * No additional query is issued per album; the aggregated values arrive in the same result set
  * as the album metadata.
  */
+private val log = KotlinLogging.logger {}
+
 class ExposedAlbumRepository : AlbumRepository {
 
     override suspend fun findById(id: Uuid): Album? =
@@ -59,16 +62,17 @@ class ExposedAlbumRepository : AlbumRepository {
 
     override suspend fun findByDirectoryPath(directoryPath: String): Album? =
         suspendTransaction {
-            AlbumsTable
+            val results = AlbumsTable
                 .selectAll()
                 .where { AlbumsTable.directoryPath eq directoryPath }
-                // firstOrNull() instead of singleOrNull(): directory_path is no longer uniquely
-                // constrained after migration V1-006a replaced the 4-column unique index with
-                // uq_albums_dedup on (album_artist, album, album_date). Two rows can share the
-                // same directory_path after deduplication; singleOrNull() would throw
-                // IllegalStateException in that case (#672).
-                .firstOrNull()
-                ?.toAlbum()
+                .map { it.toAlbum() }
+            if (results.size > 1) {
+                log.warn {
+                    "findByDirectoryPath_duplicate directoryPath=$directoryPath " +
+                        "count=${results.size} - returning first; run dedup migration to resolve"
+                }
+            }
+            results.firstOrNull()
         }
 
     override suspend fun findAllWithCount(page: Int, size: Int, filter: AlbumFilter): Pair<List<Album>, Long> =
@@ -193,7 +197,8 @@ class ExposedAlbumRepository : AlbumRepository {
      * Persists a single chunk of albums inside one transaction.
      *
      * Existing albums (matched by natural key) are updated using [updateAlbumStructural], which
-     * touches only the four scan-derived columns (albumArtist, album, albumDate, directoryPath).
+     * touches only the scan-derived structural columns (albumArtist, album, albumDate,
+     * directoryPath, mergedDirectories).
      * Enriched Discogs metadata (genre, label, catalogNumber, composer, conductor, ensemble,
      * discogsId, images) is intentionally left unchanged so that a library rescan cannot wipe
      * data that was written by a Discogs sync.
@@ -290,6 +295,7 @@ private fun insertAlbum(album: Album) {
         it[extraTags] = JsonSerde.encodeExtraTags(album.extraTags)
         it[images] = JsonSerde.encodeImages(album.images)
         it[directoryPath] = album.directoryPath
+        it[mergedDirectories] = JsonSerde.encodeMergedDirectories(album.mergedDirectories)
     }
 }
 
@@ -308,16 +314,20 @@ private fun updateAlbum(album: Album) {
         it[extraTags] = JsonSerde.encodeExtraTags(album.extraTags)
         it[images] = JsonSerde.encodeImages(album.images)
         it[directoryPath] = album.directoryPath
+        it[mergedDirectories] = JsonSerde.encodeMergedDirectories(album.mergedDirectories)
     }
 }
 
 /**
- * Updates only the four scan-derived structural columns for an album that already exists.
+ * Updates only the scan-derived structural columns for an album that already exists.
  *
  * Intentionally does NOT touch enriched Discogs fields (genre, label, catalogNumber, composer,
  * conductor, ensemble, discogsId, images). Called from [ExposedAlbumRepository.saveChunk] during
  * library rescan and startup repair so that Discogs-synced data is never overwritten by a rescan
  * that produces Album objects with null enriched fields.
+ *
+ * [mergedDirectories] IS updated here because it is a scan-derived structural field:
+ * each rescan may discover that the album now spans more or fewer directories.
  */
 private fun updateAlbumStructural(album: Album) {
     AlbumsTable.update({ AlbumsTable.id eq album.id.toJavaUuid() }) {
@@ -325,6 +335,7 @@ private fun updateAlbumStructural(album: Album) {
         it[AlbumsTable.album] = album.album
         it[albumDate] = album.date.orEmpty()
         it[directoryPath] = album.directoryPath
+        it[mergedDirectories] = JsonSerde.encodeMergedDirectories(album.mergedDirectories)
     }
 }
 
@@ -343,6 +354,7 @@ internal fun ResultRow.toAlbum(): Album = Album(
     extraTags = JsonSerde.decodeExtraTags(this[AlbumsTable.extraTags]),
     images = JsonSerde.decodeImages(this[AlbumsTable.images]),
     directoryPath = this[AlbumsTable.directoryPath],
+    mergedDirectories = JsonSerde.decodeMergedDirectories(this[AlbumsTable.mergedDirectories]),
 )
 
 /**

@@ -41,6 +41,19 @@ import org.javafreedom.kbeatz.tagger.codec.flac.FlacMetadataBlock
 
 private val log = KotlinLogging.logger {}
 
+/** Maximum length of user-controlled values included in log messages (log injection guard). */
+private const val LOG_VALUE_MAX_LENGTH = 200
+
+/**
+ * Sanitizes a user-controlled string for safe inclusion in log messages.
+ *
+ * Replaces newlines, carriage returns, and tabs with spaces to prevent log injection via
+ * crafted FLAC tag values. Truncates to [LOG_VALUE_MAX_LENGTH] characters to bound log volume
+ * from unusually long tag values.
+ */
+private fun String.sanitizeForLog(): String =
+    this.replace(Regex("[\r\n\t]"), " ").take(LOG_VALUE_MAX_LENGTH)
+
 /**
  * Manages asynchronous library scanning and progress tracking.
  *
@@ -214,6 +227,8 @@ class LibraryScanService(
         if (savedAlbum == null) {
             log.warn {
                 "track_save_skip rootPath=${group.rootPath} " +
+                    "albumArtist=${group.albumArtist.sanitizeForLog()} " +
+                    "albumTitle=${group.albumTitle.sanitizeForLog()} " +
                     "reason=album_not_found_in_db_after_saveAll - tracks will not be indexed"
             }
             return
@@ -353,7 +368,7 @@ class LibraryScanService(
      * `Album.directoryPath` (CLI `tag` command, future playback). Issue #666 tracks the
      * multi-directory write strategy; until then these tracks are skipped.
      */
-    private fun isPathOutsideRoot(relativePath: String): Boolean =
+    internal fun isPathOutsideRoot(relativePath: String): Boolean =
         relativePath == ".." || relativePath.startsWith("../") || relativePath.contains("/../")
 
     /**
@@ -402,6 +417,10 @@ class LibraryScanService(
          * If [existingId] is supplied (looked up by natural key from the repository), it is reused
          * so that the album UUID remains stable across rescans and bookmarked UI URLs stay valid.
          * A fresh [Uuid.random] is assigned only for genuinely new albums (where [existingId] is null).
+         *
+         * [Album.mergedDirectories] is populated from [AlbumGroup.sourceDirs] excluding the primary
+         * [AlbumGroup.rootPath]. This allows [TagWriteService] to write tags to all directories that
+         * were merged during deduplication (issue #666).
          */
         fun AlbumGroup.toAlbum(existingId: Uuid? = null): Album = Album(
             id = existingId ?: Uuid.random(),
@@ -418,6 +437,9 @@ class LibraryScanService(
             directoryPath = rootPath.toString(),
             extraTags = null,
             images = null,
+            mergedDirectories = sourceDirs
+                .map { it.toString() }
+                .filterNot { it == rootPath.toString() },
         )
     }
 }

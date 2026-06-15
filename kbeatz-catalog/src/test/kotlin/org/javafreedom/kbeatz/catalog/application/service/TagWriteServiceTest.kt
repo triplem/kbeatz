@@ -2,7 +2,9 @@ package org.javafreedom.kbeatz.catalog.application.service
 
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.runs
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -410,6 +412,285 @@ class TagWriteServiceTest {
             albumDir.resolve(WRITE_LOCK_FILENAME).toFile().exists(),
             "Write-lock file must be removed after the serialised retry",
         )
+    }
+
+    // ──────────────────────────────────────────────
+    // Multi-directory write path (issue #666)
+    // ──────────────────────────────────────────────
+
+    @Test
+    fun `writeAlbumTags writes tags to FLAC files in merged directories`() = runTest {
+        // Set up a second directory (merged) alongside the primary albumDir.
+        val mergedDir: Path = Files.createTempDirectory(libraryRoot, "kind-of-blue-backup")
+
+        // Place a FLAC file in each directory.
+        val primaryFlac = albumDir.resolve("01.flac")
+        val mergedFlac = mergedDir.resolve("01.flac")
+        copyMinimalFlac(primaryFlac)
+        copyMinimalFlac(mergedFlac)
+
+        // Build album with a merged directory recorded.
+        val album = buildAlbum().copy(mergedDirectories = listOf(mergedDir.toString()))
+        coEvery { albumRepository.findById(albumId) } returns album
+        coEvery { albumRepository.save(any()) } answers { firstArg() }
+
+        service.writeAlbumTags(albumId, "GENRE", "Jazz")
+
+        // Both FLAC files must still exist after the write (not truncated or deleted).
+        assertTrue(primaryFlac.toFile().exists(), "Primary FLAC file must exist after multi-dir write")
+        assertTrue(mergedFlac.toFile().exists(), "Merged FLAC file must exist after multi-dir write")
+
+        // Lock file must be cleaned up in the primary directory.
+        assertFalse(
+            albumDir.resolve(WRITE_LOCK_FILENAME).toFile().exists(),
+            "Write-lock file must be removed after multi-dir write",
+        )
+    }
+
+    @Test
+    fun `writeAlbumTags skips merged directory that no longer exists on disk`() = runTest {
+        val phantomDir = libraryRoot.resolve("phantom-does-not-exist")
+        // phantomDir is NOT created on disk.
+
+        val album = buildAlbum().copy(mergedDirectories = listOf(phantomDir.toString()))
+        coEvery { albumRepository.findById(albumId) } returns album
+        coEvery { albumRepository.save(any()) } answers { firstArg() }
+
+        // Must succeed without throwing; phantom dir is skipped with a WARN.
+        val result = service.writeAlbumTags(albumId, "GENRE", "Jazz")
+        assertEquals("Jazz", result.genre)
+    }
+
+    // ──────────────────────────────────────────────
+    // Partial failure: merged directory write fails (issue #725)
+    // ──────────────────────────────────────────────
+
+    @Test
+    fun `writeAlbumTags rethrows exception and cleans up lock file when merged directory write fails`() = runTest {
+        // This test uses filesystem permissions to simulate a write failure. On systems where
+        // the test runner executes as root (e.g. some Docker CI environments), setWritable(false)
+        // is ignored and the test would pass vacuously. The assumption below skips it in that case.
+        val canEnforcePermissions = Files.createTempFile("perm-check", null).also { tmp ->
+            tmp.toFile().setWritable(false)
+        }.let { tmp ->
+            val writable = tmp.toFile().canWrite()
+            tmp.toFile().setWritable(true)
+            tmp.toFile().delete()
+            !writable
+        }
+        if (!canEnforcePermissions) return@runTest
+
+        // Set up a merged directory with a FLAC file.
+        val mergedDir: Path = Files.createTempDirectory(libraryRoot, "kind-of-blue-readonly")
+        val primaryFlac = albumDir.resolve("01-primary.flac")
+        val mergedFlac = mergedDir.resolve("01-merged.flac")
+        copyMinimalFlac(primaryFlac)
+        copyMinimalFlac(mergedFlac)
+
+        val album = buildAlbum().copy(mergedDirectories = listOf(mergedDir.toString()))
+        coEvery { albumRepository.findById(albumId) } returns album
+        coEvery { albumRepository.save(any()) } answers { firstArg() }
+
+        // Make the merged directory read-only so the FLAC write cannot create a temp file.
+        mergedDir.toFile().setWritable(false)
+
+        try {
+            // The write to the primary directory succeeds, then the merged dir write fails
+            // with a FileNotFoundException (permission denied creating the temp file).
+            // The service must rethrow so the caller knows the write was incomplete.
+            assertFailsWith<java.io.FileNotFoundException> {
+                service.writeAlbumTags(albumId, "GENRE", "Jazz")
+            }
+
+            // The finally block must still run: the lock file must be deleted from the primary dir.
+            assertFalse(
+                albumDir.resolve(WRITE_LOCK_FILENAME).toFile().exists(),
+                "Write-lock file must be removed even when a merged directory write fails",
+            )
+
+            // The primary FLAC file must still exist (write succeeded before merged dir failed).
+            assertTrue(primaryFlac.toFile().exists(), "Primary FLAC must exist after partial failure")
+        } finally {
+            // Restore write permissions so the temp directory can be cleaned up after the test.
+            mergedDir.toFile().setWritable(true)
+        }
+    }
+
+    @Test
+    fun `writeAlbumTags throws SecurityException for merged directory path outside libraryRoot`() = runTest {
+        // A traversal path stored in mergedDirectories (e.g. from a DB manipulation)
+        // must be rejected by validatePath even when the directory does not exist on disk.
+        val outsideDir = Files.createTempDirectory("outside-root-for-merged")
+        try {
+            val album = buildAlbum().copy(mergedDirectories = listOf(outsideDir.toString()))
+            coEvery { albumRepository.findById(albumId) } returns album
+
+            // validatePath is called before isDirectory so the traversal is caught regardless
+            // of whether the path exists (issue #724).
+            assertFailsWith<SecurityException> {
+                service.writeAlbumTags(albumId, "GENRE", "Jazz")
+            }
+        } finally {
+            outsideDir.toFile().deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `writeAlbumTags with empty mergedDirectories writes only to primary directory`() = runTest {
+        val flacFile = albumDir.resolve("01.flac")
+        copyMinimalFlac(flacFile)
+
+        val album = buildAlbum() // mergedDirectories defaults to emptyList()
+        coEvery { albumRepository.findById(albumId) } returns album
+        coEvery { albumRepository.save(any()) } answers { firstArg() }
+
+        val result = service.writeAlbumTags(albumId, "GENRE", "Rock")
+
+        assertEquals("Rock", result.genre)
+        assertTrue(flacFile.toFile().exists(), "Primary FLAC file must exist after single-dir write")
+    }
+
+    // ──────────────────────────────────────────────
+    // Bulk write path (issue #726)
+    // ──────────────────────────────────────────────
+
+    @Test
+    fun `writeBulkTags applies all album-level fields in one lock acquisition`() = runTest {
+        val flacFile = albumDir.resolve("01.flac")
+        copyMinimalFlac(flacFile)
+
+        val album = buildAlbum()
+        coEvery { albumRepository.findById(albumId) } returns album
+        coEvery { albumRepository.save(any()) } answers { firstArg() }
+
+        val result = service.writeBulkTags(
+            albumId,
+            albumFields = listOf("GENRE" to "Jazz", "DATE" to "1959"),
+            trackFields = emptyList(),
+        )
+
+        assertEquals("Jazz", result.genre)
+        assertEquals("1959", result.date)
+        // Only one lock file lifecycle per bulk call, not two
+        assertFalse(
+            albumDir.resolve(WRITE_LOCK_FILENAME).toFile().exists(),
+            "Lock file must be removed after bulk write",
+        )
+    }
+
+    @Test
+    fun `writeBulkTags with empty lists succeeds without touching files`() = runTest {
+        val album = buildAlbum()
+        coEvery { albumRepository.findById(albumId) } returns album
+        coEvery { albumRepository.save(any()) } answers { firstArg() }
+
+        val result = service.writeBulkTags(
+            albumId,
+            albumFields = emptyList(),
+            trackFields = emptyList(),
+        )
+
+        assertEquals(album, result)
+    }
+
+    @Test
+    fun `writeBulkTags throws IllegalArgumentException for unknown album field`() = runTest {
+        assertFailsWith<IllegalArgumentException> {
+            service.writeBulkTags(
+                albumId,
+                albumFields = listOf("INVALID_FIELD" to "value"),
+                trackFields = emptyList(),
+            )
+        }
+    }
+
+    @Test
+    fun `writeBulkTags throws IllegalArgumentException for unknown track field`() = runTest {
+        assertFailsWith<IllegalArgumentException> {
+            service.writeBulkTags(
+                albumId,
+                albumFields = emptyList(),
+                trackFields = listOf(Triple(trackId, "INVALID_FIELD", "value")),
+            )
+        }
+    }
+
+    @Test
+    fun `writeBulkTags throws ResourceNotFoundException when album not found`() = runTest {
+        coEvery { albumRepository.findById(albumId) } returns null
+
+        assertFailsWith<ResourceNotFoundException> {
+            service.writeBulkTags(
+                albumId,
+                albumFields = listOf("GENRE" to "Jazz"),
+                trackFields = emptyList(),
+            )
+        }
+    }
+
+    @Test
+    fun `writeBulkTags throws ConflictException when write-lock file exists (CLI conflict)`() = runTest {
+        val album = buildAlbum()
+        coEvery { albumRepository.findById(albumId) } returns album
+
+        // Simulate CLI holding the write-lock file
+        Files.writeString(albumDir.resolve(WRITE_LOCK_FILENAME), "cli-write-in-progress")
+
+        try {
+            assertFailsWith<ConflictException> {
+                service.writeBulkTags(
+                    albumId,
+                    albumFields = listOf("GENRE" to "Jazz"),
+                    trackFields = emptyList(),
+                )
+            }
+        } finally {
+            Files.deleteIfExists(albumDir.resolve(WRITE_LOCK_FILENAME))
+        }
+    }
+
+    @Test
+    fun `writeBulkTags applies track-level fields after album-level fields`() = runTest {
+        val flacFile = albumDir.resolve("01.flac")
+        copyMinimalFlac(flacFile)
+
+        val track = buildTrack(path = "01.flac")
+        val album = buildAlbum()
+
+        coEvery { albumRepository.findById(albumId) } returns album
+        coEvery { albumRepository.save(any()) } answers { firstArg() }
+        coEvery { trackRepository.findByAlbumId(albumId) } returns listOf(track)
+        coEvery { trackRepository.update(any()) } just runs
+
+        val result = service.writeBulkTags(
+            albumId,
+            albumFields = listOf("GENRE" to "Jazz"),
+            trackFields = listOf(Triple(trackId, "TITLE", "So What")),
+        )
+
+        assertEquals("Jazz", result.genre)
+        coVerify(exactly = 1) { trackRepository.update(any()) }
+    }
+
+    @Test
+    fun `writeBulkTags throws SecurityException for merged directory path outside libraryRoot`() = runTest {
+        // validatePath must be called before Files.isDirectory so a traversal path that does
+        // not exist on disk is still rejected with SecurityException (issue #765 / #724).
+        val outsideDir = Files.createTempDirectory("outside-root-bulk")
+        try {
+            val album = buildAlbum().copy(mergedDirectories = listOf(outsideDir.toString()))
+            coEvery { albumRepository.findById(albumId) } returns album
+
+            assertFailsWith<SecurityException> {
+                service.writeBulkTags(
+                    albumId,
+                    albumFields = listOf("GENRE" to "Jazz"),
+                    trackFields = emptyList(),
+                )
+            }
+        } finally {
+            outsideDir.toFile().deleteRecursively()
+        }
     }
 
     // ──────────────────────────────────────────────

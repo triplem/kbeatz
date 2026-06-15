@@ -12,7 +12,7 @@ import org.jetbrains.exposed.v1.datetime.timestamp
  * snake_case to match the SQL schema; Kotlin property names are camelCase.
  *
  * [discogsJson] is excluded from list queries (see ExposedAlbumRepository).
- * [images] and [extraTags] are TEXT storing JSON, serialised at the boundary.
+ * [images], [extraTags], and [mergedDirectories] are TEXT storing JSON, serialised at the boundary.
  */
 @Suppress("MagicNumber")
 object AlbumsTable : UUIDTable("albums") {
@@ -30,6 +30,13 @@ object AlbumsTable : UUIDTable("albums") {
     val extraTags = text("extra_tags").nullable()
     val images = text("images").nullable()
     val directoryPath = varchar("directory_path", 2000)
+    /**
+     * JSON array of absolute directory paths merged into this album during deduplication.
+     * Null when the album originates from a single directory (the common case).
+     * Populated by [LibraryScanService] when [LibraryWalker] groups tracks from multiple
+     * sibling directories into one AlbumGroup.
+     */
+    val mergedDirectories = text("merged_directories").nullable()
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
     val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp)
 }

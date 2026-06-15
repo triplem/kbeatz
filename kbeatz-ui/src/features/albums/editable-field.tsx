@@ -44,6 +44,11 @@ function classifyTagWriteError(err: unknown, t: TFunction): string {
   if (apiErr.status === 500 || apiErr.status === 503) {
     return t('editableField.saveFailedServer')
   }
+  // InternalSentinelError means a sentinel onSave was called unexpectedly.
+  // Map it to a generic user-facing message rather than exposing the developer string.
+  if (err instanceof Error && err.name === 'InternalSentinelError') {
+    return t('editableField.saveFailed')
+  }
   if (err instanceof Error) return err.message
   return t('editableField.saveFailed')
 }
@@ -131,19 +136,25 @@ export function EditableField({
    */
   const skipNextCancelRef = useRef(false)
 
-  // Keep editValue in sync when value prop changes externally (e.g. after parent refreshes).
-  useEffect(() => {
+  // Sync editValue and clear committedValue when value/editing change externally.
+  // During-render state adjustment avoids cascading renders from setState-in-effect.
+  // - value changes: clear committedValue (server refresh); reset editValue if not editing.
+  // - editing changes to false (cancel/commit): reset editValue to server value.
+  const [prevValue, setPrevValue] = useState(value)
+  const [prevEditing, setPrevEditing] = useState(editing)
+  if (prevValue !== value) {
+    setPrevValue(value)
+    setCommittedValue(undefined)
     if (!editing) {
       setEditValue(value ?? '')
     }
-  }, [value, editing])
-
-  // Clear committedValue only when the server-authoritative value prop changes (e.g. after a
-  // successful batch save refreshes the album data). This must NOT fire when `editing` changes,
-  // otherwise Tab-committing a dirty value would clear the committed display immediately.
-  useEffect(() => {
-    setCommittedValue(undefined)
-  }, [value])
+  }
+  if (prevEditing !== editing) {
+    setPrevEditing(editing)
+    if (!editing) {
+      setEditValue(value ?? '')
+    }
+  }
 
   const startEditing = useCallback(() => {
     setEditing(true)
