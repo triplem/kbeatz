@@ -282,21 +282,21 @@ class TagWriteService(
 
                 val primaryFlacFiles = findFlacFiles(albumDir)
 
+                // validatePath is always called first (even for non-existent paths) so that paths
+                // with traversal sequences (e.g. ../../etc) are rejected regardless of whether
+                // the directory exists on disk (issue #765 / same invariant as #724).
                 val mergedDirToFlacFiles: Map<Path, List<Path>> = album.mergedDirectories
                     .mapNotNull { dirPath ->
                         val mergedDir = Path.of(dirPath)
-                        when {
-                            !Files.isDirectory(mergedDir) -> {
-                                log.warn {
-                                    "merged_dir_skip albumId=$albumId path=$dirPath " +
-                                        "reason=directory_not_found"
-                                }
-                                null
+                        validatePath(mergedDir)
+                        if (!Files.isDirectory(mergedDir)) {
+                            log.warn {
+                                "merged_dir_skip albumId=$albumId path=${dirPath.sanitizeForLog()} " +
+                                    "reason=directory_not_found"
                             }
-                            else -> {
-                                validatePath(mergedDir)
-                                mergedDir to findFlacFiles(mergedDir)
-                            }
+                            null
+                        } else {
+                            mergedDir to findFlacFiles(mergedDir)
                         }
                     }
                     .toMap()
