@@ -338,9 +338,14 @@ describe('AlbumDetail', () => {
     })
     // Dirty count still visible (fields retained for retry)
     expect(screen.getByTestId('dirty-count')).toBeInTheDocument()
-    // Error message displayed
+    // Error message displayed - must be the generic i18n message, not the raw exception string
     await waitFor(() => {
-      expect(screen.getByTestId('batch-save-error')).toBeInTheDocument()
+      const errorEl = screen.getByTestId('batch-save-error')
+      expect(errorEl).toBeInTheDocument()
+      // Generic message visible
+      expect(errorEl.textContent).toContain('Something went wrong')
+      // Raw exception message must NOT be exposed to the user
+      expect(errorEl.textContent).not.toContain('Server error')
     })
   })
 

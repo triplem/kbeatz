@@ -220,10 +220,9 @@ export function AlbumDetail() {
       await refetch()
     } catch (err) {
       // On failure, keep dirty fields so the user can retry.
-      // Show the error message in the save row so the user knows what happened.
-      const message = err instanceof Error ? err.message : t('common.error')
-      console.warn('batch save failed - dirty fields retained for retry:', message)
-      setBatchSaveError(message)
+      // Log the raw technical message for debugging but show a generic user-friendly message.
+      console.warn('batch save failed - dirty fields retained for retry:', err instanceof Error ? err.message : err)
+      setBatchSaveError(t('common.error'))
     }
   }, [albumId, dirtyFields, dirtyTrackFields, saveTag, refetch, t])
 
