@@ -459,6 +459,61 @@ class TagWriteServiceTest {
         assertEquals("Jazz", result.genre)
     }
 
+    // ──────────────────────────────────────────────
+    // Partial failure: merged directory write fails (issue #725)
+    // ──────────────────────────────────────────────
+
+    @Test
+    fun `writeAlbumTags rethrows exception and cleans up lock file when merged directory write fails`() = runTest {
+        // This test uses filesystem permissions to simulate a write failure. On systems where
+        // the test runner executes as root (e.g. some Docker CI environments), setWritable(false)
+        // is ignored and the test would pass vacuously. The assumption below skips it in that case.
+        val canEnforcePermissions = Files.createTempFile("perm-check", null).also { tmp ->
+            tmp.toFile().setWritable(false)
+        }.let { tmp ->
+            val writable = tmp.toFile().canWrite()
+            tmp.toFile().setWritable(true)
+            tmp.toFile().delete()
+            !writable
+        }
+        if (!canEnforcePermissions) return@runTest
+
+        // Set up a merged directory with a FLAC file.
+        val mergedDir: Path = Files.createTempDirectory(libraryRoot, "kind-of-blue-readonly")
+        val primaryFlac = albumDir.resolve("01-primary.flac")
+        val mergedFlac = mergedDir.resolve("01-merged.flac")
+        copyMinimalFlac(primaryFlac)
+        copyMinimalFlac(mergedFlac)
+
+        val album = buildAlbum().copy(mergedDirectories = listOf(mergedDir.toString()))
+        coEvery { albumRepository.findById(albumId) } returns album
+        coEvery { albumRepository.save(any()) } answers { firstArg() }
+
+        // Make the merged directory read-only so the FLAC write cannot create a temp file.
+        mergedDir.toFile().setWritable(false)
+
+        try {
+            // The write to the primary directory succeeds, then the merged dir write fails
+            // with a FileNotFoundException (permission denied creating the temp file).
+            // The service must rethrow so the caller knows the write was incomplete.
+            assertFailsWith<java.io.FileNotFoundException> {
+                service.writeAlbumTags(albumId, "GENRE", "Jazz")
+            }
+
+            // The finally block must still run: the lock file must be deleted from the primary dir.
+            assertFalse(
+                albumDir.resolve(WRITE_LOCK_FILENAME).toFile().exists(),
+                "Write-lock file must be removed even when a merged directory write fails",
+            )
+
+            // The primary FLAC file must still exist (write succeeded before merged dir failed).
+            assertTrue(primaryFlac.toFile().exists(), "Primary FLAC must exist after partial failure")
+        } finally {
+            // Restore write permissions so the temp directory can be cleaned up after the test.
+            mergedDir.toFile().setWritable(true)
+        }
+    }
+
     @Test
     fun `writeAlbumTags throws SecurityException for merged directory path outside libraryRoot`() = runTest {
         // A traversal path stored in mergedDirectories (e.g. from a DB manipulation)
