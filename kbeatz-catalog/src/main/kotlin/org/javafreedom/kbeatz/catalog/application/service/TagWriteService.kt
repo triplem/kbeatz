@@ -161,11 +161,23 @@ class TagWriteService(
 
             try {
                 writeTagToFiles(primaryFlacFiles, normalised, value, albumId)
+                var mergedDirsCompleted = 0
+                @Suppress("TooGenericExceptionCaught") // intentional: any write failure is logged then rethrown
                 mergedDirToFlacFiles.forEach { (mergedDir, mergedFiles) ->
-                    writeTagToFiles(mergedFiles, normalised, value, albumId)
-                    log.info {
-                        "merged_dir_write_complete albumId=$albumId field=$normalised " +
-                            "dir=$mergedDir fileCount=${mergedFiles.size}"
+                    try {
+                        writeTagToFiles(mergedFiles, normalised, value, albumId)
+                        mergedDirsCompleted++
+                        log.info {
+                            "merged_dir_write_complete albumId=$albumId field=$normalised " +
+                                "dir=$mergedDir fileCount=${mergedFiles.size}"
+                        }
+                    } catch (e: Exception) {
+                        log.error(e) {
+                            "merged_dir_write_failed albumId=$albumId field=$normalised " +
+                                "dir=$mergedDir mergedDirsCompleted=$mergedDirsCompleted " +
+                                "mergedDirsTotal=${mergedDirToFlacFiles.size}"
+                        }
+                        throw e
                     }
                 }
             } finally {
