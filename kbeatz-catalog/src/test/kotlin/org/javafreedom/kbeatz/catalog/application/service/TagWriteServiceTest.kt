@@ -672,6 +672,27 @@ class TagWriteServiceTest {
         coVerify(exactly = 1) { trackRepository.update(any()) }
     }
 
+    @Test
+    fun `writeBulkTags throws SecurityException for merged directory path outside libraryRoot`() = runTest {
+        // validatePath must be called before Files.isDirectory so a traversal path that does
+        // not exist on disk is still rejected with SecurityException (issue #765 / #724).
+        val outsideDir = Files.createTempDirectory("outside-root-bulk")
+        try {
+            val album = buildAlbum().copy(mergedDirectories = listOf(outsideDir.toString()))
+            coEvery { albumRepository.findById(albumId) } returns album
+
+            assertFailsWith<SecurityException> {
+                service.writeBulkTags(
+                    albumId,
+                    albumFields = listOf("GENRE" to "Jazz"),
+                    trackFields = emptyList(),
+                )
+            }
+        } finally {
+            outsideDir.toFile().deleteRecursively()
+        }
+    }
+
     // ──────────────────────────────────────────────
     // Helpers
     // ──────────────────────────────────────────────
