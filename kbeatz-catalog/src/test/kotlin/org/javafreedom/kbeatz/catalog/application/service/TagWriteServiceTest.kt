@@ -460,6 +460,25 @@ class TagWriteServiceTest {
     }
 
     @Test
+    fun `writeAlbumTags throws SecurityException for merged directory path outside libraryRoot`() = runTest {
+        // A traversal path stored in mergedDirectories (e.g. from a DB manipulation)
+        // must be rejected by validatePath even when the directory does not exist on disk.
+        val outsideDir = Files.createTempDirectory("outside-root-for-merged")
+        try {
+            val album = buildAlbum().copy(mergedDirectories = listOf(outsideDir.toString()))
+            coEvery { albumRepository.findById(albumId) } returns album
+
+            // validatePath is called before isDirectory so the traversal is caught regardless
+            // of whether the path exists (issue #724).
+            assertFailsWith<SecurityException> {
+                service.writeAlbumTags(albumId, "GENRE", "Jazz")
+            }
+        } finally {
+            outsideDir.toFile().deleteRecursively()
+        }
+    }
+
+    @Test
     fun `writeAlbumTags with empty mergedDirectories writes only to primary directory`() = runTest {
         val flacFile = albumDir.resolve("01.flac")
         copyMinimalFlac(flacFile)
