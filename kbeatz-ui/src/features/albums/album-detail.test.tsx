@@ -951,6 +951,45 @@ describe('AlbumDetail', () => {
     expect(screen.getByTestId('track-track-3-file-path')).toHaveTextContent('03 Blue in Green.flac')
   })
 
+  it('renders distinct rows when tracks have duplicate IDs (filePath+index key formula)', async () => {
+    // Regression test for the key formula: even if the backend returns tracks with
+    // duplicate `id` values, the React key `${track.filePath}-${trackIndex}` ensures
+    // each row renders its own distinct data without React reusing DOM nodes.
+    const tracks = [
+      makeTrack({ id: 'track-same-id', trackNumber: '1', title: 'So What', filePath: '01 So What.flac' }),
+      makeTrack({ id: 'track-same-id', trackNumber: '2', title: 'Freddie Freeloader', filePath: '02 Freddie Freeloader.flac' }),
+      makeTrack({ id: 'track-same-id', trackNumber: '3', title: 'Blue in Green', filePath: '03 Blue in Green.flac' }),
+    ]
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks }))
+    renderDetail()
+
+    // All 3 rows must be present (duplicate IDs produce multiple elements with the same testId)
+    await waitFor(() => {
+      expect(screen.getAllByTestId('track-row-track-same-id')).toHaveLength(3)
+    })
+
+    // Each row must show its own distinct title
+    const titleEls = screen.getAllByTestId('track-track-same-id-value-title')
+    expect(titleEls).toHaveLength(3)
+    expect(titleEls[0]).toHaveTextContent('So What')
+    expect(titleEls[1]).toHaveTextContent('Freddie Freeloader')
+    expect(titleEls[2]).toHaveTextContent('Blue in Green')
+
+    // Each row must show its own distinct track number
+    const trackNumEls = screen.getAllByTestId('track-track-same-id-value-tracknumber')
+    expect(trackNumEls).toHaveLength(3)
+    expect(trackNumEls[0]).toHaveTextContent('1')
+    expect(trackNumEls[1]).toHaveTextContent('2')
+    expect(trackNumEls[2]).toHaveTextContent('3')
+
+    // Each row must show its own distinct file path
+    const filePathEls = screen.getAllByTestId('track-track-same-id-file-path')
+    expect(filePathEls).toHaveLength(3)
+    expect(filePathEls[0]).toHaveTextContent('01 So What.flac')
+    expect(filePathEls[1]).toHaveTextContent('02 Freddie Freeloader.flac')
+    expect(filePathEls[2]).toHaveTextContent('03 Blue in Green.flac')
+  })
+
   // ──────────────────────────────────────────────
   // Tracklist section - multi-disc grouping (#564)
   // ──────────────────────────────────────────────
