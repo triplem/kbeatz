@@ -47,17 +47,6 @@ class LibraryWalker {
          */
         const val UNKNOWN_ARTIST_FALLBACK = "Unknown Artist"
 
-        /**
-         * Standard ALBUMARTIST value used for Various Artists compilations (issue #373).
-         *
-         * When all tracks in a directory share this ALBUMARTIST, they are grouped as a
-         * single compilation album. Two directories with different ALBUM names are
-         * indexed as separate albums even when both have ALBUMARTIST="Various Artists".
-         *
-         * Within a single directory, the directory-path boundary rule takes precedence
-         * and all FLAC files are grouped together regardless of per-track tag differences.
-         */
-        const val VARIOUS_ARTISTS = "Various Artists"
     }
 
     /**
@@ -143,7 +132,7 @@ class LibraryWalker {
             val rootPath = allDirs.minWith(compareBy({ it.nameCount }, { it.toString() }))
 
             // Carry the full date string (not just the year) from the first track.
-            val representativeDate = tracks.mapNotNull { it.fullDate }.firstOrNull()
+            val representativeDate = tracks.firstNotNullOfOrNull { it.fullDate }
 
             AlbumGroup(
                 rootPath = rootPath,

@@ -15,6 +15,9 @@ sealed class SyncResult {
      */
     data class RateLimitExceeded(val retryAfterMs: Long) : SyncResult()
 
-    /** Any other error (network failure, JSON parse error, IO error, etc.). */
-    data class Error(val cause: Throwable) : SyncResult()
+    /**
+     * Any other error (network failure, JSON parse error, IO error, etc.).
+     * The error is already logged at ERROR level in DiscogsMetadataSource before this is returned.
+     */
+    data object Error : SyncResult()
 }

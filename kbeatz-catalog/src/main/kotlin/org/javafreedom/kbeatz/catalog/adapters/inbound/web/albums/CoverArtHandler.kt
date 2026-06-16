@@ -54,8 +54,7 @@ private suspend fun handleCoverArt(
     albumId: Uuid,
     albumIdRaw: String,
 ) {
-    val outcome = resolveCoverArt(coverArtService, albumId, albumIdRaw)
-    when (outcome) {
+    when (val outcome = resolveCoverArt(coverArtService, albumId, albumIdRaw)) {
         is CoverArtOutcome.Found -> {
             call.response.headers.append(HttpHeaders.CacheControl, "public, max-age=86400")
             outcome.result.lastModified?.let { lastModified ->

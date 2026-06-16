@@ -1,14 +1,12 @@
 package org.javafreedom.kbeatz.sources.discogs
 
-import java.nio.file.Path
-
 /**
  * Result of a single image download attempt made by
  * [DiscogsMetadataSource.downloadImages].
  */
 sealed class ImageDownloadResult {
-    /** Image was successfully downloaded and written to [localPath]. */
-    data class Downloaded(val pictureType: Int, val localPath: Path) : ImageDownloadResult()
+    /** Image was successfully downloaded and written to disk. */
+    data class Downloaded(val pictureType: Int) : ImageDownloadResult()
 
     /**
      * Image was skipped without downloading.

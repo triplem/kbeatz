@@ -42,6 +42,11 @@ interface TaggerService {
 sealed class TagResult {
     data class Tagged(val albumDir: Path, val discogsId: String, val filesWritten: Int) : TagResult()
     data class Skipped(val albumDir: Path, val reason: String) : TagResult()
+    /**
+     * [albumDir] is retained for caller convenience even though the CLI currently logs the
+     * path via its own loop variable. Retained to give callers a self-contained result
+     * without needing to carry the path separately.
+     */
     data class Failed(val albumDir: Path, val cause: Throwable) : TagResult()
     data class TrackCountMismatch(val albumDir: Path, val disc: Int, val files: Int, val expected: Int) : TagResult()
 }

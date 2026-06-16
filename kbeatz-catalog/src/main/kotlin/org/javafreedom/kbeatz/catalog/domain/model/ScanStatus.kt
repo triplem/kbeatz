@@ -51,8 +51,6 @@ data class ScanStatus(
     val totalErrors: Int = 0,
 ) {
     companion object {
-        val IDLE = ScanStatus(ScanState.IDLE, 0L, 0L, null, null, null)
-
         /** Maximum number of per-album error entries surfaced in the API response. */
         const val MAX_REPORTED_ERRORS: Int = 50
     }

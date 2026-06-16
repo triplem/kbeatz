@@ -100,6 +100,7 @@ class LibraryScanServiceTest {
         // Both calls should have succeeded; walker called twice at most
         val status = svc.status()
         assertEquals(ScanState.COMPLETE, status.state)
+        assertTrue(scanStarted, "expected walker to be called at least once during scan")
     }
 
     @Test
@@ -283,7 +284,7 @@ class LibraryScanServiceTest {
     }
 
     @Test
-    fun `AlbumGroup toAlbum uses existingId when provided — UUID stability across rescans`() {
+    fun `AlbumGroup toAlbum uses existingId when provided - UUID stability across rescans`() {
         val group = AlbumGroup(
             rootPath = Path.of("/music/jazz/miles"),
             sourceDirs = listOf(Path.of("/music/jazz/miles")),
