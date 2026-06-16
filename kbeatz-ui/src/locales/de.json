@@ -106,7 +106,8 @@
     "composer": "Komponist",
     "genreFilter": "Genre-Filter",
     "artistFilter": "Künstler-Filter",
-    "composerFilter": "Komponisten-Filter"
+    "composerFilter": "Komponisten-Filter",
+    "multiValueWarning": "Nur Seitenergebnisse werden angezeigt - Mehrfachwertfilterung ist auf die aktuelle Seite begrenzt."
   },
   "searchBox": {
     "label": "Suche",
