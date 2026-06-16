@@ -27,7 +27,7 @@ private val log = KotlinLogging.logger {}
  * 3. Multi-disc support: if a FLAC file's immediate parent directory is named `disc1`, `disc2`, …
  *    (case-insensitive regex `disc\d+`), the grandparent is used as the canonical directory.
  * 4. Files with the same canonical directory AND the same `(ALBUMARTIST, ALBUM)` tuple are merged
- *    into one [AlbumGroup]. DATE may be absent — the group is still formed correctly.
+ *    into one [AlbumGroup]. DATE may be absent; the group is still formed correctly.
  * 5. Unreadable FLAC files are skipped with a WARN log entry; they do not abort the walk.
  *
  * This class has no database dependency. It returns a pure list of [AlbumGroup]s suitable for

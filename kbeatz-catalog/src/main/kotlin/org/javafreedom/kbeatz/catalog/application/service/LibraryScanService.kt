@@ -49,7 +49,7 @@ private val log = KotlinLogging.logger {}
  * `IDLE → RUNNING → COMPLETE | FAILED`
  *
  * Concurrent scan guard: calling [startScan] when a scan is already [ScanState.RUNNING] logs a
- * warning and returns immediately — no duplicate scan is launched.
+ * warning and returns immediately; no duplicate scan is launched.
  *
  * ## Progress tracking
  * [totalAlbums] is set from the initial [LibraryWalker] result count before processing begins.
@@ -121,7 +121,7 @@ class LibraryScanService(
             !state.compareAndSet(ScanState.COMPLETE, ScanState.RUNNING) &&
             !state.compareAndSet(ScanState.FAILED, ScanState.RUNNING)
         ) {
-            log.warn { "Library scan already RUNNING — ignoring duplicate startScan() call" }
+            log.warn { "Library scan already RUNNING - ignoring duplicate startScan() call" }
             return
         }
 

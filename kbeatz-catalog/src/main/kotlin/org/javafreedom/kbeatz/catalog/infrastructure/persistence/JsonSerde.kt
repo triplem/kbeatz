@@ -18,7 +18,7 @@ import org.javafreedom.kbeatz.catalog.domain.model.ImageSource
  * and merged-directory path lists to/from the JSON TEXT columns stored in `albums.images`,
  * `albums.extra_tags`, `albums.merged_directories`, `tracks.images`, and `tracks.extra_tags`.
  *
- * Serialisation is performed only at the persistence boundary — domain model classes
+ * Serialisation is performed only at the persistence boundary; domain model classes
  * are free of JSON annotations.
  */
 internal object JsonSerde {

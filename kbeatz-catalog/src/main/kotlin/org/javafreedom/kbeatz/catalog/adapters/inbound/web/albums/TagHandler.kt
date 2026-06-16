@@ -22,9 +22,9 @@ import org.javafreedom.kbeatz.common.ResourceNotFoundException
 /**
  * Ktor route handlers for tag editing endpoints.
  *
- * `PATCH /albums/{albumId}` — writes a single album-level Vorbis Comment field to all FLAC files.
- * `PATCH /albums/{albumId}/tags` — bulk-writes multiple album and track fields in one request.
- * `PATCH /albums/{albumId}/tracks/{trackId}` — writes a single track-level field to one FLAC file.
+ * `PATCH /albums/{albumId}` - writes a single album-level Vorbis Comment field to all FLAC files.
+ * `PATCH /albums/{albumId}/tags` - bulk-writes multiple album and track fields in one request.
+ * `PATCH /albums/{albumId}/tracks/{trackId}` - writes a single track-level field to one FLAC file.
  *
  * Both single-field endpoints accept `{field, value}` and return the updated [AlbumDetail] on 200.
  * The bulk endpoint accepts a [BulkUpdateTagsRequest] and returns the updated [AlbumDetail] on 200.
@@ -125,7 +125,7 @@ private suspend fun handlePatchAlbum(
     }
 }
 
-@Suppress("LongParameterList") // private route handler — call + IDs + services + config
+@Suppress("LongParameterList") // private route handler - call + IDs + services + config
 private suspend fun handlePatchTrack(
     call: ApplicationCall,
     albumId: Uuid,
