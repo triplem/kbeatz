@@ -9,6 +9,7 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import java.nio.file.Files
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -134,8 +135,8 @@ class DiscogsSyncServiceTest {
 
         val result = service.sync(album.id, downloadImages = false)
 
-        assertTrue(result.fieldsWritten.isEmpty())
-        assertTrue(result.warnings.any { "not found" in it })
+        assertEquals(emptyList<String>(), result.fieldsWritten)
+        assertTrue(result.warnings.any { "not found" in it }, "expected a 'not found' warning in: ${result.warnings}")
     }
 
     // ---- successful sync ----
@@ -147,8 +148,8 @@ class DiscogsSyncServiceTest {
 
         val result = service.sync(album.id, downloadImages = false)
 
-        assertTrue(result.fieldsWritten.contains("ALBUM"))
-        assertTrue(result.fieldsWritten.contains("ALBUMARTIST"))
+        assertContains(result.fieldsWritten, "ALBUM")
+        assertContains(result.fieldsWritten, "ALBUMARTIST")
         coVerify { repo.save(any()) }
     }
 
@@ -195,7 +196,7 @@ class DiscogsSyncServiceTest {
 
         // Tags are still in fieldsWritten (they're from the tag map, not per-file counts)
         assertNotNull(result)
-        assertTrue(result.warnings.isEmpty())
+        assertEquals(emptyList<String>(), result.warnings)
     }
 
     // ---- downloadImages=false (no imageService) ----
@@ -207,7 +208,7 @@ class DiscogsSyncServiceTest {
 
         val result = service.sync(album.id, downloadImages = false)
 
-        assertTrue(result.warnings.isEmpty())
+        assertEquals(emptyList<String>(), result.warnings)
     }
 
     // ---- path traversal validation ----
@@ -249,7 +250,7 @@ class DiscogsSyncServiceTest {
         val result = service.sync(album.id, downloadImages = true)
 
         assertTrue(result.warnings.any { "quota" in it.lowercase() },
-            "warnings should mention quota exhaustion")
+            "expected a quota warning in: ${result.warnings}")
         assertTrue(result.fieldsWritten.isNotEmpty(),
             "metadata tags should still be written despite quota exhaustion")
     }

@@ -34,15 +34,12 @@ fun buildDiscogsSyncProvider(
     libraryRootPath: Path,
     dataDir: Path,
 ): SyncProvider {
-    val token = config.discogsToken
-    if (token == null) {
-        return DiscogsSyncService(
-            albumRepository = albumRepository,
-            metadataSource = UnavailableMetadataSource,
-            imageService = null,
-            libraryRoot = libraryRootPath,
-        )
-    }
+    val token = config.discogsToken ?: return DiscogsSyncService(
+        albumRepository = albumRepository,
+        metadataSource = UnavailableMetadataSource,
+        imageService = null,
+        libraryRoot = libraryRootPath,
+    )
     val quotaFile = dataDir.resolve("discogs-image-quota.json")
     val imageQuota = DiscogsImageQuota(quotaFile = quotaFile)
     val metadataSource = DiscogsMetadataSource(

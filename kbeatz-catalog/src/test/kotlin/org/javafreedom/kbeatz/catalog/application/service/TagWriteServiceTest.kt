@@ -7,6 +7,7 @@ import io.mockk.mockk
 import io.mockk.runs
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -37,6 +38,11 @@ class TagWriteServiceTest {
 
     private val libraryRoot: Path = Files.createTempDirectory("tag-write-test-root")
     private val albumDir: Path = Files.createTempDirectory(libraryRoot, "kind-of-blue")
+
+    @AfterTest
+    fun cleanUpLockFile() {
+        Files.deleteIfExists(albumDir.resolve(WRITE_LOCK_FILENAME))
+    }
 
     private val albumRepository: AlbumRepository = mockk()
     private val trackRepository: TrackRepository = mockk()
@@ -302,16 +308,11 @@ class TagWriteServiceTest {
         val album = buildAlbum()
         coEvery { albumRepository.findById(albumId) } returns album
 
-        // Simulate CLI holding the write-lock file
+        // Simulate CLI holding the write-lock file (cleaned up by @AfterTest)
         Files.writeString(albumDir.resolve(WRITE_LOCK_FILENAME), "cli-write-in-progress")
 
-        try {
-            assertFailsWith<ConflictException> {
-                service.writeAlbumTags(albumId, "GENRE", "Jazz")
-            }
-        } finally {
-            // Clean up lock file
-            Files.deleteIfExists(albumDir.resolve(WRITE_LOCK_FILENAME))
+        assertFailsWith<ConflictException> {
+            service.writeAlbumTags(albumId, "GENRE", "Jazz")
         }
     }
 
@@ -370,32 +371,31 @@ class TagWriteServiceTest {
         coEvery { albumRepository.findById(firstAlbumId) } returns buildAlbum(id = firstAlbumId)
         coEvery { albumRepository.save(any()) } answers { firstArg() }
 
-        // Simulate the first writer being inside its critical section, holding the lock file.
+        // Simulate the first writer being inside its critical section, holding the lock file
+        // (cleaned up by @AfterTest if the test fails early).
         val manifest = flacFile.toString()
         Files.writeString(albumDir.resolve(WRITE_LOCK_FILENAME), manifest)
 
-        try {
-            // Second writer must be rejected because the lock file is present.
-            val secondResult = runCatching {
-                service.writeAlbumTags(secondAlbumId, "GENRE", "Rock")
-            }
-            assertTrue(
-                secondResult.exceptionOrNull() is ConflictException,
-                "The contending writer must be rejected with ConflictException but was: " +
-                    "${secondResult.exceptionOrNull()}",
-            )
-
-            // No corrupt file: the rejected write touched no bytes; the FLAC is byte-identical.
-            val afterReject = flacFile.toFile().readBytes()
-            assertEquals(
-                originalBytes.toList(),
-                afterReject.toList(),
-                "Rejected writer must not modify the FLAC file",
-            )
-        } finally {
-            // First writer finishes and releases the lock.
-            Files.deleteIfExists(albumDir.resolve(WRITE_LOCK_FILENAME))
+        // Second writer must be rejected because the lock file is present.
+        val secondResult = runCatching {
+            service.writeAlbumTags(secondAlbumId, "GENRE", "Rock")
         }
+        assertTrue(
+            secondResult.exceptionOrNull() is ConflictException,
+            "The contending writer must be rejected with ConflictException but was: " +
+                "${secondResult.exceptionOrNull()}",
+        )
+
+        // No corrupt file: the rejected write touched no bytes; the FLAC is byte-identical.
+        val afterReject = flacFile.toFile().readBytes()
+        assertEquals(
+            originalBytes.toList(),
+            afterReject.toList(),
+            "Rejected writer must not modify the FLAC file",
+        )
+
+        // First writer finishes and releases the lock.
+        Files.deleteIfExists(albumDir.resolve(WRITE_LOCK_FILENAME))
 
         // Once the lock is released, a fresh write to the same directory succeeds (serialised,
         // not lost) and leaves a valid FLAC with no lingering lock file.
@@ -633,19 +633,15 @@ class TagWriteServiceTest {
         val album = buildAlbum()
         coEvery { albumRepository.findById(albumId) } returns album
 
-        // Simulate CLI holding the write-lock file
+        // Simulate CLI holding the write-lock file (cleaned up by @AfterTest)
         Files.writeString(albumDir.resolve(WRITE_LOCK_FILENAME), "cli-write-in-progress")
 
-        try {
-            assertFailsWith<ConflictException> {
-                service.writeBulkTags(
-                    albumId,
-                    albumFields = listOf("GENRE" to "Jazz"),
-                    trackFields = emptyList(),
-                )
-            }
-        } finally {
-            Files.deleteIfExists(albumDir.resolve(WRITE_LOCK_FILENAME))
+        assertFailsWith<ConflictException> {
+            service.writeBulkTags(
+                albumId,
+                albumFields = listOf("GENRE" to "Jazz"),
+                trackFields = emptyList(),
+            )
         }
     }
 
