@@ -1,7 +1,7 @@
 package org.javafreedom.kbeatz.tagger.service
 
 import io.mockk.mockk
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.io.bytestring.ByteString
 import kotlinx.io.files.Path
 import org.javafreedom.kbeatz.common.FlacTrackCountMismatchException

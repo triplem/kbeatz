@@ -1,6 +1,6 @@
 package org.javafreedom.kbeatz.catalog.domain.model
 
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 /**
  * Represents the current state of a library scan.

@@ -1,6 +1,6 @@
 package org.javafreedom.kbeatz.common.metadata
 
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
