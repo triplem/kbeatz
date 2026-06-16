@@ -354,6 +354,40 @@ describe('AlbumDetail', () => {
     })
   })
 
+  it('shows structured server error code and message when ApiError body has code and message', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    // Construct an ApiError with a structured body matching ErrorResponse shape
+    const { ApiError } = await import('../../api/generated/core/ApiError')
+    const apiError = new ApiError(
+      { method: 'PATCH', url: '/api/v1/albums/album-id-1/tags' },
+      { url: '/api/v1/albums/album-id-1/tags', ok: false, status: 409, statusText: 'Conflict', body: { code: 'WRITE_LOCK_CONFLICT', message: 'Album is locked by another writer' } },
+      'Conflict',
+    )
+    mockAlbumsService.bulkUpdateAlbumTags.mockRejectedValue(apiError)
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Rock' } })
+    fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
+    await waitFor(() => { expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument() })
+
+    fireEvent.click(screen.getByTestId('save-button'))
+    await waitFor(() => { expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument() })
+    fireEvent.click(screen.getByTestId('confirm-dialog-confirm'))
+
+    await waitFor(() => {
+      const errorEl = screen.getByTestId('batch-save-error')
+      expect(errorEl).toBeInTheDocument()
+      // Structured code and message from the server are surfaced
+      expect(errorEl.textContent).toContain('WRITE_LOCK_CONFLICT')
+      expect(errorEl.textContent).toContain('Album is locked by another writer')
+    })
+  })
+
   it('clears dirty fields when Discogs sync completes', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ discogsId: '12345' }))
     renderDetail()

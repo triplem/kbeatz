@@ -3,6 +3,8 @@ import { useNavigate, useParams, useBlocker } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import { type Album, AlbumsService, type Track } from '../../api/generated'
+import { ApiError } from '../../api/generated/core/ApiError'
+import { logger } from '../../lib/logger'
 import { useAlbum } from './useAlbum'
 import { ConfirmWriteDialog } from './confirm-write-dialog'
 import { NavigationGuardDialog } from './navigation-guard-dialog'
@@ -217,9 +219,28 @@ export function AlbumDetail() {
       await refetch()
     } catch (err) {
       // On failure, keep dirty fields so the user can retry.
-      // Log the raw technical message for debugging but show a generic user-friendly message.
-      console.warn('batch save failed - dirty fields retained for retry:', err instanceof Error ? err.message : err)
-      setBatchSaveError(t('common.error'))
+      // Extract structured ErrorResponse fields when available (ApiError carries the parsed body).
+      const apiErr = err instanceof ApiError ? err : null
+      const serverCode = typeof apiErr?.body === 'object' && apiErr.body !== null
+        ? (apiErr.body as Record<string, unknown>)['code']
+        : undefined
+      const serverMessage = typeof apiErr?.body === 'object' && apiErr.body !== null
+        ? (apiErr.body as Record<string, unknown>)['message']
+        : undefined
+      logger.error(
+        {
+          err: err instanceof Error ? err.message : String(err),
+          albumId,
+          serverCode,
+          serverMessage,
+        },
+        'batch_save_failed',
+      )
+      if (typeof serverCode === 'string' && typeof serverMessage === 'string') {
+        setBatchSaveError(`${serverCode} - ${serverMessage}`)
+      } else {
+        setBatchSaveError(t('common.error'))
+      }
     } finally {
       setIsSaving(false)
     }

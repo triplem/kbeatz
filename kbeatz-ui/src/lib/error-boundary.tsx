@@ -1,11 +1,6 @@
 import { Component, type ReactNode, type ErrorInfo } from 'react'
 import { useTranslation } from 'react-i18next'
-
-const logger = {
-  error: (ctx: object, msg: string) => {
-    console.error(JSON.stringify({ level: 'error', ...ctx, msg }))
-  },
-}
+import { logger } from './logger'
 
 // Internal props used by the class component. `t` is injected by the thin
 // functional wrapper below so the class never imports a hook directly.
