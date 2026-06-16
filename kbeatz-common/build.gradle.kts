@@ -20,9 +20,10 @@ private fun lib(alias: String) = catalog.findLibrary(alias).get()
 
 dependencies {
     // kbeatz-common is a leaf library (domain exceptions + metadata value types).
-    // It exports only the types that appear in its public API: kotlinx.datetime
-    // (Instant on KbeatzMetadata) and kotlinx.serialization (the @Serializable
-    // metadata model). It depends on no Ktor server artifacts and does not log,
+    // It exports only the types that appear in its public API: kotlinx-datetime
+    // (LocalDate on Album.date) and kotlinx.serialization (the @Serializable
+    // metadata model). KbeatzMetadata.fetchedAt uses kotlin.time.Instant (stdlib).
+    // It depends on no Ktor server artifacts and does not log,
     // so no logging dependency is declared here; modules that log declare it
     // themselves (catalog/sources/tagger via the logging bundle, cli directly).
     api(lib("kotlinx-datetime"))
