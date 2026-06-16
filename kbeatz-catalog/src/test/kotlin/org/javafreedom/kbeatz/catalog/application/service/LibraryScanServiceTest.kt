@@ -98,9 +98,9 @@ class LibraryScanServiceTest {
         svc.startScan() // Second call — should start a new scan from COMPLETE state
 
         // Both calls should have succeeded; walker called twice at most
+        assertTrue(scanStarted, "expected walker to be called at least once during scan")
         val status = svc.status()
         assertEquals(ScanState.COMPLETE, status.state)
-        assertTrue(scanStarted, "expected walker to be called at least once during scan")
     }
 
     @Test
