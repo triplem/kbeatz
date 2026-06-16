@@ -1,0 +1,21 @@
+databaseChangeLog:
+  - changeSet:
+      id: V1-008-albums-directory-path-index
+      author: kbeatz
+      comment: >
+        Issue #785: add B-tree index on directory_path to eliminate full-table scans
+        during library rescan. ExposedAlbumRepository.findByDirectoryPath() is called
+        once per album group on every rescan; without an index each call performs a
+        sequential scan - O(n^2) total on a 10,000-album library.
+        The rollback drops the index (Liquibase executes this automatically on rollback).
+      changes:
+        - createIndex:
+            tableName: albums
+            indexName: idx_albums_directory_path
+            columns:
+              - column:
+                  name: directory_path
+      rollback:
+        - dropIndex:
+            tableName: albums
+            indexName: idx_albums_directory_path
