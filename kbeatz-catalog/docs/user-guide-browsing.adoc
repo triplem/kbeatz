@@ -79,18 +79,17 @@ Albums without a COMPOSER tag are excluded when any composer filter is active.
 Different filter axes combine with *AND* logic:
 
 * Genre = Jazz AND Composer = Johann Sebastian Bach -> only Jazz albums with that composer
-* Artist = Miles Davis AND Genre = Jazz -> Miles Davis albums in the Jazz genre
 
 Active filters are reflected in the URL query string so you can bookmark or share filtered views:
 
 ----
-http://localhost:3005/?genre=Jazz&artist=Miles+Davis
+http://localhost:3005/?genre=Jazz
 ----
 
 Refreshing the page restores the same filters.
 
 NOTE: Year range filtering (by release year) is not yet available in the current release.
-It is planned for a future version.
+It may be added in a future version.
 
 == Free-Text Search
 
