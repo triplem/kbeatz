@@ -107,7 +107,7 @@
     "genreFilter": "Genre-Filter",
     "artistFilter": "Künstler-Filter",
     "composerFilter": "Komponisten-Filter",
-    "multiValueWarning": "Nur Seitenergebnisse werden angezeigt - Mehrfachwertfilterung ist auf die aktuelle Seite beschrankt."
+    "multiValueWarning": "Nur Seitenergebnisse werden angezeigt - Mehrfachwertfilterung ist auf die aktuelle Seite begrenzt."
   },
   "searchBox": {
     "label": "Suche",
