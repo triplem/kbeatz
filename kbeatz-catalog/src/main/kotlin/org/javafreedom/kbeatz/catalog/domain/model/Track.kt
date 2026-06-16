@@ -6,7 +6,7 @@ import kotlin.uuid.Uuid
  * Represents a single FLAC track within an [Album].
  *
  * All ID fields use [kotlin.uuid.Uuid] (not java.util.UUID).
- * No java.time.* types are used here — timestamps live only in the persistence layer.
+ * No java.time.* types are used here; timestamps live only in the persistence layer.
  *
  * Per-track [composer], [conductor], and [ensemble] take precedence over the parent album's
  * values. When null, callers should fall back to the album-level values for display.

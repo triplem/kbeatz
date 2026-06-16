@@ -46,10 +46,10 @@ val TRACK_LEVEL_FIELDS: Set<String> = setOf("TITLE", "TRACKNUMBER", "ARTIST")
  *
  * ## Album-level write sequence
  * 1. Acquire in-memory [Mutex] for the [albumId] (serialises concurrent HTTP requests).
- * 2. Look up album via [albumRepository] — throws [ResourceNotFoundException] if absent.
- * 3. Validate [field] is in [ALBUM_LEVEL_FIELDS] — throws [IllegalArgumentException] if invalid.
+ * 2. Look up album via [albumRepository] - throws [ResourceNotFoundException] if absent.
+ * 3. Validate [field] is in [ALBUM_LEVEL_FIELDS] - throws [IllegalArgumentException] if invalid.
  * 4. Validate album directory is within [libraryRoot] (path traversal guard).
- * 5. Check for existing `.kbeatz-write.lock` — throw [ConflictException] if present (CLI conflict).
+ * 5. Check for existing `.kbeatz-write.lock` - throw [ConflictException] if present (CLI conflict).
  * 6. Write `.kbeatz-write.lock` to album directory listing all target FLAC paths.
  * 7. For each FLAC file: [FlacFile.writeTo] performs temp-file → atomic rename.
  * 8. Delete `.kbeatz-write.lock`.
@@ -63,7 +63,7 @@ val TRACK_LEVEL_FIELDS: Set<String> = setOf("TITLE", "TRACKNUMBER", "ARTIST")
  * The lock file is always deleted in a `finally` block, even if the write fails. The exception
  * is rethrown so the caller receives the original error.
  *
- * No Ktor types are present in this class — it is a pure application-layer service.
+ * No Ktor types are present in this class; it is a pure application-layer service.
  */
 class TagWriteService(
     private val albumRepository: AlbumRepository,

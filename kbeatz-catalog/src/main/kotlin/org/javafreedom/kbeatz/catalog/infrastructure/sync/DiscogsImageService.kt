@@ -34,7 +34,7 @@ private val log = KotlinLogging.logger {}
  * ## Quota check
  *
  * [imageQuota.canDownload] is checked before any HTTP call. If the quota is exhausted,
- * [ImageQuotaExhaustedException] is thrown immediately — no download or write occurs.
+ * [ImageQuotaExhaustedException] is thrown immediately; no download or write occurs.
  *
  * @param metadataSource Source for downloading images.
  * @param imageQuota Daily image quota tracker. Checked before download; incremented by the source.
@@ -64,7 +64,7 @@ class DiscogsImageService(
         downloadImages: Boolean,
     ): Boolean = when {
         !downloadImages -> {
-            log.debug { "downloadImages=false — skipping image download for release $discogsId" }
+            log.debug { "downloadImages=false - skipping image download for release $discogsId" }
             false
         }
         else -> doDownloadAndWrite(discogsId, albumDir)
@@ -102,7 +102,7 @@ class DiscogsImageService(
     private fun checkQuota(discogsId: String) {
         if (!imageQuota.canDownload()) {
             val resetAt = computeResetAt()
-            log.warn { "Discogs image quota exhausted for release $discogsId — resetAt=$resetAt" }
+            log.warn { "Discogs image quota exhausted for release $discogsId - resetAt=$resetAt" }
             throw ImageQuotaExhaustedException(resetAt)
         }
     }
@@ -119,7 +119,7 @@ class DiscogsImageService(
                 .writeTo(KtPath(flacPath.toString()))
             log.debug { "Embedded PICTURE in $flacPath" }
         } catch (ex: IOException) {
-            log.error(ex) { "Failed to embed PICTURE in $flacPath — continuing with remaining files" }
+            log.error(ex) { "Failed to embed PICTURE in $flacPath - continuing with remaining files" }
         }
     }
 
