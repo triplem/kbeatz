@@ -10,6 +10,7 @@ import org.javafreedom.kbeatz.catalog.domain.model.SyncResult
 import org.javafreedom.kbeatz.catalog.domain.model.WRITE_LOCK_FILENAME
 import org.javafreedom.kbeatz.catalog.domain.port.SyncProvider
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
+import org.javafreedom.kbeatz.catalog.util.PathGuard
 import org.javafreedom.kbeatz.common.BusinessValidationException
 import org.javafreedom.kbeatz.common.ImageQuotaExhaustedException
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
@@ -125,10 +126,7 @@ class DiscogsSyncService(
     }
 
     private fun validatePath(albumDir: Path) {
-        val resolved = if (Files.exists(albumDir)) albumDir.toRealPath() else albumDir.normalize()
-        if (!resolved.startsWith(libraryRoot.normalize())) {
-            throw SecurityException("Album directory is outside the library root: $albumDir")
-        }
+        PathGuard.assertWithinLibraryRoot(albumDir, libraryRoot)
     }
 
     private fun findFlacFiles(albumDir: Path): List<Path> =
