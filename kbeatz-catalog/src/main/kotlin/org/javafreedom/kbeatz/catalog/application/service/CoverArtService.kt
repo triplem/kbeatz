@@ -10,6 +10,7 @@ import kotlinx.io.files.Path as KtPath
 import org.javafreedom.kbeatz.catalog.domain.model.ImageDescriptor
 import org.javafreedom.kbeatz.catalog.domain.model.ImageSource
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
+import org.javafreedom.kbeatz.catalog.util.PathGuard
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
 import org.javafreedom.kbeatz.tagger.codec.flac.FlacFile
 import org.javafreedom.kbeatz.tagger.codec.flac.FlacMetadataBlock
@@ -25,16 +26,14 @@ private val log = KotlinLogging.logger {}
  * 3. Not found → null.
  *
  * Path traversal guard: the album directory is validated against [libraryRoot]
- * using `normalize()` + `startsWith()`. Unlike `toRealPath()`, this does NOT
- * require the path to exist at construction time, making the service resilient
- * to a missing library root at startup (e.g. a not-yet-mounted volume).
+ * using [PathGuard.assertWithinLibraryRoot], which resolves symlinks via
+ * `toRealPath()` when the path exists and falls back to `normalize()` for
+ * paths that do not yet exist on disk.
  */
 class CoverArtService(
     private val repository: AlbumRepository,
     private val libraryRoot: Path,
 ) {
-    private val normalizedRoot: Path = libraryRoot.normalize()
-
     init {
         if (!Files.isDirectory(libraryRoot)) {
             log.warn {
@@ -122,11 +121,7 @@ class CoverArtService(
         }
 
     private fun validateWithinLibraryRoot(albumDir: Path) {
-        val normalized = albumDir.normalize()
-        if (!normalized.startsWith(normalizedRoot)) {
-            log.warn { "Path traversal attempt: albumDir=$albumDir libraryRoot=$normalizedRoot" }
-            throw SecurityException("Album directory is outside the library root")
-        }
+        PathGuard.assertWithinLibraryRoot(albumDir, libraryRoot)
     }
 }
 

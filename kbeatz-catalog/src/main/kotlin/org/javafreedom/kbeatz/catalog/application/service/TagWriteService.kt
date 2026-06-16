@@ -13,6 +13,7 @@ import org.javafreedom.kbeatz.catalog.domain.model.Track
 import org.javafreedom.kbeatz.catalog.domain.model.WRITE_LOCK_FILENAME
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 import org.javafreedom.kbeatz.catalog.domain.repository.TrackRepository
+import org.javafreedom.kbeatz.catalog.util.PathGuard
 import org.javafreedom.kbeatz.catalog.util.sanitizeForLog
 import org.javafreedom.kbeatz.common.ConflictException
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
@@ -378,10 +379,7 @@ class TagWriteService(
     }
 
     private fun validatePath(albumDir: Path) {
-        val resolved = if (Files.exists(albumDir)) albumDir.toRealPath() else albumDir.normalize()
-        if (!resolved.startsWith(libraryRoot.normalize())) {
-            throw SecurityException("Album directory is outside the library root: $albumDir")
-        }
+        PathGuard.assertWithinLibraryRoot(albumDir, libraryRoot)
     }
 
     private fun findFlacFiles(albumDir: Path): List<Path> =
