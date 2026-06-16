@@ -59,7 +59,7 @@ Changes you make are held in a "pending" (dirty) state in the browser until you 
   The field shows a pending indicator so you can see which fields have unsaved changes.
   No API call is made at this point.
 * *Blur (click outside the input)* - *discards* the pending change for that field.
-  A brief "Changes discarded - press Enter to save" hint appears for approximately 2 seconds.
+  A brief "Changes discarded - press Enter to save" hint appears.
 * *Save button* - commits all pending changes.
   The button shows a badge with the number of dirty fields.
   A confirmation dialog appears before any file write is performed.
@@ -76,7 +76,7 @@ Changes you make are held in a "pending" (dirty) state in the browser until you 
 NOTE: Clicking outside the input (blur) *discards* the change for that field.
 A "Changes discarded - press Enter to save" hint appears briefly.
 +
-. Repeat steps 1-4 for any other album-level fields you want to change.
+. Repeat steps 2-4 for any other album-level fields you want to change.
 . Click the *Save* button (the badge shows the number of pending fields).
   A confirmation dialog appears listing the fields that will be written.
 . Confirm the dialog to commit all pending changes.
@@ -110,13 +110,13 @@ Changes are staged as pending and committed together with the Save button.
 NOTE: Clicking outside the cell (blur) *discards* the change for that cell.
 A "Changes discarded - press Enter to save" hint appears briefly.
 +
-. Repeat steps 1-4 for any other track fields or tracks you want to change.
+. Repeat steps 2-4 for any other track fields or tracks you want to change.
 . Click the *Save* button (the badge shows the total number of pending changes across all fields and tracks).
   A confirmation dialog appears before any file write is performed.
 . Confirm the dialog to commit the changes.
   A `PATCH /api/v1/albums/{albumId}/tracks/{trackId}` request is sent for each dirty track field,
   and the tag is written to that track's FLAC file only.
-. Navigate away from the page to discard all pending track changes without saving.
+. Navigate away from the page to discard all pending changes without saving.
 
 === VA Albums (Various Artists)
 
