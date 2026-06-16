@@ -8,6 +8,12 @@ info:
 servers:
   - url: "http://localhost:8080/api/v1"
     description: Local development
+  - url: "http://{host}:8080/api/v1"
+    description: LAN deployment
+    variables:
+      host:
+        default: localhost
+        description: Server hostname or IP address of the kbeatz-catalog instance
 tags:
   - name: Health
     description: Service health and readiness probes
