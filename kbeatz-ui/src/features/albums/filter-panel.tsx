@@ -15,6 +15,9 @@ interface FilterPanelProps {
  * Operates on the in-memory album list - no API calls.
  *
  * Returns null when all option lists are empty so no container is rendered.
+ *
+ * Shows a warning when 2+ values are selected within the same filter dimension,
+ * because multi-value filtering is client-side (current page only).
  */
 export function FilterPanel({ options, filters, onFiltersChange }: FilterPanelProps) {
   const { t } = useTranslation()
@@ -34,8 +37,20 @@ export function FilterPanel({ options, filters, onFiltersChange }: FilterPanelPr
     onFiltersChange({ ...filters, [field]: next })
   }
 
+  // Warn when any single dimension has 2+ active selections; in that case filtering
+  // falls back to client-side page-only filtering.
+  const hasMultiValueSelection =
+    filters.genres.length >= 2 ||
+    filters.artists.length >= 2 ||
+    filters.composers.length >= 2
+
   return (
     <aside className={styles.filterPanel} aria-label={t('filterPanel.ariaLabel')}>
+      {hasMultiValueSelection && (
+        <p role="alert" className={styles.multiValueWarning}>
+          {t('filterPanel.multiValueWarning')}
+        </p>
+      )}
       {options.genres.length > 0 && (
         <section className={styles.section}>
           <h3 className={styles.heading}>{t('filterPanel.genre')}</h3>

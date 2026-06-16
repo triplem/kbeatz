@@ -60,6 +60,20 @@
   flex-shrink: 0;
 }
 
+
+/* -- Multi-value warning -------------------------------------------- */
+
+.multiValueWarning {
+  margin-bottom: var(--space-md);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-warning-bg, #fff3cd);
+  border: 1px solid var(--color-warning-border, #ffc107);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-warning-text, #664d03);
+  line-height: 1.4;
+}
+
 /* ── Responsive ──────────────────────────────────────── */
 
 @media (max-width: 768px) {

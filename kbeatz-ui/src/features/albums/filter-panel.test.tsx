@@ -79,4 +79,29 @@ describe('FilterPanel', () => {
     // No inputs of type number inside the filter panel
     expect(document.querySelector('aside input[type="number"]')).toBeNull()
   })
+
+  it('shows multi-value warning when 2 genres are selected', () => {
+    const filters: AlbumFilters = { ...EMPTY_FILTERS, genres: ['Jazz', 'Classical'] }
+    render(<FilterPanel options={OPTIONS} filters={filters} onFiltersChange={vi.fn()} />)
+    const alert = screen.getByRole('alert')
+    expect(alert).toBeInTheDocument()
+    expect(alert.textContent).toContain('current page')
+  })
+
+  it('does not show warning when only 1 genre is selected', () => {
+    const filters: AlbumFilters = { ...EMPTY_FILTERS, genres: ['Jazz'] }
+    render(<FilterPanel options={OPTIONS} filters={filters} onFiltersChange={vi.fn()} />)
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('does not show warning when no filters are active', () => {
+    render(<FilterPanel options={OPTIONS} filters={EMPTY_FILTERS} onFiltersChange={vi.fn()} />)
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('shows warning when 2 artists are selected', () => {
+    const filters: AlbumFilters = { ...EMPTY_FILTERS, artists: ['Miles Davis', 'John Coltrane'] }
+    render(<FilterPanel options={OPTIONS} filters={filters} onFiltersChange={vi.fn()} />)
+    expect(screen.getByRole('alert')).toBeInTheDocument()
+  })
 })

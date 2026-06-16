@@ -106,7 +106,8 @@
     "composer": "Composer",
     "genreFilter": "Genre filter",
     "artistFilter": "Artist filter",
-    "composerFilter": "Composer filter"
+    "composerFilter": "Composer filter",
+    "multiValueWarning": "Showing page results only - multi-value filtering is limited to the current page."
   },
   "searchBox": {
     "label": "Search",
