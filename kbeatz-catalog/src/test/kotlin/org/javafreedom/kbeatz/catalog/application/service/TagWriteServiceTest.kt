@@ -40,8 +40,12 @@ class TagWriteServiceTest {
     private val albumDir: Path = Files.createTempDirectory(libraryRoot, "kind-of-blue")
 
     @AfterTest
-    fun cleanUpLockFile() {
+    fun cleanUp() {
+        // Delete lock file explicitly first (defensive; deleteRecursively below covers it too).
         Files.deleteIfExists(albumDir.resolve(WRITE_LOCK_FILENAME))
+        // Remove all temp dirs created for this test instance. libraryRoot.deleteRecursively()
+        // covers albumDir and any subdirs created inside libraryRoot during individual tests.
+        libraryRoot.toFile().deleteRecursively()
     }
 
     private val albumRepository: AlbumRepository = mockk()
