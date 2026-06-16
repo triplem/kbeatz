@@ -74,26 +74,23 @@ Multiple artists use OR logic.
 Check one or more composer boxes to show only albums with those composers set.
 Albums without a COMPOSER tag are excluded when any composer filter is active.
 
-=== Year Range
-
-Enter a *From* year, a *To* year, or both.
-Both bounds are inclusive: entering From=1960, To=1969 shows albums released in the 1960s.
-Leaving either field empty removes that bound.
-
 === Combining Filters
 
 Different filter axes combine with *AND* logic:
 
 * Genre = Jazz AND Composer = Johann Sebastian Bach -> only Jazz albums with that composer
-* Artist = Miles Davis AND Year From = 1955 AND Year To = 1970 -> Miles Davis albums from 1955-1970
+* Artist = Miles Davis AND Genre = Jazz -> Miles Davis albums in the Jazz genre
 
 Active filters are reflected in the URL query string so you can bookmark or share filtered views:
 
 ----
-http://localhost:3005/?genre=Jazz&yearMin=1960&yearMax=1969
+http://localhost:3005/?genre=Jazz&artist=Miles+Davis
 ----
 
 Refreshing the page restores the same filters.
+
+NOTE: Year range filtering (by release year) is not yet available in the current release.
+It is planned for a future version.
 
 == Free-Text Search
 
@@ -215,7 +212,7 @@ Forcing a browser refresh (`Ctrl+Shift+R`) bypasses the cache.
 
 All interactive controls are keyboard-accessible:
 
-* *Tab* to navigate between the search box, filter checkboxes, year inputs, and sort dropdown.
+* *Tab* to navigate between the search box, filter checkboxes, and sort dropdown.
 * *Space* or *Enter* to toggle a checkbox.
 * *Escape* clears focus from the search box.
 
