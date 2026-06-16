@@ -77,7 +77,7 @@ class SyncHandlerTest {
 
         assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
         val body = response.body<ErrorResponse>()
-        assertFalse(body.message.isNullOrBlank(), "Response message should not be blank")
+        assertFalse(body.message.isBlank(), "Response message should not be blank")
         assertEquals("Sync failed - check server logs for details", body.message)
     }
 }
