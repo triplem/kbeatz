@@ -76,21 +76,49 @@ class FlacFile private constructor(
     }
 }
 
+/**
+ * Maximum allowed length for a Vorbis Comment tag value.
+ *
+ * The Vorbis Comment spec permits large values, but practical FLAC players do not handle
+ * them gracefully. Values longer than this constant are rejected to prevent accidental
+ * or malicious writes that could corrupt playable files or exhaust player memory.
+ *
+ * 4096 characters comfortably covers all real-world tag content including long COMMENT
+ * or DESCRIPTION fields while blocking abusive multi-megabyte payloads.
+ */
+const val MAX_TAG_VALUE_LENGTH = 4096
+
 /** Fluent builder for modifying Vorbis Comment fields. */
 class VorbisCommentEditor(
     private val vendor: String,
     private val comments: MutableList<String>,
 ) {
-    /** Replaces all values for [key] with [value]. */
+    /**
+     * Replaces all values for [key] with [value].
+     *
+     * @throws IllegalArgumentException if [value] exceeds [MAX_TAG_VALUE_LENGTH] characters.
+     */
     fun set(key: String, value: String): VorbisCommentEditor {
+        require(value.length <= MAX_TAG_VALUE_LENGTH) {
+            "Tag value for '$key' exceeds the maximum allowed length of $MAX_TAG_VALUE_LENGTH characters " +
+                "(got ${value.length} characters)"
+        }
         val upper = key.uppercase()
         comments.removeAll { it.uppercase().startsWith("$upper=") }
         comments += "$upper=$value"
         return this
     }
 
-    /** Adds [value] for [key] without removing existing values (e.g. multiple ARTIST tags). */
+    /**
+     * Adds [value] for [key] without removing existing values (e.g. multiple ARTIST tags).
+     *
+     * @throws IllegalArgumentException if [value] exceeds [MAX_TAG_VALUE_LENGTH] characters.
+     */
     fun add(key: String, value: String): VorbisCommentEditor {
+        require(value.length <= MAX_TAG_VALUE_LENGTH) {
+            "Tag value for '$key' exceeds the maximum allowed length of $MAX_TAG_VALUE_LENGTH characters " +
+                "(got ${value.length} characters)"
+        }
         comments += "${key.uppercase()}=$value"
         return this
     }

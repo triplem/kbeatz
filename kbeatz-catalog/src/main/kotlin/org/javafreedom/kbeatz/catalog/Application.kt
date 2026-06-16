@@ -12,6 +12,7 @@ import org.javafreedom.kbeatz.catalog.application.service.AlbumService
 import org.javafreedom.kbeatz.catalog.application.service.LibraryScanService
 import org.javafreedom.kbeatz.catalog.plugins.configureLogging
 import org.javafreedom.kbeatz.catalog.plugins.configurePathTraversalGuard
+import org.javafreedom.kbeatz.catalog.plugins.configureRequestBodySizeLimit
 import org.javafreedom.kbeatz.catalog.plugins.configureRouting
 import org.javafreedom.kbeatz.catalog.plugins.configureSerialization
 import org.javafreedom.kbeatz.catalog.plugins.configureStatusPages
@@ -56,6 +57,7 @@ fun Application.module() {
     )
 
     configurePathTraversalGuard()
+    configureRequestBodySizeLimit()
     configureLogging()
     configureSerialization()
     configureStatusPages()

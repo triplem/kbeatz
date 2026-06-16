@@ -7,6 +7,7 @@ import io.ktor.server.plugins.callid.callId
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import org.javafreedom.kbeatz.catalog.api.models.ErrorResponse
+import org.javafreedom.kbeatz.common.BusinessValidationException
 import org.javafreedom.kbeatz.common.ConflictException
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
 
@@ -20,6 +21,14 @@ fun Application.configureStatusPages() {
             call.respond(
                 HttpStatusCode.NotFound,
                 ErrorResponse(code = "RESOURCE_NOT_FOUND", message = "Resource not found")
+            )
+        }
+        exception<BusinessValidationException> { call, ex ->
+            val traceId = call.callId
+            logger.warn { "Business validation failed traceId=$traceId message=${ex.message}" }
+            call.respond(
+                HttpStatusCode.UnprocessableEntity,
+                ErrorResponse(code = "VALIDATION_ERROR", message = ex.message ?: "Validation error")
             )
         }
         exception<ConflictException> { call, ex ->

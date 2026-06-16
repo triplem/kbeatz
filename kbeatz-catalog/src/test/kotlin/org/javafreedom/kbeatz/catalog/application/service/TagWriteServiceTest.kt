@@ -22,8 +22,10 @@ import org.javafreedom.kbeatz.catalog.domain.model.WRITE_LOCK_FILENAME
 import org.javafreedom.kbeatz.catalog.domain.model.Track
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 import org.javafreedom.kbeatz.catalog.domain.repository.TrackRepository
+import org.javafreedom.kbeatz.common.BusinessValidationException
 import org.javafreedom.kbeatz.common.ConflictException
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
+import org.javafreedom.kbeatz.tagger.codec.flac.MAX_TAG_VALUE_LENGTH
 
 /**
  * Unit tests for [TagWriteService].
@@ -94,6 +96,25 @@ class TagWriteServiceTest {
     // ──────────────────────────────────────────────
     // Album-level: validation
     // ──────────────────────────────────────────────
+
+    @Test
+    fun `writeAlbumTags throws BusinessValidationException when value exceeds max length`() = runTest {
+        val oversized = "x".repeat(MAX_TAG_VALUE_LENGTH + 1)
+        assertFailsWith<BusinessValidationException> {
+            service.writeAlbumTags(albumId, "GENRE", oversized)
+        }
+    }
+
+    @Test
+    fun `writeAlbumTags accepts value exactly at max length`() = runTest {
+        val maxValue = "x".repeat(MAX_TAG_VALUE_LENGTH)
+        val album = buildAlbum()
+        coEvery { albumRepository.findById(albumId) } returns album
+        coEvery { albumRepository.save(any()) } answers { firstArg() }
+
+        val result = service.writeAlbumTags(albumId, "GENRE", maxValue)
+        assertEquals(maxValue, result.genre)
+    }
 
     @Test
     fun `writeAlbumTags throws IllegalArgumentException for unknown field`() = runTest {
@@ -219,6 +240,14 @@ class TagWriteServiceTest {
     // ──────────────────────────────────────────────
     // Track-level: validation
     // ──────────────────────────────────────────────
+
+    @Test
+    fun `writeTrackTags throws BusinessValidationException when value exceeds max length`() = runTest {
+        val oversized = "x".repeat(MAX_TAG_VALUE_LENGTH + 1)
+        assertFailsWith<BusinessValidationException> {
+            service.writeTrackTags(albumId, trackId, "TITLE", oversized)
+        }
+    }
 
     @Test
     fun `writeTrackTags throws IllegalArgumentException for unknown field`() = runTest {
@@ -595,6 +624,30 @@ class TagWriteServiceTest {
         )
 
         assertEquals(album, result)
+    }
+
+    @Test
+    fun `writeBulkTags throws BusinessValidationException when album field value exceeds max length`() = runTest {
+        val oversized = "x".repeat(MAX_TAG_VALUE_LENGTH + 1)
+        assertFailsWith<BusinessValidationException> {
+            service.writeBulkTags(
+                albumId,
+                albumFields = listOf("GENRE" to oversized),
+                trackFields = emptyList(),
+            )
+        }
+    }
+
+    @Test
+    fun `writeBulkTags throws BusinessValidationException when track field value exceeds max length`() = runTest {
+        val oversized = "x".repeat(MAX_TAG_VALUE_LENGTH + 1)
+        assertFailsWith<BusinessValidationException> {
+            service.writeBulkTags(
+                albumId,
+                albumFields = emptyList(),
+                trackFields = listOf(Triple(trackId, "TITLE", oversized)),
+            )
+        }
     }
 
     @Test
