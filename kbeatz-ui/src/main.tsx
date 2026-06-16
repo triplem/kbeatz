@@ -10,9 +10,11 @@ import { NotFoundPage } from './features/not-found/not-found-page'
 import { ErrorBoundary } from './lib/error-boundary'
 import { OpenAPI } from './api/generated'
 
-// Use a relative base so API calls are proxied through nginx on any host.
-// This makes the UI work from LAN devices without a rebuild.
-OpenAPI.BASE = '/api/v1'
+// Allow runtime override via VITE_API_BASE_URL for LAN deployments where the UI
+// is served from a different host or port than the catalog backend.
+// Falls back to a relative path so the Vite dev proxy (and nginx reverse-proxy
+// deployments) work without any extra configuration.
+OpenAPI.BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
 
 const queryClient = new QueryClient({
   defaultOptions: {

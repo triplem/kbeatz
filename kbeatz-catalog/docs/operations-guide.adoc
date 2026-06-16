@@ -109,6 +109,47 @@ NOTE: The `startupProbe` and `livenessProbe` both use `/livez` intentionally.
 The liveness probe must not check the database - if the DB is down the pod should remain
 running (so it can reconnect) rather than be restarted.
 
+== kbeatz-ui Configuration
+
+=== LAN Deployment - API Base URL
+
+By default the UI sends all API requests to a relative path (`/api/v1`), which works
+when the UI and the catalog backend are served through the same origin (e.g. an nginx
+reverse proxy on the same machine).
+
+When the UI is served from a *different* host or port than the catalog backend (for
+example, the UI is hosted on a NAS but the catalog runs on a separate server), set the
+`VITE_API_BASE_URL` environment variable at *build time*:
+
+[source,bash]
+----
+# Build the UI pointing at a specific LAN host
+VITE_API_BASE_URL=http://192.168.1.10:8080/api/v1 npm run build
+----
+
+Or via a `.env.local` file in `kbeatz-ui/` (gitignored):
+
+[source,bash]
+----
+# kbeatz-ui/.env.local
+VITE_API_BASE_URL=http://192.168.1.10:8080/api/v1
+----
+
+NOTE: `VITE_API_BASE_URL` is a Vite build time variable. It is embedded into the
+compiled JavaScript bundle. If you change the catalog server address, you must rebuild
+the UI and redeploy. For most home/LAN deployments the default reverse-proxy approach
+(UI and catalog served from the same origin) is simpler and requires no variable.
+
+[cols="2,1,3", options="header"]
+|===
+| Variable | Required | Description
+
+| `VITE_API_BASE_URL`
+| No (default: `/api/v1`)
+| Absolute URL prefix for all catalog API calls. Set only when the UI and catalog are
+served from different origins. Example: `http://192.168.1.10:8080/api/v1`.
+|===
+
 == Environment Variables
 
 [cols="2,1,3", options="header"]
