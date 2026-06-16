@@ -186,7 +186,7 @@ class DiscogsMetadataSource private constructor(
             SyncResult.Success(metadataFile)
         } catch (ex: Exception) {
             log.error(ex) { "discogs_sync_error releaseId=$discogsId" }
-            SyncResult.Error(ex)
+            SyncResult.Error
         }
     }
 
@@ -284,7 +284,7 @@ class DiscogsMetadataSource private constructor(
         Files.move(tmp, targetPath, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
 
         log.info { "Downloaded pictureType=$pictureType localPath=${entry.localPath} bytes=${bytes.size}" }
-        return ImageDownloadResult.Downloaded(pictureType, targetPath)
+        return ImageDownloadResult.Downloaded(pictureType)
     }
 
     @Suppress("TooGenericExceptionCaught") // IO errors reading metadata.json must not crash the caller

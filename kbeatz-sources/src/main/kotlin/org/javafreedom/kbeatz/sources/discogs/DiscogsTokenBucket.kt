@@ -1,6 +1,7 @@
 package org.javafreedom.kbeatz.sources.discogs
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -65,7 +66,7 @@ class DiscogsTokenBucket(
             }
             if (waitMs == 0L) return
             log.warn { "discogs_rate_limit_wait waitMs=$waitMs requestCount=$requestCount" }
-            delay(waitMs)
+            delay(waitMs.milliseconds)
         }
     }
 
