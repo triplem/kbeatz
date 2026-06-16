@@ -472,4 +472,51 @@ class FlacRoundTripTest {
         val b3 = stream.readByte().toInt() and 0xFF
         return b0 or (b1 shl 8) or (b2 shl 16) or (b3 shl 24)
     }
+
+    // -------------------------------------------------------------------------
+    // VorbisCommentEditor: max tag value length guard (issue #789)
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `VorbisCommentEditor set should throw when value exceeds MAX_TAG_VALUE_LENGTH`() {
+        val editor = VorbisCommentEditor("vendor", mutableListOf())
+        val oversized = "x".repeat(MAX_TAG_VALUE_LENGTH + 1)
+
+        val ex = assertFailsWith<IllegalArgumentException> {
+            editor.set("GENRE", oversized)
+        }
+        assertTrue(ex.message?.contains("GENRE") == true, "Exception message should mention the field name")
+        assertTrue(
+            ex.message?.contains(MAX_TAG_VALUE_LENGTH.toString()) == true,
+            "Exception message should mention the max length"
+        )
+    }
+
+    @Test
+    fun `VorbisCommentEditor set should accept value exactly at MAX_TAG_VALUE_LENGTH`() {
+        val editor = VorbisCommentEditor("vendor", mutableListOf())
+        val maxValue = "x".repeat(MAX_TAG_VALUE_LENGTH)
+
+        editor.set("GENRE", maxValue) // must not throw
+        assertEquals(maxValue, editor.build().get("GENRE"))
+    }
+
+    @Test
+    fun `VorbisCommentEditor add should throw when value exceeds MAX_TAG_VALUE_LENGTH`() {
+        val editor = VorbisCommentEditor("vendor", mutableListOf())
+        val oversized = "x".repeat(MAX_TAG_VALUE_LENGTH + 1)
+
+        assertFailsWith<IllegalArgumentException> {
+            editor.add("COMMENT", oversized)
+        }
+    }
+
+    @Test
+    fun `VorbisCommentEditor add should accept value exactly at MAX_TAG_VALUE_LENGTH`() {
+        val editor = VorbisCommentEditor("vendor", mutableListOf())
+        val maxValue = "x".repeat(MAX_TAG_VALUE_LENGTH)
+
+        editor.add("COMMENT", maxValue) // must not throw
+        assertEquals(maxValue, editor.build().get("COMMENT"))
+    }
 }

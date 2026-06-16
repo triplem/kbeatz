@@ -627,7 +627,8 @@ components:
           example: "GENRE"
         value:
           type: string
-          description: "New field value"
+          maxLength: 4096
+          description: "New field value (max 4096 characters)"
           example: "Progressive Rock"
 
     AlbumTagFieldUpdate:
@@ -641,7 +642,8 @@ components:
           example: "GENRE"
         value:
           type: string
-          description: "New field value"
+          maxLength: 4096
+          description: "New field value (max 4096 characters)"
           example: "Progressive Rock"
 
     TrackTagFieldUpdate:
@@ -660,7 +662,8 @@ components:
           example: "TITLE"
         value:
           type: string
-          description: "New field value"
+          maxLength: 4096
+          description: "New field value (max 4096 characters)"
           example: "So What"
 
     BulkUpdateTagsRequest:

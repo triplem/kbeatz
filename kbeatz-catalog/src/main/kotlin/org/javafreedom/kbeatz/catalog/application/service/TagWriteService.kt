@@ -15,9 +15,11 @@ import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 import org.javafreedom.kbeatz.catalog.domain.repository.TrackRepository
 import org.javafreedom.kbeatz.catalog.util.PathGuard
 import org.javafreedom.kbeatz.catalog.util.sanitizeForLog
+import org.javafreedom.kbeatz.common.BusinessValidationException
 import org.javafreedom.kbeatz.common.ConflictException
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
 import org.javafreedom.kbeatz.tagger.codec.flac.FlacFile
+import org.javafreedom.kbeatz.tagger.codec.flac.MAX_TAG_VALUE_LENGTH
 
 private val log = KotlinLogging.logger {}
 
@@ -122,6 +124,7 @@ class TagWriteService(
      * @throws SecurityException if the album directory is outside [libraryRoot].
      */
     suspend fun writeAlbumTags(albumId: Uuid, field: String, value: String): Album {
+        requireTagValueLength(field, value)
         val normalised = field.uppercase()
         require(normalised in ALBUM_LEVEL_FIELDS) {
             "Unknown album-level tag field: '$field'. Allowed: ${ALBUM_LEVEL_FIELDS.sorted()}"
@@ -237,6 +240,9 @@ class TagWriteService(
         albumFields: List<Pair<String, String>>,
         trackFields: List<Triple<Uuid, String, String>>,
     ): Album {
+        albumFields.forEach { (field, value) -> requireTagValueLength(field, value) }
+        trackFields.forEach { (_, field, value) -> requireTagValueLength(field, value) }
+
         val normalisedAlbumFields = albumFields.map { (field, value) ->
             val n = field.uppercase()
             require(n in ALBUM_LEVEL_FIELDS) {
@@ -353,6 +359,7 @@ class TagWriteService(
      * @throws SecurityException if the album directory is outside [libraryRoot].
      */
     suspend fun writeTrackTags(albumId: Uuid, trackId: Uuid, field: String, value: String): Track {
+        requireTagValueLength(field, value)
         val normalised = field.uppercase()
         require(normalised in TRACK_LEVEL_FIELDS) {
             "Unknown track-level tag field: '$field'. Allowed: ${TRACK_LEVEL_FIELDS.sorted()}"
@@ -376,6 +383,15 @@ class TagWriteService(
         trackRepository.update(updatedTrack)
         log.info { "Track tag write complete albumId=$albumId trackId=$trackId field=$normalised" }
         return updatedTrack
+    }
+
+    private fun requireTagValueLength(field: String, value: String) {
+        if (value.length > MAX_TAG_VALUE_LENGTH) {
+            throw BusinessValidationException(
+                "Tag value for '$field' exceeds the maximum allowed length of $MAX_TAG_VALUE_LENGTH characters " +
+                    "(got ${value.length} characters)"
+            )
+        }
     }
 
     private fun validatePath(albumDir: Path) {
