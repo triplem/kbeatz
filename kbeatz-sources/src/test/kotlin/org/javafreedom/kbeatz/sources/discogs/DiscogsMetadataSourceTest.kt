@@ -181,7 +181,7 @@ class DiscogsMetadataSourceTest {
         source.fetchRelease("12345")
         source.fetchRelease("12345")
 
-        // Only one HTTP request should have been made — the second call returns the cached value
+        // Only one HTTP request should have been made - the second call returns the cached value
         assertEquals(1, requests.size)
     }
 
@@ -212,7 +212,7 @@ class DiscogsMetadataSourceTest {
         )
     }
 
-    // --- Error handling: timeout, malformed JSON, missing fields, 429 ---
+    // --- Error handling: timeout, malformed JSON, missing fields ---
 
     /**
      * When the mock engine delays longer than the client timeout, Ktor throws a
@@ -244,30 +244,26 @@ class DiscogsMetadataSourceTest {
         }
     }
 
+    // --- HTTP status code handling: 429, 404, 5xx ---
+
     /**
-     * When Discogs returns HTTP 429 Too Many Requests and the client has no retry plugin
-     * configured (so the 429 is the final response), [fetchRelease] does not validate the
-     * status code itself. Instead it asks ContentNegotiation to deserialize the (empty) 429
-     * body into a [DiscogsRelease], which fails with [io.ktor.serialization.ContentConvertException].
+     * When Discogs returns HTTP 429 Too Many Requests, [fetchRelease] checks the status before
+     * attempting to deserialize the body and throws [DiscogsRateLimitException] with the retry
+     * delay derived from the Retry-After header.
      *
-     * This mirrors the timeout test above: a bare client (no [io.ktor.client.plugins.HttpRequestRetry])
-     * is used so the test asserts the adapter's direct contract on a terminal 429 rather than the
-     * retry-then-succeed path covered separately. The exception propagates to the caller (catalog
-     * service or CLI), which treats it as a rate-limit/transport error.
-     *
-     * Note: this asserts the current behaviour and changes no production code. The retry-aware
-     * `syncAlbum` path has its own dedicated 429 test returning SyncResult.RateLimitExceeded.
+     * This prevents the previous bug where a 429 body was silently passed to ContentNegotiation,
+     * causing an opaque serialization error or corrupted data.
      */
     @Test
-    fun `fetchRelease throws ContentConvertException when Discogs returns 429 with no retry configured`() =
+    fun `fetchRelease throws DiscogsRateLimitException when Discogs returns 429`() =
         runBlocking {
             val mockEngine = MockEngine {
                 respond(
-                    content = "",
+                    content = """{"message":"You are being rate limited."}""",
                     status = HttpStatusCode.TooManyRequests,
                     headers = headersOf(
                         HttpHeaders.ContentType to listOf(ContentType.Application.Json.toString()),
-                        HttpHeaders.RetryAfter to listOf("1"),
+                        HttpHeaders.RetryAfter to listOf("30"),
                     ),
                 )
             }
@@ -280,9 +276,131 @@ class DiscogsMetadataSourceTest {
                 },
             )
 
-            assertFailsWith<io.ktor.serialization.ContentConvertException> {
+            val ex = assertFailsWith<DiscogsRateLimitException> {
                 source.fetchRelease("12345")
             }
+            assertEquals(30_000L, ex.retryAfterMs)
+            assertEquals("12345", ex.releaseId)
+            assertEquals(429, ex.statusCode)
+        }
+
+    /**
+     * When Discogs returns HTTP 429 with no Retry-After header, [fetchRelease] falls back
+     * to the default retry delay of 60 seconds (60 000 ms).
+     */
+    @Test
+    fun `fetchRelease uses default retry delay when Retry-After header is absent on 429`() =
+        runBlocking {
+            val mockEngine = MockEngine {
+                respond(
+                    content = """{"message":"You are being rate limited."}""",
+                    status = HttpStatusCode.TooManyRequests,
+                    headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                )
+            }
+            val source = DiscogsMetadataSource.withHttpClient(
+                token = "test-token",
+                httpClient = HttpClient(mockEngine) {
+                    install(ContentNegotiation) {
+                        json(Json { ignoreUnknownKeys = true })
+                    }
+                },
+            )
+
+            val ex = assertFailsWith<DiscogsRateLimitException> {
+                source.fetchRelease("12345")
+            }
+            // DEFAULT_RETRY_AFTER_SECONDS = 60, so retryAfterMs = 60 * 1000
+            assertEquals(60_000L, ex.retryAfterMs)
+        }
+
+    /**
+     * When Discogs returns HTTP 404, [fetchRelease] throws [DiscogsReleaseNotFoundException]
+     * instead of attempting deserialization of an error body.
+     */
+    @Test
+    fun `fetchRelease throws DiscogsReleaseNotFoundException when Discogs returns 404`() =
+        runBlocking {
+            val mockEngine = MockEngine {
+                respond(
+                    content = """{"message":"Release not found."}""",
+                    status = HttpStatusCode.NotFound,
+                    headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                )
+            }
+            val source = DiscogsMetadataSource.withHttpClient(
+                token = "test-token",
+                httpClient = HttpClient(mockEngine) {
+                    install(ContentNegotiation) {
+                        json(Json { ignoreUnknownKeys = true })
+                    }
+                },
+            )
+
+            val ex = assertFailsWith<DiscogsReleaseNotFoundException> {
+                source.fetchRelease("99999")
+            }
+            assertEquals("99999", ex.releaseId)
+            assertEquals(404, ex.statusCode)
+        }
+
+    /**
+     * When Discogs returns HTTP 500, [fetchRelease] throws [DiscogsServerException] with the
+     * actual status code rather than a serialization error from the error body.
+     */
+    @Test
+    fun `fetchRelease throws DiscogsServerException when Discogs returns 500`() =
+        runBlocking {
+            val mockEngine = MockEngine {
+                respond(
+                    content = """{"message":"Internal Server Error"}""",
+                    status = HttpStatusCode.InternalServerError,
+                    headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                )
+            }
+            val source = DiscogsMetadataSource.withHttpClient(
+                token = "test-token",
+                httpClient = HttpClient(mockEngine) {
+                    install(ContentNegotiation) {
+                        json(Json { ignoreUnknownKeys = true })
+                    }
+                },
+            )
+
+            val ex = assertFailsWith<DiscogsServerException> {
+                source.fetchRelease("12345")
+            }
+            assertEquals(500, ex.statusCode)
+            assertEquals("12345", ex.releaseId)
+        }
+
+    /**
+     * When Discogs returns HTTP 503 Service Unavailable, [fetchRelease] throws
+     * [DiscogsServerException] - not a serialization error.
+     */
+    @Test
+    fun `fetchRelease throws DiscogsServerException when Discogs returns 503`() =
+        runBlocking {
+            val mockEngine = MockEngine {
+                respond(
+                    content = """{"message":"Service Unavailable"}""",
+                    status = HttpStatusCode.ServiceUnavailable,
+                    headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                )
+            }
+            val source = DiscogsMetadataSource.withHttpClient(
+                token = "test-token",
+                httpClient = HttpClient(mockEngine) {
+                    install(ContentNegotiation) {
+                        json(Json { ignoreUnknownKeys = true })
+                    }
+                },
+            )
+
+            val ex = assertFailsWith<DiscogsServerException> {
+                source.fetchRelease("12345")
+            }
+            assertEquals(503, ex.statusCode)
         }
 
     /**
@@ -405,7 +523,7 @@ class DiscogsMetadataSourceTest {
 
         requests.clear()
 
-        // Now call fetchImage — it should only hit the image URL, not the release endpoint again
+        // Now call fetchImage - it should only hit the image URL, not the release endpoint again
         val result = source.fetchImage("12345", 0)
 
         assertNotNull(result)

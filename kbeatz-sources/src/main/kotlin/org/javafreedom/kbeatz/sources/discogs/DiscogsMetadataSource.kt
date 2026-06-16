@@ -103,15 +103,47 @@ class DiscogsMetadataSource private constructor(
 
     override val name = "discogs"
 
+    /**
+     * Fetches a Discogs release by ID, checks the HTTP status before deserializing the body,
+     * and throws a typed exception for non-success responses.
+     *
+     * - HTTP 200: deserializes the body and returns the domain [Release].
+     * - HTTP 404: throws [DiscogsReleaseNotFoundException] - the release does not exist.
+     * - HTTP 429: throws [DiscogsRateLimitException] - rate limit exceeded; caller must back off.
+     * - Any other non-2xx: throws [DiscogsServerException] with the actual status code.
+     *
+     * The result is stored in [cache] on success. Subsequent calls for the same [releaseId]
+     * return the cached value without making an HTTP request.
+     */
     override suspend fun fetchRelease(releaseId: String): Release? {
         require(SAFE_RELEASE_ID_PATTERN.matches(releaseId)) {
             "releaseId must contain only alphanumeric characters and hyphens: $releaseId"
         }
         cache?.get(name, releaseId)?.let { return it }
         tokenBucket.acquire()
-        log.info { "Fetching Discogs release $releaseId" }
-        val response: DiscogsRelease = client.get("https://api.discogs.com/releases/$releaseId").body()
-        val release = response.toDomain()
+        log.info { "fetchRelease_start releaseId=$releaseId" }
+        val httpResponse = client.get("https://api.discogs.com/releases/$releaseId")
+        when (httpResponse.status) {
+            HttpStatusCode.OK -> Unit
+            HttpStatusCode.NotFound -> {
+                log.warn { "fetchRelease_not_found releaseId=$releaseId" }
+                throw DiscogsReleaseNotFoundException(releaseId)
+            }
+            HttpStatusCode.TooManyRequests -> {
+                val retryAfterSec = httpResponse.headers["Retry-After"]?.toLongOrNull()
+                    ?: DEFAULT_RETRY_AFTER_SECONDS
+                val retryAfterMs = retryAfterSec * MS_PER_SECOND
+                log.warn { "fetchRelease_rate_limited releaseId=$releaseId retryAfterMs=$retryAfterMs" }
+                throw DiscogsRateLimitException(releaseId, retryAfterMs)
+            }
+            else -> {
+                log.error { "fetchRelease_unexpected_status status=${httpResponse.status.value} releaseId=$releaseId" }
+                throw DiscogsServerException(httpResponse.status.value, releaseId)
+            }
+        }
+        val discogsRelease: DiscogsRelease = httpResponse.body()
+        val release = discogsRelease.toDomain()
+        log.info { "fetchRelease_done releaseId=$releaseId title=${release.title}" }
         cache?.put(name, releaseId, release)
         return release
     }
