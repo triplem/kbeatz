@@ -46,7 +46,6 @@ class LibraryWalker {
          * easy to identify for manual tagging.
          */
         const val UNKNOWN_ARTIST_FALLBACK = "Unknown Artist"
-
     }
 
     /**
@@ -85,6 +84,19 @@ class LibraryWalker {
     }
 
     private fun groupFlacFiles(flacFiles: List<Path>, libraryRoot: Path): List<AlbumGroup> {
+        // --- Various Artists / compilation grouping rule (issue #373) ---
+        //
+        // When all tracks in a directory share an ALBUMARTIST value of "Various Artists"
+        // they are grouped as a single compilation album, exactly like any other ALBUMARTIST
+        // value. Two directories with different ALBUM names are indexed as separate albums
+        // even when both have ALBUMARTIST="Various Artists". Within a single directory the
+        // directory-path boundary takes precedence and all FLAC files are grouped together
+        // regardless of per-track tag differences.
+        //
+        // There is no special code path for "Various Artists": the general grouping key
+        // (ALBUMARTIST, ALBUM, DATE) handles it naturally. This note exists so that a future
+        // refactor does not inadvertently break compilation album indexing.
+        //
         // Deduplication key: (albumArtist, albumTitle, yearKey).
         //
         // Rationale: two directories storing the same release (e.g. a re-rip or
