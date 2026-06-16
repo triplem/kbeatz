@@ -50,22 +50,45 @@ The detail view shows all tag fields for the album and a table of its tracks.
 Album-level tags are written to *all FLAC files* in the album directory simultaneously.
 Use these fields to update metadata that applies to the release as a whole (e.g. genre, label, date).
 
+=== Batch-Save Flow
+
+kbeatz uses a *batch-save* flow for tag edits.
+Changes you make are held in a "pending" (dirty) state in the browser until you explicitly commit them all at once with the Save button.
+
+* *Enter or Tab* - stages the typed value as a pending change.
+  The field shows a pending indicator so you can see which fields have unsaved changes.
+  No API call is made at this point.
+* *Blur (click outside the input)* - *discards* the pending change for that field.
+  A brief "Changes discarded - press Enter to save" hint appears for approximately 2 seconds.
+* *Save button* - commits all pending changes.
+  The button shows a badge with the number of dirty fields.
+  A confirmation dialog appears before any file write is performed.
+
 === Procedure
 
 . In the *Album Tags* section of the detail view, locate the field you want to change (e.g. `Genre`).
 . Click on the displayed value.
   An inline text input appears, pre-filled with the current value.
 . Type the new value.
-. Press *Enter* or click outside the input field (blur) to save.
-  The display immediately shows the new value.
-  In the background, a `PATCH /api/v1/albums/{albumId}` request is sent and the tag is written to every FLAC file in the album directory.
-. To cancel without saving, press *Escape*.
-  The original value is restored and no API call is made.
+. Press *Enter* or *Tab* to stage the change as pending.
+  The field shows a pending indicator. No API call is made yet.
++
+NOTE: Clicking outside the input (blur) *discards* the change for that field.
+A "Changes discarded - press Enter to save" hint appears briefly.
++
+. Repeat steps 1-4 for any other album-level fields you want to change.
+. Click the *Save* button (the badge shows the number of pending fields).
+  A confirmation dialog appears listing the fields that will be written.
+. Confirm the dialog to commit all pending changes.
+  A `PATCH /api/v1/albums/{albumId}` request is sent and the tags are written to every FLAC file in the album directory.
+  The pending indicators are cleared and the fields display the saved values.
+. To discard *all* pending changes without saving, navigate away from the page.
+  No API call is made.
 
 === Error Handling
 
-If the save fails (for example, the backend cannot write to disk), the field reverts to the previous value and an error message appears beneath it.
-The error is cleared automatically the next time you click to edit.
+If the save fails (for example, the backend cannot write to disk), the pending changes remain staged and an error message appears above the Save button.
+Correct the problem (for example, check disk permissions or restart the catalog service) and click Save again to retry.
 
 == Editing Track-Level Tags
 
@@ -74,14 +97,26 @@ Use track-level editing to fix per-track fields such as title or track artist in
 
 === Procedure
 
+Track-level edits follow the same batch-save flow as album-level edits.
+Changes are staged as pending and committed together with the Save button.
+
 . In the *Tracks* table at the bottom of the detail view, locate the track and field you want to change (Title, Track #, or Artist).
 . Click on the displayed value in that cell.
   An inline text input appears, pre-filled with the current value.
 . Type the new value.
-. Press *Enter* or click outside the field to save.
-  The display updates immediately.
-  In the background, a `PATCH /api/v1/albums/{albumId}/tracks/{trackId}` request is sent and the tag is written to the track's FLAC file only.
-. Press *Escape* to cancel without saving.
+. Press *Enter* or *Tab* to stage the change as pending.
+  The cell shows a pending indicator. No API call is made yet.
++
+NOTE: Clicking outside the cell (blur) *discards* the change for that cell.
+A "Changes discarded - press Enter to save" hint appears briefly.
++
+. Repeat steps 1-4 for any other track fields or tracks you want to change.
+. Click the *Save* button (the badge shows the total number of pending changes across all fields and tracks).
+  A confirmation dialog appears before any file write is performed.
+. Confirm the dialog to commit the changes.
+  A `PATCH /api/v1/albums/{albumId}/tracks/{trackId}` request is sent for each dirty track field,
+  and the tag is written to that track's FLAC file only.
+. Navigate away from the page to discard all pending track changes without saving.
 
 === VA Albums (Various Artists)
 
