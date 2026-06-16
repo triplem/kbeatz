@@ -135,7 +135,7 @@ Or via a `.env.local` file in `kbeatz-ui/` (gitignored):
 VITE_API_BASE_URL=http://192.168.1.10:8080/api/v1
 ----
 
-NOTE: `VITE_API_BASE_URL` is a Vite build-time variable. It is embedded into the
+NOTE: `VITE_API_BASE_URL` is a Vite build time variable. It is embedded into the
 compiled JavaScript bundle. If you change the catalog server address, you must rebuild
 the UI and redeploy. For most home/LAN deployments the default reverse-proxy approach
 (UI and catalog served from the same origin) is simpler and requires no variable.
