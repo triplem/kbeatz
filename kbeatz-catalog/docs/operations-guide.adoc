@@ -440,6 +440,51 @@ unauthenticated clients could allow UUID sequencing analysis. Options include: e
 only client-supplied IDs (not generated ones), or restricting the header to authenticated
 requests only.
 
+== Filter Query Performance
+
+=== LOWER() predicates and index usage
+
+`ExposedAlbumRepository.buildWhereClause()` wraps filter columns in `LOWER()` before
+applying `LIKE` predicates (for case-insensitive browsing). Standard B-tree indexes on
+the raw column values cannot serve these queries because the function call defeats index
+use.
+
+==== H2 v1 (current)
+
+H2 does not support functional (expression-based) indexes. On H2, filtered list queries
+scan all rows and apply the `LOWER(LIKE)` predicate in-memory. Performance degrades
+linearly with collection size. On a typical home collection (under 20,000 albums) this
+is not noticeable, but it becomes measurable at larger scales.
+
+*There is no workaround for H2.* The migration to PostgreSQL (v2) is the correct fix.
+
+==== PostgreSQL v2 (migration target)
+
+When migrating to PostgreSQL, Liquibase changeset `V1-009-albums-lower-functional-indexes`
+automatically creates three functional indexes:
+
+[source,sql]
+----
+CREATE INDEX idx_albums_lower_album_artist ON albums (LOWER(album_artist));
+CREATE INDEX idx_albums_lower_composer     ON albums (LOWER(composer));
+CREATE INDEX idx_albums_lower_genre        ON albums (LOWER(genre));
+----
+
+These indexes allow PostgreSQL to satisfy `WHERE LOWER(album_artist) LIKE 'foo%'` via
+an index scan rather than a sequential scan.
+
+NOTE: The changeset uses a Liquibase `preConditions` block with `onFail: MARK_RAN` and
+`dbms: postgresql` so H2 silently skips it. No manual intervention is required when
+running on H2; the indexes are applied automatically when the database is PostgreSQL.
+
+==== Free-text search ('q' parameter)
+
+The `q` free-text filter ORs four leading-wildcard `LOWER(LIKE)` predicates across
+`album_artist`, `album`, `composer`, and `label`. Neither B-tree indexes nor functional
+indexes can serve leading-wildcard LIKE patterns efficiently. On PostgreSQL, a GIN index
+on a `tsvector` column would be needed, but that also requires changes to the query
+layer. This is tracked as future work and is not addressed in v2.
+
 == Upgrade Path
 
 kbeatz-catalog uses Liquibase for schema migrations. On every startup:

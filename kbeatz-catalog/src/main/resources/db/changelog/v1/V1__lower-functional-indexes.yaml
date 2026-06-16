@@ -1,0 +1,31 @@
+databaseChangeLog:
+  - changeSet:
+      id: V1-009-albums-lower-functional-indexes
+      author: kbeatz
+      comment: >
+        Issue #786: add functional indexes on LOWER(album_artist), LOWER(composer),
+        and LOWER(genre) for PostgreSQL (v2 migration target).
+        ExposedAlbumRepository.buildWhereClause() wraps filter columns in LOWER()
+        before LIKE predicates. B-tree indexes on the raw columns (V1-003) cannot
+        serve these queries because the function call defeats index use.
+        H2 v1 does not support functional indexes, so the preCondition skips this
+        changeset on H2 (MARK_RAN). PostgreSQL v2 will apply all three indexes.
+        For the free-text 'q' search (ORing four LOWER(LIKE) clauses across
+        album_artist, album, composer, label), a GIN index on a tsvector column
+        would be needed but requires application changes; tracked as future work.
+      preConditions:
+        onFail: MARK_RAN
+        dbms:
+          type: postgresql
+      changes:
+        - sql:
+            sql: >
+              CREATE INDEX idx_albums_lower_album_artist ON albums (LOWER(album_artist));
+              CREATE INDEX idx_albums_lower_composer ON albums (LOWER(composer));
+              CREATE INDEX idx_albums_lower_genre ON albums (LOWER(genre));
+      rollback:
+        - sql:
+            sql: >
+              DROP INDEX IF EXISTS idx_albums_lower_album_artist;
+              DROP INDEX IF EXISTS idx_albums_lower_composer;
+              DROP INDEX IF EXISTS idx_albums_lower_genre;
