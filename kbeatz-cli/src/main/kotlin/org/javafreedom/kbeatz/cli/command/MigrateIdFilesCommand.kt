@@ -15,7 +15,6 @@ import kotlinx.io.writeString
 import org.javafreedom.kbeatz.cli.util.walkDirectories
 import org.javafreedom.kbeatz.tagger.idfile.IdFile
 import org.javafreedom.kbeatz.tagger.idfile.IdFileReader
-import org.javafreedom.kbeatz.tagger.idfile.SourceConfig
 
 /**
  * Migrates INI-style id.txt / local_ids.txt files to YAML (metadata.yml).
@@ -54,7 +53,7 @@ class MigrateIdFilesCommand : CliktCommand(
     ).flag()
 
     override fun run() {
-        val idReader = IdFileReader(SourceConfig())
+        val idReader = IdFileReader()
         val depth = if (recursive) Int.MAX_VALUE else DEFAULT_LIBRARY_SCAN_DEPTH
         var migrated = 0
         var skipped = 0
@@ -112,24 +111,25 @@ class MigrateIdFilesCommand : CliktCommand(
                 logger.error(e) { "ERROR dir=$dir" }
                 return MigrateOutcome.ERROR
             }
-            ?.let { idFile -> performMigration(dir, idFile, Path(dir, "metadata.yml")) }
+            ?.let { idFile ->
+                performMigration(dir, idFile, Path(dir, "metadata.yml"))
+                MigrateOutcome.MIGRATED
+            }
             ?: run {
                 echo("SKIP  $dir - no parseable id file found")
                 logger.info { "SKIP  dir=$dir reason=no parseable id file found" }
                 MigrateOutcome.SKIPPED
             }
 
-    private fun performMigration(dir: Path, idFile: IdFile, target: Path): MigrateOutcome {
+    private fun performMigration(dir: Path, idFile: IdFile, target: Path) {
         val yamlContent = buildYaml(idFile.sources)
-        return if (dryRun) {
+        if (dryRun) {
             echo("DRY   $target:\n$yamlContent")
-            MigrateOutcome.MIGRATED
         } else {
             SystemFileSystem.sink(target).buffered().use { it.writeString(yamlContent) }
             echo("WROTE $target")
             logger.info { "WROTE path=$target" }
             if (!keepOriginal) deleteOriginalIdFiles(dir)
-            MigrateOutcome.MIGRATED
         }
     }
 
