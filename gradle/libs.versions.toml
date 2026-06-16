@@ -2,7 +2,6 @@
 kotlin = "2.4.0"
 ktor = "3.5.0"
 openapi-generator = "7.23.0"
-sonarqube = "7.3.1.8318"
 detekt = "1.23.8"
 kover = "0.9.8"
 logback = "1.5.32"
@@ -20,17 +19,9 @@ kotest = "6.1.11"
 liquibase = "5.0.2"
 kotlinx-coroutines = "1.11.0"
 cyclonedx = "3.2.2"
-shadow = "9.4.2"
 clikt = "5.1.0"
 kaml = "0.104.0"
 kotlinx-io = "0.9.0"
-opentelemetry = "1.63.0"
-# The -alpha suffix on opentelemetry-instrumentation is intentional and permanent.
-# The OTel project keeps framework-specific instrumentation libraries (Ktor, Exposed, etc.)
-# in -alpha because they instrument framework internals that change between major versions.
-# No stable GA release exists for opentelemetry-ktor-*; this is an upstream policy decision,
-# not a sign the library is unsuitable for production. Do not remove the -alpha suffix.
-opentelemetry-instrumentation = "2.27.0-alpha"
 
 [libraries]
 ktor-server-core = { module = "io.ktor:ktor-server-core-jvm", version.ref = "ktor" }
@@ -38,6 +29,8 @@ ktor-server-cio = { module = "io.ktor:ktor-server-cio-jvm", version.ref = "ktor"
 ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation-jvm", version.ref = "ktor" }
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json-jvm", version.ref = "ktor" }
 ktor-server-resources = { module = "io.ktor:ktor-server-resources-jvm", version.ref = "ktor" }
+# ktor-server-openapi and ktor-server-swagger are in the ktor-server bundle but not installed
+# in the application. Removal tracked in issue #771 (requires composite-build lockfile regen).
 ktor-server-openapi = { module = "io.ktor:ktor-server-openapi", version.ref = "ktor" }
 ktor-server-swagger = { module = "io.ktor:ktor-server-swagger-jvm", version.ref = "ktor" }
 ktor-server-call-id = { module = "io.ktor:ktor-server-call-id-jvm", version.ref = "ktor" }
@@ -81,25 +74,16 @@ kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-t
 clikt = { module = "com.github.ajalt.clikt:clikt", version.ref = "clikt" }
 kotlinx-io-core = { module = "org.jetbrains.kotlinx:kotlinx-io-core", version.ref = "kotlinx-io" }
 kaml = { module = "com.charleskorn.kaml:kaml", version.ref = "kaml" }
-opentelemetry-api = { module = "io.opentelemetry:opentelemetry-api", version.ref = "opentelemetry" }
-opentelemetry-sdk = { module = "io.opentelemetry:opentelemetry-sdk", version.ref = "opentelemetry" }
-opentelemetry-exporter-otlp = { module = "io.opentelemetry:opentelemetry-exporter-otlp", version.ref = "opentelemetry" }
-opentelemetry-autoconfigure = { module = "io.opentelemetry:opentelemetry-sdk-extension-autoconfigure", version.ref = "opentelemetry" }
-opentelemetry-semconv = { module = "io.opentelemetry.semconv:opentelemetry-semconv", version = "1.41.1" }
-# Uses opentelemetry-instrumentation (-alpha); see version note above.
-opentelemetry-ktor = { module = "io.opentelemetry.instrumentation:opentelemetry-ktor-3.0-jvm", version.ref = "opentelemetry-instrumentation" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
 openapi-generator = { id = "org.openapi.generator", version.ref = "openapi-generator" }
-sonarqube = { id = "org.sonarqube", version.ref = "sonarqube" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 asciidoctor = { id = "org.asciidoctor.jvm.convert", version.ref = "asciidoctor" }
 cyclonedx = { id = "org.cyclonedx.bom", version.ref = "cyclonedx" }
-shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
 
 [bundles]
 ktor-server = [

@@ -36,23 +36,11 @@ import org.javafreedom.kbeatz.catalog.domain.model.Track
 import org.javafreedom.kbeatz.catalog.domain.model.WRITE_LOCK_FILENAME
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 import org.javafreedom.kbeatz.catalog.domain.repository.TrackRepository
+import org.javafreedom.kbeatz.catalog.util.sanitizeForLog
 import org.javafreedom.kbeatz.tagger.codec.flac.FlacFile
 import org.javafreedom.kbeatz.tagger.codec.flac.FlacMetadataBlock
 
 private val log = KotlinLogging.logger {}
-
-/** Maximum length of user-controlled values included in log messages (log injection guard). */
-private const val LOG_VALUE_MAX_LENGTH = 200
-
-/**
- * Sanitizes a user-controlled string for safe inclusion in log messages.
- *
- * Replaces newlines, carriage returns, and tabs with spaces to prevent log injection via
- * crafted FLAC tag values. Truncates to [LOG_VALUE_MAX_LENGTH] characters to bound log volume
- * from unusually long tag values.
- */
-private fun String.sanitizeForLog(): String =
-    this.replace(Regex("[\r\n\t]"), " ").take(LOG_VALUE_MAX_LENGTH)
 
 /**
  * Manages asynchronous library scanning and progress tracking.
