@@ -1188,6 +1188,17 @@ describe('AlbumDetail', () => {
     expect(layout).not.toContainElement(screen.getByTestId('back-button'))
   })
 
+  it('renders the read-only Other tags section with an empty state', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('other-tags-section')).toBeInTheDocument()
+    })
+    // Section heading present and the empty-state notice rendered (read-only in v1)
+    expect(screen.getByRole('heading', { name: 'Other tags' })).toBeInTheDocument()
+    expect(screen.getByTestId('other-tags-empty')).toHaveTextContent('No additional tags')
+  })
+
   it('SyncPanel is placed inside the metadata column when discogsId is set', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ discogsId: '42' }))
     renderDetail()

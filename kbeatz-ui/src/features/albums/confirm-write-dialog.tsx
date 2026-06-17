@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import styles from './confirm-write-dialog.module.css'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import Typography from '@mui/material/Typography'
 
 interface ConfirmWriteDialogProps {
   /** Whether the dialog is open */
@@ -18,7 +20,13 @@ interface ConfirmWriteDialogProps {
 /**
  * ConfirmWriteDialog - accessible confirmation dialog for album tag writes.
  *
- * Shown before any PATCH /albums/{albumId} call to prevent accidental
+ * Rebuilt on MUI primitives (Box overlay/panel, Typography, Button) on the
+ * shared theme so it is theme-aware in light and dark modes. The dialog keeps
+ * its own focus management, focus trap, body-scroll lock and Escape handling
+ * rather than delegating to MUI's portalled Dialog, so the confirmation panel
+ * renders inline alongside the page content it guards.
+ *
+ * Shown before any bulk PATCH /albums/{albumId}/tags call to prevent accidental
  * overwriting of all FLAC files in an album directory. The operation is
  * destructive and cannot be undone.
  *
@@ -104,56 +112,84 @@ export function ConfirmWriteDialog({
     // so assistive tech does not expose it as an unlabelled interactive element.
     // The onClick remains a mouse convenience for sighted users; keyboard users
     // dismiss via the Escape handler on the dialog itself (WCAG 4.1.2).
-    <div
+    <Box
       role="presentation"
-      className={styles.overlay}
       data-testid="confirm-dialog-overlay"
       onClick={onCancel}
+      sx={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 'modal',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        p: 2,
+        bgcolor: 'rgba(0, 0, 0, 0.5)',
+      }}
     >
-      <div
+      <Box
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
         aria-describedby="confirm-dialog-body confirm-dialog-warning"
-        className={styles.dialog}
         data-testid="confirm-dialog"
         onKeyDown={handleKeyDown}
         onClick={(e) => { e.stopPropagation() }}
+        sx={{
+          width: '100%',
+          maxWidth: 440,
+          bgcolor: 'background.paper',
+          color: 'text.primary',
+          borderRadius: 2,
+          boxShadow: 24,
+          p: 3,
+        }}
       >
-        <h2 id="confirm-dialog-title" className={styles.title}>
+        <Typography id="confirm-dialog-title" variant="h6" component="h2" sx={{ mb: 1 }}>
           {t('confirmDialog.title')}
-        </h2>
+        </Typography>
 
-        <p id="confirm-dialog-body" className={styles.body}>
+        <Typography id="confirm-dialog-body" variant="body2" component="p" sx={{ mb: 1 }}>
           {t('confirmDialog.body', { count: fileLabel, albumTitle })}
-        </p>
+        </Typography>
 
-        <p id="confirm-dialog-warning" className={styles.warning} data-testid="confirm-dialog-warning">
+        <Typography
+          id="confirm-dialog-warning"
+          data-testid="confirm-dialog-warning"
+          variant="body2"
+          component="p"
+          color="error"
+          sx={{ mb: 3, fontWeight: 600 }}
+        >
           {t('confirmDialog.warning')}
-        </p>
+        </Typography>
 
-        <div className={styles.actions}>
-          <button
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+          <Button
             ref={cancelButtonRef}
             type="button"
-            className={styles.cancelButton}
+            variant="outlined"
+            color="inherit"
             data-testid="confirm-dialog-cancel"
             onClick={onCancel}
+            sx={{ minHeight: 44 }}
           >
             {t('confirmDialog.cancelButton')}
-          </button>
+          </Button>
 
-          <button
+          <Button
             ref={confirmButtonRef}
             type="button"
-            className={styles.confirmButton}
+            variant="contained"
+            color="error"
             data-testid="confirm-dialog-confirm"
             onClick={onConfirm}
+            sx={{ minHeight: 44 }}
           >
             {t('confirmDialog.confirmButton')}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </Box>
+      </Box>
+    </Box>
   )
 }

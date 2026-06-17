@@ -71,6 +71,10 @@
     "dirtyCount_other": "{{count}} ungespeicherte Änderungen",
     "noTracks": "Keine Titelinformationen verfügbar",
     "discHeader": "Disc {{number}}",
+    "otherTagsSection": "Weitere Tags",
+    "otherTagsTitle": "Weitere Tags",
+    "otherTagsDescription": "Nicht standardisierte Tags in diesen Dateien. In dieser Version schreibgeschützt.",
+    "otherTagsEmpty": "Keine weiteren Tags.",
     "trackColumns": {
       "position": "Position",
       "title": "Titel",

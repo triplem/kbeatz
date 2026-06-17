@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useId, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import styles from './navigation-guard-dialog.module.css'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import Typography from '@mui/material/Typography'
 
 interface NavigationGuardDialogProps {
   /** Whether the dialog is open */
@@ -14,10 +16,10 @@ interface NavigationGuardDialogProps {
 /**
  * NavigationGuardDialog - warns the user that navigating away will discard unsaved changes.
  *
- * Shown by AlbumDetail when the user tries to navigate away (back button, browser back,
- * link click) while there are uncommitted dirty field changes. Uses its own CSS module
- * (navigation-guard-dialog.module.css) which mirrors the visual language of
- * ConfirmWriteDialog while keeping each component independently styled.
+ * Rebuilt on MUI primitives (Box overlay/panel, Typography, Button) on the
+ * shared theme so it is theme-aware in light and dark modes. Shown by
+ * AlbumDetail when the user tries to navigate away (Back button, browser
+ * back/forward, link click) while there are uncommitted dirty field changes.
  *
  * Accessibility (WCAG AA):
  * - role="dialog" + aria-modal="true" + aria-labelledby + aria-describedby
@@ -95,52 +97,73 @@ export function NavigationGuardDialog({
   if (!open) return null
 
   return (
-    <div
+    <Box
       role="presentation"
-      className={styles.overlay}
       data-testid="nav-guard-overlay"
       onClick={onCancel}
+      sx={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 'modal',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        p: 2,
+        bgcolor: 'rgba(0, 0, 0, 0.5)',
+      }}
     >
-      <div
+      <Box
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={bodyId}
-        className={styles.dialog}
         data-testid="nav-guard-dialog"
         onKeyDown={handleKeyDown}
         onClick={(e) => { e.stopPropagation() }}
+        sx={{
+          width: '100%',
+          maxWidth: 440,
+          bgcolor: 'background.paper',
+          color: 'text.primary',
+          borderRadius: 2,
+          boxShadow: 24,
+          p: 3,
+        }}
       >
-        <h2 id={titleId} className={styles.title}>
+        <Typography id={titleId} variant="h6" component="h2" sx={{ mb: 1 }}>
           {t('navGuard.title')}
-        </h2>
+        </Typography>
 
-        <p id={bodyId} className={styles.body}>
+        <Typography id={bodyId} variant="body2" component="p" sx={{ mb: 3 }}>
           {t('navGuard.body')}
-        </p>
+        </Typography>
 
-        <div className={styles.actions}>
-          <button
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+          <Button
             ref={cancelButtonRef}
             type="button"
-            className={styles.cancelButton}
+            variant="outlined"
+            color="inherit"
             data-testid="nav-guard-cancel"
             onClick={onCancel}
+            sx={{ minHeight: 44 }}
           >
             {t('navGuard.cancelButton')}
-          </button>
+          </Button>
 
-          <button
+          <Button
             ref={confirmButtonRef}
             type="button"
-            className={styles.confirmButton}
+            variant="contained"
+            color="error"
             data-testid="nav-guard-confirm"
             onClick={onConfirm}
+            sx={{ minHeight: 44 }}
           >
             {t('navGuard.confirmButton')}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </Box>
+      </Box>
+    </Box>
   )
 }
