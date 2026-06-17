@@ -25,17 +25,11 @@ exports[`AppShell visual regression > matches the shell snapshot in dark theme 1
           data-discover="true"
           href="/"
         >
-          <picture>
-            <source
-              media="(prefers-color-scheme: dark)"
-              srcset="/src/assets/kbeatz-logo-dark.svg"
-            />
-            <img
-              alt=""
-              class="MuiBox-root css-1n45nsz"
-              src="/src/assets/kbeatz-logo-transparent.svg"
-            />
-          </picture>
+          <img
+            alt=""
+            class="MuiBox-root css-1n45nsz"
+            src="/src/assets/kbeatz-logo-dark.svg"
+          />
         </a>
         <button
           aria-controls="app-mobile-drawer"
@@ -280,17 +274,11 @@ exports[`AppShell visual regression > matches the shell snapshot in light theme 
           data-discover="true"
           href="/"
         >
-          <picture>
-            <source
-              media="(prefers-color-scheme: dark)"
-              srcset="/src/assets/kbeatz-logo-dark.svg"
-            />
-            <img
-              alt=""
-              class="MuiBox-root css-1n45nsz"
-              src="/src/assets/kbeatz-logo-transparent.svg"
-            />
-          </picture>
+          <img
+            alt=""
+            class="MuiBox-root css-1n45nsz"
+            src="/src/assets/kbeatz-logo-transparent.svg"
+          />
         </a>
         <button
           aria-controls="app-mobile-drawer"

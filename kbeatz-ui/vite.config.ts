@@ -86,6 +86,11 @@ export default defineConfig(({ command }) => ({
   test: {
     globals: true,
     environment: 'jsdom',
+    environmentOptions: {
+      jsdom: {
+        url: 'http://localhost',
+      },
+    },
     setupFiles: ['./src/test-setup.ts'],
     // The suite includes CPU-heavy axe accessibility checks (#832) plus the
     // visual-regression and responsive-matrix suites (#833). On many-core
