@@ -213,9 +213,15 @@
   },
   "pagination": {
     "ariaLabel": "Albumseiten-Navigation",
-    "previous": "Zurück",
-    "next": "Weiter",
+    "previous": "Vorherige Seite",
+    "next": "Nächste Seite",
+    "first": "Erste Seite",
+    "last": "Letzte Seite",
     "pageOf": "Seite {{current}} von {{total}}",
-    "pageIndicator": "Seite {{current}} von {{total}} wird angezeigt"
+    "goToPageAria": "Zu Seite {{page}} springen",
+    "currentPageAria": "Seite {{page}}, aktuelle Seite",
+    "pageSizeLabel": "Pro Seite",
+    "pageSizeAriaLabel": "Alben pro Seite",
+    "pageSizeOption": "{{count}} pro Seite"
   }
 }

@@ -1,14 +1,24 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import styles from './App.module.css'
+import Box from '@mui/material/Box'
+import Stack from '@mui/material/Stack'
+import Typography from '@mui/material/Typography'
+import Button from '@mui/material/Button'
+import CircularProgress from '@mui/material/CircularProgress'
 import { AlbumGrid } from './features/albums/album-grid'
+import { AlbumPagination } from './features/albums/album-pagination'
 import { FilterPanel } from './features/albums/filter-panel'
+import { PageSizeSelect } from './features/albums/page-size-select'
 import { SearchBox } from './features/albums/search-box'
 import { SortPreference } from './features/albums/sort-preference'
-import { useAlbumPage } from './features/albums/use-album-page'
+import { useAllAlbums } from './features/albums/useAllAlbums'
 import { useAlbumFilters } from './features/albums/useAlbumFilters'
+import { usePagination } from './features/albums/usePagination'
+import { useScrollRestoration } from './features/albums/useScrollRestoration'
+import { pageSlice } from './features/albums/pagination'
 import {
   applyFiltersAndSort,
+  deriveFilterOptions,
   loadSortDirection,
   loadSortPreference,
   saveSortDirection,
@@ -17,182 +27,150 @@ import {
   type SortField,
 } from './features/albums/album-filters'
 
+/**
+ * Album list landing page.
+ *
+ * Loads the full album-summary set once (TanStack Query), then applies the
+ * client-side filter + sort over that set and renders a single page of cards
+ * via an MUI Pagination control (client-side pagination, decision D9). Page
+ * number + page size live in the URL so the view is deep-linkable and survives
+ * reload + back/forward; returning from album detail restores the page, the
+ * active filters (URL), and the scroll position (AC5/AC6).
+ *
+ * This component is a thin renderer: all pagination logic lives in
+ * `usePagination`, all filter/sort logic in `album-filters`, per
+ * react-patterns.md (no business logic in JSX, no derived state stored).
+ */
 export function AlbumListPage() {
   const { t } = useTranslation()
 
-  const [page, setPage] = useState(0)
-
-  // Filter state synced to URL search params via react-router
   const { filters, setFilters } = useAlbumFilters()
   const [sortBy, setSortBy] = useState<SortField>(() => loadSortPreference())
   const [sortDirection, setSortDirection] = useState<SortDirection>(() => loadSortDirection())
 
-  // Reset to page 0 whenever filter content changes.
-  // During-render state adjustment avoids cascading renders from setState-in-effect.
-  // Filters is a new object reference every render (filtersFromParams always allocates),
-  // so we compare by serialised content rather than reference.
-  const filtersKey = `${filters.query}|${filters.genres.join(',')}|${filters.artists.join(',')}|${filters.composers.join(',')}`
-  const [prevFiltersKey, setPrevFiltersKey] = useState(filtersKey)
-  if (prevFiltersKey !== filtersKey) {
-    setPrevFiltersKey(filtersKey)
-    setPage(0)
-  }
+  const { data, isPending, isError, refetch } = useAllAlbums()
+  const albums = useMemo(() => data ?? [], [data])
 
-  const { data, isPending, isError, refetch } = useAlbumPage(page, filters)
+  // Filter options derived from the full set so the filter panel can offer
+  // every value present in the collection (client-side, no extra request).
+  const filterOptions = useMemo(() => deriveFilterOptions(albums), [albums])
 
-  const albums = useMemo(() => data?.content ?? [], [data?.content])
-  const totalElements = data?.totalElements ?? 0
-  const totalPages = data?.totalPages ?? 0
+  // Full filtered + sorted result set (over ALL albums, not just one page).
+  const filteredAlbums = useMemo(
+    () => applyFiltersAndSort(albums, filters, sortBy, sortDirection),
+    [albums, filters, sortBy, sortDirection],
+  )
 
-  // Persist sort preference to localStorage and reset pagination to page 0
+  // Stable key describing the active filter/sort so pagination resets to page 1
+  // whenever any of them change (AC4).
+  const resetKey = `${filters.query}|${filters.genres.join(',')}|${filters.artists.join(',')}|${filters.composers.join(',')}|${sortBy}|${sortDirection}`
+
+  const { page, pageSize, totalPages, setPage, setPageSize } = usePagination({
+    itemCount: filteredAlbums.length,
+    resetKey,
+  })
+
+  // The single page of cards actually mounted in the DOM (Performance AC).
+  const visibleAlbums = useMemo(
+    () => pageSlice(filteredAlbums, page, pageSize),
+    [filteredAlbums, page, pageSize],
+  )
+
+  // Restore scroll once albums have rendered so returning from detail lands
+  // the user where they were (AC6).
+  useScrollRestoration('albums', !isPending && !isError && albums.length > 0)
+
   const handleSortChange = useCallback((next: SortField) => {
     setSortBy(next)
     saveSortPreference(next)
-    setPage(0)
   }, [])
 
-  // Persist sort direction to localStorage and reset pagination to page 0
   const handleDirectionChange = useCallback((next: SortDirection) => {
     setSortDirection(next)
     saveSortDirection(next)
-    setPage(0)
   }, [])
 
   const handleRetry = useCallback(() => {
     void refetch()
   }, [refetch])
 
-  // Ref for the pagination info span - used to restore focus after page navigation
-  // so keyboard users do not lose their position when a button disappears (WCAG 2.1 SC 2.4.3).
-  const paginationInfoRef = useRef<HTMLSpanElement>(null)
-
-  // Skip the first render so we do not steal focus on mount.
-  const didMountRef = useRef(false)
-
-  // Move focus to the pagination info span after every page navigation.
-  // When a button (Next or Prev) is removed from the DOM after page change,
-  // the browser silently drops focus to <body>, losing the keyboard user's position.
-  // Focusing the info span (tabIndex={-1}) restores focus after every transition
-  // without adding a tab stop to the normal Tab sequence (WCAG 2.1 SC 2.4.3).
-  // The optional-chain ensures this is a no-op when the pagination nav is hidden.
-  useEffect(() => {
-    if (!didMountRef.current) {
-      didMountRef.current = true
-      return
-    }
-    paginationInfoRef.current?.focus()
-  }, [page])
-
-  // Client-side sort only (no client-side filter - filtering is server-side)
-  const visibleAlbums = useMemo(
-    () => applyFiltersAndSort(albums, { ...filters, genres: [], artists: [], composers: [], query: '' }, sortBy, sortDirection),
-    [albums, filters, sortBy, sortDirection],
-  )
-
-  // Multi-select filters with more than 1 value are applied client-side on the current page
-  // as a fallback until a future epic adds multi-value server-side filter support.
-  const clientFilteredAlbums = useMemo(() => {
-    if (
-      filters.genres.length > 1 ||
-      filters.artists.length > 1 ||
-      filters.composers.length > 1
-    ) {
-      return applyFiltersAndSort(albums, filters, sortBy, sortDirection)
-    }
-    return visibleAlbums
-  }, [albums, filters, sortBy, sortDirection, visibleAlbums])
-
   return (
-    <>
-      <div className={styles.appSearchBar}>
+    <Box>
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        spacing={2}
+        sx={{
+          alignItems: { xs: 'stretch', md: 'center' },
+          p: 2,
+          borderBottom: 1,
+          borderColor: 'divider',
+        }}
+      >
         <SearchBox filters={filters} onFiltersChange={setFilters} />
+        <Box sx={{ flexGrow: 1 }} />
         <SortPreference
           value={sortBy}
           onChange={handleSortChange}
           direction={sortDirection}
           onDirectionChange={handleDirectionChange}
         />
-      </div>
-      <div className={styles.appContent}>
+        <PageSizeSelect value={pageSize} onChange={setPageSize} />
+      </Stack>
+
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', md: 'row' },
+          alignItems: 'flex-start',
+          gap: 2,
+          p: 2,
+          maxWidth: 1600,
+          mx: 'auto',
+          width: '100%',
+        }}
+      >
         {!isPending && !isError && (
-          // TODO(#515-follow-up): FilterPanel dropdown options are empty because
-          // server-side options derivation is not yet implemented. A dedicated
-          // GET /api/v1/albums/filter-options endpoint is tracked as a follow-up
-          // story. Until then the dropdowns are visible but unpopulated; free-text
-          // search (q=) and single-value artist/genre/composer filters still work
-          // via the server-side query params sent by useAlbumPage.
-          <FilterPanel
-            options={{ genres: [], artists: [], composers: [] }}
-            filters={filters}
-            onFiltersChange={setFilters}
-          />
+          <FilterPanel options={filterOptions} filters={filters} onFiltersChange={setFilters} />
         )}
-        <div className={styles.appGridArea}>
-          {isPending && <p className={styles.loadingText}>{t('albumGrid.loading')}</p>}
+
+        <Box sx={{ flexGrow: 1, minWidth: 0, width: '100%' }}>
+          {isPending && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <CircularProgress aria-label={t('albumGrid.loading')} />
+            </Box>
+          )}
+
           {isError && (
-            <div role="alert" data-testid="albums-error" className={styles.errorBlock}>
-              <p>{t('albumGrid.fetchError')}</p>
-              <button
-                type="button"
+            <Box
+              role="alert"
+              data-testid="albums-error"
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: 1,
+                p: 2,
+              }}
+            >
+              <Typography color="error">{t('albumGrid.fetchError')}</Typography>
+              <Button
+                variant="contained"
                 onClick={handleRetry}
                 data-testid="albums-retry-button"
-                className={styles.retryButton}
               >
                 {t('albumGrid.retryButton')}
-              </button>
-            </div>
+              </Button>
+            </Box>
           )}
+
           {!isPending && !isError && (
             <>
-              <AlbumGrid albums={clientFilteredAlbums} totalCount={totalElements} />
-              {totalPages > 1 && (
-                <p
-                  className={styles.pageIndicator}
-                  data-testid="page-indicator"
-                  aria-live="polite"
-                  aria-atomic="true"
-                >
-                  {t('pagination.pageIndicator', { current: page + 1, total: totalPages })}
-                </p>
-              )}
-              {totalPages > 1 && (
-                <nav aria-label={t('pagination.ariaLabel')} className={styles.appPagination} data-testid="album-pagination">
-                  {page > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setPage((p) => p - 1)}
-                      data-testid="pagination-prev"
-                      className={styles.paginationButton}
-                    >
-                      {t('pagination.previous')}
-                    </button>
-                  )}
-                  <span
-                    ref={paginationInfoRef}
-                    tabIndex={-1}
-                    aria-live="polite"
-                    aria-atomic="true"
-                    data-testid="pagination-info"
-                  >
-                    {t('pagination.pageOf', { current: page + 1, total: totalPages })}
-                  </span>
-                  {page < totalPages - 1 && (
-                    <button
-                      type="button"
-                      onClick={() => setPage((p) => p + 1)}
-                      data-testid="pagination-next"
-                      className={styles.paginationButton}
-                    >
-                      {t('pagination.next')}
-                    </button>
-                  )}
-                </nav>
-              )}
+              <AlbumGrid albums={visibleAlbums} totalCount={filteredAlbums.length} />
+              <AlbumPagination page={page} totalPages={totalPages} onPageChange={setPage} />
             </>
           )}
-        </div>
-      </div>
-    </>
+        </Box>
+      </Box>
+    </Box>
   )
 }
-

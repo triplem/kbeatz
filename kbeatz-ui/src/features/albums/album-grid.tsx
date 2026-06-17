@@ -1,68 +1,76 @@
 import { useTranslation } from 'react-i18next'
+import Box from '@mui/material/Box'
+import Typography from '@mui/material/Typography'
 import { Album } from '../../api/generated'
 import { AlbumCard } from './album-card'
-import styles from './album-grid.module.css'
 
 interface AlbumGridProps {
-  readonly albums: Album[]
-  /** Total count before filtering - used to announce "Showing N of total" to screen readers.
-   *  When undefined or equal to albums.length, the announcement says "Showing all N albums". */
+  /** The single page of albums to render. */
+  readonly albums: ReadonlyArray<Album>
+  /**
+   * Total number of albums in the filtered result set (across all pages).
+   * Announced to screen readers as "Showing N of total". When undefined or
+   * equal to the visible count, the announcement says "Showing all N albums".
+   */
   readonly totalCount?: number
 }
 
 /**
- * Responsive album grid using CSS auto-fill grid layout.
+ * Responsive MUI album grid.
  *
- * Column count is handled natively by CSS Grid (auto-fill + minmax),
- * so no JavaScript column calculation or ResizeObserver is needed.
- * Pagination keeps each page to ~20 albums, so virtualisation is not required.
+ * Columns reflow with the viewport via a CSS Grid `repeat(auto-fill, minmax())`
+ * template, so no JavaScript column maths or ResizeObserver is needed and the
+ * grid stays fluid across xs/sm/md/lg/xl with no horizontal scroll (AC8).
+ * Only one page of cards is mounted at a time (the parent slices the list), so
+ * the DOM stays small regardless of collection size (Performance AC).
  *
- * Accessibility (WCAG AA):
- * - The section has role="region" (via <section>) with an aria-label stating the count.
- * - A live region announces the visible count when filters change.
- * - Album cards have role="button", aria-label with title and artist.
- * - Cover art SVG placeholder has role="img" and descriptive aria-label.
- * - Keyboard navigation: Tab moves to each card, Enter/Space activates it.
+ * Accessibility (WCAG 2.1 AA):
+ * - A polite live region announces the visible/total count when it changes.
+ * - The grid is a labelled region.
  */
 export function AlbumGrid({ albums, totalCount }: AlbumGridProps) {
   const { t } = useTranslation()
 
   const isFiltered = totalCount !== undefined && totalCount !== albums.length
-
-  // Screen-reader announcement text for the result count
   const resultCountText = isFiltered
     ? t('albumGrid.showingFiltered', { visible: albums.length, total: totalCount })
     : t('albumGrid.showingAll', { count: albums.length })
 
   if (albums.length === 0) {
     return (
-      <p className={styles.empty}>
+      <Typography color="text.secondary" sx={{ p: 2 }} data-testid="album-grid-empty">
         {t('albumGrid.noResults')}
-      </p>
+      </Typography>
     )
   }
 
   return (
-    <>
-      {/* Live region: announced by screen readers when the album count changes */}
-      <p
+    <Box>
+      <Typography
         role="status"
         aria-live="polite"
         aria-atomic="true"
-        className={styles.resultCount}
+        variant="body2"
+        color="text.secondary"
+        sx={{ mb: 1 }}
         data-testid="album-grid-result-count"
       >
         {resultCountText}
-      </p>
-      <section
-        className={styles.albumGrid}
+      </Typography>
+      <Box
+        component="section"
         aria-label={t('albumGrid.collectionLabel', { count: albums.length })}
         data-testid="album-grid-section"
+        sx={{
+          display: 'grid',
+          gap: 2,
+          gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+        }}
       >
         {albums.map((album) => (
           <AlbumCard key={album.id} album={album} />
         ))}
-      </section>
-    </>
+      </Box>
+    </Box>
   )
 }

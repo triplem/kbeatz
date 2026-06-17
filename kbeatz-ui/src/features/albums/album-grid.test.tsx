@@ -73,11 +73,10 @@ describe('AlbumGrid', () => {
     expect(card).toHaveAttribute('aria-label', expect.stringContaining('Test Artist'))
   })
 
-  it('placeholder SVG has role=img and descriptive aria-label', () => {
+  it('shows the cover placeholder for albums without cover art', () => {
     const albums = [makeAlbum('id-1', 'Kind of Blue')]
     render(<MemoryRouter><AlbumGrid albums={albums} /></MemoryRouter>)
-    const svg = screen.getByRole('img', { name: 'Album cover not available' })
-    expect(svg).toBeInTheDocument()
+    expect(screen.getByTestId('album-card-placeholder')).toBeInTheDocument()
   })
 
   it('result count live region has role=status and aria-live=polite', () => {

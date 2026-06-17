@@ -39,7 +39,7 @@ describe('SettingsPage', () => {
     render(<SettingsPage />, { wrapper })
     expect(screen.getByTestId('settings-page')).toBeInTheDocument()
     // Sort preference (reused component) - combobox.
-    expect(screen.getByRole('combobox', { name: 'Sort albums by' })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Sort by' })).toBeInTheDocument()
     // Language control (reused component) - radiogroup of buttons.
     expect(screen.getByRole('group', { name: 'Select language' })).toBeInTheDocument()
     // Theme toggle (reused #827 component).
@@ -49,7 +49,9 @@ describe('SettingsPage', () => {
   it('persists the sort preference selection to localStorage', async () => {
     const user = userEvent.setup()
     render(<SettingsPage />, { wrapper })
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Sort albums by' }), 'Composer')
+    // MUI Select: open the listbox, then choose the option.
+    await user.click(screen.getByRole('combobox', { name: 'Sort by' }))
+    await user.click(screen.getByRole('option', { name: 'Composer' }))
     expect(loadSortPreference()).toBe('composer')
   })
 

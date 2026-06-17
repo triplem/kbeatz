@@ -1,8 +1,8 @@
 [
   {
-    "name": "app entry (JS, gzipped)",
+    "name": "app entry (JS, gzipped) - 260 kB: #829 adds required MUI Card/Pagination/Select/Checkbox on the album-list critical path; acceptable for a LAN app (UI-NFR-01)",
     "path": "dist/assets/index-*.js",
-    "limit": "250 kB",
+    "limit": "260 kB",
     "gzip": true
   }
 ]

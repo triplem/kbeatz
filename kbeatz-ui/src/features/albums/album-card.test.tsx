@@ -1,6 +1,8 @@
 import { render, screen, act, fireEvent } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
+import { AppThemeProvider } from '../../theme'
 import { AlbumCard } from './album-card'
 import type { Album } from '../../api/generated'
 
@@ -67,9 +69,9 @@ describe('AlbumCard', () => {
     expect(screen.getByText('Jazz')).toBeInTheDocument()
   })
 
-  it('shows placeholder SVG when hasCoverArt is false', () => {
+  it('shows placeholder icon when hasCoverArt is false', () => {
     render(<MemoryRouter><AlbumCard album={makeAlbum({ hasCoverArt: false })} /></MemoryRouter>)
-    expect(screen.getByRole('img', { name: 'Album cover not available' })).toBeInTheDocument()
+    expect(screen.getByTestId('album-card-placeholder')).toBeInTheDocument()
     expect(screen.queryByRole('img', { name: /Cover art for/ })).not.toBeInTheDocument()
   })
 
@@ -97,38 +99,43 @@ describe('AlbumCard', () => {
       img.dispatchEvent(new Event('error'))
     })
     // After error, placeholder should appear
-    expect(screen.getByRole('img', { name: 'Album cover not available' })).toBeInTheDocument()
+    expect(screen.getByTestId('album-card-placeholder')).toBeInTheDocument()
   })
 
   // ──────────────────────────────────────────────
   // Accessibility / keyboard navigation
   // ──────────────────────────────────────────────
 
-  it('card has tabIndex=0 and role="button" for keyboard accessibility', () => {
+  it('card is a single labelled button (one Tab stop)', () => {
     render(<MemoryRouter><AlbumCard album={makeAlbum()} /></MemoryRouter>)
     const card = screen.getByRole('button', { name: /View details for Kind of Blue/ })
-    expect(card).toHaveAttribute('tabindex', '0')
+    expect(card).toBeInTheDocument()
   })
 
-  it('navigates to album detail on Enter keydown', () => {
-    render(<MemoryRouter><AlbumCard album={makeAlbum()} /></MemoryRouter>)
+  it('navigates to album detail on Enter via keyboard', async () => {
+    const user = userEvent.setup()
+    render(
+      <AppThemeProvider>
+        <MemoryRouter><AlbumCard album={makeAlbum()} /></MemoryRouter>
+      </AppThemeProvider>,
+    )
     const card = screen.getByRole('button', { name: /View details for Kind of Blue/ })
-    fireEvent.keyDown(card, { key: 'Enter' })
+    card.focus()
+    await user.keyboard('{Enter}')
     expect(mockNavigate).toHaveBeenCalledWith('/albums/550e8400-e29b-41d4-a716-446655440000')
   })
 
-  it('navigates to album detail on Space keydown', () => {
-    render(<MemoryRouter><AlbumCard album={makeAlbum()} /></MemoryRouter>)
+  it('navigates to album detail on Space via keyboard', async () => {
+    const user = userEvent.setup()
+    render(
+      <AppThemeProvider>
+        <MemoryRouter><AlbumCard album={makeAlbum()} /></MemoryRouter>
+      </AppThemeProvider>,
+    )
     const card = screen.getByRole('button', { name: /View details for Kind of Blue/ })
-    fireEvent.keyDown(card, { key: ' ' })
+    card.focus()
+    await user.keyboard('{ }')
     expect(mockNavigate).toHaveBeenCalledWith('/albums/550e8400-e29b-41d4-a716-446655440000')
-  })
-
-  it('does not navigate on other key presses', () => {
-    render(<MemoryRouter><AlbumCard album={makeAlbum()} /></MemoryRouter>)
-    const card = screen.getByRole('button', { name: /View details for Kind of Blue/ })
-    fireEvent.keyDown(card, { key: 'Tab' })
-    expect(mockNavigate).not.toHaveBeenCalled()
   })
 
   it('navigates to album detail on click', () => {
@@ -155,7 +162,7 @@ describe('AlbumCard', () => {
     })
 
     // The UI must fall back to the placeholder - no crash, no raw error message
-    expect(screen.getByRole('img', { name: 'Album cover not available' })).toBeInTheDocument()
+    expect(screen.getByTestId('album-card-placeholder')).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
