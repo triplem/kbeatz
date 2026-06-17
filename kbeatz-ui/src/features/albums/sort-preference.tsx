@@ -1,6 +1,11 @@
 import { useTranslation } from 'react-i18next'
+import TextField from '@mui/material/TextField'
+import MenuItem from '@mui/material/MenuItem'
+import IconButton from '@mui/material/IconButton'
+import Stack from '@mui/material/Stack'
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import type { SortDirection, SortField } from './album-filters'
-import styles from './sort-preference.module.css'
 
 interface SortPreferenceProps {
   readonly value: SortField
@@ -10,49 +15,47 @@ interface SortPreferenceProps {
 }
 
 /**
- * Sort preference selector for the album grid.
+ * MUI sort preference selector.
  *
- * Provides two options: "Album Artist" (default) and "Composer".
- * Also renders a direction toggle button (A-Z / Z-A) next to the select.
- * Both values are persisted to localStorage by the parent.
+ * A labelled select ("Album Artist" / "Composer") plus a direction toggle
+ * button (ascending/descending). Both values are persisted to localStorage by
+ * the parent. The toggle has a state-aware aria-label and a >=44px hit area.
  */
 export function SortPreference({ value, onChange, direction, onDirectionChange }: SortPreferenceProps) {
   const { t } = useTranslation()
 
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const next = e.target.value
     if (next === 'albumArtist' || next === 'composer') {
       onChange(next)
     }
   }
 
-  const handleDirectionToggle = () => {
+  const handleDirectionToggle = (): void => {
     onDirectionChange(direction === 'asc' ? 'desc' : 'asc')
   }
 
   return (
-    <div className={styles.sortPreference}>
-      <label htmlFor="sort-by" className={styles.sortLabel}>
-        {t('sortPreference.label')}
-      </label>
-      <select
+    <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+      <TextField
         id="sort-by"
+        select
+        label={t('sortPreference.label')}
         value={value}
         onChange={handleChange}
-        className={styles.sortSelect}
-        aria-label={t('sortPreference.ariaLabel')}
+        size="small"
+        sx={{ minWidth: 160 }}
       >
-        <option value="albumArtist">{t('sortPreference.albumArtist')}</option>
-        <option value="composer">{t('sortPreference.composer')}</option>
-      </select>
-      <button
-        type="button"
+        <MenuItem value="albumArtist">{t('sortPreference.albumArtist')}</MenuItem>
+        <MenuItem value="composer">{t('sortPreference.composer')}</MenuItem>
+      </TextField>
+      <IconButton
         onClick={handleDirectionToggle}
-        className={styles.directionToggle}
         aria-label={direction === 'asc' ? t('sortPreference.sortAscending') : t('sortPreference.sortDescending')}
+        sx={{ width: 44, height: 44 }}
       >
-        {direction === 'asc' ? t('sortPreference.dirAsc') : t('sortPreference.dirDesc')}
-      </button>
-    </div>
+        {direction === 'asc' ? <ArrowUpwardIcon /> : <ArrowDownwardIcon />}
+      </IconButton>
+    </Stack>
   )
 }

@@ -1,117 +1,149 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import Card from '@mui/material/Card'
+import CardActionArea from '@mui/material/CardActionArea'
+import CardContent from '@mui/material/CardContent'
+import Box from '@mui/material/Box'
+import Typography from '@mui/material/Typography'
+import Chip from '@mui/material/Chip'
+import Stack from '@mui/material/Stack'
+import MusicNoteIcon from '@mui/icons-material/MusicNote'
 import { Album } from '../../api/generated'
 import { formatDate } from '../../lib/i18n'
 import { formatAlbumDuration } from '../../lib/format-duration'
-import styles from './album-card.module.css'
 
 interface AlbumCardProps {
   readonly album: Album
 }
 
-/** Inline SVG placeholder shown when no cover art is available. */
-const CoverPlaceholder = () => {
-  const { t } = useTranslation()
-  return (
-    <svg
-      role="img"
-      aria-label={t('albumCard.noCoverAria')}
-      width="200"
-      height="200"
-      viewBox="0 0 200 200"
-      xmlns="http://www.w3.org/2000/svg"
-      className={styles.coverPlaceholder}
-    >
-      <rect width="200" height="200" fill="#2a2a2a" />
-      {/* eslint-disable-next-line i18next/no-literal-string */}
-      <text x="100" y="90" textAnchor="middle" fill="#666" fontSize="40">♪</text>
-      <text x="100" y="130" textAnchor="middle" fill="#555" fontSize="12">{t('albumCard.noCoverLabel')}</text>
-    </svg>
-  )
-}
-
 /**
- * Album card component.
+ * MUI album card.
  *
- * Displays cover art (from `/api/v1/albums/{id}/cover`), album title,
- * primary attribution (composer if set, else albumArtist), year, and genre.
+ * Shows cover art (from `/api/v1/albums/{id}/cover`), title, primary
+ * attribution (composer if set, else albumArtist), date, genre, and a track
+ * summary. A placeholder icon is shown when no cover art exists or the image
+ * fails to load.
  *
- * When cover art returns a 404 or any network error, a placeholder SVG is shown.
- *
- * Keyboard accessible: tabIndex=0, role="button", Enter/Space triggers navigation.
+ * Accessibility (WCAG 2.1 AA):
+ * - The whole card is a single MUI CardActionArea (a button) so it is one Tab
+ *   stop, keyboard activatable (Enter/Space), and shows a visible focus ring.
+ * - The action area is labelled with title + artist.
+ * - The cover image has descriptive alt text; the placeholder is decorative
+ *   and hidden from assistive tech (the card label already conveys the album).
  */
 export function AlbumCard({ album }: AlbumCardProps) {
   const [coverError, setCoverError] = useState(false)
   const navigate = useNavigate()
   const { t } = useTranslation()
 
-  // Use fallbacks for missing tag values so the card never shows blank content
   const albumTitle = album.album ?? t('albumCard.unknownAlbum')
   const primaryAttribution = album.composer ?? album.albumArtist ?? t('albumCard.unknownArtist')
   const showCover = album.hasCoverArt && !coverError
 
-  const handleNavigate = () => {
+  const handleNavigate = (): void => {
     navigate(`/albums/${album.id}`)
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      navigate(`/albums/${album.id}`)
-    }
-  }
+  const trackCount = album.trackCount ?? 0
+  const durationSeconds = album.totalDurationSeconds ?? 0
+  const hasTrackSummary = trackCount > 0 || durationSeconds > 0
 
   return (
-    <article
-      className={styles.card}
-      tabIndex={0}
-      role="button"
-      aria-label={t('albumCard.viewDetails', { album: albumTitle, artist: primaryAttribution })}
-      onClick={handleNavigate}
-      onKeyDown={handleKeyDown}
+    <Card
+      variant="outlined"
+      sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+      data-testid="album-card"
     >
-      <div className={styles.cover}>
-        {showCover ? (
-          <img
-            src={`/api/v1/albums/${album.id}/cover`}
-            alt={t('albumCard.coverAlt', { album: albumTitle })}
-            width={200}
-            height={200}
-            loading="lazy"
-            onError={() => setCoverError(true)}
-            className={styles.coverImg}
-          />
-        ) : (
-          <CoverPlaceholder />
-        )}
-      </div>
-      <div className={styles.info}>
-        <h2 className={styles.title} title={albumTitle}>
-          {albumTitle}
-        </h2>
-        <p className={styles.attribution} title={primaryAttribution}>
-          {primaryAttribution}
-        </p>
-        <div className={styles.meta}>
-          {album.date && (
-            <span className={styles.year}>{formatDate(album.date)}</span>
+      <CardActionArea
+        onClick={handleNavigate}
+        aria-label={t('albumCard.viewDetails', { album: albumTitle, artist: primaryAttribution })}
+        sx={{
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'stretch',
+        }}
+      >
+        <Box
+          sx={{
+            position: 'relative',
+            width: '100%',
+            aspectRatio: '1 / 1',
+            bgcolor: 'action.hover',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+          }}
+        >
+          {showCover ? (
+            <Box
+              component="img"
+              src={`/api/v1/albums/${album.id}/cover`}
+              alt={t('albumCard.coverAlt', { album: albumTitle })}
+              loading="lazy"
+              onError={() => setCoverError(true)}
+              sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          ) : (
+            <MusicNoteIcon
+              aria-hidden="true"
+              data-testid="album-card-placeholder"
+              sx={{ fontSize: 64, color: 'text.disabled' }}
+            />
           )}
-          {album.genre && (
-            <span className={styles.genre}>{album.genre}</span>
-          )}
-        </div>
-        {((album.trackCount ?? 0) > 0 || (album.totalDurationSeconds ?? 0) > 0) && (
-            <div className={styles.trackSummary}>
-              {(album.trackCount ?? 0) > 0 && (
-                <span className={styles.trackCount}>{t('albumCard.trackCount', { count: album.trackCount })}</span>
+        </Box>
+        <CardContent sx={{ flexGrow: 1, width: '100%', textAlign: 'left' }}>
+          <Typography
+            variant="subtitle1"
+            component="h2"
+            title={albumTitle}
+            sx={{
+              fontWeight: 600,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {albumTitle}
+          </Typography>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            title={primaryAttribution}
+            sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+          >
+            {primaryAttribution}
+          </Typography>
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{ alignItems: 'center', flexWrap: 'wrap', mt: 1 }}
+          >
+            {album.date && (
+              <Typography variant="caption" color="text.secondary">
+                {formatDate(album.date)}
+              </Typography>
+            )}
+            {album.genre && <Chip label={album.genre} size="small" variant="outlined" />}
+          </Stack>
+          {hasTrackSummary && (
+            <Stack direction="row" spacing={1} sx={{ mt: 0.5 }}>
+              {trackCount > 0 && (
+                <Typography variant="caption" color="text.secondary">
+                  {t('albumCard.trackCount', { count: trackCount })}
+                </Typography>
               )}
-              {(album.totalDurationSeconds ?? 0) > 0 && (
-                <span className={styles.trackDuration}>{formatAlbumDuration(album.totalDurationSeconds ?? 0)}</span>
+              {durationSeconds > 0 && (
+                <Typography variant="caption" color="text.secondary">
+                  {formatAlbumDuration(durationSeconds)}
+                </Typography>
               )}
-            </div>
+            </Stack>
           )}
-      </div>
-    </article>
+        </CardContent>
+      </CardActionArea>
+    </Card>
   )
 }

@@ -13,10 +13,13 @@ describe('SearchBox', () => {
 
   it('renders a visible label element linked to the search input', () => {
     render(<SearchBox filters={EMPTY_FILTERS} onFiltersChange={vi.fn()} />)
-    const label = screen.getByText('Search')
-    expect(label.tagName).toBe('LABEL')
-    expect(label).toHaveAttribute('for', 'album-search')
-    expect(screen.getByRole('searchbox')).toHaveAttribute('id', 'album-search')
+    // The accessible name comes from the linked <label>; the search input
+    // carries the id the label points at (no placeholder-only labelling).
+    const input = screen.getByRole('searchbox', { name: 'Search' })
+    expect(input).toHaveAttribute('id', 'album-search')
+    const label = document.querySelector('label[for="album-search"]')
+    expect(label).not.toBeNull()
+    expect(label).toHaveTextContent('Search')
   })
 
   it('has descriptive placeholder text', () => {

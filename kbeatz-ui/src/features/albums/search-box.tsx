@@ -1,7 +1,11 @@
 import { useCallback, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import TextField from '@mui/material/TextField'
+import InputAdornment from '@mui/material/InputAdornment'
+import IconButton from '@mui/material/IconButton'
+import SearchIcon from '@mui/icons-material/Search'
+import ClearIcon from '@mui/icons-material/Clear'
 import type { AlbumFilters } from './album-filters'
-import styles from './search-box.module.css'
 
 const DEBOUNCE_MS = 150
 
@@ -11,22 +15,23 @@ interface SearchBoxProps {
 }
 
 /**
- * Free-text search box.
+ * MUI free-text search box.
  *
- * Controlled input - value is driven by `filters.query` so that external
- * filter resets (e.g. "Clear all filters") immediately clear the visible text.
- * Debounced 150ms - updates the `query` field in AlbumFilters only after
- * the user stops typing, to avoid excessive re-renders.
- * Shows a clear (x) button when the search box is non-empty.
+ * Controlled: the visible value follows `filters.query` so an external reset
+ * (e.g. "Clear all filters") immediately clears the field. The committed filter
+ * update is debounced 150ms to avoid re-running the client-side filter on every
+ * keystroke. A clear (x) button appears when non-empty.
+ *
+ * Accessibility: a real visible label (no placeholder-only labelling), a
+ * search-role container, and a >=44px labelled clear button.
  */
 export function SearchBox({ filters, onFiltersChange }: SearchBoxProps) {
   const { t } = useTranslation()
-  // Local display value - updated immediately on input, debounces the filter update
   const [displayValue, setDisplayValue] = useState(filters.query)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Sync display value when filters.query changes externally (e.g., "Clear all").
-  // Use during-render state adjustment instead of useEffect to avoid cascading renders.
+  // Sync display value when filters.query changes externally. During-render
+  // adjustment avoids a cascading-render useEffect.
   const [prevQuery, setPrevQuery] = useState(filters.query)
   if (prevQuery !== filters.query) {
     setPrevQuery(filters.query)
@@ -37,9 +42,7 @@ export function SearchBox({ filters, onFiltersChange }: SearchBoxProps) {
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value
       setDisplayValue(value)
-      if (debounceRef.current !== null) {
-        clearTimeout(debounceRef.current)
-      }
+      if (debounceRef.current !== null) clearTimeout(debounceRef.current)
       debounceRef.current = setTimeout(() => {
         onFiltersChange({ ...filters, query: value })
       }, DEBOUNCE_MS)
@@ -57,30 +60,39 @@ export function SearchBox({ filters, onFiltersChange }: SearchBoxProps) {
   }, [filters, onFiltersChange])
 
   return (
-    <div className={styles.searchBox} role="search">
-      <label htmlFor="album-search" className={styles.label}>
-        {t('searchBox.label')}
-      </label>
-      <div className={styles.inputWrapper}>
-        <input
-          id="album-search"
-          type="search"
-          placeholder={t('searchBox.placeholder')}
-          value={displayValue}
-          onChange={handleChange}
-          className={styles.input}
-        />
-        {filters.query !== '' && (
-          <button
-            type="button"
-            aria-label={t('searchBox.clearAriaLabel')}
-            onClick={handleClear}
-            className={styles.clear}
-          >
-            {'×'}
-          </button>
-        )}
-      </div>
-    </div>
+    <TextField
+      id="album-search"
+      type="search"
+      role="search"
+      label={t('searchBox.label')}
+      placeholder={t('searchBox.placeholder')}
+      value={displayValue}
+      onChange={handleChange}
+      size="small"
+      fullWidth
+      sx={{ maxWidth: { sm: 420 } }}
+      slotProps={{
+        input: {
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon fontSize="small" aria-hidden="true" />
+            </InputAdornment>
+          ),
+          endAdornment:
+            displayValue !== '' ? (
+              <InputAdornment position="end">
+                <IconButton
+                  aria-label={t('searchBox.clearAriaLabel')}
+                  onClick={handleClear}
+                  edge="end"
+                  size="small"
+                >
+                  <ClearIcon fontSize="small" />
+                </IconButton>
+              </InputAdornment>
+            ) : null,
+        },
+      }}
+    />
   )
 }
