@@ -112,7 +112,7 @@ Each album card shows: cover art (placeholder if absent), album title, primary a
 | Preview/diff before sync | Show field-by-field diff; apply selectively |
 | Similar albums / artists | Discovery / recommendation feature |
 | MusicBrainz sync | Secondary metadata source |
-| Mobile-optimised UI | Desktop-first for v1; tablet-usable as stretch goal |
+| ~~Mobile-optimised UI~~ | Delivered in the UI rework: the SPA is now fully responsive across phone, tablet, and desktop (decision D4 in `docs/requirements-ui-rework.md`). No longer a future phase. |
 | Server-side search index | Client-side filter is sufficient for v1 at 2 000 albums |
 
 ---
@@ -130,7 +130,7 @@ Each album card shows: cover art (placeholder if absent), album title, primary a
 | NFR-07 | Security | No authentication in v1 or v2 (trusted LAN deployment in both releases). Keycloak JWT/OIDC authentication is a Phase 3+ target and is not implemented before then. Consistent with ADR-008 and CLAUDE.md. |
 | NFR-08 | Data safety | FLAC writes are atomic (temp file + rename, per ADR-001). No file is ever left in a corrupt state. Observable criterion: under a process kill at any point mid-write, the target FLAC path always holds exactly one complete, valid file - either the unchanged original or the fully written new version - never a partially written or truncated file. |
 | NFR-09 | Deployment | Deployable with `podman-compose up`. Single `compose.yml` works with both Podman and Docker. |
-| NFR-10 | Browsers | Latest Firefox and Chromium on Linux. Safari (tablet) as stretch goal. |
+| NFR-10 | Browsers | Latest Firefox and Chromium on desktop Linux, plus mobile Chromium and mobile Safari (iOS). The reworked UI is fully responsive across phone, tablet, and desktop (decision D4 in `docs/requirements-ui-rework.md`); mobile/phone is no longer a stretch goal. |
 | NFR-11 | Library size | System must remain responsive at 10 000 albums (indexing strategy must support future growth). |
 | NFR-12 | Payload size | Album listing API response shall not exceed 500 KB (after gzip compression) at 10 000 albums. Above 5 000 albums (configurable threshold), the listing endpoint switches to server-side pagination with a pre-built in-memory search index. |
 | NFR-13 | Write consistency | A multi-file album write interrupted mid-operation shall be detectable and recoverable on next startup via the `.kbeatz-write.lock` manifest (see FR-20). RPO criterion: no committed album state is lost (the manifest plus per-file atomic writes from NFR-08 guarantee each file is either old-complete or new-complete). RTO criterion: the orphaned-lock repair scan for every affected album completes within the < 30 s service restart budget (consistent with NFR-05). After repair, no album is left in a partially-written state. |
@@ -260,7 +260,6 @@ An album maps to one filesystem directory (the **album root**), with optional im
 - MusicBrainz metadata sync
 - Audio playback
 - Preview/diff before Discogs sync
-- Mobile-optimised layout
 - Multi-user / authentication (v1 assumes trusted LAN)
 - Automatic library monitoring (filesystem watcher)
 - Similar albums / artist recommendation

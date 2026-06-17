@@ -1,6 +1,6 @@
 = kbeatz User Guide: Browsing, Filtering, and Searching Your Music Collection
-:revnumber: 1.1
-:revdate: 2026-06-12
+:revnumber: 2.0
+:revdate: 2026-06-17
 :author: kbeatz team
 :toc:
 :toc-placement!:
@@ -13,15 +13,67 @@ kbeatz is a music collection management platform for FLAC libraries.
 The browser UI at `http://localhost:3005` lets you browse your entire album collection
 at a glance, narrow it with filters and free-text search, and sort by album artist or composer.
 
-Album browsing uses *server-side pagination and filtering* via the catalog API.
-The UI requests one page of albums at a time and sends active filters as query parameters.
-Multi-value filters (multiple genres, artists, or composers selected simultaneously) fall back
-to client-side evaluation on the current page until a dedicated multi-value server endpoint is added.
+The interface is built on Material Design (MUI). It uses a top App Bar and a navigation
+drawer to move between the main areas of the app, and it offers a light and a dark theme that
+you can switch at any time. The layout is fully responsive: it adapts from a phone screen up to
+a wide desktop monitor without horizontal scrolling.
+
+The reworked UI is described in detail in the platform requirements
+(`docs/requirements-ui-rework.md`) and the styling decision is recorded in ADR-013.
+
+== Navigation: App Bar and Drawer
+
+A persistent *App Bar* runs along the top of every page. It contains:
+
+* The app title and the navigation menu (the hamburger button on small screens).
+* A *theme toggle* that switches between the light and dark themes (see <<_light_and_dark_theme>>).
+* A *language control* that switches between English and German.
+
+The *navigation drawer* lists the main destinations:
+
+[cols="1,2,2", options="header"]
+|===
+| Destination | Route | Purpose
+
+| Albums
+| `/`
+| Browse, search, filter, and sort your collection (this guide).
+
+| Library
+| `/library`
+| Trigger a library scan and watch its progress and any per-album errors.
+
+| Settings
+| `/settings`
+| Set your default sort preference, language, and theme.
+|===
+
+On a desktop (medium width and wider) the drawer is permanent and always visible beside the
+content. On a phone or narrow window it collapses to an overlay drawer that you open with the
+menu button in the App Bar and dismiss by tapping outside it.
+
+Each destination has its own bookmarkable URL, and the browser Back and Forward buttons move
+between them as expected.
+
+== Light and Dark Theme
+
+kbeatz ships a light theme and a dark theme. Use the theme toggle in the App Bar to switch
+between them; the change applies instantly with no page reload.
+
+* On your first visit the theme follows your operating system preference
+  (`prefers-color-scheme`).
+* Once you pick a theme it is saved in your browser and reapplied on every later visit, before
+  the page paints, so you never see a flash of the wrong theme.
+* You can also set the theme from the Settings page.
+
+Both themes meet WCAG 2.1 AA contrast requirements. If your browser blocks local storage
+(for example, private browsing), the theme falls back to your OS preference for that session.
 
 == Album Grid
 
-When the page loads, kbeatz fetches the first page of albums from the catalog service and renders them
-as a responsive grid of cards.
+When the Albums page loads, kbeatz fetches your album summaries from the catalog service and
+renders them as a responsive grid of Material cards. The grid is *paginated on the client*: only
+one page of cards is shown at a time (see <<_pagination>>).
 
 Each *album card* shows:
 
@@ -32,10 +84,32 @@ Each *album card* shows:
 * *Year* - the DATE Vorbis tag (year or full ISO date).
 * *Genre* chip - the GENRE Vorbis tag.
 
-The grid uses CSS auto-fill so cards wrap naturally from a single column on mobile to
-multiple columns on wider screens.
+The grid reflows its column count with the viewport, from a single column on a phone to several
+columns on a wide desktop, and never requires horizontal scrolling.
 
-image::placeholder.png[Screenshot placeholder - album grid]
+// TODO(#834-followup): refresh screenshot for MUI UI (album grid with App Bar and navigation drawer)
+
+=== Pagination
+
+The album grid shows one page of cards at a time and provides a Material pagination control
+below the grid.
+
+* *Page size* has a sensible default (48 cards per page) and can be changed; your choice is
+  saved in your browser and reused on later visits.
+* *Page controls* let you jump to the next, previous, first, last, or a specific page number.
+* The *current page* and *page size* are stored in the URL query string, so a paginated view is
+  deep-linkable: you can bookmark or share it, and reloading or using Back/Forward returns you to
+  the same page.
+
+----
+http://localhost:3005/?page=3&size=48
+----
+
+Search and filtering operate over your whole loaded collection, and the paginated view shows the
+*filtered* results. Whenever you change the active search or filters, the grid resets to page 1.
+
+When you open an album and then return to the grid, your previous page, scroll position, and
+active filters are restored.
 
 === Scan Progress Banner
 
@@ -51,18 +125,17 @@ If the scan fails, the banner displays the error message from the server.
 
 == Filtering the Collection
 
-The *filter panel* appears on the left side of the grid.
-Single-value filters (one genre, artist, or composer selected) are applied server-side;
-the catalog returns only matching albums.
-Selecting multiple values in the same filter category applies those filters client-side
-on the current page as an interim measure until a multi-value server endpoint is available.
+The *filter panel* groups genre, artist, and composer controls. On a desktop it sits beside the
+grid; on a phone it is reachable from the App Bar so it does not crowd the cards.
+Filters are applied on the client over the full set of loaded album summaries, and the paginated
+grid reflects the filtered results. Applying or changing a filter resets the grid to page 1.
 
 === Genre Filter
 
 Check one or more genre boxes to show only albums matching those genres.
 Multiple genres use *OR* logic: checking "Jazz" and "Blues" shows albums in either genre.
 
-image::placeholder.png[Screenshot placeholder - genre filter checkboxes]
+// TODO(#834-followup): refresh screenshot for MUI UI (genre filter controls)
 
 === Artist Filter
 
@@ -93,8 +166,8 @@ It may be added in a future version.
 
 == Free-Text Search
 
-The *search box* in the header lets you find albums by typing any part of the title, artist, composer, or label.
-Search queries are sent to the catalog server as the `q` parameter.
+The *search box* on the Albums page lets you find albums by typing any part of the title, artist, composer, or label.
+The search term is reflected in the URL `q` query parameter so a searched view is deep-linkable.
 
 Searched fields:
 
@@ -118,8 +191,8 @@ Searched fields:
 Matching is *case-insensitive* and substring-based: typing "blue" matches "Kind of Blue",
 "Blue Note", and "Blue Train".
 
-The search is *debounced* - the grid updates 150 ms after you stop typing,
-then a new request is sent to the server with the search term.
+The search is *debounced* - the grid updates 150 ms after you stop typing.
+Searching resets the grid to page 1 of the filtered results.
 
 === Combining Search and Filters
 
@@ -171,7 +244,8 @@ Example:
 
 == Sort Preferences
 
-The *Sort by* dropdown in the toolbar controls the order in which albums appear in the grid.
+The *Sort by* preference controls the order in which albums appear in the grid. Set it on the
+*Settings* page (reachable from the navigation drawer).
 
 [cols="1,3", options="header"]
 |===
@@ -186,9 +260,32 @@ The *Sort by* dropdown in the toolbar controls the order in which albums appear 
   then sorted by album artist.
 |===
 
-The selected sort preference is saved to your browser's `localStorage` and restored
-the next time you visit the page.
-Clearing your browser data or using a different browser will reset it to "Album Artist".
+The selected sort preference is saved to your browser's `localStorage` and restored the next
+time you visit. Clearing your browser data or using a different browser resets it to
+"Album Artist".
+
+== Settings
+
+The *Settings* page (`/settings`, reachable from the navigation drawer) is the central place for
+your personal preferences:
+
+[cols="1,3", options="header"]
+|===
+| Setting | Behaviour
+
+| Sort preference
+| Default album sort order (Album Artist or Composer), as described in <<_sort_preferences>>.
+
+| Language
+| Interface language (English or German). The same control is also available in the App Bar.
+
+| Theme
+| Light or dark theme. The same toggle is also available in the App Bar (see
+  <<_light_and_dark_theme>>).
+|===
+
+All of these preferences are stored in your browser. If local storage is unavailable, kbeatz
+falls back to in-memory defaults and your operating system theme for that session.
 
 == Cover Art
 
@@ -209,10 +306,13 @@ Forcing a browser refresh (`Ctrl+Shift+R`) bypasses the cache.
 
 == Keyboard Accessibility
 
-All interactive controls are keyboard-accessible:
+The reworked UI meets WCAG 2.1 AA in both the light and the dark theme. All interactive
+controls are keyboard-accessible with a visible focus indicator:
 
-* *Tab* to navigate between the search box, filter checkboxes, and sort dropdown.
-* *Space* or *Enter* to toggle a checkbox.
-* *Escape* clears focus from the search box.
+* *Tab* to navigate between the App Bar controls (theme toggle, language, search box), the
+  filter controls, the pagination control, and the album cards.
+* *Space* or *Enter* to toggle a checkbox or activate a button.
+* *Escape* clears focus from the search box and closes the overlay navigation drawer.
 
-Genre, artist, and composer filter groups are labelled with ARIA roles for screen readers.
+The navigation, filter groups, and form controls carry MUI accessibility roles and labels for
+screen readers, and Material transitions respect `prefers-reduced-motion`.

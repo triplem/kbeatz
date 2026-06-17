@@ -45,7 +45,9 @@ This documentation covers:
 * xref:adr/ADR-007-kbeatz-metadata-pipeline.adoc[ADR-007] - kbeatz metadata pipeline
 * xref:adr/ADR-008-h2-auto-server-security.adoc[ADR-008] - H2 AUTO_SERVER security implications
 * xref:adr/ADR-009-cli-integration-strategy.adoc[ADR-009] - CLI integration strategy (shared libraries vs REST)
-* xref:adr/ADR-010-ui-styling-and-server-state.adoc[ADR-010] - UI styling approach (CSS Modules) and server state management (TanStack Query)
+* xref:adr/ADR-010-ui-styling-and-server-state.adoc[ADR-010] - UI styling approach (CSS Modules, styling half superseded by ADR-013) and server state management (TanStack Query)
+* xref:adr/ADR-011-merged-directories-storage-design.adoc[ADR-011] - merged_directories storage design
+* xref:adr/ADR-013-ui-mui-pigment-styling.adoc[ADR-013] - UI component library and styling engine (MUI with Pigment CSS, light/dark theming)
 
 == Shared Libraries
 

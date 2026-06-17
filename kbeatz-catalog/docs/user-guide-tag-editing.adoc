@@ -39,11 +39,17 @@ The following fields are editable:
 
 == Navigating to Album Detail
 
-. Open kbeatz in a browser (default: `http://localhost:3005`).
-. Browse or search for the album you want to edit in the album grid.
+. Open kbeatz in a browser (default: `http://localhost:3005`). The *Albums* page is the default
+  destination; you can also reach it from the navigation drawer in the App Bar.
+. Browse or search for the album you want to edit in the paginated album grid.
 . Click on any album card to navigate to the detail view at `/albums/{albumId}`.
 +
-The detail view shows all tag fields for the album and a table of its tracks.
+The detail view shows all tag fields for the album and a table of its tracks. The detail view,
+like the rest of the UI, is built on Material Design (MUI) and is fully responsive: on a phone
+the tag fields and track table stack into a single column.
+
+When you return to the grid from the detail view, your previous page, scroll position, and
+active filters are restored.
 
 == Editing Album-Level Tags
 
