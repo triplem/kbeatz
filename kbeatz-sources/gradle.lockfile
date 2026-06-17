@@ -1,11 +1,12 @@
 # This is a Gradle generated file for dependency locking.
 # Manual edits can break the build and are not advised.
 # This file is expected to be part of source control.
-ch.qos.logback.contrib:logback-jackson:0.1.5=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
-ch.qos.logback.contrib:logback-json-classic:0.1.5=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
-ch.qos.logback.contrib:logback-json-core:0.1.5=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
 ch.qos.logback:logback-classic:1.5.32=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
 ch.qos.logback:logback-core:1.5.32=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+com.fasterxml.jackson.core:jackson-annotations:2.17.2=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+com.fasterxml.jackson.core:jackson-core:2.17.2=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+com.fasterxml.jackson.core:jackson-databind:2.17.2=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+com.fasterxml.jackson:jackson-bom:2.17.2=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
 dev.drewhamilton.poko:poko-annotations-jvm:0.17.1=detekt
 dev.drewhamilton.poko:poko-annotations:0.17.1=detekt
 io.github.davidburstrom.contester:contester-breakpoint:0.2.0=detekt
@@ -80,6 +81,7 @@ io.mockk:mockk-jvm:1.14.9=testCompileClasspath,testRuntimeClasspath
 io.mockk:mockk:1.14.9=testCompileClasspath,testRuntimeClasspath
 net.bytebuddy:byte-buddy-agent:1.18.2=testCompileClasspath,testRuntimeClasspath
 net.bytebuddy:byte-buddy:1.18.2=testCompileClasspath,testRuntimeClasspath
+net.logstash.logback:logstash-logback-encoder:8.0=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
 org.apiguardian:apiguardian-api:1.1.2=testCompileClasspath
 org.jcommander:jcommander:1.85=detekt
 org.jetbrains.intellij.deps:trove4j:1.0.20200330=detekt

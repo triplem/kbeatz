@@ -33,6 +33,7 @@ import org.javafreedom.kbeatz.catalog.api.models.UpdateTagFieldRequest
 import org.javafreedom.kbeatz.catalog.application.service.AlbumService
 import org.javafreedom.kbeatz.catalog.application.service.TagWriteService
 import org.javafreedom.kbeatz.catalog.domain.model.Album
+import org.javafreedom.kbeatz.catalog.domain.model.SyncPreview
 import org.javafreedom.kbeatz.catalog.domain.model.SyncResult
 import org.javafreedom.kbeatz.catalog.domain.model.Track
 import org.javafreedom.kbeatz.catalog.domain.model.WRITE_LOCK_FILENAME
@@ -473,6 +474,8 @@ class TagWriteEndpointTest {
 private fun stubSyncProvider(block: suspend (Uuid, Boolean) -> SyncResult): SyncProvider =
     object : SyncProvider {
         override val name = "test-stub"
+        override suspend fun preview(albumId: Uuid): SyncPreview =
+            error("stubSyncProvider does not implement preview")
         override suspend fun sync(albumId: Uuid, downloadImages: Boolean): SyncResult =
             block(albumId, downloadImages)
     }

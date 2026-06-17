@@ -1,13 +1,14 @@
 # This is a Gradle generated file for dependency locking.
 # Manual edits can break the build and are not advised.
 # This file is expected to be part of source control.
-ch.qos.logback.contrib:logback-jackson:0.1.5=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
-ch.qos.logback.contrib:logback-json-classic:0.1.5=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
-ch.qos.logback.contrib:logback-json-core:0.1.5=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
 ch.qos.logback:logback-classic:1.5.32=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
 ch.qos.logback:logback-core:1.5.32=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
 com.charleskorn.kaml:kaml-jvm:0.104.0=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
 com.charleskorn.kaml:kaml:0.104.0=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+com.fasterxml.jackson.core:jackson-annotations:2.17.2=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+com.fasterxml.jackson.core:jackson-core:2.17.2=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+com.fasterxml.jackson.core:jackson-databind:2.17.2=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+com.fasterxml.jackson:jackson-bom:2.17.2=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
 com.github.ajalt.clikt:clikt-core-jvm:5.1.0=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
 com.github.ajalt.clikt:clikt-core:5.1.0=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
 com.github.ajalt.clikt:clikt-jvm:5.1.0=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
@@ -102,6 +103,7 @@ it.krzeminski:snakeyaml-engine-kmp:4.0.1=runtimeClasspath,testRuntimeClasspath
 net.bytebuddy:byte-buddy-agent:1.18.2=testCompileClasspath,testRuntimeClasspath
 net.bytebuddy:byte-buddy:1.18.2=testCompileClasspath,testRuntimeClasspath
 net.java.dev.jna:jna:5.14.0=runtimeClasspath,testRuntimeClasspath
+net.logstash.logback:logstash-logback-encoder:8.0=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
 net.thauvin.erik.urlencoder:urlencoder-lib-jvm:1.6.0=runtimeClasspath,testRuntimeClasspath
 net.thauvin.erik.urlencoder:urlencoder-lib:1.6.0=runtimeClasspath,testRuntimeClasspath
 org.apiguardian:apiguardian-api:1.1.2=testCompileClasspath
