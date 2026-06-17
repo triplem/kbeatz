@@ -186,6 +186,11 @@
     "en": "English",
     "de": "Deutsch"
   },
+  "themeToggle": {
+    "toLight": "Zum hellen Design wechseln",
+    "toDark": "Zum dunklen Design wechseln",
+    "ariaLabel": "Farbdesign umschalten"
+  },
   "pagination": {
     "ariaLabel": "Albumseiten-Navigation",
     "previous": "Zurück",

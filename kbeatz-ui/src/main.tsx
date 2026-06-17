@@ -8,6 +8,7 @@ import { AppLayout, AlbumListPage } from './App'
 import { AlbumDetail } from './features/albums/album-detail'
 import { NotFoundPage } from './features/not-found/not-found-page'
 import { ErrorBoundary } from './lib/error-boundary'
+import { AppThemeProvider } from './theme'
 import { OpenAPI } from './api/generated'
 
 // Allow runtime override via VITE_API_BASE_URL for LAN deployments where the UI
@@ -48,10 +49,12 @@ if (!rootEl) throw new Error('Root element not found')
 
 createRoot(rootEl).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <ErrorBoundary>
-        <RouterProvider router={router} />
-      </ErrorBoundary>
-    </QueryClientProvider>
+    <AppThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <ErrorBoundary>
+          <RouterProvider router={router} />
+        </ErrorBoundary>
+      </QueryClientProvider>
+    </AppThemeProvider>
   </StrictMode>,
 )
