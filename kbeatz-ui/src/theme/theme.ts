@@ -49,7 +49,7 @@ declare module '@mui/material/styles' {
  */
 export const theme = createTheme({
   cssVariables: {
-    colorSchemeSelector: 'data',
+    colorSchemeSelector: 'data-mui-color-scheme',
   },
   colorSchemes: {
     light: {

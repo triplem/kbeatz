@@ -1,6 +1,7 @@
 import { type ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link as RouterLink } from 'react-router-dom'
+import { useColorScheme } from '@mui/material/styles'
 import MuiAppBar from '@mui/material/AppBar'
 import Box from '@mui/material/Box'
 import IconButton from '@mui/material/IconButton'
@@ -29,6 +30,10 @@ export interface AppTopBarProps {
  * toggles the temporary drawer), and the discoverable global controls
  * (theme toggle + language). At md+ the bar is offset to sit beside the
  * permanent drawer.
+ *
+ * The logo variant (light vs dark) follows the active MUI colour scheme so
+ * it switches immediately when the user toggles the theme, rather than
+ * relying on `prefers-color-scheme` which only tracks the OS preference.
  */
 export function AppTopBar({
   drawerWidth,
@@ -37,6 +42,7 @@ export function AppTopBar({
   drawerId,
 }: AppTopBarProps): ReactElement {
   const { t } = useTranslation()
+  const { colorScheme } = useColorScheme()
 
   return (
     <MuiAppBar
@@ -59,10 +65,12 @@ export function AppTopBar({
           aria-label={t('app.title')}
           sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}
         >
-          <picture>
-            <source srcSet={logoFullDark} media="(prefers-color-scheme: dark)" />
-            <Box component="img" src={logoFull} alt="" sx={{ height: 32, width: 'auto', display: 'block' }} />
-          </picture>
+          <Box
+            component="img"
+            src={colorScheme === 'dark' ? logoFullDark : logoFull}
+            alt=""
+            sx={{ height: 32, width: 'auto', display: 'block' }}
+          />
         </Box>
         <IconButton
           color="inherit"
