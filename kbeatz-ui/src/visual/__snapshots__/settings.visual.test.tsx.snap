@@ -1,0 +1,387 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SettingsPage visual regression > matches the settings snapshot in dark theme 1`] = `
+<div>
+  <div
+    class="MuiContainer-root MuiContainer-maxWidthMd css-f1f8ok-MuiContainer-root"
+    data-testid="settings-page"
+  >
+    <h1
+      class="MuiTypography-root MuiTypography-h1 css-1fthpjl-MuiTypography-root"
+    >
+      Settings
+    </h1>
+    <div
+      class="MuiStack-root css-1tv6j1r-MuiStack-root"
+    >
+      <div
+        class="MuiStack-root css-1xl64i-MuiStack-root"
+      >
+        <div>
+          <h2
+            class="MuiTypography-root MuiTypography-subtitle1 css-he70kx-MuiTypography-root"
+          >
+            Default sort
+          </h2>
+          <p
+            class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+          >
+            How albums are ordered in the collection view.
+          </p>
+        </div>
+        <div
+          class="MuiStack-root css-jo2k1r-MuiStack-root"
+        >
+          <div
+            class="MuiFormControl-root MuiTextField-root css-1ovfe1o-MuiFormControl-root-MuiTextField-root"
+          >
+            <div
+              class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeSmall MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeSmall MuiInputLabel-outlined css-1utlqov-MuiFormLabel-root-MuiInputLabel-root"
+              data-shrink="true"
+              id="sort-by-label"
+            >
+              Sort by
+            </div>
+            <div
+              class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl MuiInputBase-sizeSmall MuiSelect-root css-1sgp5r6-MuiInputBase-root-MuiOutlinedInput-root"
+            >
+              <div
+                aria-expanded="false"
+                aria-haspopup="listbox"
+                aria-labelledby="sort-by-label"
+                class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-rfejcq-MuiNativeSelect-root-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
+                id="sort-by"
+                role="combobox"
+                tabindex="0"
+              >
+                Album Artist
+              </div>
+              <input
+                aria-hidden="true"
+                aria-invalid="false"
+                class="MuiSelect-nativeInput css-j0riat-MuiSelect-nativeInput"
+                id="<reactid>"
+                tabindex="-1"
+                value="albumArtist"
+              />
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon css-1778ep4-MuiSvgIcon-root-MuiNativeSelect-root-MuiSelect-icon"
+                data-testid="ArrowDropDownIcon"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M7 10l5 5 5-5z"
+                />
+              </svg>
+              <fieldset
+                aria-hidden="true"
+                class="MuiOutlinedInput-notchedOutline css-1ohs4y1-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
+              >
+                <legend
+                  class="css-ex8a5f-MuiNotchedOutlined-root"
+                >
+                  <span>
+                    Sort by
+                  </span>
+                </legend>
+              </fieldset>
+            </div>
+          </div>
+          <button
+            aria-label="Sort ascending"
+            class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeMedium css-195o0in-MuiButtonBase-root-MuiIconButton-root"
+            tabindex="0"
+            type="button"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
+              data-testid="ArrowUpwardIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="m4 12 1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8z"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <hr
+        class="MuiDivider-root MuiDivider-fullWidth MuiDivider-flexItem css-1170e2z-MuiDivider-root"
+      />
+      <div
+        class="MuiStack-root css-1xl64i-MuiStack-root"
+      >
+        <div>
+          <h2
+            class="MuiTypography-root MuiTypography-subtitle1 css-he70kx-MuiTypography-root"
+          >
+            Language
+          </h2>
+          <p
+            class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+          >
+            Interface language.
+          </p>
+        </div>
+        <div
+          aria-label="Select language"
+          class="_toggle_484a85"
+          role="group"
+        >
+          <button
+            aria-label="English"
+            aria-pressed="true"
+            class="_langButton_484a85 _active_484a85"
+            type="button"
+          >
+            EN
+          </button>
+          <button
+            aria-label="Deutsch"
+            aria-pressed="false"
+            class="_langButton_484a85 "
+            type="button"
+          >
+            DE
+          </button>
+        </div>
+      </div>
+      <hr
+        class="MuiDivider-root MuiDivider-fullWidth MuiDivider-flexItem css-1170e2z-MuiDivider-root"
+      />
+      <div
+        class="MuiStack-root css-1xl64i-MuiStack-root"
+      >
+        <div>
+          <h2
+            class="MuiTypography-root MuiTypography-subtitle1 css-he70kx-MuiTypography-root"
+          >
+            Theme
+          </h2>
+          <p
+            class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+          >
+            Switch between light and dark appearance.
+          </p>
+        </div>
+        <button
+          aria-label="Switch to light theme"
+          class="MuiButtonBase-root MuiIconButton-root MuiIconButton-colorInherit MuiIconButton-sizeLarge css-1g3oe0e-MuiButtonBase-root-MuiIconButton-root"
+          data-mui-internal-clone-element="true"
+          tabindex="0"
+          type="button"
+        >
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
+            data-testid="LightModeIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5M2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1m18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1M11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1m0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1M5.99 4.58c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41zm12.37 12.37c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.39.39-1.03 0-1.41zm1.06-10.96c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0zM7.05 18.36c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0z"
+            />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`SettingsPage visual regression > matches the settings snapshot in light theme 1`] = `
+<div>
+  <div
+    class="MuiContainer-root MuiContainer-maxWidthMd css-f1f8ok-MuiContainer-root"
+    data-testid="settings-page"
+  >
+    <h1
+      class="MuiTypography-root MuiTypography-h1 css-1fthpjl-MuiTypography-root"
+    >
+      Settings
+    </h1>
+    <div
+      class="MuiStack-root css-1tv6j1r-MuiStack-root"
+    >
+      <div
+        class="MuiStack-root css-1xl64i-MuiStack-root"
+      >
+        <div>
+          <h2
+            class="MuiTypography-root MuiTypography-subtitle1 css-he70kx-MuiTypography-root"
+          >
+            Default sort
+          </h2>
+          <p
+            class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+          >
+            How albums are ordered in the collection view.
+          </p>
+        </div>
+        <div
+          class="MuiStack-root css-jo2k1r-MuiStack-root"
+        >
+          <div
+            class="MuiFormControl-root MuiTextField-root css-1ovfe1o-MuiFormControl-root-MuiTextField-root"
+          >
+            <div
+              class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeSmall MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeSmall MuiInputLabel-outlined css-1utlqov-MuiFormLabel-root-MuiInputLabel-root"
+              data-shrink="true"
+              id="sort-by-label"
+            >
+              Sort by
+            </div>
+            <div
+              class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl MuiInputBase-sizeSmall MuiSelect-root css-1sgp5r6-MuiInputBase-root-MuiOutlinedInput-root"
+            >
+              <div
+                aria-expanded="false"
+                aria-haspopup="listbox"
+                aria-labelledby="sort-by-label"
+                class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-rfejcq-MuiNativeSelect-root-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
+                id="sort-by"
+                role="combobox"
+                tabindex="0"
+              >
+                Album Artist
+              </div>
+              <input
+                aria-hidden="true"
+                aria-invalid="false"
+                class="MuiSelect-nativeInput css-j0riat-MuiSelect-nativeInput"
+                id="<reactid>"
+                tabindex="-1"
+                value="albumArtist"
+              />
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon css-1778ep4-MuiSvgIcon-root-MuiNativeSelect-root-MuiSelect-icon"
+                data-testid="ArrowDropDownIcon"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M7 10l5 5 5-5z"
+                />
+              </svg>
+              <fieldset
+                aria-hidden="true"
+                class="MuiOutlinedInput-notchedOutline css-1ohs4y1-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
+              >
+                <legend
+                  class="css-ex8a5f-MuiNotchedOutlined-root"
+                >
+                  <span>
+                    Sort by
+                  </span>
+                </legend>
+              </fieldset>
+            </div>
+          </div>
+          <button
+            aria-label="Sort ascending"
+            class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeMedium css-195o0in-MuiButtonBase-root-MuiIconButton-root"
+            tabindex="0"
+            type="button"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
+              data-testid="ArrowUpwardIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="m4 12 1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8z"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <hr
+        class="MuiDivider-root MuiDivider-fullWidth MuiDivider-flexItem css-1170e2z-MuiDivider-root"
+      />
+      <div
+        class="MuiStack-root css-1xl64i-MuiStack-root"
+      >
+        <div>
+          <h2
+            class="MuiTypography-root MuiTypography-subtitle1 css-he70kx-MuiTypography-root"
+          >
+            Language
+          </h2>
+          <p
+            class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+          >
+            Interface language.
+          </p>
+        </div>
+        <div
+          aria-label="Select language"
+          class="_toggle_484a85"
+          role="group"
+        >
+          <button
+            aria-label="English"
+            aria-pressed="true"
+            class="_langButton_484a85 _active_484a85"
+            type="button"
+          >
+            EN
+          </button>
+          <button
+            aria-label="Deutsch"
+            aria-pressed="false"
+            class="_langButton_484a85 "
+            type="button"
+          >
+            DE
+          </button>
+        </div>
+      </div>
+      <hr
+        class="MuiDivider-root MuiDivider-fullWidth MuiDivider-flexItem css-1170e2z-MuiDivider-root"
+      />
+      <div
+        class="MuiStack-root css-1xl64i-MuiStack-root"
+      >
+        <div>
+          <h2
+            class="MuiTypography-root MuiTypography-subtitle1 css-he70kx-MuiTypography-root"
+          >
+            Theme
+          </h2>
+          <p
+            class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+          >
+            Switch between light and dark appearance.
+          </p>
+        </div>
+        <button
+          aria-label="Switch to dark theme"
+          class="MuiButtonBase-root MuiIconButton-root MuiIconButton-colorInherit MuiIconButton-sizeLarge css-1g3oe0e-MuiButtonBase-root-MuiIconButton-root"
+          data-mui-internal-clone-element="true"
+          tabindex="0"
+          type="button"
+        >
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
+            data-testid="DarkModeIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1"
+            />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+`;

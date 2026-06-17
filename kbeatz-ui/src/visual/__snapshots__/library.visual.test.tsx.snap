@@ -1,0 +1,63 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`LibraryPage visual regression > matches the library snapshot in dark theme 1`] = `
+<div>
+  <div
+    class="MuiContainer-root MuiContainer-maxWidthMd css-f1f8ok-MuiContainer-root"
+  >
+    <section
+      aria-label="Library"
+      class="MuiBox-root css-bly4bm"
+      data-testid="library-page"
+    >
+      <h1
+        class="MuiTypography-root MuiTypography-h5 css-1ijpi4b-MuiTypography-root"
+      >
+        Library
+      </h1>
+      <p
+        class="MuiTypography-root MuiTypography-body2 css-dtkkyl-MuiTypography-root"
+      >
+        Scan your music library to index albums and refresh metadata.
+      </p>
+      <button
+        data-testid="scan-button-stub"
+        type="button"
+      >
+        Scan library
+      </button>
+    </section>
+  </div>
+</div>
+`;
+
+exports[`LibraryPage visual regression > matches the library snapshot in light theme 1`] = `
+<div>
+  <div
+    class="MuiContainer-root MuiContainer-maxWidthMd css-f1f8ok-MuiContainer-root"
+  >
+    <section
+      aria-label="Library"
+      class="MuiBox-root css-bly4bm"
+      data-testid="library-page"
+    >
+      <h1
+        class="MuiTypography-root MuiTypography-h5 css-1ijpi4b-MuiTypography-root"
+      >
+        Library
+      </h1>
+      <p
+        class="MuiTypography-root MuiTypography-body2 css-dtkkyl-MuiTypography-root"
+      >
+        Scan your music library to index albums and refresh metadata.
+      </p>
+      <button
+        data-testid="scan-button-stub"
+        type="button"
+      >
+        Scan library
+      </button>
+    </section>
+  </div>
+</div>
+`;

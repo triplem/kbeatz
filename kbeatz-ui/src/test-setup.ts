@@ -1,6 +1,11 @@
 import '@testing-library/jest-dom'
 import { configure } from '@testing-library/dom'
 import './lib/i18n'
+import { installStableIdSerializer } from './test/stable-id-serializer'
+
+// Normalise React useId() values in every DOM snapshot so the visual-regression
+// suites stay byte-stable across runs and worker assignment (#833).
+installStableIdSerializer()
 
 // The suite now includes CPU-heavy axe accessibility checks (#832) that run
 // concurrently with the rest. Under that load the default 1000ms async-query
