@@ -1,7 +1,14 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import Alert from '@mui/material/Alert'
+import AlertTitle from '@mui/material/AlertTitle'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import List from '@mui/material/List'
+import ListItem from '@mui/material/ListItem'
+import ListItemText from '@mui/material/ListItemText'
+import Typography from '@mui/material/Typography'
 import type { ScanErrorEntry } from '../../api/generated'
-import styles from './scan-errors.module.css'
 
 interface ScanErrorsProps {
   readonly errors: ReadonlyArray<ScanErrorEntry>
@@ -14,20 +21,22 @@ interface ScanErrorsProps {
 }
 
 /**
- * Banner shown after a scan completes with per-album errors.
+ * ScanErrors - banner shown after a scan completes with per-album errors.
  *
- * Displays a summary line (e.g. "3 albums could not be scanned"),
- * an expand/collapse toggle for individual error entries,
- * and a dismiss button.
+ * Rebuilt on MUI feedback components: an error-severity Alert carrying the
+ * summary, an expand/collapse toggle that reveals a List of individual error
+ * entries, and a dismiss action. Each entry surfaces the album directory, the
+ * failure reason and a remediation suggestion so operators get actionable
+ * context (graceful degradation: a per-album failure does not fail the scan).
  *
- * Note: the dismiss button is implemented inline here.
- * Once PR #569 (DismissibleBanner) merges, this should be refactored
- * to use that shared component.
+ * Accessibility: the Alert carries role="alert"; the toggle exposes
+ * aria-expanded/aria-controls; the dismiss button is labelled.
  */
 export function ScanErrors({ errors, totalErrors, onDismiss }: ScanErrorsProps) {
   const { t } = useTranslation()
   const [expanded, setExpanded] = useState(false)
   const [dismissed, setDismissed] = useState(false)
+  const listId = useId()
 
   if (dismissed || totalErrors === 0) {
     return null
@@ -41,50 +50,61 @@ export function ScanErrors({ errors, totalErrors, onDismiss }: ScanErrorsProps) 
   }
 
   return (
-    <div className={styles.scanErrors} role="alert">
-      <div className={styles.header}>
-        <span className={styles.summary}>
-          {t('scanErrors.summary', { count: totalErrors })}
-        </span>
-        <div className={styles.actions}>
-          <button
-            type="button"
-            className={styles.toggleButton}
-            onClick={() => setExpanded((prev) => !prev)}
-            aria-expanded={expanded}
-            aria-controls="scan-error-list"
-          >
-            {expanded ? t('scanErrors.hideDetails') : t('scanErrors.showDetails')}
-          </button>
-          <button
-            type="button"
-            className={styles.dismissButton}
-            onClick={handleDismiss}
-            aria-label={t('scanErrors.dismiss')}
-          >
-            &times;
-          </button>
-        </div>
-      </div>
+    <Alert
+      severity="error"
+      onClose={handleDismiss}
+      slotProps={{ closeButton: { 'aria-label': t('scanErrors.dismiss') } }}
+      sx={{ alignItems: 'flex-start' }}
+    >
+      <AlertTitle sx={{ mb: 0.5 }}>{t('scanErrors.summary', { count: totalErrors })}</AlertTitle>
+      <Button
+        type="button"
+        size="small"
+        color="inherit"
+        variant="text"
+        onClick={() => { setExpanded((prev) => !prev) }}
+        aria-expanded={expanded}
+        aria-controls={listId}
+        sx={{ minHeight: 44, px: 1 }}
+      >
+        {expanded ? t('scanErrors.hideDetails') : t('scanErrors.showDetails')}
+      </Button>
 
       {expanded && (
-        <ul id="scan-error-list" className={styles.errorList} aria-label={t('scanErrors.errorListLabel')}>
+        <List
+          id={listId}
+          dense
+          aria-label={t('scanErrors.errorListLabel')}
+          sx={{ pt: 0 }}
+        >
           {errors.map((entry) => (
-            <li key={entry.albumDir} className={styles.errorEntry}>
-              <span className={styles.albumDir}>{entry.albumDir}</span>
-              <span className={styles.reason}>{entry.reason}</span>
-              <span className={styles.suggestion}>
-                {t('scanErrors.entrySuggestion', { suggestion: entry.suggestion })}
-              </span>
-            </li>
+            <ListItem key={entry.albumDir} disableGutters sx={{ display: 'block' }}>
+              <ListItemText
+                primary={entry.albumDir}
+                secondary={
+                  <Box component="span" sx={{ display: 'block' }}>
+                    <Typography component="span" variant="body2" sx={{ display: 'block' }}>
+                      {entry.reason}
+                    </Typography>
+                    <Typography component="span" variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                      {t('scanErrors.entrySuggestion', { suggestion: entry.suggestion })}
+                    </Typography>
+                  </Box>
+                }
+                slotProps={{ secondary: { component: 'span' } }}
+              />
+            </ListItem>
           ))}
           {overflowCount > 0 && (
-            <li className={styles.andMore}>
-              {t('scanErrors.andMore', { count: overflowCount })}
-            </li>
+            <ListItem disableGutters>
+              <ListItemText
+                primary={t('scanErrors.andMore', { count: overflowCount })}
+                slotProps={{ primary: { variant: 'body2', color: 'text.secondary' } }}
+              />
+            </ListItem>
           )}
-        </ul>
+        </List>
       )}
-    </div>
+    </Alert>
   )
 }

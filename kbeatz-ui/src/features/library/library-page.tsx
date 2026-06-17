@@ -1,9 +1,7 @@
 import { type ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
-import Box from '@mui/material/Box'
 import Container from '@mui/material/Container'
-import Stack from '@mui/material/Stack'
-import Typography from '@mui/material/Typography'
+import { PageSection } from '../../components'
 import { ScanButton } from './scan-button'
 
 // No props; declared for project consistency with react-patterns explicit typing.
@@ -22,17 +20,15 @@ export function LibraryPage(): ReactElement {
 
   return (
     <Container maxWidth="md" sx={{ py: 3 }}>
-      <Typography variant="h1" sx={{ fontSize: '1.5rem', fontWeight: 600, mb: 2 }}>
-        {t('library.heading')}
-      </Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-        {t('library.description')}
-      </Typography>
-      <Stack spacing={2} sx={{ alignItems: 'flex-start' }}>
-        <Box>
-          <ScanButton />
-        </Box>
-      </Stack>
+      <PageSection
+        title={t('library.heading')}
+        description={t('library.description')}
+        headingLevel="h1"
+        titleVariant="h5"
+        testId="library-page"
+      >
+        <ScanButton />
+      </PageSection>
     </Container>
   )
 }
