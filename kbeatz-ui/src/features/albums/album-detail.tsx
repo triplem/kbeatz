@@ -2,7 +2,17 @@ import { Fragment, useCallback, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
-import { type Album, AlbumsService, type Track } from '../../api/generated'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import Typography from '@mui/material/Typography'
+import Table from '@mui/material/Table'
+import TableBody from '@mui/material/TableBody'
+import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
+import TableHead from '@mui/material/TableHead'
+import TableRow from '@mui/material/TableRow'
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import { type Album, type AlbumDetail as AlbumDetailModel, AlbumsService, type Track } from '../../api/generated'
 import { ApiError } from '../../api/generated/core/ApiError'
 import { logger } from '../../lib/logger'
 import { useAlbum } from './useAlbum'
@@ -13,7 +23,19 @@ import { useUnsavedChangesBlocker } from '../../shell/use-unsaved-changes-blocke
 import { SyncPanel } from '../sync/sync-panel'
 import { formatDate } from '../../lib/i18n'
 import { formatTrackDuration } from '../../lib/format-duration'
-import styles from './album-detail.module.css'
+
+/** Album-level Vorbis Comment fields rendered as editable rows, in display order. */
+const ALBUM_FIELDS: ReadonlyArray<{ key: keyof AlbumDetailModel; labelKey: string; fieldName: string }> = [
+  { key: 'album', labelKey: 'album', fieldName: 'ALBUM' },
+  { key: 'albumArtist', labelKey: 'albumArtist', fieldName: 'ALBUMARTIST' },
+  { key: 'date', labelKey: 'date', fieldName: 'DATE' },
+  { key: 'genre', labelKey: 'genre', fieldName: 'GENRE' },
+  { key: 'label', labelKey: 'label', fieldName: 'LABEL' },
+  { key: 'catalogNumber', labelKey: 'catalogNumber', fieldName: 'CATALOGNUMBER' },
+  { key: 'composer', labelKey: 'composer', fieldName: 'COMPOSER' },
+  { key: 'conductor', labelKey: 'conductor', fieldName: 'CONDUCTOR' },
+  { key: 'ensemble', labelKey: 'ensemble', fieldName: 'ENSEMBLE' },
+]
 
 interface PathDisplayProps {
   readonly path: string
@@ -47,23 +69,44 @@ function PathDisplay({ path, label, testId }: PathDisplayProps) {
   }, [path])
 
   return (
-    <span className={styles.pathDisplay} data-testid={testId}>
-      <span className={styles.pathText} title={path}>{path}</span>
-      <button
+    <Box
+      component="span"
+      data-testid={testId}
+      sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, minWidth: 0, maxWidth: '100%' }}
+    >
+      <Box
+        component="span"
+        title={path}
+        sx={{
+          fontFamily: 'monospace',
+          fontSize: '0.8125rem',
+          color: 'text.primary',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          minWidth: 0,
+        }}
+      >
+        {path}
+      </Box>
+      <Button
         type="button"
-        className={styles.copyButton}
+        size="small"
+        variant="outlined"
         onClick={handleCopy}
         aria-label={t('albumDetail.copyPath', { label })}
         data-testid={testId !== undefined ? `${testId}-copy` : undefined}
+        sx={{ flexShrink: 0, minHeight: 44, minWidth: 44, px: 1, fontSize: '0.75rem' }}
       >
         {copied ? t('albumDetail.copied') : t('albumDetail.copy')}
-      </button>
-    </span>
+      </Button>
+    </Box>
   )
 }
 
 /**
  * AlbumDetail - shows all Vorbis Comment tag fields for a single album with inline editing.
+ * Rebuilt on MUI (Box/Grid layout, Typography, Button, Table) on the shared theme.
  *
  * ## Album-level editable fields
  * ALBUM, ALBUMARTIST, DATE, GENRE, LABEL, CATALOGNUMBER, COMPOSER, CONDUCTOR, ENSEMBLE
@@ -71,24 +114,22 @@ function PathDisplay({ path, label, testId }: PathDisplayProps) {
  * ## Track-level editable fields (per row)
  * TITLE, TRACKNUMBER, ARTIST
  *
- * ## Edit flow (album fields)
- * - Click on any album-level field value - inline input pre-filled with current value
+ * ## Edit flow (album + track fields)
+ * - Click on any field value - inline input pre-filled with current value
  * - Tab or Enter - commits value as a pending dirty change (no network request)
  * - Blur (click away) - silently cancels edit, restores original value; no dialog, no API call
  * - Save button - confirmation dialog appears; on confirm, batch-PATCHes all dirty fields
  * - Cancel / Escape on dialog - abort, keep the form in its edited state
  * - Escape on input - cancel edit, restore original value; no dialog shown; no API call
  *
- * ## Edit flow (track fields)
- * - Same commit-then-save pattern as album fields: Tab or Enter stages the change as dirty;
- *   clicking Save (then confirming) writes all dirty album and track fields to FLAC files.
+ * ## Other tags
+ * - Read-only list of non-standard tags (not editable in v1). Renders an empty
+ *   state until the catalog API exposes the additional tag map.
  *
  * ## Discogs sync
  * - SyncPanel is rendered below the tag fields when the album has a discogsId
  * - On sync complete the album state is updated with the returned Album
  */
-
-
 export function AlbumDetail() {
   const { albumId } = useParams<{ albumId: string }>()
   const navigate = useNavigate()
@@ -323,9 +364,21 @@ export function AlbumDetail() {
     setBatchSaveError(null)
   }, [album, queryClient])
 
-  if (loading) return <p>{t('albumDetail.loading')}</p>
-  if (fetchError) return <p role="alert">{t('albumDetail.errorPrefix')}{fetchError.message}</p>
-  if (!displayAlbum) return <p role="alert">{t('albumDetail.notFound')}</p>
+  if (loading) return <Typography component="p">{t('albumDetail.loading')}</Typography>
+  if (fetchError) {
+    return (
+      <Typography component="p" role="alert" color="error">
+        {t('albumDetail.errorPrefix')}{fetchError.message}
+      </Typography>
+    )
+  }
+  if (!displayAlbum) {
+    return (
+      <Typography component="p" role="alert">
+        {t('albumDetail.notFound')}
+      </Typography>
+    )
+  }
 
   // Total dirty count = album fields + unique track fields across all tracks
   const albumDirtyCount = Object.keys(dirtyFields).length
@@ -349,201 +402,233 @@ export function AlbumDetail() {
         onConfirm={handleNavGuardConfirm}
         onCancel={handleNavGuardCancel}
       />
-    <article className={styles.albumDetail} aria-label={t('albumDetail.albumTagsSection')}>
-      <button
-        type="button"
-        onClick={() => { navigate(-1) }}
-        className={styles.backButton}
-        data-testid="back-button"
+      <Box
+        component="article"
+        aria-label={t('albumDetail.albumTagsSection')}
+        sx={{
+          maxWidth: 1200,
+          mx: 'auto',
+          p: { xs: 2, md: 3 },
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 3,
+        }}
       >
-        {t('common.back')}
-      </button>
+        <Button
+          type="button"
+          variant="outlined"
+          startIcon={<ArrowBackIcon />}
+          onClick={() => { navigate(-1) }}
+          data-testid="back-button"
+          sx={{ alignSelf: 'flex-start', minHeight: 44 }}
+        >
+          {t('common.back')}
+        </Button>
 
-      <div className={styles.twoColumnLayout} data-testid="two-column-layout">
-        <div className={styles.metadataColumn} data-testid="metadata-column">
-          {displayAlbum.hasCoverArt && (
-            <img
-              src={`/api/v1/albums/${displayAlbum.id}/cover`}
-              alt={t('albumDetail.coverAlt', { album: displayAlbum.album })}
-              className={styles.albumCover}
-              loading="lazy"
-              data-testid="album-cover"
-            />
-          )}
-
-          <section aria-labelledby="album-tags-heading">
-            <h2 id="album-tags-heading" className={styles.sectionTitle}>{t('albumDetail.sectionTitle')}</h2>
-            {isSaving && (
-              <p role="status" aria-live="polite" data-testid="album-saving-indicator">
-                {t('albumDetail.saving')}
-              </p>
+        <Box
+          data-testid="two-column-layout"
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', lg: '35fr 65fr' },
+            alignItems: { lg: 'start' },
+            gap: 3,
+          }}
+        >
+          <Box
+            data-testid="metadata-column"
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2,
+              position: { lg: 'sticky' },
+              top: { lg: 64 },
+              alignSelf: { lg: 'start' },
+            }}
+          >
+            {displayAlbum.hasCoverArt && (
+              <Box
+                component="img"
+                src={`/api/v1/albums/${displayAlbum.id}/cover`}
+                alt={t('albumDetail.coverAlt', { album: displayAlbum.album })}
+                loading="lazy"
+                data-testid="album-cover"
+                sx={{
+                  width: '100%',
+                  maxWidth: 320,
+                  aspectRatio: '1 / 1',
+                  objectFit: 'cover',
+                  borderRadius: 2,
+                  boxShadow: 3,
+                }}
+              />
             )}
-            <div className={styles.albumPathRow}>
-              <span className={styles.albumPathLabel}>{t('albumDetail.fields.albumPath')}</span>
-              <PathDisplay
-                path={displayAlbum.albumPath}
-                label={t('albumDetail.fields.albumPath')}
-                testId="album-path"
-              />
-            </div>
-            <p
-              id="edit-scope-notice"
-              className={styles.editScopeNotice}
-              data-testid="edit-scope-notice"
-            >
-              {t('albumDetail.editScopeNotice', { count: displayAlbum.tracks.length })}
-            </p>
-            <dl id="album-tags" className={styles.albumTags}>
-              <EditableField
-                label={t('albumDetail.fields.album')}
-                value={displayAlbum.album}
-                fieldName="ALBUM"
-                onSave={handleAlbumTagSave}
-                onCommit={handleAlbumTagCommit}
-                testIdPrefix="album"
-                disabled={isSaving}
-                scopeDescribedBy="edit-scope-notice"
-              />
-              <EditableField
-                label={t('albumDetail.fields.albumArtist')}
-                value={displayAlbum.albumArtist}
-                fieldName="ALBUMARTIST"
-                onSave={handleAlbumTagSave}
-                onCommit={handleAlbumTagCommit}
-                testIdPrefix="album"
-                disabled={isSaving}
-                scopeDescribedBy="edit-scope-notice"
-              />
-              <EditableField
-                label={t('albumDetail.fields.date')}
-                value={displayAlbum.date}
-                displayValue={displayAlbum.date !== undefined ? formatDate(displayAlbum.date) : undefined}
-                fieldName="DATE"
-                onSave={handleAlbumTagSave}
-                onCommit={handleAlbumTagCommit}
-                testIdPrefix="album"
-                disabled={isSaving}
-                scopeDescribedBy="edit-scope-notice"
-              />
-              <EditableField
-                label={t('albumDetail.fields.genre')}
-                value={displayAlbum.genre}
-                fieldName="GENRE"
-                onSave={handleAlbumTagSave}
-                onCommit={handleAlbumTagCommit}
-                testIdPrefix="album"
-                disabled={isSaving}
-                scopeDescribedBy="edit-scope-notice"
-              />
-              <EditableField
-                label={t('albumDetail.fields.label')}
-                value={displayAlbum.label}
-                fieldName="LABEL"
-                onSave={handleAlbumTagSave}
-                onCommit={handleAlbumTagCommit}
-                testIdPrefix="album"
-                disabled={isSaving}
-                scopeDescribedBy="edit-scope-notice"
-              />
-              <EditableField
-                label={t('albumDetail.fields.catalogNumber')}
-                value={displayAlbum.catalogNumber}
-                fieldName="CATALOGNUMBER"
-                onSave={handleAlbumTagSave}
-                onCommit={handleAlbumTagCommit}
-                testIdPrefix="album"
-                disabled={isSaving}
-                scopeDescribedBy="edit-scope-notice"
-              />
-              <EditableField
-                label={t('albumDetail.fields.composer')}
-                value={displayAlbum.composer}
-                fieldName="COMPOSER"
-                onSave={handleAlbumTagSave}
-                onCommit={handleAlbumTagCommit}
-                testIdPrefix="album"
-                disabled={isSaving}
-                scopeDescribedBy="edit-scope-notice"
-              />
-              <EditableField
-                label={t('albumDetail.fields.conductor')}
-                value={displayAlbum.conductor}
-                fieldName="CONDUCTOR"
-                onSave={handleAlbumTagSave}
-                onCommit={handleAlbumTagCommit}
-                testIdPrefix="album"
-                disabled={isSaving}
-                scopeDescribedBy="edit-scope-notice"
-              />
-              <EditableField
-                label={t('albumDetail.fields.ensemble')}
-                value={displayAlbum.ensemble}
-                fieldName="ENSEMBLE"
-                onSave={handleAlbumTagSave}
-                onCommit={handleAlbumTagCommit}
-                testIdPrefix="album"
-                disabled={isSaving}
-                scopeDescribedBy="edit-scope-notice"
-              />
-            </dl>
-            <div className={styles.saveRow}>
-              <button
-                type="button"
-                className={styles.saveButton}
-                onClick={handleSaveButtonClick}
-                disabled={!hasAnyDirty || isSaving}
-                data-testid="save-button"
-                aria-label={
-                  dirtyCount > 0
-                    ? t('albumDetail.saveButtonLabel', { count: dirtyCount })
-                    : t('albumDetail.saveButtonLabelClean')
-                }
-              >
-                {isSaving ? t('albumDetail.saving') : t('albumDetail.saveButton')}
-              </button>
-              {dirtyCount > 0 && (
-                <span className={styles.dirtyCount} data-testid="dirty-count">
-                  {t('albumDetail.dirtyCount', { count: dirtyCount })}
-                </span>
-              )}
-              {batchSaveError !== null && (
-                <p
-                  role="alert"
-                  className={styles.batchSaveError}
-                  data-testid="batch-save-error"
+
+            <Box component="section" aria-labelledby="album-tags-heading">
+              <Typography id="album-tags-heading" variant="h6" component="h2" sx={{ mb: 2 }}>
+                {t('albumDetail.sectionTitle')}
+              </Typography>
+              {isSaving && (
+                <Typography
+                  role="status"
+                  aria-live="polite"
+                  component="p"
+                  variant="body2"
+                  color="text.secondary"
+                  data-testid="album-saving-indicator"
+                  sx={{ mb: 1 }}
                 >
-                  {t('editableField.saveFailed')}: {batchSaveError}
-                </p>
+                  {t('albumDetail.saving')}
+                </Typography>
               )}
-            </div>
-          </section>
-
-          {displayAlbum.discogsId !== undefined && (
-            <section aria-label={t('albumDetail.discogsSection')}>
-              <SyncPanel album={displayAlbum} onSyncComplete={handleSyncComplete} hasLocalEdits={hasLocalEdits} />
-            </section>
-          )}
-        </div>
-
-        <div className={styles.tracklistColumn} data-testid="tracklist-column">
-          <section aria-label={t('albumDetail.tracksSection')}>
-            <h2 className={styles.sectionTitle}>{t('albumDetail.tracksSectionTitle')}</h2>
-            {displayAlbum.tracks.length === 0
-              ? <p className={styles.noTracks}>{t('albumDetail.noTracks')}</p>
-              : (
-                <TrackList
-                  tracks={displayAlbum.tracks}
-                  onSave={handleTrackTagSaveSentinel}
-                  onCommit={handleTrackFieldCommit}
-                  disabled={isSaving}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, minWidth: 0 }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500, flexShrink: 0 }}>
+                  {t('albumDetail.fields.albumPath')}
+                </Typography>
+                <PathDisplay
+                  path={displayAlbum.albumPath}
+                  label={t('albumDetail.fields.albumPath')}
+                  testId="album-path"
                 />
-              )
-            }
-          </section>
-        </div>
-      </div>
-    </article>
+              </Box>
+              <Typography
+                id="edit-scope-notice"
+                data-testid="edit-scope-notice"
+                component="p"
+                variant="body2"
+                color="text.secondary"
+                sx={{ mb: 1 }}
+              >
+                {t('albumDetail.editScopeNotice', { count: displayAlbum.tracks.length })}
+              </Typography>
+              <Box
+                component="dl"
+                id="album-tags"
+                sx={{
+                  m: 0,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 2,
+                  overflow: 'hidden',
+                }}
+              >
+                {ALBUM_FIELDS.map(({ key, labelKey, fieldName }) => {
+                  const rawValue = displayAlbum[key] as string | undefined
+                  return (
+                    <EditableField
+                      key={fieldName}
+                      label={t(`albumDetail.fields.${labelKey}`)}
+                      value={rawValue}
+                      displayValue={
+                        key === 'date' && rawValue !== undefined ? formatDate(rawValue) : undefined
+                      }
+                      fieldName={fieldName}
+                      onSave={handleAlbumTagSave}
+                      onCommit={handleAlbumTagCommit}
+                      testIdPrefix="album"
+                      disabled={isSaving}
+                      scopeDescribedBy="edit-scope-notice"
+                    />
+                  )
+                })}
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1.5, mt: 2 }}>
+                <Button
+                  type="button"
+                  variant="contained"
+                  onClick={handleSaveButtonClick}
+                  disabled={!hasAnyDirty || isSaving}
+                  data-testid="save-button"
+                  aria-label={
+                    dirtyCount > 0
+                      ? t('albumDetail.saveButtonLabel', { count: dirtyCount })
+                      : t('albumDetail.saveButtonLabelClean')
+                  }
+                  sx={{ minHeight: 44 }}
+                >
+                  {isSaving ? t('albumDetail.saving') : t('albumDetail.saveButton')}
+                </Button>
+                {dirtyCount > 0 && (
+                  <Typography
+                    component="span"
+                    variant="body2"
+                    color="text.secondary"
+                    data-testid="dirty-count"
+                  >
+                    {t('albumDetail.dirtyCount', { count: dirtyCount })}
+                  </Typography>
+                )}
+                {batchSaveError !== null && (
+                  <Typography
+                    role="alert"
+                    component="p"
+                    variant="body2"
+                    color="error"
+                    data-testid="batch-save-error"
+                    sx={{ m: 0, width: '100%' }}
+                  >
+                    {t('editableField.saveFailed')}: {batchSaveError}
+                  </Typography>
+                )}
+              </Box>
+            </Box>
+
+            <OtherTagsSection />
+
+            {displayAlbum.discogsId !== undefined && (
+              <Box component="section" aria-label={t('albumDetail.discogsSection')}>
+                <SyncPanel album={displayAlbum} onSyncComplete={handleSyncComplete} hasLocalEdits={hasLocalEdits} />
+              </Box>
+            )}
+          </Box>
+
+          <Box data-testid="tracklist-column" sx={{ minWidth: 0 }}>
+            <Box component="section" aria-label={t('albumDetail.tracksSection')}>
+              <Typography variant="h6" component="h2" sx={{ mb: 2 }}>
+                {t('albumDetail.tracksSectionTitle')}
+              </Typography>
+              {displayAlbum.tracks.length === 0
+                ? (
+                  <Typography component="p" variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                    {t('albumDetail.noTracks')}
+                  </Typography>
+                )
+                : (
+                  <TrackList
+                    tracks={displayAlbum.tracks}
+                    onSave={handleTrackTagSaveSentinel}
+                    onCommit={handleTrackFieldCommit}
+                    disabled={isSaving}
+                  />
+                )}
+            </Box>
+          </Box>
+        </Box>
+      </Box>
     </>
+  )
+}
+
+/**
+ * OtherTagsSection - read-only list of non-standard Vorbis Comments.
+ *
+ * The catalog v1 API does not yet expose a non-standard tag map on AlbumDetail,
+ * so this renders the section heading, a read-only notice, and an empty state.
+ * It is intentionally non-editable in v1 (master FR-08).
+ */
+function OtherTagsSection() {
+  const { t } = useTranslation()
+  return (
+    <Box component="section" aria-label={t('albumDetail.otherTagsSection')} data-testid="other-tags-section">
+      <Typography variant="subtitle1" component="h2" sx={{ mb: 0.5 }}>
+        {t('albumDetail.otherTagsTitle')}
+      </Typography>
+      <Typography component="p" variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+        {t('albumDetail.otherTagsDescription')}
+      </Typography>
+      <Typography component="p" variant="body2" color="text.secondary" data-testid="other-tags-empty">
+        {t('albumDetail.otherTagsEmpty')}
+      </Typography>
+    </Box>
   )
 }
 
@@ -572,7 +657,7 @@ function TrackList({ tracks, onSave, onCommit, disabled = false }: TrackListProp
   })
 
   // Determine whether any track has a disc number - if so, render disc headers.
-  const isMultiDisc = sorted.some((t) => t.discNumber !== undefined && t.discNumber !== null && t.discNumber !== '')
+  const isMultiDisc = sorted.some((tr) => tr.discNumber !== undefined && tr.discNumber !== null && tr.discNumber !== '')
 
   // Group by disc number for multi-disc rendering.
   const groups: { discLabel: string | null; tracks: Track[] }[] = []
@@ -587,44 +672,51 @@ function TrackList({ tracks, onSave, onCommit, disabled = false }: TrackListProp
   }
 
   return (
-    <table className={styles.tracksTable} role="grid">
-      <thead>
-        <tr>
-          <th scope="col">{t('albumDetail.trackColumns.position')}</th>
-          <th scope="col">{t('albumDetail.trackColumns.title')}</th>
-          <th scope="col">{t('albumDetail.trackColumns.artist')}</th>
-          <th scope="col">{t('albumDetail.trackColumns.duration')}</th>
-          <th scope="col">{t('albumDetail.trackColumns.file')}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {groups.map((group, groupIndex) => (
-          // Use groupIndex as tiebreaker so Fragment keys are always unique even if
-          // two non-consecutive null-disc groups end up in the list (edge case).
-          <Fragment key={`${group.discLabel ?? 'no-disc'}-${groupIndex}`}>
-            {isMultiDisc && group.discLabel !== null && (
-              <tr className={styles.discHeader}>
-                <td colSpan={5}>{t('albumDetail.discHeader', { number: group.discLabel })}</td>
-              </tr>
-            )}
-            {group.tracks.map((track, trackIndex) => (
-              // Use track.filePath as part of the key: each track maps to exactly one
-              // file on disk, so filePath is a stable, unique identity for a track row.
-              // The trackIndex tiebreaker guards against duplicate IDs from the backend
-              // (which would otherwise cause React to reuse the same DOM node for every
-              // row and display identical data for all tracks).
-              <TrackRow
-                key={`${track.filePath}-${trackIndex}`}
-                track={track}
-                onSave={onSave(track.id)}
-                onCommit={onCommit(track.id)}
-                disabled={disabled}
-              />
-            ))}
-          </Fragment>
-        ))}
-      </tbody>
-    </table>
+    <TableContainer>
+      <Table size="small" aria-label={t('albumDetail.tracksSectionTitle')}>
+        <TableHead>
+          <TableRow>
+            <TableCell scope="col">{t('albumDetail.trackColumns.position')}</TableCell>
+            <TableCell scope="col">{t('albumDetail.trackColumns.title')}</TableCell>
+            <TableCell scope="col">{t('albumDetail.trackColumns.artist')}</TableCell>
+            <TableCell scope="col">{t('albumDetail.trackColumns.duration')}</TableCell>
+            <TableCell scope="col">{t('albumDetail.trackColumns.file')}</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {groups.map((group, groupIndex) => (
+            // Use groupIndex as tiebreaker so Fragment keys are always unique even if
+            // two non-consecutive null-disc groups end up in the list (edge case).
+            <Fragment key={`${group.discLabel ?? 'no-disc'}-${groupIndex}`}>
+              {isMultiDisc && group.discLabel !== null && (
+                <TableRow>
+                  <TableCell
+                    colSpan={5}
+                    sx={{ fontWeight: 600, color: 'text.secondary', bgcolor: 'action.hover' }}
+                  >
+                    {t('albumDetail.discHeader', { number: group.discLabel })}
+                  </TableCell>
+                </TableRow>
+              )}
+              {group.tracks.map((track, trackIndex) => (
+                // Use track.filePath as part of the key: each track maps to exactly one
+                // file on disk, so filePath is a stable, unique identity for a track row.
+                // The trackIndex tiebreaker guards against duplicate IDs from the backend
+                // (which would otherwise cause React to reuse the same DOM node for every
+                // row and display identical data for all tracks).
+                <TrackRow
+                  key={`${track.filePath}-${trackIndex}`}
+                  track={track}
+                  onSave={onSave(track.id)}
+                  onCommit={onCommit(track.id)}
+                  disabled={disabled}
+                />
+              ))}
+            </Fragment>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   )
 }
 
@@ -643,8 +735,8 @@ function TrackRow({ track, onSave, onCommit, disabled = false }: TrackRowProps) 
     : '-'
 
   return (
-    <tr data-testid={`track-row-${track.id}`}>
-      <td>
+    <TableRow data-testid={`track-row-${track.id}`} hover>
+      <TableCell sx={{ verticalAlign: 'middle' }}>
         <EditableField
           label={t('albumDetail.fields.trackNumber')}
           value={track.trackNumber}
@@ -654,8 +746,8 @@ function TrackRow({ track, onSave, onCommit, disabled = false }: TrackRowProps) 
           disabled={disabled}
           testIdPrefix={`track-${track.id}`}
         />
-      </td>
-      <td>
+      </TableCell>
+      <TableCell sx={{ verticalAlign: 'middle' }}>
         <EditableField
           label={t('albumDetail.fields.title')}
           value={track.title}
@@ -665,8 +757,8 @@ function TrackRow({ track, onSave, onCommit, disabled = false }: TrackRowProps) 
           disabled={disabled}
           testIdPrefix={`track-${track.id}`}
         />
-      </td>
-      <td>
+      </TableCell>
+      <TableCell sx={{ verticalAlign: 'middle' }}>
         <EditableField
           label={t('albumDetail.fields.artist')}
           value={track.artist}
@@ -676,16 +768,16 @@ function TrackRow({ track, onSave, onCommit, disabled = false }: TrackRowProps) 
           disabled={disabled}
           testIdPrefix={`track-${track.id}`}
         />
-      </td>
-      <td>{durationDisplay}</td>
-      <td>
+      </TableCell>
+      <TableCell sx={{ verticalAlign: 'middle' }}>{durationDisplay}</TableCell>
+      <TableCell sx={{ verticalAlign: 'middle' }}>
         <PathDisplay
           path={track.filePath}
           label={t('albumDetail.trackColumns.file')}
           testId={`track-${track.id}-file-path`}
         />
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   )
 }
 

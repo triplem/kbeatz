@@ -71,6 +71,10 @@
     "dirtyCount_other": "{{count}} unsaved changes",
     "noTracks": "No track information available",
     "discHeader": "Disc {{number}}",
+    "otherTagsSection": "Other tags",
+    "otherTagsTitle": "Other tags",
+    "otherTagsDescription": "Non-standard tags found in these files. Read-only in this version.",
+    "otherTagsEmpty": "No additional tags.",
     "trackColumns": {
       "position": "Position",
       "title": "Title",

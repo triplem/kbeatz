@@ -79,6 +79,7 @@ export default tseslint.config(
               'aria-hidden',
               'aria-live',
               'aria-atomic',
+              'aria-modal',
             ],
           },
         },

@@ -1,28 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
+import Box from '@mui/material/Box'
+import ButtonBase from '@mui/material/ButtonBase'
+import InputBase from '@mui/material/InputBase'
+import Typography from '@mui/material/Typography'
+import { visuallyHidden } from '@mui/utils'
+import EditIcon from '@mui/icons-material/Edit'
 import { CancelledByUserError } from './cancelled-by-user-error'
-import styles from './editable-field.module.css'
-
-// Pencil edit icon (U+270E) - used as a visual affordance for click-to-edit fields
-// Defined as a module constant to avoid i18next lint warnings on JSX string literals
-const EDIT_ICON = '✎'
-
-// Visually-hidden style for the edit input's <label>. The project ships no
-// stylesheet (no .sr-only utility class exists), so the standard clip-rect
-// pattern is applied inline. This keeps the label in the accessibility tree
-// and clickable to focus the input, while removing it from the visual layout.
-const VISUALLY_HIDDEN: React.CSSProperties = {
-  position: 'absolute',
-  width: '1px',
-  height: '1px',
-  padding: 0,
-  margin: '-1px',
-  overflow: 'hidden',
-  clip: 'rect(0, 0, 0, 0)',
-  whiteSpace: 'nowrap',
-  border: 0,
-}
 
 /**
  * Classify a tag-write error into a user-friendly message.
@@ -83,10 +68,15 @@ interface EditableFieldProps {
 /**
  * EditableField - click-to-edit inline text input for a single Vorbis Comment field.
  *
+ * Rebuilt on MUI (ButtonBase + InputBase + Typography) on the shared theme so it
+ * is theme-aware in both light and dark modes. Behaviour and accessibility are
+ * unchanged from the previous CSS-module implementation.
+ *
  * Accessibility (WCAG AA):
- * - Display button has aria-label describing both the field name and current value.
- * - Input has a programmatically associated, visually-hidden <label htmlFor>;
- *   optionally aria-describedby for scope notice.
+ * - Display control is a ButtonBase with an aria-label describing the field name
+ *   and current value; it has a visible focus ring and a >=44px touch target.
+ * - The edit input has a programmatically associated, visually-hidden <label htmlFor>;
+ *   optionally aria-describedby for a scope notice.
  * - Escape key cancels edit and returns focus to the display button.
  * - After save completes (or is cancelled), focus returns to the display button.
  * - Pencil icon is aria-hidden (the aria-label already conveys edit affordance).
@@ -307,22 +297,43 @@ export function EditableField({
   const prefix = testIdPrefix ? `${testIdPrefix}-` : ''
   const errorId = error !== null ? `${prefix}error-${fieldName.toLowerCase()}` : undefined
   const inputId = `${prefix}input-${fieldName.toLowerCase()}`
+  const resolvedDisplay = committedValue ?? displayValue ?? value
 
   return (
-    <div className={styles.editableField} data-testid={`${prefix}field-${fieldName.toLowerCase()}`}>
-      <dt className={styles.fieldLabel}>{label}</dt>
-      <dd className={styles.fieldValue}>
+    <Box
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', sm: 'minmax(120px, 35%) 1fr' },
+        alignItems: 'baseline',
+        columnGap: 2,
+        rowGap: 0.5,
+        px: 2,
+        py: 1,
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+        '&:last-of-type': { borderBottom: 'none' },
+      }}
+      data-testid={`${prefix}field-${fieldName.toLowerCase()}`}
+    >
+      <Typography
+        component="dt"
+        variant="body2"
+        sx={{ color: 'text.secondary', fontWeight: 500 }}
+      >
+        {label}
+      </Typography>
+      <Box component="dd" sx={{ m: 0, minWidth: 0 }}>
         {editing ? (
           <>
             {/* Programmatically associated label. Visually hidden because the
                 surrounding <dt> already shows the field name; the label exists
                 so screen readers announce the input and clicking it focuses the
                 field (WCAG 1.3.1 / 3.3.2). */}
-            <label htmlFor={inputId} style={VISUALLY_HIDDEN}>
+            <Box component="label" htmlFor={inputId} sx={visuallyHidden}>
               {t('editableField.editLabel', { label })}
-            </label>
-            <input
-              ref={inputRef}
+            </Box>
+            <InputBase
+              inputRef={inputRef}
               id={inputId}
               type="text"
               value={editValue}
@@ -330,14 +341,26 @@ export function EditableField({
               onKeyDown={handleKeyDown}
               onBlur={handleBlur}
               disabled={saving}
-              aria-describedby={scopeDescribedBy}
-              aria-busy={saving}
-              data-testid={inputId}
-              className={styles.editInput}
+              fullWidth
+              size="small"
+              inputProps={{
+                'aria-describedby': scopeDescribedBy,
+                'aria-busy': saving,
+                'data-testid': inputId,
+              }}
+              sx={{
+                px: 1,
+                py: 0.5,
+                border: '1px solid',
+                borderColor: 'primary.main',
+                borderRadius: 1,
+                bgcolor: 'background.paper',
+                fontSize: '0.875rem',
+              }}
             />
           </>
         ) : (
-          <button
+          <ButtonBase
             ref={displayButtonRef}
             type="button"
             onClick={disabled ? undefined : startEditing}
@@ -346,36 +369,69 @@ export function EditableField({
               : t('editableField.editEmpty', { label })}
             aria-describedby={errorId}
             data-testid={`${prefix}value-${fieldName.toLowerCase()}`}
-            className={styles.displayButton}
             title={disabled ? undefined : t('editableField.clickToEdit', { label })}
             disabled={disabled}
             aria-disabled={disabled}
+            focusRipple
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 0.5,
+              minHeight: 44,
+              maxWidth: '100%',
+              px: 1,
+              py: 0.25,
+              borderRadius: 1,
+              textAlign: 'left',
+              justifyContent: 'flex-start',
+              color: 'text.primary',
+              fontSize: '0.875rem',
+              '&:hover': { bgcolor: disabled ? 'transparent' : 'action.hover' },
+              '&.Mui-disabled': { opacity: 0.6 },
+            }}
           >
-            {(committedValue ?? displayValue ?? value) ?? <span className={styles.emptyValue}>{t('common.empty')}</span>}
+            <Box
+              component="span"
+              sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}
+            >
+              {resolvedDisplay !== undefined
+                ? resolvedDisplay
+                : (
+                  <Box component="span" sx={{ color: 'text.disabled', fontStyle: 'italic' }}>
+                    {t('common.empty')}
+                  </Box>
+                )}
+            </Box>
             {/* Pencil affordance - hidden from screen readers since aria-label already describes the action */}
-            <span className={styles.editIcon} aria-hidden="true">{EDIT_ICON}</span>
-          </button>
+            <EditIcon aria-hidden="true" sx={{ fontSize: 16, color: 'text.disabled', flexShrink: 0 }} />
+          </ButtonBase>
         )}
         {error !== null && (
-          <p
+          <Typography
             role="alert"
             id={errorId}
-            className={styles.errorMessage}
+            variant="caption"
+            color="error"
+            component="p"
+            sx={{ mt: 0.5 }}
             data-testid={`${prefix}error-${fieldName.toLowerCase()}`}
           >
             {error}
-          </p>
+          </Typography>
         )}
         {showHint && (
-          <p
-            className={styles.hint}
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            component="p"
             aria-live="polite"
+            sx={{ mt: 0.5 }}
             data-testid={`${prefix}hint-${fieldName.toLowerCase()}`}
           >
             {t('editableField.hint')}
-          </p>
+          </Typography>
         )}
-      </dd>
-    </div>
+      </Box>
+    </Box>
   )
 }
