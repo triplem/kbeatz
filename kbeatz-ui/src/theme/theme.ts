@@ -108,7 +108,15 @@ export const theme = createTheme({
   },
   components: {
     MuiCssBaseline: {
-      styleOverrides: {
+      styleOverrides: (themeParam) => ({
+        // Visible keyboard-focus ring for any focusable element that does not
+        // ship its own MUI focus indicator (WCAG 2.4.7). Reads the primary
+        // colour from the CSS-variable theme so the ring follows the active
+        // colour scheme. Replaces the former global rule in legacy tokens.css.
+        ':focus-visible': {
+          outline: `2px solid ${themeParam.vars.palette.primary.main}`,
+          outlineOffset: '2px',
+        },
         // Respect the user's reduced-motion preference (WCAG 2.3.3).
         '@media (prefers-reduced-motion: reduce)': {
           '*, *::before, *::after': {
@@ -118,7 +126,7 @@ export const theme = createTheme({
             scrollBehavior: 'auto !important',
           },
         },
-      },
+      }),
     },
   },
 })
