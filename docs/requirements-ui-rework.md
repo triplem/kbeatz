@@ -4,7 +4,7 @@
 **Date**: 2026-06-17
 **Status**: Draft - pending approval
 **Scope**: `kbeatz-ui` (React SPA) only. No backend or API changes.
-**Source**: RequirementsAgent elicitation (4 decisions confirmed with the product owner)
+**Source**: RequirementsAgent elicitation (decisions D1-D9 confirmed with the product owner); architect + challenge-all review incorporated
 **Relates to**: master product requirements `docs/requirements.md`; supersedes the styling half of ADR-010
 
 ---
@@ -63,6 +63,7 @@ Design, with both a light and a dark theme the user can switch between.
 | D6 | Styling engine (was OQ-01) | **MUI with Pigment CSS** (zero-runtime, build-time CSS extraction); no emotion runtime |
 | D7 | Desktop navigation (was OQ-02) | **Permanent navigation drawer** on desktop, collapsing to an overlay drawer on phone |
 | D8 | Breakpoints and budget (was OQ-03) | **MUI standard breakpoints** (xs/sm/md/lg/xl). Initial-payload budget starts at **250 KB gzipped** but is a **soft, adjustable target**: because kbeatz is a LAN-only app, the budget may be raised (up to ~500 KB gzipped) when a feature justifies it (see UI-NFR-01) |
+| D9 | Album grid rendering | **Client-side pagination** of the (filtered) album set, not full-list rendering or windowing. Keeps the rework UI-only (no API change) and bounds the number of rendered cards (see UI-FR-05) |
 
 ---
 
@@ -88,7 +89,10 @@ layers follow Material 3. The brand identity is preserved, not replaced by defau
 visible control in the app bar. On first load the theme follows the OS `prefers-color-scheme`;
 once the user makes a choice it is persisted in `localStorage` and applied on every subsequent
 load. The persisted theme must be applied before first paint so there is no flash of the wrong
-theme.
+theme. Light/dark shall be implemented using Pigment CSS-variable colour schemes (a CSS class or
+`data-` attribute swap on the root), not a runtime React theme re-render, so toggling is instant
+(UI-NFR-02). The persisted value is validated against the allowed set (`light` | `dark`) before
+use; any other or corrupt value is ignored and the UI falls back to the OS preference.
 
 **UI-FR-04** The application shell shall provide a responsive Material navigation structure:
 a top App Bar plus a **permanent navigation drawer on desktop** (md and up) that collapses to a
@@ -100,8 +104,20 @@ a consistent, discoverable place (app bar and/or Settings).
 ### P0: Feature parity migration (incremental)
 
 **UI-FR-05** The album grid shall be rebuilt on MUI: responsive card grid, cover art, search
-box, and the filter panel. Large collections must remain performant (virtualised or paginated
-rendering); the grid must not regress the master-doc grid-load target.
+box, and the filter panel. The grid shall be **paginated client-side** (D9): album summaries
+continue to load once (as today, supporting the client-side filter of FR-02/FR-03), but only one
+page of cards is rendered at a time via an MUI pagination control. Specifics:
+- Page size has a sensible default (e.g. 48 cards) and may be user-selectable; the choice
+  persists in `localStorage`.
+- Search and filter operate over the full loaded set; the paginated view reflects the *filtered*
+  results, and the current page resets to page 1 whenever the active search/filter changes.
+- The current page (and page size) is reflected in a URL query parameter so the view is
+  deep-linkable and survives reload and back/forward navigation (consistent with UI-FR-17).
+- Returning to the grid from album detail restores the previous page, scroll position, and active
+  filters (no reset-to-top regression).
+- This is display-only pagination with no API change (UI-NFR-08). The design must not preclude a
+  later switch to server-side pagination above the master-doc 5,000-album threshold (NFR-12).
+The grid must not regress the master-doc grid-load or filter targets (UI-NFR-02).
 
 **UI-FR-06** The album detail view and in-place tag editing shall be rebuilt on MUI, preserving:
 album-level and track-level editable fields, the confirm-write dialog, the unsaved-changes
@@ -138,15 +154,26 @@ as a side effect of the new routing structure.
 
 **UI-FR-18** A superseding ADR (amending ADR-010's styling decision; retaining its TanStack
 Query decision) shall be written and merged **before** MUI is introduced into the main branch.
-The ADR records the MUI choice, the styling-engine decision (OQ-01), and the theming/navigation
-patterns. This is a deliverable, not an assumption.
+The ADR must follow the project ADR structure with a full **Alternatives Considered** section
+(at minimum: Material aesthetic on CSS Modules, MUI + emotion, MUI + Pigment CSS, Material Web)
+and explicitly state its supersede relationship to ADR-010. It records the MUI choice, the
+Pigment CSS styling-engine decision (D6), and the theming/navigation patterns. This is a
+deliverable, not an assumption.
 
 ### P0: Cross-cutting
 
 **UI-FR-12** The reworked UI shall meet WCAG 2.1 AA: keyboard operability for all interactive
 elements, visible focus indicators, sufficient colour contrast in **both** themes, correct
 roles/labels (leveraging MUI accessibility), and respect for `prefers-reduced-motion` on Material
-transitions.
+transitions. Every form input has a persistent visible label (a placeholder is never the only
+label).
+
+**UI-FR-19** The brand-palette-to-Material-role mapping (UI-FR-02) shall be verified for contrast
+in **both** light and dark themes: text/icon foregrounds meet >= 4.5:1 (>= 3:1 for large text and
+UI component boundaries). Where a raw brand colour fails as a foreground (amber `#FFB627` and teal
+as text are likely failures), an accessible "on-color" / adjusted token variant is defined and
+used for text/icons, while the raw brand colour is reserved for fills/accents. The accessible
+token pairings are recorded in the theme as the single source of truth.
 
 **UI-FR-13** The UI shall be fully responsive across phone, tablet, and desktop widths using
 Material breakpoints: the grid reflows column count, navigation collapses to an overlay drawer on
@@ -168,6 +195,18 @@ screens are quick to build.
 **UI-FR-16** Optional polish: subtle Material motion/transitions on navigation and list updates,
 and skeleton loaders for the album grid and detail while data loads.
 
+### P0: Consistency and documentation
+
+**UI-FR-20** User-facing documentation that depicts the UI shall be updated to match the rework:
+any screenshots and step descriptions in the user/admin guide and getting-started docs are
+refreshed for the new MUI look, navigation, theme toggle, and paginated grid. Stale old-UI
+screenshots must not remain.
+
+**UI-FR-21** The master `docs/requirements.md` shall be amended in the same change set that lands
+the responsive work so the two documents do not contradict: NFR-10 and section 11 ("mobile
+out of scope") are updated to reflect the full-responsive decision (D4). This is a tracked
+deliverable, not a deferred assumption.
+
 ---
 
 ## 5. Non-Functional Requirements
@@ -175,7 +214,7 @@ and skeleton loaders for the album grid and detail while data loads.
 | ID | Category | Requirement |
 |---|---|---|
 | UI-NFR-01 | Performance (bundle) | MUI must be tree-shaken and routes code-split. With Pigment CSS (D6) styles are extracted to static CSS at build time, so there is no emotion JS runtime in the bundle. Initial JS payload **soft budget: <= 250 KB gzipped** for the app shell + first route, enforced by an automated CI check (e.g. `size-limit`) that fails the build on regression. **Because kbeatz is served over a trusted LAN (not the public internet), payload size is delivered at local bandwidth and is not latency-critical;** the budget is therefore adjustable: it may be raised (configured ceiling up to ~500 KB gzipped) when a feature warrants it, by updating the budget value in the same PR with a one-line rationale. The gate enforces whatever the current configured value is - the point is to catch *unintended* growth, not to hard-cap size. |
-| UI-NFR-09 | Theming (no-flash mechanism) | Because this is a client-rendered SPA, the persisted/OS theme must be resolved by a small blocking inline script in `index.html` that sets the theme before the application bundle executes. No theme-dependent UI renders before that resolution. |
+| UI-NFR-09 | Theming (no-flash mechanism) | Because this is a client-rendered SPA, the persisted/OS theme must be resolved by a small blocking inline script in `index.html` that sets the theme before the application bundle executes. No theme-dependent UI renders before that resolution. The inline script must be Content-Security-Policy compatible (delivered with a nonce or hash, no reliance on `unsafe-inline`) so it does not block a future CSP per `security.md` A05. |
 | UI-NFR-10 | Interim style isolation | During incremental migration, MUI (Pigment CSS extracted styles) and remaining legacy CSS Modules must not collide. Global CSS resets are introduced via MUI `CssBaseline` only; no un-scoped global selectors are added, so a migrated screen is unaffected by legacy styles and vice versa. |
 | UI-NFR-02 | Performance (runtime) | Album grid load and filter/search keep the master-doc targets (grid p95 < 3 s v1; filter/search < 200 ms client-side). Theme toggle applies in < 100 ms with no full reload. |
 | UI-NFR-03 | Accessibility | WCAG 2.1 AA in both light and dark themes, verified by automated checks (axe) plus a manual keyboard/screen-reader pass per screen. |
@@ -184,6 +223,9 @@ and skeleton loaders for the album grid and detail while data loads.
 | UI-NFR-06 | Maintainability | One MUI theme file is the single source of truth for tokens. No inline style attributes; no ad-hoc colour literals in components. |
 | UI-NFR-07 | Quality gates | `npm run build` (TypeScript strict) passes with zero errors; ESLint clean; Vitest line+branch coverage stays >= 80% on changed code; i18n locale-parity test passes. |
 | UI-NFR-08 | No backend change | No change to `kbeatz-catalog/api/openapi.yaml` or the generated client. If any limitation forces an API change, it is escalated, not silently introduced. |
+| UI-NFR-11 | Test strategy | The rework adds: visual-regression snapshots per screen in **both** themes; an automated responsive check across xs/sm/md/lg/xl; automated tests for theme persistence (UI-AC-02), the routing/unsaved-changes guard (UI-AC-14), and grid pagination (page change, filter-resets-to-page-1, URL round-trip, back-restore); and an axe scan per screen in both themes. The set of suites that constitute "feature parity" verification (UI-AC-06) is enumerated; if no E2E harness exists today, the parity baseline is captured as component/integration tests before migration begins. |
+| UI-NFR-12 | Resilience | The new shell retains a global error boundary that renders an accessible fallback (not a blank screen) on a render error, and logs the error via the frontend logger (`react-patterns.md`). When `localStorage` is unavailable (private mode / disabled), theme and page-size preferences fall back to in-memory defaults and the OS theme without throwing. |
+| UI-NFR-13 | Supply chain | New dependencies (MUI, Pigment CSS + its Vite plugin, `size-limit`, axe tooling) are version-pinned and pass `npm audit` (no unmitigated high/critical). The bundle-size gate (UI-NFR-01) and the axe scan (UI-NFR-03) are wired into the CI workflow as required checks. |
 
 ---
 
@@ -192,7 +234,7 @@ and skeleton loaders for the album grid and detail while data loads.
 | Current screen / component | Location | Target MUI realisation |
 |---|---|---|
 | App shell / header / toolbar | `App.tsx`, `App.module.css` | App Bar + responsive navigation drawer/rail + theme/language controls |
-| Album grid + cards | `features/albums/album-grid.tsx`, `album-card.tsx` | MUI responsive card grid (virtualised/paginated) |
+| Album grid + cards | `features/albums/album-grid.tsx`, `album-card.tsx` | MUI responsive card grid with client-side pagination (MUI `Pagination`) |
 | Search box | `features/albums/search-box.tsx` | MUI `TextField` with search adornment |
 | Filter panel + sort preference | `features/albums/filter-panel.tsx`, `sort-preference.tsx` | MUI drawer/menu controls, chips, selects |
 | Album detail + editable fields | `features/albums/album-detail.tsx`, `editable-field.tsx` | MUI detail layout, inline-editable fields |
@@ -214,7 +256,8 @@ New client-only state introduced:
 
 | Entity | Storage | Notes |
 |---|---|---|
-| Theme preference | `localStorage` + React context (MUI `ThemeProvider`) | Values: `light`, `dark`, or unset (= follow OS). Global client state, not server state. |
+| Theme preference | `localStorage` + React context (MUI `ThemeProvider`) | Values: `light`, `dark`, or unset (= follow OS). Validated on read; unknown values ignored. Global client state, not server state. |
+| Grid page + page size | `localStorage` (page size) + URL query param (current page) | Page size persists; current page is in the URL for deep-linking and back/forward. Client-only view state. |
 
 ---
 
@@ -245,6 +288,13 @@ New client-only state introduced:
 | UI-AC-11 | Initial JS payload is within the currently configured budget (default 250 KB gzipped, raisable to ~500 KB per UI-NFR-01); the CI gate fails only on growth beyond the configured value | Automated `size-limit`/bundle-size CI check |
 | UI-AC-12 | `npm run build` (strict) passes, ESLint clean, Vitest coverage >= 80% | CI gates |
 | UI-AC-13 | At each migration step the app is shippable (builds, no half-migrated screen merged) | Per-PR review + CI |
+| UI-AC-16 | The album grid renders one page at a time; changing page updates the cards and the URL query param; reload/back returns to the same page | Paginate, reload, back/forward; assert rendered card count and URL |
+| UI-AC-17 | Applying a search/filter resets the grid to page 1 and paginates the filtered results | Filter with multi-page results; assert page resets and counts |
+| UI-AC-18 | Returning from album detail restores the prior grid page, scroll position, and active filters | Open an album from page 3, go back, assert page 3 + filters + scroll |
+| UI-AC-19 | Brand-palette foregrounds meet >= 4.5:1 (>= 3:1 large/UI) in both themes; failing brand colours use the accessible on-color token for text | Contrast check each role token pair, light and dark |
+| UI-AC-20 | Visual-regression snapshots exist per screen in both themes and gate the build; responsive checks run across all breakpoints | CI snapshot + responsive job |
+| UI-AC-21 | A global error boundary shows an accessible fallback on render error; the app still loads when localStorage is unavailable | Force a render throw; run with storage disabled |
+| UI-AC-22 | User docs/screenshots reflect the new UI; master `docs/requirements.md` mobile-scope lines are amended | Review docs diff in the same change set |
 
 ---
 
@@ -253,7 +303,7 @@ New client-only state introduced:
 | ID | Assumption | Impact if wrong |
 |---|---|---|
 | A-01 | A new ADR supersedes the styling decision in ADR-010 (UI-FR-18); the TanStack Query decision in ADR-010 stays | If ADR-010 must stay intact, MUI adoption is blocked and we revert to "Material aesthetic on CSS Modules" |
-| A-07 | The master `docs/requirements.md` (NFR-10 and section 11 mobile-out-of-scope) will be amended to reflect the full-responsive decision (D4), so the two docs do not contradict | If left unamended, two conflicting sources of truth exist for mobile scope |
+| A-07 | (Promoted to requirement UI-FR-21.) The master `docs/requirements.md` mobile-scope lines are amended in the same change set as the responsive work | Tracked as UI-FR-21 / UI-AC-22, no longer a deferred assumption |
 | A-02 | MUI v6+ with the **Pigment CSS** zero-runtime engine (D6) is mature enough for the full Material UI component set used here. Pigment is newer than emotion; some components or patterns may have rough edges | If Pigment CSS blocks a needed component, fall back to emotion-based MUI for that screen (accepting the runtime cost) and record it in the ADR |
 | A-03 | No backend/API change is needed for any reworked screen | Any required API change is escalated as a separate requirement |
 | A-04 | Existing feature set is frozen during the rework; new features (e.g. #811 UI) layer on top afterwards | Concurrent feature work on legacy components causes rebase/merge churn |
@@ -285,8 +335,13 @@ All open questions are resolved (see decisions D6-D8 in section 3).
 
 ---
 
-## 13. Top 3 Risks
+## 13. Top Risks
 
+0. **Dual-theme accessibility (cross-cutting, flagged by challenge-all).** The brand palette as
+   foreground almost certainly fails AA contrast in at least one theme (amber, teal as text), and
+   "both themes" doubles the surface for contrast/keyboard/visual-regression defects. Mitigation:
+   treat the accessible palette + contrast work (UI-FR-19) as a first-class story, and gate on the
+   per-theme axe + visual-regression checks (UI-NFR-11) rather than a one-off manual pass.
 1. **Pigment CSS maturity + bundle size.** Pigment CSS (D6) removes the emotion runtime, which
    helps the budget, but it is newer than emotion and its integration across the full Material UI
    component set may have rough edges; the Vite plugin adds build complexity. Combined with MUI's
@@ -303,5 +358,9 @@ All open questions are resolved (see decisions D6-D8 in section 3).
 
 ---
 
-*Document generated by RequirementsAgent. Pending product-owner approval and an ArchitectAgent
-challenge pass on completeness, testability, and NFR coverage.*
+*Document generated by RequirementsAgent. Architect challenge pass incorporated (routing/guard,
+ADR-first, bundle gate, no-flash, interim isolation). Full challenge-all pass (10 personas)
+incorporated: client-side grid pagination (D9 / UI-FR-05), accessible palette contrast
+(UI-FR-19), documentation + ADR alternatives (UI-FR-18/UI-FR-20), master-doc reconciliation
+(UI-FR-21), test strategy (UI-NFR-11), resilience (UI-NFR-12), supply chain (UI-NFR-13), and
+security/Pigment theming notes (UI-FR-03 / UI-NFR-09). Pending product-owner approval.*
