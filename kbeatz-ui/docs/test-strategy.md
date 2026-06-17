@@ -121,3 +121,34 @@ The frontend CI job runs `npm run test` / `npm run test:coverage`, which
 discovers every `*.test.{ts,tsx}` (including `*.visual.test.*` and
 `*.responsive.test.*`) automatically. No separate visual-regression script is
 needed, so there is nothing extra to wire; the worker-pool cap is preserved.
+
+## Known limitations (jsdom test depth)
+
+These suites run under jsdom, which parses and builds the DOM but performs **no
+layout and no paint**. That bounds what the "visual" and "responsive" layers can
+actually verify - be aware of the gap rather than over-trusting a green run:
+
+- **Visual-regression is DOM-structural, not pixel-visual.** The snapshots assert
+  the rendered markup is unchanged; they do **not** catch real visual regressions
+  (colour, spacing, overflow, font, contrast) because nothing is painted. Because
+  the MUI theme is applied via CSS custom properties on `<html>`, the light and
+  dark DOM is in fact identical - so `theme-tokens.visual.test.ts` separately pins
+  the resolved palette values to catch a colour-token regression. A broken layout
+  that still produces the same markup would pass.
+- **Responsive checks assert structure, not geometry.** The matrix drives
+  `matchMedia` and asserts breakpoint-driven branches (e.g. drawer overlay at
+  xs/sm vs permanent at md+). It cannot assert "no horizontal scroll" or true
+  column reflow, because jsdom computes no box geometry.
+- **Contrast is verified computationally, not as rendered.** axe's `color-contrast`
+  rule is disabled under jsdom (it cannot resolve computed colours); brand-palette
+  contrast is instead checked against the WCAG thresholds in
+  `src/theme/contrast.test.ts`. Real rendered contrast of composed UI is not
+  automatically verified.
+
+**What still requires a human (or future tooling):** actual visual appearance,
+layout/overflow at real viewport sizes, and rendered contrast are verified by
+manual review. True pixel-level visual regression would require a real browser
+(e.g. Playwright component/page screenshots in CI); that is intentionally out of
+scope here (heavier, browser-dependent, flakier) and is tracked as possible
+future work. Treat the four automated layers as catching *structural* and
+*behavioural* regressions, with rendered visuals covered manually.
