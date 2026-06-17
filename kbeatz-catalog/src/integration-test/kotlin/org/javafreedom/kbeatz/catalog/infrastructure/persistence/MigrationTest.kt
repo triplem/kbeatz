@@ -100,6 +100,27 @@ class MigrationTest {
     }
 
     @Test
+    fun `V1-007 merged_directories changeset is idempotent when column already exists`() = runTest {
+        // Regression test for issue #864. Unlike `migration is idempotent on restart` (which uses a
+        // fresh in-memory URL per test class instance), this test uses its own persistent URL so
+        // the H2 file survives the first DbFactory.init closure and the second init encounters
+        // a database that already has the merged_directories column. Without the preConditions
+        // onFail:MARK_RAN guard Liquibase would throw "Duplicate column name MERGED_DIRECTORIES".
+        val url = "jdbc:h2:mem:precondition_${System.nanoTime()};DB_CLOSE_DELAY=-1;MODE=PostgreSQL"
+        val ds1 = DbFactory.init(url)
+        ds1.close()
+        // Second full migration run: merged_directories already exists, changeset must be MARK_RAN.
+        val ds2 = DbFactory.init(url)
+        try {
+            transaction {
+                assertEquals(0L, AlbumsTable.selectAll().count())
+            }
+        } finally {
+            ds2.close()
+        }
+    }
+
+    @Test
     fun `albums insert and read back all fields`() = runTest {
         val ds = DbFactory.init(jdbcUrl)
         try {
