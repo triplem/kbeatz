@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Box from '@mui/material/Box'
 import Stack from '@mui/material/Stack'
@@ -12,14 +12,12 @@ import { FilterPanel } from './features/albums/filter-panel'
 import { PageSizeSelect } from './features/albums/page-size-select'
 import { SearchBox } from './features/albums/search-box'
 import { SortPreference } from './features/albums/sort-preference'
-import { useAllAlbums } from './features/albums/useAllAlbums'
+import { useAlbumList } from './features/albums/useAlbumList'
 import { useAlbumFilters } from './features/albums/useAlbumFilters'
+import { usePageParams } from './features/albums/usePageParams'
 import { usePagination } from './features/albums/usePagination'
 import { useScrollRestoration } from './features/albums/useScrollRestoration'
-import { pageSlice } from './features/albums/pagination'
 import {
-  applyFiltersAndSort,
-  deriveFilterOptions,
   loadSortDirection,
   loadSortPreference,
   saveSortDirection,
@@ -31,16 +29,21 @@ import {
 /**
  * Album list landing page.
  *
- * Loads the full album-summary set once (TanStack Query), then applies the
- * client-side filter + sort over that set and renders a single page of cards
- * via an MUI Pagination control (client-side pagination, decision D9). Page
- * number + page size live in the URL so the view is deep-linkable and survives
- * reload + back/forward; returning from album detail restores the page, the
- * active filters (URL), and the scroll position (AC5/AC6).
+ * Dual-mode (story #853): the data hook (`useAlbumList`) picks client-side or
+ * server-side mode from the collection size. In client-side mode the full set
+ * is loaded once and filter/sort/pagination run in-memory (decision D9); in
+ * server-side mode each page is fetched from the server with the active filters
+ * mapped to server params, so a 10 000-album library is never truncated
+ * (NFR-11 / NFR-12). Either way the component renders only the current page of
+ * cards via an MUI Pagination control.
  *
- * This component is a thin renderer: all pagination logic lives in
- * `usePagination`, all filter/sort logic in `album-filters`, per
- * react-patterns.md (no business logic in JSX, no derived state stored).
+ * Page number + page size live in the URL so the view is deep-linkable and
+ * survives reload + back/forward; returning from album detail restores the
+ * page, the active filters (URL), and the scroll position (AC5/AC6).
+ *
+ * This component is a thin renderer: all data/mode logic lives in
+ * `useAlbumList`, all pagination logic in `usePagination`, all filter/sort
+ * logic in `album-filters`, per react-patterns.md.
  */
 export function AlbumListPage() {
   const { t } = useTranslation()
@@ -49,36 +52,34 @@ export function AlbumListPage() {
   const [sortBy, setSortBy] = useState<SortField>(() => loadSortPreference())
   const [sortDirection, setSortDirection] = useState<SortDirection>(() => loadSortDirection())
 
-  const { data, isPending, isError, refetch } = useAllAlbums()
-  const albums = useMemo(() => data ?? [], [data])
-
-  // Filter options derived from the full set so the filter panel can offer
-  // every value present in the collection (client-side, no extra request).
-  const filterOptions = useMemo(() => deriveFilterOptions(albums), [albums])
-
-  // Full filtered + sorted result set (over ALL albums, not just one page).
-  const filteredAlbums = useMemo(
-    () => applyFiltersAndSort(albums, filters, sortBy, sortDirection),
-    [albums, filters, sortBy, sortDirection],
-  )
-
   // Stable key describing the active filter/sort so pagination resets to page 1
-  // whenever any of them change (AC4).
+  // whenever any of them change (AC4). Drives both modes.
   const resetKey = `${filters.query}|${filters.genres.join(',')}|${filters.artists.join(',')}|${filters.composers.join(',')}|${sortBy}|${sortDirection}`
 
-  const { page, pageSize, totalPages, setPage, setPageSize } = usePagination({
-    itemCount: filteredAlbums.length,
+  // Read raw page/size from the URL first (independent of the total) so the
+  // data hook can fetch the right server page. The total only becomes known
+  // after that fetch, so the pager (which clamps against the total) is resolved
+  // afterwards. This breaks the page <-> total cycle without storing derived
+  // state - the URL stays the source of truth for the page.
+  const { page, pageSize } = usePageParams()
+
+  const { mode, isPending, isError, refetch, albums, totalCount, filterOptions } = useAlbumList({
+    page,
+    pageSize,
+    filters,
+    sortBy,
+    sortDirection,
+  })
+
+  // Pagination owns the displayed page + URL writes, clamped against the real
+  // total reported by the data hook. setPageSize resets to page 1 and persists.
+  const { page: displayPage, totalPages, setPage, setPageSize } = usePagination({
+    itemCount: totalCount,
     resetKey,
   })
 
-  // The single page of cards actually mounted in the DOM (Performance AC).
-  const visibleAlbums = useMemo(
-    () => pageSlice(filteredAlbums, page, pageSize),
-    [filteredAlbums, page, pageSize],
-  )
-
   // Restore scroll once albums have rendered so returning from detail lands
-  // the user where they were (AC6).
+  // the user where they were (AC6). Applies in both modes.
   useScrollRestoration('albums', !isPending && !isError && albums.length > 0)
 
   const handleSortChange = useCallback((next: SortField) => {
@@ -92,8 +93,15 @@ export function AlbumListPage() {
   }, [])
 
   const handleRetry = useCallback(() => {
-    void refetch()
+    refetch()
   }, [refetch])
+
+  // Server mode has no sort param; the control is hidden so the user is not
+  // offered a sort that only reorders the current page (documented limitation).
+  const showSort = mode === 'client'
+  // The filter panel enumerates values from the full set, which only exists in
+  // client mode; in server mode users filter via the search box and typed terms.
+  const showFilterPanel = mode === 'client' && !isPending && !isError
 
   return (
     <Box>
@@ -117,12 +125,14 @@ export function AlbumListPage() {
       >
         <SearchBox filters={filters} onFiltersChange={setFilters} />
         <Box sx={{ flexGrow: 1 }} />
-        <SortPreference
-          value={sortBy}
-          onChange={handleSortChange}
-          direction={sortDirection}
-          onDirectionChange={handleDirectionChange}
-        />
+        {showSort && (
+          <SortPreference
+            value={sortBy}
+            onChange={handleSortChange}
+            direction={sortDirection}
+            onDirectionChange={handleDirectionChange}
+          />
+        )}
         <PageSizeSelect value={pageSize} onChange={setPageSize} />
       </Stack>
 
@@ -138,7 +148,7 @@ export function AlbumListPage() {
           width: '100%',
         }}
       >
-        {!isPending && !isError && (
+        {showFilterPanel && (
           <FilterPanel options={filterOptions} filters={filters} onFiltersChange={setFilters} />
         )}
 
@@ -174,8 +184,8 @@ export function AlbumListPage() {
 
           {!isPending && !isError && (
             <>
-              <AlbumGrid albums={visibleAlbums} totalCount={filteredAlbums.length} />
-              <AlbumPagination page={page} totalPages={totalPages} onPageChange={setPage} />
+              <AlbumGrid albums={albums} totalCount={totalCount} />
+              <AlbumPagination page={displayPage} totalPages={totalPages} onPageChange={setPage} />
             </>
           )}
         </Box>

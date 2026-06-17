@@ -79,6 +79,36 @@ index of where each is verified is `src/behaviour-coverage.index.test.ts`
 | Theme persistence + OS default + corrupt-value fallback | `src/theme/color-scheme-context.test.tsx`, `src/theme/theme-storage.test.ts`, `src/shell/app-shell-localstorage-fallback.test.tsx` |
 | Routing + unsaved-changes guard on route change AND back/forward | `src/shell/use-unsaved-changes-blocker.test.tsx`, `src/features/albums/album-detail.test.tsx` (navigation-guard describe, incl. the `act()` effect-flush after clearing dirty), `src/shell/app-shell.test.tsx` |
 | Grid pagination (page change, filter -> page 1, URL round-trip, back-restore) | `src/App.test.tsx`, `src/features/albums/usePagination.test.tsx`, `src/features/albums/useScrollRestoration.test.tsx` |
+| Dual-mode album list (client-side <= threshold, server-side above; mode boundary, no truncation) | `src/App.server-mode.test.tsx`, `src/features/albums/useAlbumList.test.tsx`, `src/features/albums/useAllAlbums.test.tsx`, `src/features/albums/useAlbumPage.test.tsx`, `src/features/albums/usePageParams.test.tsx` |
+
+### Dual-mode album list (#853)
+
+The album grid runs in one of two modes, selected by `totalElements` from the
+first-page probe (`useAllAlbums`), with the threshold in
+`src/features/albums/album-list-mode.ts` (`CLIENT_SIDE_THRESHOLD`, default
+5 000):
+
+- **Client-side** (<= threshold): the full set is loaded once and
+  filter/search/sort/pagination run in-memory. Behaviour is identical to the
+  pre-#853 grid (the existing `App.test.tsx` and visual/responsive snapshots
+  cover this unchanged).
+- **Server-side** (> threshold): each page is fetched from `listAlbums`
+  (`useAlbumPage`) with the active filters mapped to server params; only that
+  page is rendered. This replaces the old `MAX_PAGES = 50` cap that silently
+  truncated the grid at 5 000 albums (NFR-11 / NFR-12). `App.server-mode.test.tsx`
+  proves a 10 000-album library is fully reachable (a high page renders albums
+  past index 5 000), that exactly one page is fetched per page change, and that
+  search/filter map to server params and reset to page 1.
+
+**Server-mode sort limitation (documented):** the `listAlbums` endpoint exposes
+no `sort` parameter, so server-side ordering is the server's default stable
+order. A client-side sort could only reorder the current page, which is
+misleading; the page therefore hides the sort control in server-side mode (the
+sort still applies in full in client-side mode). Filtering by genre/artist/
+composer above the threshold collapses multi-value selections to their first
+value (the server accepts a single value per axis); the filter panel, which
+enumerates the full set, is likewise hidden in server mode, so above the
+threshold users filter via the search box and typed terms.
 
 Router-navigation-after-clearing-dirty tests flush effects with
 `await act(async () => { await Promise.resolve() })` so react-router's

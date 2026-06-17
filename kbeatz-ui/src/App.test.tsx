@@ -25,6 +25,17 @@ const mockUseAllAlbums = vi.mocked(useAllAlbums)
 
 type AllAlbumsResult = Pick<ReturnType<typeof useAllAlbums>, 'data' | 'isPending' | 'isError' | 'refetch'>
 
+/**
+ * Wrap a plain album array into the client-side {@link useAllAlbums} result
+ * shape (mode + totalElements + albums) so these client-mode tests drive the
+ * dual-mode page exactly as a small (<= threshold) library does. The rendered
+ * DOM is identical to the pre-#853 behaviour, so the visual snapshots are
+ * unaffected.
+ */
+function clientData(albums: Album[]): AllAlbumsResult['data'] {
+  return { mode: 'client', totalElements: albums.length, albums }
+}
+
 function makeAlbum(index: number): Album {
   return {
     id: `album-${index}`,
@@ -41,7 +52,7 @@ function makeAlbums(count: number): Album[] {
 
 function makeResult(overrides: Partial<AllAlbumsResult> = {}): AllAlbumsResult {
   return {
-    data: [],
+    data: clientData([]),
     isPending: false,
     isError: false,
     refetch: vi.fn(),
@@ -106,7 +117,7 @@ describe('AlbumListPage - loading and error', () => {
   })
 
   it('shows the empty message when there are no albums', () => {
-    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: [] })))
+    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData([]) })))
     renderApp()
     expect(screen.getByTestId('album-grid-empty')).toBeInTheDocument()
   })
@@ -118,20 +129,20 @@ describe('AlbumListPage - loading and error', () => {
 
 describe('AlbumListPage - renders one page of cards', () => {
   it('renders only the first page (default size 48) when more albums exist', () => {
-    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: makeAlbums(100) })))
+    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(100)) })))
     renderApp()
     expect(screen.getAllByTestId('album-card')).toHaveLength(48)
   })
 
   it('renders all albums when fewer than one page exist (no pagination)', () => {
-    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: makeAlbums(10) })))
+    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(10)) })))
     renderApp()
     expect(screen.getAllByTestId('album-card')).toHaveLength(10)
     expect(screen.queryByTestId('album-pagination')).not.toBeInTheDocument()
   })
 
   it('announces filtered/total count to screen readers', () => {
-    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: makeAlbums(100) })))
+    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(100)) })))
     renderApp()
     const status = screen.getByTestId('album-grid-result-count')
     expect(status).toHaveTextContent('Showing 48 of 100 albums')
@@ -146,7 +157,7 @@ describe('AlbumListPage - renders one page of cards', () => {
 describe('AlbumListPage - page navigation', () => {
   it('changing page renders the next slice of cards and updates the URL', async () => {
     const user = userEvent.setup()
-    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: makeAlbums(100) })))
+    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(100)) })))
     const { router } = renderApp()
 
     // First page: cards 0..47, so "Album 0000" present, "Album 0048" absent.
@@ -164,21 +175,21 @@ describe('AlbumListPage - page navigation', () => {
   })
 
   it('deep-links to a page via the URL query param (AC5)', () => {
-    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: makeAlbums(100) })))
+    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(100)) })))
     renderApp({ initialEntries: ['/?page=2'] })
     expect(screen.getByTitle('Album 0048')).toBeInTheDocument()
     expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 2 of 3')
   })
 
   it('clamps an out-of-range page param into the valid range', () => {
-    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: makeAlbums(100) })))
+    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(100)) })))
     renderApp({ initialEntries: ['/?page=999'] })
     // 100 albums / 48 = 3 pages; clamps to last page (3)
     expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 3 of 3')
   })
 
   it('ignores a non-numeric page param and shows page 1', () => {
-    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: makeAlbums(100) })))
+    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(100)) })))
     renderApp({ initialEntries: ['/?page=abc'] })
     expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 1 of 3')
   })
@@ -193,7 +204,7 @@ describe('AlbumListPage - filter resets pagination', () => {
     // delay: null types synchronously so this stays well under the async query
     // timeout even when the suite runs concurrently with the CPU-heavy axe tests.
     const user = userEvent.setup({ delay: null })
-    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: makeAlbums(100) })))
+    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(100)) })))
     const { router } = renderApp({ initialEntries: ['/?page=3'] })
 
     expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 3 of 3')
@@ -211,7 +222,7 @@ describe('AlbumListPage - filter resets pagination', () => {
 
   it('paginates over the FILTERED results, not the full set', async () => {
     const user = userEvent.setup({ delay: null })
-    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: makeAlbums(100) })))
+    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(100)) })))
     renderApp()
 
     // "Artist 000" matches Artist 0000..0009 (10 albums) - one page, no pager.
@@ -231,7 +242,7 @@ describe('AlbumListPage - filter resets pagination', () => {
 describe('AlbumListPage - page size', () => {
   it('changing page size updates the rendered count and persists to localStorage', async () => {
     const user = userEvent.setup()
-    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: makeAlbums(100) })))
+    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(100)) })))
     renderApp()
 
     expect(screen.getAllByTestId('album-card')).toHaveLength(48)
@@ -246,21 +257,21 @@ describe('AlbumListPage - page size', () => {
 
   it('reads the persisted page size from localStorage on load', () => {
     localStorage.setItem(PAGE_SIZE_STORAGE_KEY, '24')
-    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: makeAlbums(100) })))
+    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(100)) })))
     renderApp()
     expect(screen.getAllByTestId('album-card')).toHaveLength(24)
   })
 
   it('falls back to the default when localStorage holds a corrupt page size', () => {
     localStorage.setItem(PAGE_SIZE_STORAGE_KEY, 'not-a-number')
-    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: makeAlbums(100) })))
+    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(100)) })))
     renderApp()
     expect(screen.getAllByTestId('album-card')).toHaveLength(48)
   })
 
   it('a URL size param overrides the persisted default', () => {
     localStorage.setItem(PAGE_SIZE_STORAGE_KEY, '48')
-    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: makeAlbums(100) })))
+    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(100)) })))
     renderApp({ initialEntries: ['/?size=24'] })
     expect(screen.getAllByTestId('album-card')).toHaveLength(24)
   })
@@ -272,14 +283,14 @@ describe('AlbumListPage - page size', () => {
 
 describe('AlbumListPage - accessibility', () => {
   it('renders a labelled pagination nav landmark', () => {
-    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: makeAlbums(100) })))
+    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(100)) })))
     renderApp()
     expect(screen.getByRole('navigation', { name: 'Album page navigation' })).toBeInTheDocument()
   })
 
   it('pagination page buttons are keyboard reachable with labelled controls', async () => {
     const user = userEvent.setup()
-    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: makeAlbums(100) })))
+    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(100)) })))
     renderApp()
 
     const nav = screen.getByRole('navigation', { name: 'Album page navigation' })
@@ -291,7 +302,7 @@ describe('AlbumListPage - accessibility', () => {
   })
 
   it('search box and sort have visible labels (no placeholder-only labelling)', () => {
-    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: makeAlbums(10) })))
+    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(10)) })))
     renderApp()
     expect(screen.getByRole('searchbox', { name: 'Search' })).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: 'Sort by' })).toBeInTheDocument()
@@ -305,7 +316,7 @@ describe('AlbumListPage - accessibility', () => {
 describe('AlbumListPage - navigation preserves state', () => {
   it('keeps the page query param in the URL when navigating to a card', async () => {
     const user = userEvent.setup()
-    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: makeAlbums(100) })))
+    mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(100)) })))
     const { router } = renderApp({ initialEntries: ['/?page=2'] })
 
     // Confirm page 2 rendered, then click a card to navigate to detail.

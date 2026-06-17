@@ -15,9 +15,13 @@ const mockUseAllAlbums = vi.mocked(useAllAlbums)
 
 type Result = Pick<ReturnType<typeof useAllAlbums>, 'data' | 'isPending' | 'isError' | 'refetch'>
 
+function clientData(albums: readonly (typeof FIXTURE_ALBUMS)[number][]): Result['data'] {
+  return { mode: 'client', totalElements: albums.length, albums: [...albums] }
+}
+
 function asResult(overrides: Partial<Result>): ReturnType<typeof useAllAlbums> {
   return {
-    data: [...FIXTURE_ALBUMS],
+    data: clientData(FIXTURE_ALBUMS),
     isPending: false,
     isError: false,
     refetch: vi.fn(),
@@ -39,7 +43,7 @@ describe('AlbumListPage visual regression', () => {
 
   for (const theme of THEMES) {
     it(`matches the populated-list snapshot in ${theme} theme`, () => {
-      mockUseAllAlbums.mockReturnValue(asResult({ data: [...FIXTURE_ALBUMS] }))
+      mockUseAllAlbums.mockReturnValue(asResult({ data: clientData(FIXTURE_ALBUMS) }))
       const { container } = renderRoute([{ index: true, element: <AlbumListPage /> }], { theme })
       expect(container).toMatchSnapshot()
     })
@@ -57,7 +61,7 @@ describe('AlbumListPage visual regression', () => {
     })
 
     it(`matches the empty snapshot in ${theme} theme`, () => {
-      mockUseAllAlbums.mockReturnValue(asResult({ data: [] }))
+      mockUseAllAlbums.mockReturnValue(asResult({ data: clientData([]) }))
       const { container } = renderRoute([{ index: true, element: <AlbumListPage /> }], { theme })
       expect(container).toMatchSnapshot()
     })

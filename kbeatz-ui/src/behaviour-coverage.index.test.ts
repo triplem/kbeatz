@@ -44,6 +44,16 @@ import { describe, it, expect } from 'vitest'
  *     src/features/albums/usePagination.test.tsx (page math + URL round-trip unit)
  *     src/features/albums/useScrollRestoration.test.tsx (scroll back-restore unit)
  *
+ * - Dual-mode album list (#853): client-side below the threshold, server-side
+ *   above; mode boundary, no 5 000-album truncation, filter/search -> server
+ *   params + reset to page 1
+ *     src/App.server-mode.test.tsx
+ *       (server-side rendering, one-page fetch, deep-link, search mapping,
+ *        reading past index 5 000, mode-detection boundary)
+ *     src/features/albums/useAlbumList.test.tsx  (orchestrator mode selection)
+ *     src/features/albums/useAllAlbums.test.tsx  (probe + threshold switch)
+ *     src/features/albums/useAlbumPage.test.tsx  (server page + param mapping)
+ *
  * Accessibility (axe) and visual/responsive coverage are indexed in
  * docs/test-strategy.md.
  */
@@ -66,6 +76,11 @@ const BEHAVIOUR_SUITES = [
   './App.test.tsx',
   './features/albums/usePagination.test.tsx',
   './features/albums/useScrollRestoration.test.tsx',
+  './App.server-mode.test.tsx',
+  './features/albums/useAlbumList.test.tsx',
+  './features/albums/useAllAlbums.test.tsx',
+  './features/albums/useAlbumPage.test.tsx',
+  './features/albums/usePageParams.test.tsx',
 ] as const
 
 describe('parity behaviour-coverage index', () => {
