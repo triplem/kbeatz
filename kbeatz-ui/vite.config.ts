@@ -59,15 +59,20 @@ export default defineConfig(({ command }) => ({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test-setup.ts'],
-    // The suite includes CPU-heavy axe accessibility checks (#832). On
-    // many-core machines vitest spawns one worker per core, oversubscribing the
-    // CPU so timer-driven tests (userEvent typing + findBy polling) starve and
-    // flake. Cap the pool to keep the scheduler responsive, and allow generous
+    // The suite includes CPU-heavy axe accessibility checks (#832) plus the
+    // visual-regression and responsive-matrix suites (#833). On many-core
+    // machines vitest spawns one worker per core, oversubscribing the CPU so
+    // timer-driven tests (userEvent typing + findBy polling) starve and flake.
+    // Cap the worker pool to keep the scheduler responsive, and allow generous
     // timeouts so a slow-but-correct test is never killed prematurely.
+    //
+    // Vitest 4 removed `test.poolOptions`; the equivalent cap is now the
+    // top-level `maxWorkers`/`minWorkers`. This preserves the original cap of 4
+    // (the previous `poolOptions.threads.maxThreads: 4` was silently ignored
+    // after the v4 upgrade) - the value is unchanged, only its location.
     pool: 'threads',
-    poolOptions: {
-      threads: { maxThreads: 4, minThreads: 1 },
-    },
+    maxWorkers: 4,
+    minWorkers: 1,
     testTimeout: 20000,
     hookTimeout: 20000,
     // MUI ships ESM that re-exports from react-transition-group via directory
@@ -91,6 +96,11 @@ export default defineConfig(({ command }) => ({
       exclude: [
         'src/api/generated/**',
         'src/test-setup.ts',
+        // Test-only infrastructure: render/breakpoint/snapshot helpers, fixtures,
+        // and the visual-regression suites. Exercised by tests, but not product
+        // code, so they neither inflate nor deflate the coverage metric (#833).
+        'src/test/**',
+        'src/visual/**',
         '**/*.test.{ts,tsx}',
         '**/index.ts',
         'src/main.tsx',

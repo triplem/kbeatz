@@ -1,0 +1,127 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SyncPanel visual regression > matches the idle sync-panel snapshot in dark theme 1`] = `
+<div>
+  <section
+    aria-label="Sync from Discogs"
+    class="MuiBox-root css-bly4bm"
+    data-testid="sync-panel"
+  >
+    <h3
+      class="MuiTypography-root MuiTypography-h6 css-bxkug3-MuiTypography-root"
+    >
+      Sync from Discogs
+    </h3>
+    <p
+      class="MuiTypography-root MuiTypography-body2 css-dtkkyl-MuiTypography-root"
+      data-testid="discogs-id"
+    >
+      Discogs ID: 1372704
+    </p>
+    <label
+      class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-1jt5xyb-MuiFormControlLabel-root"
+    >
+      <span
+        class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-rm2pxo-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+      >
+        <input
+          aria-label="Download cover art"
+          class="PrivateSwitchBase-input css-12xagqm-MuiSwitchBase-root"
+          data-indeterminate="false"
+          data-testid="download-images-checkbox"
+          type="checkbox"
+        />
+        <svg
+          aria-hidden="true"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
+          data-testid="CheckBoxOutlineBlankIcon"
+          focusable="false"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
+          />
+        </svg>
+      </span>
+      <span
+        class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-1fz3vqa-MuiTypography-root"
+      >
+        Also update cover art
+      </span>
+    </label>
+    <button
+      aria-disabled="false"
+      aria-label="Sync from Discogs"
+      class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-sizeMedium MuiButton-colorPrimary css-1psfeg2-MuiButtonBase-root-MuiButton-root"
+      data-testid="sync-button"
+      tabindex="0"
+      type="button"
+    >
+      Sync from Discogs
+    </button>
+  </section>
+</div>
+`;
+
+exports[`SyncPanel visual regression > matches the idle sync-panel snapshot in light theme 1`] = `
+<div>
+  <section
+    aria-label="Sync from Discogs"
+    class="MuiBox-root css-bly4bm"
+    data-testid="sync-panel"
+  >
+    <h3
+      class="MuiTypography-root MuiTypography-h6 css-bxkug3-MuiTypography-root"
+    >
+      Sync from Discogs
+    </h3>
+    <p
+      class="MuiTypography-root MuiTypography-body2 css-dtkkyl-MuiTypography-root"
+      data-testid="discogs-id"
+    >
+      Discogs ID: 1372704
+    </p>
+    <label
+      class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-1jt5xyb-MuiFormControlLabel-root"
+    >
+      <span
+        class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-rm2pxo-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+      >
+        <input
+          aria-label="Download cover art"
+          class="PrivateSwitchBase-input css-12xagqm-MuiSwitchBase-root"
+          data-indeterminate="false"
+          data-testid="download-images-checkbox"
+          type="checkbox"
+        />
+        <svg
+          aria-hidden="true"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
+          data-testid="CheckBoxOutlineBlankIcon"
+          focusable="false"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
+          />
+        </svg>
+      </span>
+      <span
+        class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-1fz3vqa-MuiTypography-root"
+      >
+        Also update cover art
+      </span>
+    </label>
+    <button
+      aria-disabled="false"
+      aria-label="Sync from Discogs"
+      class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-sizeMedium MuiButton-colorPrimary css-1psfeg2-MuiButtonBase-root-MuiButton-root"
+      data-testid="sync-button"
+      tabindex="0"
+      type="button"
+    >
+      Sync from Discogs
+    </button>
+  </section>
+</div>
+`;

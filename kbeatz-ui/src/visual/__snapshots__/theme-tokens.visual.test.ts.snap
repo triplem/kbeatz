@@ -1,0 +1,45 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`theme palette tokens visual regression > matches the dark scheme palette snapshot 1`] = `
+{
+  "backgroundDefault": "#15131F",
+  "backgroundPaper": "#1E1B2E",
+  "brandOn": {
+    "amber": "#FFB627",
+    "pink": "#FF5A8F",
+    "teal": "#2EC4B6",
+    "violet": "#9D84FF",
+  },
+  "divider": "#34314A",
+  "errorMain": "#FF5A8F",
+  "mode": "dark",
+  "primaryMain": "#7C5CFF",
+  "secondaryMain": "#FF5A8F",
+  "successMain": "#2EC4B6",
+  "textPrimary": "#F2F2F7",
+  "textSecondary": "#B7B7C7",
+  "warningMain": "#FFB627",
+}
+`;
+
+exports[`theme palette tokens visual regression > matches the light scheme palette snapshot 1`] = `
+{
+  "backgroundDefault": "#FAFAFB",
+  "backgroundPaper": "#FFFFFF",
+  "brandOn": {
+    "amber": "#7A5200",
+    "pink": "#C2185B",
+    "teal": "#10705F",
+    "violet": "#5B3FE0",
+  },
+  "divider": "#E0E0E6",
+  "errorMain": "#D6336C",
+  "mode": "light",
+  "primaryMain": "#6A4DE8",
+  "secondaryMain": "#FF5A8F",
+  "successMain": "#2EC4B6",
+  "textPrimary": "#1A1A2E",
+  "textSecondary": "#4A4A5E",
+  "warningMain": "#FFB627",
+}
+`;
