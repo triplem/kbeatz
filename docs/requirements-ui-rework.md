@@ -62,7 +62,7 @@ Design, with both a light and a dark theme the user can switch between.
 | D5 | Migration sequence | **Incremental, screen by screen**; app shippable at every step |
 | D6 | Styling engine (was OQ-01) | **MUI with Pigment CSS** (zero-runtime, build-time CSS extraction); no emotion runtime |
 | D7 | Desktop navigation (was OQ-02) | **Permanent navigation drawer** on desktop, collapsing to an overlay drawer on phone |
-| D8 | Breakpoints and budget (was OQ-03) | **MUI standard breakpoints** (xs/sm/md/lg/xl) and the **250 KB gzipped** initial-payload budget |
+| D8 | Breakpoints and budget (was OQ-03) | **MUI standard breakpoints** (xs/sm/md/lg/xl). Initial-payload budget starts at **250 KB gzipped** but is a **soft, adjustable target**: because kbeatz is a LAN-only app, the budget may be raised (up to ~500 KB gzipped) when a feature justifies it (see UI-NFR-01) |
 
 ---
 
@@ -174,7 +174,7 @@ and skeleton loaders for the album grid and detail while data loads.
 
 | ID | Category | Requirement |
 |---|---|---|
-| UI-NFR-01 | Performance (bundle) | MUI must be tree-shaken and routes code-split. With Pigment CSS (D6) styles are extracted to static CSS at build time, so there is no emotion JS runtime in the bundle. Initial JS payload budget: <= 250 KB gzipped for the app shell + first route. The budget is enforced by an automated CI check (e.g. `size-limit`/bundle-size gate), not a manual report; a regression over budget fails the build. |
+| UI-NFR-01 | Performance (bundle) | MUI must be tree-shaken and routes code-split. With Pigment CSS (D6) styles are extracted to static CSS at build time, so there is no emotion JS runtime in the bundle. Initial JS payload **soft budget: <= 250 KB gzipped** for the app shell + first route, enforced by an automated CI check (e.g. `size-limit`) that fails the build on regression. **Because kbeatz is served over a trusted LAN (not the public internet), payload size is delivered at local bandwidth and is not latency-critical;** the budget is therefore adjustable: it may be raised (configured ceiling up to ~500 KB gzipped) when a feature warrants it, by updating the budget value in the same PR with a one-line rationale. The gate enforces whatever the current configured value is - the point is to catch *unintended* growth, not to hard-cap size. |
 | UI-NFR-09 | Theming (no-flash mechanism) | Because this is a client-rendered SPA, the persisted/OS theme must be resolved by a small blocking inline script in `index.html` that sets the theme before the application bundle executes. No theme-dependent UI renders before that resolution. |
 | UI-NFR-10 | Interim style isolation | During incremental migration, MUI (Pigment CSS extracted styles) and remaining legacy CSS Modules must not collide. Global CSS resets are introduced via MUI `CssBaseline` only; no un-scoped global selectors are added, so a migrated screen is unaffected by legacy styles and vice versa. |
 | UI-NFR-02 | Performance (runtime) | Album grid load and filter/search keep the master-doc targets (grid p95 < 3 s v1; filter/search < 200 ms client-side). Theme toggle applies in < 100 ms with no full reload. |
@@ -242,7 +242,7 @@ New client-only state introduced:
 | UI-AC-08 | Automated axe scan reports no WCAG 2.1 AA violations on each screen in both themes | axe run per screen, light and dark |
 | UI-AC-09 | All interactive elements are keyboard-reachable with visible focus | Keyboard-only pass per screen |
 | UI-AC-10 | No hard-coded user-facing strings; locale-parity test passes for en/de | `npm run test`; grep for literals; i18next-eslint clean |
-| UI-AC-11 | Initial JS payload <= 250 KB gzipped (shell + first route) | Build report / bundle analyzer |
+| UI-AC-11 | Initial JS payload is within the currently configured budget (default 250 KB gzipped, raisable to ~500 KB per UI-NFR-01); the CI gate fails only on growth beyond the configured value | Automated `size-limit`/bundle-size CI check |
 | UI-AC-12 | `npm run build` (strict) passes, ESLint clean, Vitest coverage >= 80% | CI gates |
 | UI-AC-13 | At each migration step the app is shippable (builds, no half-migrated screen merged) | Per-PR review + CI |
 
@@ -258,7 +258,7 @@ New client-only state introduced:
 | A-03 | No backend/API change is needed for any reworked screen | Any required API change is escalated as a separate requirement |
 | A-04 | Existing feature set is frozen during the rework; new features (e.g. #811 UI) layer on top afterwards | Concurrent feature work on legacy components causes rebase/merge churn |
 | A-05 | Full phone support is a genuine target now, expanding the master doc's desktop-first scope | If phone is deprioritised, UI-FR-13 / UI-AC-07 relax to tablet |
-| A-06 | The 250 KB gzipped initial-payload budget is achievable with MUI tree-shaking + route code-splitting | If unattainable, the budget is renegotiated and recorded |
+| A-06 | The 250 KB gzipped initial-payload budget is a reasonable starting point with MUI tree-shaking + route code-splitting; as a LAN-only app the budget can be raised without harming the user experience | If 250 KB is too tight, the budget is raised (up to ~500 KB) in the PR with a rationale, per UI-NFR-01 |
 
 ---
 
@@ -281,7 +281,7 @@ All open questions are resolved (see decisions D6-D8 in section 3).
 |---|---|---|
 | OQ-01 | MUI styling engine: emotion runtime vs zero-runtime Pigment CSS | **Resolved (D6)**: use Pigment CSS (zero-runtime). Honours ADR-010's CSS-in-JS concern and helps the bundle budget. |
 | OQ-02 | Navigation pattern at desktop width | **Resolved (D7)**: permanent navigation drawer on desktop, overlay drawer on phone. |
-| OQ-03 | Responsive breakpoints and initial-payload budget value | **Resolved (D8)**: MUI standard breakpoints (xs/sm/md/lg/xl) and a 250 KB gzipped budget. |
+| OQ-03 | Responsive breakpoints and initial-payload budget value | **Resolved (D8)**: MUI standard breakpoints (xs/sm/md/lg/xl); a 250 KB gzipped soft budget that is adjustable (up to ~500 KB) given the LAN-only deployment. |
 
 ---
 
