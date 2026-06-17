@@ -20,7 +20,7 @@
  * the tracklist. The tracklist scrolls in the normal document flow (no
  * nested overflow container) so keyboard and touch scroll work naturally.
  *
- * 64px matches the application header height defined in AppLayout.
+ * 64px matches the fixed application App Bar height defined in the shell.
  *
  * On viewports < 1024px the columns stack vertically (single column).
  */

@@ -1,59 +1,4 @@
-/* App shell layout */
-
-.app {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-/* ── Header ────────────────────────────────────────────── */
-
-.appHeader {
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
-  padding: var(--space-md) var(--space-lg);
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  flex-wrap: wrap;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.appLogoLink {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  text-decoration: none;
-}
-
-/* appLogoFull is applied to the <picture> wrapper; the nested <img> inherits height. */
-.appLogoFull {
-  height: 36px;
-  width: auto;
-  display: block;
-}
-
-.appLogoFull img {
-  height: 36px;
-  width: auto;
-  display: block;
-}
-
-.appLogoIcon {
-  height: 36px;
-  width: auto;
-  display: none;
-}
-
-/* ── Main content area ─────────────────────────────────── */
-
-.appMain {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
+/* Album list page layout (the shell chrome lives in src/shell/) */
 
 /* Search bar row (album list page only)
    - Flex row: search input (expands) + sort-by controls on the right
@@ -145,20 +90,6 @@
   .appContent {
     flex-direction: column;
     padding: var(--space-sm);
-  }
-
-  .appHeader {
-    padding: var(--space-sm) var(--space-md);
-  }
-}
-
-@media (max-width: 640px) {
-  .appLogoFull {
-    display: none;
-  }
-
-  .appLogoIcon {
-    display: block;
   }
 }
 

@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useState } from 'react'
-import { useNavigate, useParams, useBlocker } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import { type Album, AlbumsService, type Track } from '../../api/generated'
@@ -9,6 +9,7 @@ import { useAlbum } from './useAlbum'
 import { ConfirmWriteDialog } from './confirm-write-dialog'
 import { NavigationGuardDialog } from './navigation-guard-dialog'
 import { EditableField } from './editable-field'
+import { useUnsavedChangesBlocker } from '../../shell/use-unsaved-changes-blocker'
 import { SyncPanel } from '../sync/sync-panel'
 import { formatDate } from '../../lib/i18n'
 import { formatTrackDuration } from '../../lib/format-duration'
@@ -133,7 +134,7 @@ export function AlbumDetail() {
    * When blocked, the NavigationGuardDialog is shown; the user can confirm
    * (proceed and discard dirty changes) or cancel (stay on page).
    */
-  const blocker = useBlocker(hasAnyDirty)
+  const blocker = useUnsavedChangesBlocker(hasAnyDirty)
 
   const handleNavGuardConfirm = useCallback(() => {
     if (blocker.state === 'blocked') {
