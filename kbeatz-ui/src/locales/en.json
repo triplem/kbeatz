@@ -169,7 +169,11 @@
     "overwriteConfirm": "Continue sync"
   },
   "app": {
-    "title": "kbeatz"
+    "title": "kbeatz",
+    "skipToContent": "Skip to main content"
+  },
+  "albumList": {
+    "pageHeading": "Album collection"
   },
   "nav": {
     "primaryLabel": "Primary navigation",

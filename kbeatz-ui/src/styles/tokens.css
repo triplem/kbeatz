@@ -172,3 +172,25 @@ body {
   white-space: nowrap;
   border: 0;
 }
+
+/*
+ * Reduced-motion override in the static stylesheet (WCAG 2.3.3).
+ * Defense-in-depth: the MUI theme (theme.ts) installs the same reset via
+ * CssBaseline once React mounts, but this static rule also suppresses the
+ * `scroll-behavior: smooth` above and any CSS-module transitions during the
+ * pre-React paint, before the bundle's emotion styles are injected.
+ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

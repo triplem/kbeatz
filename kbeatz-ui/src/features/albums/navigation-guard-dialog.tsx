@@ -49,9 +49,15 @@ export function NavigationGuardDialog({
     if (open) {
       previousFocusRef.current = document.activeElement as HTMLElement
       cancelButtonRef.current?.focus()
-    } else {
-      previousFocusRef.current?.focus()
+      return
     }
+    // Restore focus to the trigger only if it is still connected, so focus is
+    // never silently dropped to <body> when the trigger has unmounted (WCAG 2.4.3).
+    const previous = previousFocusRef.current
+    if (previous && document.contains(previous)) {
+      previous.focus()
+    }
+    previousFocusRef.current = null
   }, [open])
 
   // Prevent background scroll while the dialog is open

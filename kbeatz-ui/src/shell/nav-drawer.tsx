@@ -37,8 +37,12 @@ interface NavListProps {
 
 function NavList({ onNavigate }: NavListProps): ReactElement {
   const { t } = useTranslation()
+  // Render as a real <ul> (List's default element) so the ListItem <li>s have a
+  // valid list parent (WCAG 1.3.1). The navigation landmark + accessible name
+  // are provided by the wrapping <Box component="nav"> in NavDrawer, so this
+  // list must not also claim role="nav".
   return (
-    <List component="nav" aria-label={t('nav.primaryLabel')}>
+    <List>
       {NAV_ITEMS.map((item) => (
         <ListItem key={item.to} disablePadding>
           <ListItemButton

@@ -5,6 +5,7 @@ import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
+import { visuallyHidden } from '@mui/utils'
 import { AlbumGrid } from './features/albums/album-grid'
 import { AlbumPagination } from './features/albums/album-pagination'
 import { FilterPanel } from './features/albums/filter-panel'
@@ -96,6 +97,14 @@ export function AlbumListPage() {
 
   return (
     <Box>
+      {/*
+        Visually-hidden page heading anchors the document outline (WCAG 1.3.1 /
+        2.4.6). The album cards render as <h2>, so the page needs a single <h1>
+        ancestor; the toolbar above is not a heading.
+      */}
+      <Typography variant="h1" sx={visuallyHidden}>
+        {t('albumList.pageHeading')}
+      </Typography>
       <Stack
         direction={{ xs: 'column', md: 'row' }}
         spacing={2}

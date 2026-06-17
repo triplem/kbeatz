@@ -80,28 +80,30 @@ describe('FilterPanel', () => {
     expect(document.querySelector('aside input[type="number"]')).toBeNull()
   })
 
+  // The informational multi-value notice is a non-urgent polite status region
+  // (role="status"), not an assertive alert (WCAG 4.1.3 - severity="info").
   it('shows multi-value warning when 2 genres are selected', () => {
     const filters: AlbumFilters = { ...EMPTY_FILTERS, genres: ['Jazz', 'Classical'] }
     render(<FilterPanel options={OPTIONS} filters={filters} onFiltersChange={vi.fn()} />)
-    const alert = screen.getByRole('alert')
-    expect(alert).toBeInTheDocument()
-    expect(alert.textContent).toContain('current page')
+    const notice = screen.getByRole('status')
+    expect(notice).toBeInTheDocument()
+    expect(notice.textContent).toContain('current page')
   })
 
   it('does not show warning when only 1 genre is selected', () => {
     const filters: AlbumFilters = { ...EMPTY_FILTERS, genres: ['Jazz'] }
     render(<FilterPanel options={OPTIONS} filters={filters} onFiltersChange={vi.fn()} />)
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 
   it('does not show warning when no filters are active', () => {
     render(<FilterPanel options={OPTIONS} filters={EMPTY_FILTERS} onFiltersChange={vi.fn()} />)
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 
   it('shows warning when 2 artists are selected', () => {
     const filters: AlbumFilters = { ...EMPTY_FILTERS, artists: ['Miles Davis', 'John Coltrane'] }
     render(<FilterPanel options={OPTIONS} filters={filters} onFiltersChange={vi.fn()} />)
-    expect(screen.getByRole('alert')).toBeInTheDocument()
+    expect(screen.getByRole('status')).toBeInTheDocument()
   })
 })

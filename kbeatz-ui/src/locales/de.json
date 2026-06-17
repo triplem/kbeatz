@@ -169,7 +169,11 @@
     "overwriteConfirm": "Synchronisierung fortsetzen"
   },
   "app": {
-    "title": "kbeatz"
+    "title": "kbeatz",
+    "skipToContent": "Zum Hauptinhalt springen"
+  },
+  "albumList": {
+    "pageHeading": "Albumsammlung"
   },
   "nav": {
     "primaryLabel": "Hauptnavigation",
@@ -197,7 +201,7 @@
   },
   "notFound": {
     "heading": "Seite nicht gefunden",
-    "backToLibrary": "Zuruck zur Bibliothek"
+    "backToLibrary": "Zurück zur Bibliothek"
   },
   "navGuard": {
     "title": "Sie haben ungespeicherte Änderungen",

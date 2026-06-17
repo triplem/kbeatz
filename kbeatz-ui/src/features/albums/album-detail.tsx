@@ -12,6 +12,7 @@ import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import { visuallyHidden } from '@mui/utils'
 import { type Album, type AlbumDetail as AlbumDetailModel, AlbumsService, type Track } from '../../api/generated'
 import { ApiError } from '../../api/generated/core/ApiError'
 import { logger } from '../../lib/logger'
@@ -364,7 +365,13 @@ export function AlbumDetail() {
     setBatchSaveError(null)
   }, [album, queryClient])
 
-  if (loading) return <Typography component="p">{t('albumDetail.loading')}</Typography>
+  if (loading) {
+    return (
+      <Typography component="p" role="status" aria-live="polite">
+        {t('albumDetail.loading')}
+      </Typography>
+    )
+  }
   if (fetchError) {
     return (
       <Typography component="p" role="alert" color="error">
@@ -414,6 +421,15 @@ export function AlbumDetail() {
           gap: 3,
         }}
       >
+        {/*
+          Visually-hidden page heading: the album is the subject of this route,
+          so it is exposed as the single <h1> to anchor the heading outline
+          (WCAG 1.3.1 / 2.4.6). Section titles below render as <h2>/<h3>.
+        */}
+        <Typography variant="h1" component="h1" sx={visuallyHidden}>
+          {displayAlbum.album}
+        </Typography>
+
         <Button
           type="button"
           variant="outlined"
@@ -745,6 +761,7 @@ function TrackRow({ track, onSave, onCommit, disabled = false }: TrackRowProps) 
           onCommit={onCommit}
           disabled={disabled}
           testIdPrefix={`track-${track.id}`}
+          variant="cell"
         />
       </TableCell>
       <TableCell sx={{ verticalAlign: 'middle' }}>
@@ -756,6 +773,7 @@ function TrackRow({ track, onSave, onCommit, disabled = false }: TrackRowProps) 
           onCommit={onCommit}
           disabled={disabled}
           testIdPrefix={`track-${track.id}`}
+          variant="cell"
         />
       </TableCell>
       <TableCell sx={{ verticalAlign: 'middle' }}>
@@ -767,6 +785,7 @@ function TrackRow({ track, onSave, onCommit, disabled = false }: TrackRowProps) 
           onCommit={onCommit}
           disabled={disabled}
           testIdPrefix={`track-${track.id}`}
+          variant="cell"
         />
       </TableCell>
       <TableCell sx={{ verticalAlign: 'middle' }}>{durationDisplay}</TableCell>

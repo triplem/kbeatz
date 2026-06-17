@@ -59,6 +59,17 @@ export default defineConfig(({ command }) => ({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test-setup.ts'],
+    // The suite includes CPU-heavy axe accessibility checks (#832). On
+    // many-core machines vitest spawns one worker per core, oversubscribing the
+    // CPU so timer-driven tests (userEvent typing + findBy polling) starve and
+    // flake. Cap the pool to keep the scheduler responsive, and allow generous
+    // timeouts so a slow-but-correct test is never killed prematurely.
+    pool: 'threads',
+    poolOptions: {
+      threads: { maxThreads: 4, minThreads: 1 },
+    },
+    testTimeout: 20000,
+    hookTimeout: 20000,
     // MUI ships ESM that re-exports from react-transition-group via directory
     // imports which Vite's node resolver does not handle when externalised.
     // Inlining MUI + emotion during tests forces Vite to transform them.

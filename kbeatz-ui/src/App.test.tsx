@@ -190,7 +190,9 @@ describe('AlbumListPage - page navigation', () => {
 
 describe('AlbumListPage - filter resets pagination', () => {
   it('typing a search query filters the set and resets to page 1', async () => {
-    const user = userEvent.setup()
+    // delay: null types synchronously so this stays well under the async query
+    // timeout even when the suite runs concurrently with the CPU-heavy axe tests.
+    const user = userEvent.setup({ delay: null })
     mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: makeAlbums(100) })))
     const { router } = renderApp({ initialEntries: ['/?page=3'] })
 
@@ -208,7 +210,7 @@ describe('AlbumListPage - filter resets pagination', () => {
   })
 
   it('paginates over the FILTERED results, not the full set', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: makeAlbums(100) })))
     renderApp()
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useId, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -48,6 +48,12 @@ export function ConfirmWriteDialog({
   onCancel,
 }: ConfirmWriteDialogProps) {
   const { t } = useTranslation()
+  // Stable, unique element IDs so a second dialog instance can never collide
+  // (WCAG 4.1.1). Matches the useId() pattern used by the sibling dialogs.
+  const baseId = useId()
+  const titleId = `${baseId}-title`
+  const bodyId = `${baseId}-body`
+  const warningId = `${baseId}-warning`
   const cancelButtonRef = useRef<HTMLButtonElement>(null)
   const confirmButtonRef = useRef<HTMLButtonElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
@@ -58,9 +64,16 @@ export function ConfirmWriteDialog({
       previousFocusRef.current = document.activeElement as HTMLElement
       // Move focus into dialog (Cancel is the safe default for a destructive action)
       cancelButtonRef.current?.focus()
-    } else {
-      previousFocusRef.current?.focus()
+      return
     }
+    // On the open->closed transition, restore focus to the trigger only if it is
+    // still in the document; otherwise focus would silently fall to <body> and
+    // the keyboard user would lose their place (WCAG 2.4.3).
+    const previous = previousFocusRef.current
+    if (previous && document.contains(previous)) {
+      previous.focus()
+    }
+    previousFocusRef.current = null
   }, [open])
 
   // Prevent background content from scrolling while the dialog is open
@@ -130,8 +143,8 @@ export function ConfirmWriteDialog({
       <Box
         role="dialog"
         aria-modal="true"
-        aria-labelledby="confirm-dialog-title"
-        aria-describedby="confirm-dialog-body confirm-dialog-warning"
+        aria-labelledby={titleId}
+        aria-describedby={`${bodyId} ${warningId}`}
         data-testid="confirm-dialog"
         onKeyDown={handleKeyDown}
         onClick={(e) => { e.stopPropagation() }}
@@ -145,16 +158,16 @@ export function ConfirmWriteDialog({
           p: 3,
         }}
       >
-        <Typography id="confirm-dialog-title" variant="h6" component="h2" sx={{ mb: 1 }}>
+        <Typography id={titleId} variant="h6" component="h2" sx={{ mb: 1 }}>
           {t('confirmDialog.title')}
         </Typography>
 
-        <Typography id="confirm-dialog-body" variant="body2" component="p" sx={{ mb: 1 }}>
+        <Typography id={bodyId} variant="body2" component="p" sx={{ mb: 1 }}>
           {t('confirmDialog.body', { count: fileLabel, albumTitle })}
         </Typography>
 
         <Typography
-          id="confirm-dialog-warning"
+          id={warningId}
           data-testid="confirm-dialog-warning"
           variant="body2"
           component="p"
