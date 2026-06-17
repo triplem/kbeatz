@@ -1,0 +1,139 @@
+= ADR-013: UI Component Library and Styling Engine - MUI with Pigment CSS
+:toc: left
+:icons: font
+:revdate: 2026-06-17
+:status: Proposed
+
+== Status
+
+Proposed (pending approval of the UI rework epic #825).
+
+Supersedes the *styling* decision of link:ADR-010-ui-styling-and-server-state.adoc[ADR-010].
+The *server-state* decision of ADR-010 (TanStack Query) remains in force and is explicitly
+retained.
+
+== Context
+
+`kbeatz-ui` is a React 19 + TypeScript SPA built with Vite. ADR-010 (Accepted, 2026-06-12)
+chose *CSS Modules* with a single CSS-custom-property token file (`src/styles/tokens.css`) for
+styling, deliberately *rejecting* component frameworks and CSS-in-JS, and shipped *dark-only*
+theming driven solely by the `prefers-color-scheme` media query (no JavaScript theme switching).
+
+Issue #810 asks for the whole UI to be reworked: cleaner and more modern, built on Material
+Design, with both a light and a dark theme the user can switch between. The requirements were
+elicited, challenged (architect + a 10-persona challenge-all pass), and recorded in
+`docs/requirements-ui-rework.md`. The confirmed decisions there (D1-D9) include adopting a
+Material component library, a user-toggleable persisted theme, a navigation/IA restructure, a
+client-side paginated album grid, and full responsive support including phone.
+
+Adopting a Material component library reverses ADR-010's styling decision. That reversal is a
+non-obvious architectural decision and must be recorded before any MUI code lands on the main
+branch (requirements UI-FR-18). This ADR is that record.
+
+== Decision
+
+=== Component library: MUI (Material UI), Material 3
+
+Adopt *MUI* as the component library and Material 3 as the design system. A single MUI theme is
+the source of truth for palette, typography, spacing, shape, elevation, and state layers.
+
+The existing brand palette is mapped onto Material roles rather than replaced by the default MUI
+blue:
+
+[cols="2,1,2"]
+|===
+| Brand token | Value | Material role
+
+| violet | `#7C5CFF` | `primary` (accent, focus, active)
+| pink   | `#FF5A8F` | `secondary` / destructive
+| teal   | `#2EC4B6` | `success` (scan progress)
+| amber  | `#FFB627` | `warning` (Discogs sync)
+|===
+
+Brand colours that fail WCAG AA contrast as a foreground (amber and teal as text are the likely
+failures) get an accessible "on-color" token variant for text/icons in each theme, while the raw
+brand colour is reserved for fills and accents. Contrast is verified at >= 4.5:1 (text) and
+>= 3:1 (large text / UI boundaries) in *both* themes.
+
+=== Styling engine: Pigment CSS (zero-runtime)
+
+Use *Pigment CSS* (`@pigment-css/react` + its Vite plugin) as the styling engine, not the default
+emotion runtime. Pigment extracts styles to static CSS at build time, so there is no CSS-in-JS
+*runtime* in the bundle. This directly addresses ADR-010's objection to CSS-in-JS runtime cost and
+keeps the LAN bundle lean.
+
+=== Theming: user-toggleable light/dark via CSS-variable colour schemes
+
+Light and dark are implemented as Pigment CSS-variable colour schemes selected by a class or
+`data-` attribute on the document root. Consequences:
+
+* The user can toggle the theme from a control in the app bar.
+* On first load the theme follows the OS `prefers-color-scheme`; once chosen it is persisted in
+  `localStorage` and validated on read (only `light` | `dark`; unknown values fall back to OS).
+* Toggling is a root attribute swap (CSS variables re-resolve), not a React re-render, so it is
+  instant.
+* A small *Content-Security-Policy-safe* blocking inline script in `index.html` (nonce or hash, no
+  `unsafe-inline`) applies the theme before the bundle executes, so there is no flash of the wrong
+  theme.
+
+=== Retained from ADR-010
+
+* *TanStack Query* remains the single server-state library. Query keys, cache invalidation, and
+  polling conventions from ADR-010 are unchanged.
+* `react-router` remains the router.
+
+=== Migration
+
+CSS Modules and `src/styles/tokens.css` are removed incrementally as each screen migrates to MUI;
+a mixed-styling interim is acceptable, with `CssBaseline` providing global reset/isolation so
+migrated and legacy screens do not collide. Final removal of legacy artefacts is tracked by #823.
+This ADR must be merged before MUI is introduced.
+
+== Consequences
+
+* *ADR-010 styling is superseded.* ADR-010 is marked superseded-in-part: its styling section no
+  longer applies; its TanStack Query section still governs.
+* *New dependencies.* MUI and Pigment CSS (plus its Vite plugin) are added, version-pinned, and
+  must pass `npm audit`. An automated bundle-size CI gate enforces the (LAN-adjustable) payload
+  budget.
+* *Pigment maturity risk.* Pigment CSS is newer than emotion and its coverage of the full MUI
+  component set may have rough edges. Mitigation: a documented per-screen fallback to emotion-based
+  MUI is permitted and, if used, recorded here as an addendum.
+* *Accessibility surface doubles.* Two themes means contrast, focus, and visual-regression checks
+  run per theme. The accessible palette token work is treated as first-class.
+* *Theming is build-time + CSS variables*, so theme values must be statically analysable by
+  Pigment; fully dynamic runtime theming beyond the two colour schemes is out of scope.
+
+== Alternatives Considered
+
+=== Material aesthetic on CSS Modules (keep ADR-010) - rejected
+
+Apply a Material 3 visual language (elevation, type scale, spacing, motion) on the existing CSS
+Modules + tokens approach, with no component library. Rejected: it reaches a polished, consistent
+Material result far more slowly and forgoes the library's built-in accessibility, theming, and
+component coverage. The product owner explicitly chose MUI.
+
+=== MUI with the default emotion runtime - rejected as the default
+
+The standard MUI setup uses emotion, a CSS-in-JS *runtime*. Rejected as the default because it
+reintroduces exactly the runtime cost ADR-010 objected to. Retained only as a *per-screen
+fallback* if a component is not yet Pigment-compatible.
+
+=== Material Web (official MD3 web components) - rejected
+
+True Material 3 fidelity via web components, but less mature React integration and a smaller
+ecosystem (DevTools, typed theming, community patterns) than MUI. Rejected for a React 19 SPA.
+
+=== Tailwind CSS / Styled Components / Emotion (standalone) - not revisited
+
+These were evaluated and rejected in ADR-010 for styling and are not reconsidered here.
+
+== Related
+
+* link:ADR-010-ui-styling-and-server-state.adoc[ADR-010] - superseded in part (styling); TanStack
+  Query decision retained
+* `docs/requirements-ui-rework.md` - UI rework requirements (decisions D1-D9; UI-FR-18 mandates
+  this ADR)
+* Epic #825 - UI rework on MUI + Pigment CSS; story #826 - this ADR
+* Issue #810 - the rework request; issue #823 - legacy artefact removal
+* `.claude/rules/react-patterns.md` - server state via TanStack Query; theme as context
