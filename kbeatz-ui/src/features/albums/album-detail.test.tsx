@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { RouterProvider, createMemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -1349,13 +1349,22 @@ describe('AlbumDetail - navigation guard (dirty fields)', () => {
       expect(screen.queryByTestId('dirty-count')).not.toBeInTheDocument()
     })
 
-    // Now clicking Back should NOT trigger the nav guard
-    fireEvent.click(screen.getByTestId('back-button'))
-    expect(screen.queryByTestId('nav-guard-dialog')).not.toBeInTheDocument()
+    // Flush pending effects so react-router's useBlocker re-registers with the
+    // now-cleared (non-dirty) condition before we navigate. Without this, the
+    // Back click can race the blocker effect re-registration and transiently
+    // re-trigger the guard (test-only timing window; a real click cannot land
+    // inside it).
+    await act(async () => {
+      await Promise.resolve()
+    })
 
+    // Now clicking Back should NOT trigger the nav guard; navigation proceeds
+    // straight to the list page.
+    fireEvent.click(screen.getByTestId('back-button'))
     await waitFor(() => {
       expect(screen.getByTestId('list-page')).toBeInTheDocument()
     })
+    expect(screen.queryByTestId('nav-guard-dialog')).not.toBeInTheDocument()
   })
 
   it('shows nav guard dialog when there are dirty track fields and Back is clicked', async () => {
