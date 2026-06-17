@@ -13,7 +13,7 @@ exports[`AppShell visual regression > matches the shell snapshot in dark theme 1
       Skip to main content
     </a>
     <header
-      class="MuiPaper-root MuiPaper-elevation MuiPaper-elevation4 MuiAppBar-root MuiAppBar-colorDefault MuiAppBar-positionFixed mui-fixed css-v8sxxz-MuiPaper-root-MuiAppBar-root"
+      class="MuiPaper-root MuiPaper-elevation MuiPaper-elevation4 MuiAppBar-root MuiAppBar-colorInherit MuiAppBar-positionFixed mui-fixed css-eptzcz-MuiPaper-root-MuiAppBar-root"
       style="--Paper-shadow: var(--mui-shadows-4); --Paper-overlay: var(--mui-overlays-4);"
     >
       <div
@@ -268,7 +268,7 @@ exports[`AppShell visual regression > matches the shell snapshot in light theme 
       Skip to main content
     </a>
     <header
-      class="MuiPaper-root MuiPaper-elevation MuiPaper-elevation4 MuiAppBar-root MuiAppBar-colorDefault MuiAppBar-positionFixed mui-fixed css-v8sxxz-MuiPaper-root-MuiAppBar-root"
+      class="MuiPaper-root MuiPaper-elevation MuiPaper-elevation4 MuiAppBar-root MuiAppBar-colorInherit MuiAppBar-positionFixed mui-fixed css-eptzcz-MuiPaper-root-MuiAppBar-root"
       style="--Paper-shadow: var(--mui-shadows-4); --Paper-overlay: var(--mui-overlays-4);"
     >
       <div

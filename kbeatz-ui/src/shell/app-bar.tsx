@@ -41,9 +41,11 @@ export function AppTopBar({
   return (
     <MuiAppBar
       position="fixed"
-      color="default"
-      enableColorOnDark
+      color="inherit"
       sx={{
+        bgcolor: 'background.paper',
+        borderBottom: 1,
+        borderColor: 'divider',
         width: { md: `calc(100% - ${drawerWidth}px)` },
         ml: { md: `${drawerWidth}px` },
         zIndex: (theme) => theme.zIndex.drawer + 1,
