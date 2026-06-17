@@ -60,9 +60,9 @@ Design, with both a light and a dark theme the user can switch between.
 | D3 | Rework scope | **Visual rebuild + navigation/IA restructure**; no brand-new product features |
 | D4 | Responsive target | **Fully responsive including phone** |
 | D5 | Migration sequence | **Incremental, screen by screen**; app shippable at every step |
-| D6 | Styling engine (was OQ-01) | **MUI with Pigment CSS** (zero-runtime, build-time CSS extraction); no emotion runtime |
+| D6 | Styling engine (was OQ-01) | Planned **MUI with Pigment CSS** (zero-runtime). **Superseded as shipped:** Pigment could not be adopted (critical transitive vuln + build failure in the only MUI-9.1.1-compatible Pigment 0.0.30 toolchain); the rework shipped on the **emotion-based MUI runtime** per the ADR-013 addendum. |
 | D7 | Desktop navigation (was OQ-02) | **Permanent navigation drawer** on desktop, collapsing to an overlay drawer on phone |
-| D8 | Breakpoints and budget (was OQ-03) | **MUI standard breakpoints** (xs/sm/md/lg/xl). Initial-payload budget starts at **250 KB gzipped** but is a **soft, adjustable target**: because kbeatz is a LAN-only app, the budget may be raised (up to ~500 KB gzipped) when a feature justifies it (see UI-NFR-01) |
+| D8 | Breakpoints and budget (was OQ-03) | **MUI standard breakpoints** (xs/sm/md/lg/xl). Initial-payload budget starts at **250 KB gzipped** but is a **soft, adjustable target**: because kbeatz is a LAN-only app, the budget may be raised (up to ~500 KB gzipped) when a feature justifies it (see UI-NFR-01). **As shipped:** raised to 260 KB once the mandatory MUI components landed on the album-list critical path. |
 | D9 | Album grid rendering | **Client-side pagination** of the (filtered) album set, not full-list rendering or windowing. Keeps the rework UI-only (no API change) and bounds the number of rendered cards (see UI-FR-05) |
 
 ---
