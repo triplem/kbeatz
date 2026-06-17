@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ColorSchemeProvider } from './color-scheme-context'
+import { AppThemeProvider } from './app-theme-provider'
 import { ThemeToggle } from './theme-toggle'
 import { COLOR_SCHEME_ATTR, THEME_STORAGE_KEY } from './theme'
 
@@ -23,9 +23,9 @@ function stubMatchMedia(prefersDark: boolean): void {
 
 function renderToggle() {
   return render(
-    <ColorSchemeProvider>
+    <AppThemeProvider>
       <ThemeToggle />
-    </ColorSchemeProvider>,
+    </AppThemeProvider>,
   )
 }
 

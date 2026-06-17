@@ -70,7 +70,7 @@ describe('theme palette role mapping', () => {
     // and exposes a colorSchemeSelector. These are the observable markers.
     expect(theme.vars).toBeDefined()
     expect(theme.cssVarPrefix).toBeDefined()
-    expect(theme.colorSchemeSelector).toBe('data')
+    expect(theme.colorSchemeSelector).toBe('data-mui-color-scheme')
   })
 })
 
