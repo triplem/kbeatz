@@ -1,12 +1,17 @@
-= ADR-013: UI Component Library and Styling Engine - MUI with Pigment CSS
+= ADR-013: UI Component Library and Styling Engine - MUI (emotion)
 :toc: left
 :icons: font
 :revdate: 2026-06-17
-:status: Proposed
+:status: Accepted
 
 == Status
 
-Proposed (pending approval of the UI rework epic #825).
+Accepted. The UI rework epic #825 was implemented and merged on 2026-06-17.
+
+NOTE: The styling engine that *shipped* is the standard *emotion-based MUI* runtime, not
+Pigment CSS. Pigment was attempted first (as the Decision below preferred) but could not be
+adopted; see the "Addendum: emotion fallback" at the end of this ADR for the blocking reasons.
+The Decision section is preserved as written for the historical record.
 
 Supersedes the *styling* decision of link:ADR-010-ui-styling-and-server-state.adoc[ADR-010].
 The *server-state* decision of ADR-010 (TanStack Query) remains in force and is explicitly
