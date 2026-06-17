@@ -42,6 +42,7 @@ export function AppTopBar({
     <MuiAppBar
       position="fixed"
       color="inherit"
+      elevation={0}
       sx={{
         bgcolor: 'background.paper',
         borderBottom: 1,
