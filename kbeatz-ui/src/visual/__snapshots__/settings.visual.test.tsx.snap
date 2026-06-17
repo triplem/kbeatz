@@ -129,22 +129,26 @@ exports[`SettingsPage visual regression > matches the settings snapshot in dark 
         </div>
         <div
           aria-label="Select language"
-          class="_toggle_484a85"
+          class="MuiToggleButtonGroup-root MuiToggleButtonGroup-horizontal css-2482nm-MuiToggleButtonGroup-root"
           role="group"
         >
           <button
             aria-label="English"
             aria-pressed="true"
-            class="_langButton_484a85 _active_484a85"
+            class="MuiButtonBase-root MuiToggleButtonGroup-grouped MuiToggleButton-root Mui-selected MuiToggleButton-sizeSmall MuiToggleButton-primary MuiToggleButtonGroup-grouped MuiToggleButtonGroup-firstButton css-1xvn2m9-MuiButtonBase-root-MuiToggleButton-root"
+            tabindex="0"
             type="button"
+            value="en"
           >
             EN
           </button>
           <button
             aria-label="Deutsch"
             aria-pressed="false"
-            class="_langButton_484a85 "
+            class="MuiButtonBase-root MuiToggleButtonGroup-grouped MuiToggleButton-root MuiToggleButton-sizeSmall MuiToggleButton-primary MuiToggleButtonGroup-grouped MuiToggleButtonGroup-lastButton css-1xvn2m9-MuiButtonBase-root-MuiToggleButton-root"
+            tabindex="0"
             type="button"
+            value="de"
           >
             DE
           </button>
@@ -322,22 +326,26 @@ exports[`SettingsPage visual regression > matches the settings snapshot in light
         </div>
         <div
           aria-label="Select language"
-          class="_toggle_484a85"
+          class="MuiToggleButtonGroup-root MuiToggleButtonGroup-horizontal css-2482nm-MuiToggleButtonGroup-root"
           role="group"
         >
           <button
             aria-label="English"
             aria-pressed="true"
-            class="_langButton_484a85 _active_484a85"
+            class="MuiButtonBase-root MuiToggleButtonGroup-grouped MuiToggleButton-root Mui-selected MuiToggleButton-sizeSmall MuiToggleButton-primary MuiToggleButtonGroup-grouped MuiToggleButtonGroup-firstButton css-1xvn2m9-MuiButtonBase-root-MuiToggleButton-root"
+            tabindex="0"
             type="button"
+            value="en"
           >
             EN
           </button>
           <button
             aria-label="Deutsch"
             aria-pressed="false"
-            class="_langButton_484a85 "
+            class="MuiButtonBase-root MuiToggleButtonGroup-grouped MuiToggleButton-root MuiToggleButton-sizeSmall MuiToggleButton-primary MuiToggleButtonGroup-grouped MuiToggleButtonGroup-lastButton css-1xvn2m9-MuiButtonBase-root-MuiToggleButton-root"
+            tabindex="0"
             type="button"
+            value="de"
           >
             DE
           </button>
