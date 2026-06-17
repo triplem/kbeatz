@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SyncPanel } from './sync-panel'
 import { AlbumsService } from '../../api/generated'
 import { CancelError } from '../../api/generated/core/CancelablePromise'
-import type { Album, AlbumDetail } from '../../api/generated'
+import type { Album, AlbumDetail, SyncPreviewResponse } from '../../api/generated'
 
 vi.mock('../../api/generated', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../api/generated')>()
@@ -14,11 +14,13 @@ vi.mock('../../api/generated', async (importOriginal) => {
     AlbumsService: {
       ...actual.AlbumsService,
       syncAlbumFromDiscogs: vi.fn(),
+      previewSyncFromDiscogs: vi.fn(),
     },
   }
 })
 
 const mockSyncAlbum = vi.mocked(AlbumsService.syncAlbumFromDiscogs)
+const mockPreviewSync = vi.mocked(AlbumsService.previewSyncFromDiscogs)
 
 function buildAlbum(overrides: Partial<Album> = {}): Album {
   return {
@@ -45,6 +47,14 @@ function buildAlbumDetail(overrides: Partial<AlbumDetail> = {}): AlbumDetail {
   }
 }
 
+function buildPreviewResponse(overrides: Partial<SyncPreviewResponse> = {}): SyncPreviewResponse {
+  return {
+    albumId: 'test-album-id',
+    proposedChanges: [],
+    ...overrides,
+  }
+}
+
 function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
@@ -63,11 +73,24 @@ function renderSyncPanel(props: { album: AlbumDetail; onSyncComplete: (a: Album)
   )
 }
 
+/**
+ * Helper: click the sync button, wait for the preview dialog to appear,
+ * then click Confirm sync. Requires mockPreviewSync to already be set up.
+ */
+async function clickSyncAndConfirmPreview() {
+  const user = userEvent.setup()
+  await user.click(screen.getByTestId('sync-button'))
+  await waitFor(() => expect(screen.getByTestId('sync-preview-dialog')).toBeInTheDocument())
+  await user.click(screen.getByTestId('sync-preview-confirm'))
+}
+
 describe('SyncPanel', () => {
   const onSyncComplete = vi.fn()
 
   beforeEach(() => {
     vi.clearAllMocks()
+    // Default: preview returns no changes
+    mockPreviewSync.mockResolvedValue(buildPreviewResponse())
   })
 
   // ---- visibility ----
@@ -95,7 +118,83 @@ describe('SyncPanel', () => {
     expect(checkbox).not.toBeChecked()
   })
 
-  // ---- loading state ----
+  // ---- preview flow ----
+
+  it('should open preview dialog when sync button is clicked', async () => {
+    renderSyncPanel({ album: buildAlbumDetail(), onSyncComplete })
+    await userEvent.click(screen.getByTestId('sync-button'))
+
+    await waitFor(() => expect(screen.getByTestId('sync-preview-dialog')).toBeInTheDocument())
+    expect(mockPreviewSync).toHaveBeenCalledWith({ albumId: 'test-album-id' })
+    // Sync must NOT have been called yet
+    expect(mockSyncAlbum).not.toHaveBeenCalled()
+  })
+
+  it('should close preview dialog and return to idle when Cancel is clicked', async () => {
+    renderSyncPanel({ album: buildAlbumDetail(), onSyncComplete })
+    await userEvent.click(screen.getByTestId('sync-button'))
+
+    await waitFor(() => expect(screen.getByTestId('sync-preview-dialog')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('sync-preview-cancel'))
+
+    expect(screen.queryByTestId('sync-preview-dialog')).not.toBeInTheDocument()
+    expect(mockSyncAlbum).not.toHaveBeenCalled()
+  })
+
+  it('should show proposed changes table in preview dialog', async () => {
+    mockPreviewSync.mockResolvedValue(buildPreviewResponse({
+      proposedChanges: [
+        { field: 'GENRE', currentValue: 'Jazz', proposedValue: 'Modal Jazz' },
+      ],
+    }))
+
+    renderSyncPanel({ album: buildAlbumDetail(), onSyncComplete })
+    await userEvent.click(screen.getByTestId('sync-button'))
+
+    await waitFor(() => expect(screen.getByTestId('sync-preview-table')).toBeInTheDocument())
+    expect(screen.getByTestId('sync-preview-row-GENRE')).toBeInTheDocument()
+  })
+
+  it('should show no-changes message in preview dialog when no changes', async () => {
+    mockPreviewSync.mockResolvedValue(buildPreviewResponse({ proposedChanges: [] }))
+
+    renderSyncPanel({ album: buildAlbumDetail(), onSyncComplete })
+    await userEvent.click(screen.getByTestId('sync-button'))
+
+    await waitFor(() => expect(screen.getByTestId('sync-preview-no-changes')).toBeInTheDocument())
+  })
+
+  it('should show loading state in preview dialog while preview fetch is in flight', async () => {
+    let resolve: (v: SyncPreviewResponse) => void = () => {}
+    mockPreviewSync.mockReturnValue(
+      new Promise((r) => { resolve = r }) as ReturnType<typeof mockPreviewSync>,
+    )
+
+    renderSyncPanel({ album: buildAlbumDetail(), onSyncComplete })
+    await userEvent.click(screen.getByTestId('sync-button'))
+
+    await waitFor(() => expect(screen.getByTestId('sync-preview-dialog')).toBeInTheDocument())
+    expect(screen.getByTestId('sync-preview-loading')).toBeInTheDocument()
+    // Sync button should also be disabled while preview is loading
+    expect(screen.getByTestId('sync-button')).toBeDisabled()
+
+    // Clean up
+    resolve(buildPreviewResponse())
+    await waitFor(() => expect(screen.queryByTestId('sync-preview-loading')).not.toBeInTheDocument())
+  })
+
+  it('should show error in preview dialog when preview fetch fails', async () => {
+    mockPreviewSync.mockRejectedValue({ body: { message: 'Discogs unavailable' } })
+
+    renderSyncPanel({ album: buildAlbumDetail(), onSyncComplete })
+    await userEvent.click(screen.getByTestId('sync-button'))
+
+    await waitFor(() => expect(screen.getByTestId('sync-preview-error')).toBeInTheDocument())
+    expect(screen.getByTestId('sync-preview-error')).toHaveTextContent('Discogs unavailable')
+    expect(mockSyncAlbum).not.toHaveBeenCalled()
+  })
+
+  // ---- loading state (after preview confirmed) ----
 
   it('should show loading indicator and disable button during sync', async () => {
     const album = buildAlbumDetail()
@@ -103,14 +202,13 @@ describe('SyncPanel', () => {
     mockSyncAlbum.mockReturnValue(new Promise((r) => { resolve = r }) as ReturnType<typeof mockSyncAlbum>)
 
     renderSyncPanel({ album, onSyncComplete })
-    const button = screen.getByTestId('sync-button')
-
-    await userEvent.click(button)
+    await clickSyncAndConfirmPreview()
 
     expect(screen.getByTestId('sync-loading')).toBeInTheDocument()
+    const button = screen.getByTestId('sync-button')
     expect(button).toBeDisabled()
 
-    // Clean up — resolve to avoid pending promise warning
+    // Clean up - resolve to avoid pending promise warning
     resolve(buildAlbum())
     await waitFor(() => expect(screen.queryByTestId('sync-loading')).not.toBeInTheDocument())
   })
@@ -123,7 +221,7 @@ describe('SyncPanel', () => {
     mockSyncAlbum.mockResolvedValue(updatedAlbum)
 
     renderSyncPanel({ album, onSyncComplete })
-    await userEvent.click(screen.getByTestId('sync-button'))
+    await clickSyncAndConfirmPreview()
 
     await waitFor(() => expect(screen.getByTestId('sync-success')).toBeInTheDocument())
     expect(onSyncComplete).toHaveBeenCalledWith(updatedAlbum)
@@ -136,7 +234,7 @@ describe('SyncPanel', () => {
     mockSyncAlbum.mockResolvedValue(updatedAlbum)
 
     renderSyncPanel({ album, onSyncComplete })
-    await userEvent.click(screen.getByTestId('sync-button'))
+    await clickSyncAndConfirmPreview()
 
     await waitFor(() => expect(screen.getByTestId('sync-success')).toBeInTheDocument())
     expect(screen.getByTestId('sync-success')).toHaveTextContent('2 fields updated')
@@ -148,7 +246,7 @@ describe('SyncPanel', () => {
     mockSyncAlbum.mockResolvedValue(updatedAlbum)
 
     renderSyncPanel({ album, onSyncComplete })
-    await userEvent.click(screen.getByTestId('sync-button'))
+    await clickSyncAndConfirmPreview()
 
     await waitFor(() => expect(screen.getByTestId('sync-success')).toBeInTheDocument())
     expect(screen.getByTestId('sync-success')).toHaveTextContent('1 field updated')
@@ -157,15 +255,30 @@ describe('SyncPanel', () => {
 
   it('should display 0 fields updated when nothing changed', async () => {
     const album = buildAlbumDetail()
-    // Same album returned — no changes
+    // Same album returned - no changes
     const updatedAlbum = buildAlbum()
     mockSyncAlbum.mockResolvedValue(updatedAlbum)
 
     renderSyncPanel({ album, onSyncComplete })
-    await userEvent.click(screen.getByTestId('sync-button'))
+    await clickSyncAndConfirmPreview()
 
     await waitFor(() => expect(screen.getByTestId('sync-success')).toBeInTheDocument())
     expect(screen.getByTestId('sync-success')).toHaveTextContent('0 fields updated')
+  })
+
+  it('should dismiss the success snackbar when its close button is clicked', async () => {
+    const album = buildAlbumDetail()
+    mockSyncAlbum.mockResolvedValue(buildAlbum())
+
+    const user = userEvent.setup()
+    renderSyncPanel({ album, onSyncComplete })
+    await user.click(screen.getByTestId('sync-button'))
+    await waitFor(() => expect(screen.getByTestId('sync-preview-dialog')).toBeInTheDocument())
+    await user.click(screen.getByTestId('sync-preview-confirm'))
+
+    await waitFor(() => expect(screen.getByTestId('sync-success')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: 'Close' }))
+    await waitFor(() => expect(screen.queryByTestId('sync-success')).not.toBeInTheDocument())
   })
 
   // ---- error state ----
@@ -177,7 +290,7 @@ describe('SyncPanel', () => {
     })
 
     renderSyncPanel({ album, onSyncComplete })
-    await userEvent.click(screen.getByTestId('sync-button'))
+    await clickSyncAndConfirmPreview()
 
     await waitFor(() => expect(screen.getByTestId('sync-error')).toBeInTheDocument())
     expect(screen.getByTestId('sync-error')).toHaveTextContent('Discogs API unavailable')
@@ -191,23 +304,10 @@ describe('SyncPanel', () => {
     )
 
     renderSyncPanel({ album, onSyncComplete })
-    await userEvent.click(screen.getByTestId('sync-button'))
+    await clickSyncAndConfirmPreview()
 
     await waitFor(() => expect(screen.getByTestId('sync-error')).toBeInTheDocument())
     expect(screen.getByTestId('sync-error')).toHaveTextContent('Sync timed out')
-  })
-
-  it('should dismiss the success snackbar when its close button is clicked', async () => {
-    const album = buildAlbumDetail()
-    mockSyncAlbum.mockResolvedValue(buildAlbum())
-
-    const user = userEvent.setup()
-    renderSyncPanel({ album, onSyncComplete })
-    await user.click(screen.getByTestId('sync-button'))
-
-    await waitFor(() => expect(screen.getByTestId('sync-success')).toBeInTheDocument())
-    await user.click(screen.getByRole('button', { name: 'Close' }))
-    await waitFor(() => expect(screen.queryByTestId('sync-success')).not.toBeInTheDocument())
   })
 
   it('should show 404 error message when album not found in Discogs', async () => {
@@ -217,7 +317,7 @@ describe('SyncPanel', () => {
     })
 
     renderSyncPanel({ album, onSyncComplete })
-    await userEvent.click(screen.getByTestId('sync-button'))
+    await clickSyncAndConfirmPreview()
 
     await waitFor(() => expect(screen.getByTestId('sync-error')).toBeInTheDocument())
     expect(screen.getByTestId('sync-error')).toHaveTextContent('not found')
@@ -241,6 +341,8 @@ describe('SyncPanel', () => {
     // Check the cover art checkbox so the IMAGE_QUOTA_EXHAUSTED path is hit
     await user.click(screen.getByTestId('download-images-checkbox'))
     await user.click(screen.getByTestId('sync-button'))
+    await waitFor(() => expect(screen.getByTestId('sync-preview-dialog')).toBeInTheDocument())
+    await user.click(screen.getByTestId('sync-preview-confirm'))
 
     await waitFor(() => expect(screen.getByTestId('sync-quota-exhausted')).toBeInTheDocument())
     expect(screen.getByTestId('sync-quota-exhausted')).toHaveTextContent('2026-06-08T00:00:00Z')
@@ -253,9 +355,12 @@ describe('SyncPanel', () => {
     const updatedAlbum = buildAlbum()
     mockSyncAlbum.mockResolvedValue(updatedAlbum)
 
+    const user = userEvent.setup()
     renderSyncPanel({ album, onSyncComplete })
-    await userEvent.click(screen.getByTestId('download-images-checkbox'))
-    await userEvent.click(screen.getByTestId('sync-button'))
+    await user.click(screen.getByTestId('download-images-checkbox'))
+    await user.click(screen.getByTestId('sync-button'))
+    await waitFor(() => expect(screen.getByTestId('sync-preview-dialog')).toBeInTheDocument())
+    await user.click(screen.getByTestId('sync-preview-confirm'))
 
     await waitFor(() => expect(mockSyncAlbum).toHaveBeenCalledWith({
       albumId: 'test-album-id',
@@ -268,7 +373,7 @@ describe('SyncPanel', () => {
     mockSyncAlbum.mockResolvedValue(buildAlbum())
 
     renderSyncPanel({ album, onSyncComplete })
-    await userEvent.click(screen.getByTestId('sync-button'))
+    await clickSyncAndConfirmPreview()
 
     await waitFor(() => expect(mockSyncAlbum).toHaveBeenCalledWith({
       albumId: 'test-album-id',
@@ -293,7 +398,7 @@ describe('SyncPanel', () => {
     mockSyncAlbum.mockResolvedValue(buildAlbum())
 
     renderSyncPanel({ album, onSyncComplete })
-    await userEvent.click(screen.getByTestId('sync-button'))
+    await clickSyncAndConfirmPreview()
 
     await waitFor(() => {
       const statusEl = screen.getByTestId('sync-success')
@@ -306,7 +411,7 @@ describe('SyncPanel', () => {
     mockSyncAlbum.mockRejectedValue({ body: { message: 'Server error' } })
 
     renderSyncPanel({ album: buildAlbumDetail(), onSyncComplete })
-    await userEvent.click(screen.getByTestId('sync-button'))
+    await clickSyncAndConfirmPreview()
 
     await waitFor(() => {
       const alertEl = screen.getByTestId('sync-error')
@@ -325,7 +430,7 @@ describe('SyncPanel', () => {
     )
 
     renderSyncPanel({ album: buildAlbumDetail(), onSyncComplete })
-    await userEvent.click(screen.getByTestId('sync-button'))
+    await clickSyncAndConfirmPreview()
 
     // Button should be disabled immediately after click
     const button = screen.getByTestId('sync-button')
@@ -340,17 +445,15 @@ describe('SyncPanel', () => {
 
   // ---- Overwrite warning (#392) ----
 
-  it('sync proceeds without dialog when hasLocalEdits is false', async () => {
-    const album = buildAlbumDetail()
-    mockSyncAlbum.mockResolvedValue(buildAlbum())
-
-    renderSyncPanel({ album, onSyncComplete, hasLocalEdits: false })
+  it('sync proceeds to preview without overwrite dialog when hasLocalEdits is false', async () => {
+    renderSyncPanel({ album: buildAlbumDetail(), onSyncComplete, hasLocalEdits: false })
     await userEvent.click(screen.getByTestId('sync-button'))
 
-    // No dialog should appear
+    // No overwrite dialog
     expect(screen.queryByTestId('sync-overwrite-dialog')).not.toBeInTheDocument()
-    // Sync should have been called directly
-    await waitFor(() => expect(mockSyncAlbum).toHaveBeenCalled())
+    // Preview dialog appears
+    await waitFor(() => expect(screen.getByTestId('sync-preview-dialog')).toBeInTheDocument())
+    expect(mockSyncAlbum).not.toHaveBeenCalled()
   })
 
   it('shows overwrite warning dialog when hasLocalEdits is true', async () => {
@@ -362,6 +465,7 @@ describe('SyncPanel', () => {
     expect(screen.getByTestId('sync-overwrite-dialog')).toHaveAttribute('role', 'dialog')
     // Sync should NOT have been called yet
     expect(mockSyncAlbum).not.toHaveBeenCalled()
+    expect(mockPreviewSync).not.toHaveBeenCalled()
   })
 
   it('aborts sync when user cancels the overwrite warning', async () => {
@@ -371,21 +475,39 @@ describe('SyncPanel', () => {
     expect(screen.getByTestId('sync-overwrite-dialog')).toBeInTheDocument()
     await userEvent.click(screen.getByTestId('sync-overwrite-dialog-cancel'))
 
-    // Dialog should be gone and sync should not have been called
+    // Dialog should be gone and neither preview nor sync should have been called
     expect(screen.queryByTestId('sync-overwrite-dialog')).not.toBeInTheDocument()
+    expect(mockPreviewSync).not.toHaveBeenCalled()
     expect(mockSyncAlbum).not.toHaveBeenCalled()
   })
 
-  it('proceeds with sync when user confirms the overwrite warning', async () => {
-    mockSyncAlbum.mockResolvedValue(buildAlbum())
+  it('proceeds to preview when user confirms the overwrite warning', async () => {
     renderSyncPanel({ album: buildAlbumDetail(), onSyncComplete, hasLocalEdits: true })
     await userEvent.click(screen.getByTestId('sync-button'))
 
     expect(screen.getByTestId('sync-overwrite-dialog')).toBeInTheDocument()
     await userEvent.click(screen.getByTestId('sync-overwrite-dialog-confirm'))
 
-    // Dialog gone and sync called
+    // Overwrite dialog gone, preview dialog appears
     expect(screen.queryByTestId('sync-overwrite-dialog')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.getByTestId('sync-preview-dialog')).toBeInTheDocument())
+    expect(mockPreviewSync).toHaveBeenCalled()
+    expect(mockSyncAlbum).not.toHaveBeenCalled()
+  })
+
+  it('executes sync when preview is confirmed after overwrite warning', async () => {
+    mockSyncAlbum.mockResolvedValue(buildAlbum())
+    renderSyncPanel({ album: buildAlbumDetail(), onSyncComplete, hasLocalEdits: true })
+
+    const user = userEvent.setup()
+    await user.click(screen.getByTestId('sync-button'))
+    // Confirm overwrite
+    await user.click(screen.getByTestId('sync-overwrite-dialog-confirm'))
+    // Wait for preview dialog
+    await waitFor(() => expect(screen.getByTestId('sync-preview-dialog')).toBeInTheDocument())
+    // Confirm preview
+    await user.click(screen.getByTestId('sync-preview-confirm'))
+
     await waitFor(() => expect(mockSyncAlbum).toHaveBeenCalled())
   })
 })

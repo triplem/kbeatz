@@ -6,6 +6,8 @@ import java.nio.file.Path
 import kotlin.uuid.Uuid
 import kotlinx.io.files.Path as KtPath
 import org.javafreedom.kbeatz.catalog.domain.model.Album
+import org.javafreedom.kbeatz.catalog.domain.model.SyncFieldChange
+import org.javafreedom.kbeatz.catalog.domain.model.SyncPreview
 import org.javafreedom.kbeatz.catalog.domain.model.SyncResult
 import org.javafreedom.kbeatz.catalog.domain.model.WRITE_LOCK_FILENAME
 import org.javafreedom.kbeatz.catalog.domain.port.SyncProvider
@@ -57,6 +59,48 @@ class DiscogsSyncService(
 ) : SyncProvider {
 
     override val name: String = "discogs"
+
+    /**
+     * Fetches proposed tag values from Discogs without writing anything.
+     *
+     * Returns a diff between the current album values and the values Discogs would write.
+     * Only fields whose proposed value differs from the current value are included.
+     *
+     * @param albumId The album UUID to preview.
+     * @return [SyncPreview] with the proposed field changes.
+     * @throws ResourceNotFoundException when the album is not found.
+     * @throws BusinessValidationException when the album has no `discogsId`.
+     */
+    override suspend fun preview(albumId: Uuid): SyncPreview {
+        val album = albumRepository.findById(albumId)
+            ?: throw ResourceNotFoundException("Album", albumId.toString())
+
+        val discogsId = album.discogsId
+            ?: throw BusinessValidationException("Album '$albumId' has no Discogs ID set - cannot preview sync")
+
+        val release = metadataSource.fetchRelease(discogsId)
+        if (release == null) {
+            log.warn { "discogs_release_not_found albumId=$albumId discogsId=$discogsId" }
+            return SyncPreview(albumId = albumId, proposedChanges = emptyList())
+        }
+
+        val proposedTags = release.toVorbisTagMap()
+        val currentValues = album.toVorbisTagMap()
+
+        val changes = proposedTags
+            .filter { (field, proposedValue) -> currentValues[field] != proposedValue }
+            .map { (field, proposedValue) ->
+                SyncFieldChange(
+                    field = field,
+                    currentValue = currentValues[field].orEmpty(),
+                    proposedValue = proposedValue,
+                )
+            }
+            .sortedBy { it.field }
+
+        log.info { "discogs_preview_complete albumId=$albumId changedFields=${changes.size}" }
+        return SyncPreview(albumId = albumId, proposedChanges = changes)
+    }
 
     /**
      * Syncs a single album from Discogs.
@@ -197,3 +241,32 @@ private fun Release.toVorbisTagMap(): Map<String, String> {
 }
 
 private fun Release.resolvedYear(): String? = released?.year?.toString() ?: year?.toString()
+
+/**
+ * Converts an [Album]'s current field values to a Vorbis Comment tag map for diffing
+ * against proposed values from a Discogs release.
+ *
+ * Includes all fields that [Release.toVorbisTagMap] can write: the core tag fields plus
+ * DISCOGS_ID, DISCOGS_RELEASE_URL, and BARCODE. The latter two are stored in [Album.extraTags]
+ * when they were previously written by a sync. Including them ensures the diff is accurate and
+ * does not spuriously report these fields as "changed" on every preview.
+ *
+ * Null values are omitted so that a null current value and a new proposed value correctly
+ * appear as a change.
+ */
+private fun Album.toVorbisTagMap(): Map<String, String> {
+    val map = mutableMapOf<String, String>()
+    map[VorbisCommentFields.ALBUM] = album
+    albumArtist.let { map[VorbisCommentFields.ALBUMARTIST] = it }
+    date?.let { map[VorbisCommentFields.DATE] = it }
+    genre?.let { map[VorbisCommentFields.GENRE] = it }
+    label?.let { map[VorbisCommentFields.LABEL] = it }
+    catalogNumber?.let { map[VorbisCommentFields.CATALOGNUMBER] = it }
+    composer?.let { map[VorbisCommentFields.COMPOSER] = it }
+    conductor?.let { map[VorbisCommentFields.CONDUCTOR] = it }
+    ensemble?.let { map[VorbisCommentFields.ENSEMBLE] = it }
+    discogsId?.let { map[VorbisCommentFields.DISCOGS_ID] = it }
+    extraTags?.get(VorbisCommentFields.DISCOGS_RELEASE_URL)?.let { map[VorbisCommentFields.DISCOGS_RELEASE_URL] = it }
+    extraTags?.get(VorbisCommentFields.BARCODE)?.let { map[VorbisCommentFields.BARCODE] = it }
+    return map.toMap()
+}

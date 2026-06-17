@@ -231,5 +231,17 @@
     "pageSizeLabel": "Per page",
     "pageSizeAriaLabel": "Albums per page",
     "pageSizeOption": "{{count}} per page"
+  },
+  "syncPreview": {
+    "title": "Preview Discogs sync changes",
+    "field": "Field",
+    "currentValue": "Current value",
+    "proposedValue": "Proposed value",
+    "noChanges": "No changes - Discogs data matches current tags.",
+    "confirm": "Confirm sync",
+    "cancel": "Cancel",
+    "loadingError": "Could not load preview",
+    "empty": "(empty)",
+    "emptyAriaLabel": "no value set"
   }
 }

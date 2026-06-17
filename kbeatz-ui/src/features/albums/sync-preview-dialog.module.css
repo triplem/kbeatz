@@ -1,0 +1,146 @@
+/* Sync preview dialog - accessible modal showing proposed Discogs tag changes */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: var(--space-md);
+}
+
+.dialog {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  max-width: 640px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.title {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.error {
+  font-size: var(--font-size-sm);
+  color: var(--color-error);
+}
+
+.noChanges {
+  font-size: var(--font-size-md);
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* ── Changes table ────────────────────────────────── */
+
+.changesTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.changesTable th {
+  text-align: left;
+  padding: var(--space-xs) var(--space-sm);
+  border-bottom: 2px solid var(--border-color);
+  color: var(--text-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.changesTable td {
+  padding: var(--space-xs) var(--space-sm);
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: top;
+  word-break: break-word;
+}
+
+.changesTable tr:last-child td {
+  border-bottom: none;
+}
+
+.fieldName {
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.currentValue {
+  color: var(--text-secondary);
+}
+
+.proposedValue {
+  color: var(--color-success);
+}
+
+.emptyPlaceholder {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* ── Action buttons ───────────────────────────────── */
+
+.actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.cancelButton {
+  min-height: var(--min-touch-target);
+  padding: var(--space-sm) var(--space-lg);
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-sans);
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color var(--transition-base);
+}
+
+.cancelButton:hover {
+  border-color: var(--accent);
+}
+
+.confirmButton {
+  min-height: var(--min-touch-target);
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--accent-button);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition-base);
+}
+
+.confirmButton:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.confirmButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

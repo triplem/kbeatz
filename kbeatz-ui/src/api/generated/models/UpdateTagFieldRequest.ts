@@ -14,7 +14,7 @@ export type UpdateTagFieldRequest = {
      */
     field: string;
     /**
-     * New field value
+     * New field value (max 4096 characters)
      */
     value: string;
 };

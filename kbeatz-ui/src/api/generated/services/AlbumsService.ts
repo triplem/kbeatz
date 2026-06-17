@@ -6,6 +6,7 @@ import type { Album } from '../models/Album';
 import type { AlbumDetail } from '../models/AlbumDetail';
 import type { AlbumPage } from '../models/AlbumPage';
 import type { BulkUpdateTagsRequest } from '../models/BulkUpdateTagsRequest';
+import type { SyncPreviewResponse } from '../models/SyncPreviewResponse';
 import type { SyncRequest } from '../models/SyncRequest';
 import type { UpdateTagFieldRequest } from '../models/UpdateTagFieldRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -251,6 +252,37 @@ export class AlbumsService {
                 `,
                 400: `Validation error`,
                 404: `Resource not found`,
+            },
+        });
+    }
+    /**
+     * Preview proposed Discogs tag changes without writing
+     * Fetches the Discogs release identified by the album's discogsId and returns the
+     * proposed field values as a diff (current vs proposed). Does NOT write anything.
+     * Use this to show the user what will change before calling the sync endpoint.
+     *
+     * @returns SyncPreviewResponse Preview ready; returns proposed changes
+     * @throws ApiError
+     */
+    public static previewSyncFromDiscogs({
+        albumId,
+    }: {
+        /**
+         * Album UUID
+         */
+        albumId: string,
+    }): CancelablePromise<SyncPreviewResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/albums/{albumId}/sync/preview',
+            path: {
+                'albumId': albumId,
+            },
+            errors: {
+                400: `Validation error`,
+                404: `Resource not found`,
+                422: `Album has no Discogs ID set`,
+                503: `Discogs API unavailable`,
             },
         });
     }

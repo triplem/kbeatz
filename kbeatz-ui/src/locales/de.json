@@ -231,5 +231,17 @@
     "pageSizeLabel": "Pro Seite",
     "pageSizeAriaLabel": "Alben pro Seite",
     "pageSizeOption": "{{count}} pro Seite"
+  },
+  "syncPreview": {
+    "title": "Discogs-Synchronisierung - Vorschau der Änderungen",
+    "field": "Feld",
+    "currentValue": "Aktueller Wert",
+    "proposedValue": "Vorgeschlagener Wert",
+    "noChanges": "Keine Änderungen - Discogs-Daten stimmen mit den aktuellen Tags überein.",
+    "confirm": "Synchronisierung bestätigen",
+    "cancel": "Abbrechen",
+    "loadingError": "Vorschau konnte nicht geladen werden",
+    "empty": "(leer)",
+    "emptyAriaLabel": "kein Wert gesetzt"
   }
 }

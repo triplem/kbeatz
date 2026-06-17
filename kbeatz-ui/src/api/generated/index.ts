@@ -19,6 +19,8 @@ export type { LivenessResponse } from './models/LivenessResponse';
 export type { ReadinessResponse } from './models/ReadinessResponse';
 export type { ScanErrorEntry } from './models/ScanErrorEntry';
 export type { ScanStatus } from './models/ScanStatus';
+export type { SyncFieldChange } from './models/SyncFieldChange';
+export type { SyncPreviewResponse } from './models/SyncPreviewResponse';
 export type { SyncRequest } from './models/SyncRequest';
 export type { Track } from './models/Track';
 export type { TrackTagFieldUpdate } from './models/TrackTagFieldUpdate';

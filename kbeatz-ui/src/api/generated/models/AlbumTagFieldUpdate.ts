@@ -11,7 +11,7 @@ export type AlbumTagFieldUpdate = {
      */
     field: string;
     /**
-     * New field value
+     * New field value (max 4096 characters)
      */
     value: string;
 };
