@@ -1,19 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import styles from './App.module.css'
-import logoFull from './assets/kbeatz-logo-transparent.svg'
-import logoFullDark from './assets/kbeatz-logo-dark.svg'
-import logoIcon from './assets/kbeatz-icon.svg'
 import { AlbumGrid } from './features/albums/album-grid'
 import { FilterPanel } from './features/albums/filter-panel'
 import { SearchBox } from './features/albums/search-box'
 import { SortPreference } from './features/albums/sort-preference'
 import { useAlbumPage } from './features/albums/use-album-page'
-import { ScanProgress } from './features/library/scan-progress'
-import { ScanButton } from './features/library/scan-button'
-import { LanguageToggle } from './features/language/language-toggle'
-import { ThemeToggle } from './theme'
 import { useAlbumFilters } from './features/albums/useAlbumFilters'
 import {
   applyFiltersAndSort,
@@ -24,36 +16,6 @@ import {
   type SortDirection,
   type SortField,
 } from './features/albums/album-filters'
-
-export function AppLayout() {
-  const { t } = useTranslation()
-
-  return (
-    <div className={styles.app}>
-      <header className={styles.appHeader}>
-        <Link to="/" className={styles.appLogoLink} aria-label={t('app.title')}>
-          <picture className={styles.appLogoFull}>
-            <source srcSet={logoFullDark} media="(prefers-color-scheme: dark)" />
-            <img src={logoFull} alt="" />
-          </picture>
-          <img
-            src={logoIcon}
-            alt=""
-            className={styles.appLogoIcon}
-            aria-hidden="true"
-          />
-        </Link>
-        <ScanButton />
-        <ThemeToggle />
-        <LanguageToggle />
-      </header>
-      <main className={styles.appMain}>
-        <ScanProgress />
-        <Outlet />
-      </main>
-    </div>
-  )
-}
 
 export function AlbumListPage() {
   const { t } = useTranslation()

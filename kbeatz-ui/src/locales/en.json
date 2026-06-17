@@ -167,6 +167,26 @@
   "app": {
     "title": "kbeatz"
   },
+  "nav": {
+    "primaryLabel": "Primary navigation",
+    "openMenu": "Open navigation menu",
+    "albums": "Albums",
+    "library": "Library",
+    "settings": "Settings"
+  },
+  "library": {
+    "heading": "Library",
+    "description": "Scan your music library to index albums and refresh metadata."
+  },
+  "settings": {
+    "heading": "Settings",
+    "sortLabel": "Default sort",
+    "sortDescription": "How albums are ordered in the collection view.",
+    "languageLabel": "Language",
+    "languageDescription": "Interface language.",
+    "themeLabel": "Theme",
+    "themeDescription": "Switch between light and dark appearance."
+  },
   "errorBoundary": {
     "message": "Something went wrong.",
     "reloadButton": "Try again"

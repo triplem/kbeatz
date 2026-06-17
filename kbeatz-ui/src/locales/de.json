@@ -167,6 +167,26 @@
   "app": {
     "title": "kbeatz"
   },
+  "nav": {
+    "primaryLabel": "Hauptnavigation",
+    "openMenu": "Navigationsmenü öffnen",
+    "albums": "Alben",
+    "library": "Bibliothek",
+    "settings": "Einstellungen"
+  },
+  "library": {
+    "heading": "Bibliothek",
+    "description": "Durchsuchen Sie Ihre Musikbibliothek, um Alben zu indexieren und Metadaten zu aktualisieren."
+  },
+  "settings": {
+    "heading": "Einstellungen",
+    "sortLabel": "Standardsortierung",
+    "sortDescription": "Wie Alben in der Sammlungsansicht sortiert werden.",
+    "languageLabel": "Sprache",
+    "languageDescription": "Sprache der Benutzeroberfläche.",
+    "themeLabel": "Design",
+    "themeDescription": "Zwischen hellem und dunklem Erscheinungsbild wechseln."
+  },
   "errorBoundary": {
     "message": "Etwas ist schiefgelaufen.",
     "reloadButton": "Erneut versuchen"
