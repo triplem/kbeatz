@@ -30,6 +30,11 @@ function asMock(result: AllAlbumsResult): ReturnType<typeof useAllAlbums> {
   return result as ReturnType<typeof useAllAlbums>
 }
 
+/** Wrap a plain album array into the client-side useAllAlbums result shape. */
+function clientData(albums: Album[]): AllAlbumsResult['data'] {
+  return { mode: 'client', totalElements: albums.length, albums }
+}
+
 function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const router = createMemoryRouter(
@@ -59,7 +64,7 @@ describe('AlbumListPage accessibility', () => {
   it('has no WCAG 2.1 AA violations with a populated grid (both themes)', async () => {
     mockUseAllAlbums.mockReturnValue(
       asMock({
-        data: Array.from({ length: 8 }, (_, i) => makeAlbum(i)),
+        data: clientData(Array.from({ length: 8 }, (_, i) => makeAlbum(i))),
         isPending: false,
         isError: false,
         refetch: vi.fn(),
@@ -84,7 +89,7 @@ describe('AlbumListPage accessibility', () => {
 
   it('has no violations in the empty state (both themes)', async () => {
     mockUseAllAlbums.mockReturnValue(
-      asMock({ data: [], isPending: false, isError: false, refetch: vi.fn() }),
+      asMock({ data: clientData([]), isPending: false, isError: false, refetch: vi.fn() }),
     )
     await expectNoA11yViolationsInBothThemes(renderPage)
   })

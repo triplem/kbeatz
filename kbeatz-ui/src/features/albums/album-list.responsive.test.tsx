@@ -13,7 +13,7 @@ const mockUseAllAlbums = vi.mocked(useAllAlbums)
 
 function mountAt() {
   mockUseAllAlbums.mockReturnValue({
-    data: [...FIXTURE_ALBUMS],
+    data: { mode: 'client', totalElements: FIXTURE_ALBUMS.length, albums: [...FIXTURE_ALBUMS] },
     isPending: false,
     isError: false,
     refetch: vi.fn(),
