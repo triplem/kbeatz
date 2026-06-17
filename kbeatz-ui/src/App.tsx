@@ -13,6 +13,7 @@ import { useAlbumPage } from './features/albums/use-album-page'
 import { ScanProgress } from './features/library/scan-progress'
 import { ScanButton } from './features/library/scan-button'
 import { LanguageToggle } from './features/language/language-toggle'
+import { ThemeToggle } from './theme'
 import { useAlbumFilters } from './features/albums/useAlbumFilters'
 import {
   applyFiltersAndSort,
@@ -43,6 +44,7 @@ export function AppLayout() {
           />
         </Link>
         <ScanButton />
+        <ThemeToggle />
         <LanguageToggle />
       </header>
       <main className={styles.appMain}>

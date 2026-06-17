@@ -137,3 +137,42 @@ These were evaluated and rejected in ADR-010 for styling and are not reconsidere
 * Epic #825 - UI rework on MUI + Pigment CSS; story #826 - this ADR
 * Issue #810 - the rework request; issue #823 - legacy artefact removal
 * `.claude/rules/react-patterns.md` - server state via TanStack Query; theme as context
+
+== Addendum: emotion fallback (story #827, 2026-06-17)
+
+The theme-foundation story (#827) attempted Pigment CSS first, as this ADR prefers. Pigment was
+*not adopted*: the project fell back to the standard emotion-based MUI runtime, which this ADR
+explicitly permits as a documented fallback. The two blocking reasons:
+
+[arabic]
+. *Critical transitive security vulnerability.* The only Pigment stack compatible with the
+  installed MUI (`@mui/material@9.1.1`) is the `0.0.30` line:
+  `@mui/material-pigment-css@9.1.1` pins `@pigment-css/react@^0.0.30` (which, under npm caret
+  semantics for `0.0.x`, resolves to exactly `0.0.30`), and the only Vite-6-compatible plugin that
+  pins the same react version is `@pigment-css/vite-plugin@0.0.30`. That `0.0.30` toolchain pulls
+  `@wyw-in-js/transform@0.5.5`, which depends on a vulnerable `happy-dom` range (`<= 20.8.8`,
+  a critical VM-context-escape RCE, GHSA advisory). The fixed `happy-dom@20.10.5` cannot be forced
+  via an `overrides` without breaking the pinned transform dependency. Installing the Pigment stack
+  added *7 new critical* advisories; the emotion stack added *zero*.
+. *Functional build failure.* Even setting security aside, Pigment could not statically extract
+  `@mui/material` component styles at this version pair. A minimal probe (a Pigment `styled` wrapper
+  around an MUI `Button`) failed the production build with
+  `[vite-plugin-zero-runtime] @mui/material/Button/Button.mjs: Cannot read properties of undefined
+  (reading 'mode')` inside MUI's `memoTheme` during build-time extraction. This is the
+  Pigment-maturity risk this ADR anticipated ("its coverage of the full MUI component set may have
+  rough edges").
+
+*What was adopted instead.* MUI 9.1.1 with `@emotion/react` + `@emotion/styled`. The theming goals
+of this ADR are *fully met without Pigment*: a single MUI theme is the source of truth; light/dark
+are CSS-variable colour schemes (`cssVariables: { colorSchemeSelector: 'data' }`) selected by the
+`data-mui-color-scheme` root attribute, so toggling is an attribute swap that re-resolves CSS
+variables rather than a full React re-render; the brand palette maps to Material roles with
+WCAG-AA-verified accessible "on-color" tokens; a hash-based (no `unsafe-inline`) inline bootstrap
+script in `index.html` prevents theme flash. The only runtime cost relative to Pigment is emotion's
+style injection, which is acceptable for a LAN app and is bounded by the bundle-size CI gate
+(`size-limit`, 250 KB gzipped budget; current app entry ~217 KB).
+
+*Re-evaluation trigger.* Revisit Pigment when (a) `@mui/material-pigment-css` and
+`@pigment-css/vite-plugin` publish mutually compatible versions whose transitive dependencies are
+free of critical advisories, and (b) build-time extraction of the MUI component set succeeds. Until
+then emotion is the engine of record for `kbeatz-ui`.

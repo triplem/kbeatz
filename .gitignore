@@ -24,6 +24,9 @@ data/
 kbeatz-ui/coverage/
 **/build/reports/
 
+# TypeScript incremental build info
+*.tsbuildinfo
+
 # Environment
 .env
 .env.local

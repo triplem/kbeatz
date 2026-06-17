@@ -186,6 +186,11 @@
     "en": "English",
     "de": "Deutsch"
   },
+  "themeToggle": {
+    "toLight": "Switch to light theme",
+    "toDark": "Switch to dark theme",
+    "ariaLabel": "Toggle colour theme"
+  },
   "pagination": {
     "ariaLabel": "Album page navigation",
     "previous": "Previous",

@@ -10,9 +10,15 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "api:generate": "node scripts/generate-api.mjs",
+    "size-limit": "size-limit",
+    "size-limit:ci": "npm run build && size-limit",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@emotion/react": "11.14.0",
+    "@emotion/styled": "11.14.1",
+    "@mui/icons-material": "9.1.1",
+    "@mui/material": "9.1.1",
     "@tanstack/react-query": "^5.101.0",
     "axios": "^1.18.0",
     "i18next": "^26.3.1",
@@ -24,6 +30,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@size-limit/file": "12.1.0",
     "@tanstack/react-query-devtools": "^5.101.0",
     "@testing-library/dom": "^10.0.0",
     "@testing-library/jest-dom": "^6.0.0",
@@ -41,6 +48,7 @@
     "globals": "^17.6.0",
     "jsdom": "^25.0.0",
     "openapi-typescript-codegen": "^0.30.0",
+    "size-limit": "12.1.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.0.0",
     "vite": "^6.0.0",
