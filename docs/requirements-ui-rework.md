@@ -60,6 +60,9 @@ Design, with both a light and a dark theme the user can switch between.
 | D3 | Rework scope | **Visual rebuild + navigation/IA restructure**; no brand-new product features |
 | D4 | Responsive target | **Fully responsive including phone** |
 | D5 | Migration sequence | **Incremental, screen by screen**; app shippable at every step |
+| D6 | Styling engine (was OQ-01) | **MUI with Pigment CSS** (zero-runtime, build-time CSS extraction); no emotion runtime |
+| D7 | Desktop navigation (was OQ-02) | **Permanent navigation drawer** on desktop, collapsing to an overlay drawer on phone |
+| D8 | Breakpoints and budget (was OQ-03) | **MUI standard breakpoints** (xs/sm/md/lg/xl) and the **250 KB gzipped** initial-payload budget |
 
 ---
 
@@ -70,9 +73,11 @@ Priority: **P0** = required for the rework to be considered done; **P1** = impor
 ### P0: Foundation
 
 **UI-FR-01** The application shall adopt MUI as its component library and Material 3 as its
-design system. A single MUI theme is the source of truth for palette, typography, spacing,
-shape, and elevation. ADR-010's CSS-Modules-only styling decision is superseded by a new ADR;
-remaining CSS Modules are migrated as each screen is reworked.
+design system, using the **Pigment CSS** zero-runtime styling engine (build-time CSS
+extraction via its Vite plugin), not the emotion runtime (D6). A single MUI theme is the source
+of truth for palette, typography, spacing, shape, and elevation. ADR-010's CSS-Modules-only
+styling decision is superseded by a new ADR; remaining CSS Modules are migrated as each screen
+is reworked.
 
 **UI-FR-02** The MUI theme shall map the existing brand palette onto Material roles:
 violet as `primary`, pink as `secondary`/destructive, teal as `success`, amber as `warning`.
@@ -86,8 +91,8 @@ load. The persisted theme must be applied before first paint so there is no flas
 theme.
 
 **UI-FR-04** The application shell shall provide a responsive Material navigation structure:
-a top App Bar plus a navigation drawer that is permanent (or a rail) on desktop and a temporary
-overlay drawer on phone. The information architecture is reorganised into clear destinations:
+a top App Bar plus a **permanent navigation drawer on desktop** (md and up) that collapses to a
+temporary overlay drawer on phone/small widths (D7). The information architecture is reorganised into clear destinations:
 **Albums** (browse/search/filter), **Library** (scan trigger, progress, errors), and
 **Settings** (sort preference, language, theme). The theme toggle and language control live in
 a consistent, discoverable place (app bar and/or Settings).
@@ -169,9 +174,9 @@ and skeleton loaders for the album grid and detail while data loads.
 
 | ID | Category | Requirement |
 |---|---|---|
-| UI-NFR-01 | Performance (bundle) | MUI must be tree-shaken and routes code-split. Initial JS payload budget: <= 250 KB gzipped for the app shell + first route. The budget is enforced by an automated CI check (e.g. `size-limit`/bundle-size gate), not a manual report; a regression over budget fails the build. |
+| UI-NFR-01 | Performance (bundle) | MUI must be tree-shaken and routes code-split. With Pigment CSS (D6) styles are extracted to static CSS at build time, so there is no emotion JS runtime in the bundle. Initial JS payload budget: <= 250 KB gzipped for the app shell + first route. The budget is enforced by an automated CI check (e.g. `size-limit`/bundle-size gate), not a manual report; a regression over budget fails the build. |
 | UI-NFR-09 | Theming (no-flash mechanism) | Because this is a client-rendered SPA, the persisted/OS theme must be resolved by a small blocking inline script in `index.html` that sets the theme before the application bundle executes. No theme-dependent UI renders before that resolution. |
-| UI-NFR-10 | Interim style isolation | During incremental migration, MUI (emotion) styles and remaining legacy CSS Modules must not collide. Global CSS resets are introduced via MUI `CssBaseline` only; no un-scoped global selectors are added, so a migrated screen is unaffected by legacy styles and vice versa. |
+| UI-NFR-10 | Interim style isolation | During incremental migration, MUI (Pigment CSS extracted styles) and remaining legacy CSS Modules must not collide. Global CSS resets are introduced via MUI `CssBaseline` only; no un-scoped global selectors are added, so a migrated screen is unaffected by legacy styles and vice versa. |
 | UI-NFR-02 | Performance (runtime) | Album grid load and filter/search keep the master-doc targets (grid p95 < 3 s v1; filter/search < 200 ms client-side). Theme toggle applies in < 100 ms with no full reload. |
 | UI-NFR-03 | Accessibility | WCAG 2.1 AA in both light and dark themes, verified by automated checks (axe) plus a manual keyboard/screen-reader pass per screen. |
 | UI-NFR-04 | Browsers | Latest Firefox and Chromium on desktop Linux, plus mobile Chromium and mobile Safari (iOS) for the responsive phone target. |
@@ -249,7 +254,7 @@ New client-only state introduced:
 |---|---|---|
 | A-01 | A new ADR supersedes the styling decision in ADR-010 (UI-FR-18); the TanStack Query decision in ADR-010 stays | If ADR-010 must stay intact, MUI adoption is blocked and we revert to "Material aesthetic on CSS Modules" |
 | A-07 | The master `docs/requirements.md` (NFR-10 and section 11 mobile-out-of-scope) will be amended to reflect the full-responsive decision (D4), so the two docs do not contradict | If left unamended, two conflicting sources of truth exist for mobile scope |
-| A-02 | MUI v6+ (Material 3, emotion-based) is acceptable as a runtime dependency despite ADR-010 having rejected CSS-in-JS | If the emotion runtime is unacceptable, evaluate MUI with a zero-runtime styling engine or Material Web |
+| A-02 | MUI v6+ with the **Pigment CSS** zero-runtime engine (D6) is mature enough for the full Material UI component set used here. Pigment is newer than emotion; some components or patterns may have rough edges | If Pigment CSS blocks a needed component, fall back to emotion-based MUI for that screen (accepting the runtime cost) and record it in the ADR |
 | A-03 | No backend/API change is needed for any reworked screen | Any required API change is escalated as a separate requirement |
 | A-04 | Existing feature set is frozen during the rework; new features (e.g. #811 UI) layer on top afterwards | Concurrent feature work on legacy components causes rebase/merge churn |
 | A-05 | Full phone support is a genuine target now, expanding the master doc's desktop-first scope | If phone is deprioritised, UI-FR-13 / UI-AC-07 relax to tablet |
@@ -270,19 +275,24 @@ New client-only state introduced:
 
 ## 12. Open Questions
 
-| ID | Question | Default if unanswered |
+All open questions are resolved (see decisions D6-D8 in section 3).
+
+| ID | Question | Resolution |
 |---|---|---|
-| OQ-01 | MUI styling engine: default emotion runtime, or MUI's zero-runtime (Pigment CSS) to minimise bundle and honour ADR-010's CSS-in-JS concern? | Default to the stable emotion-based MUI; revisit Pigment CSS if UI-NFR-01 budget is missed (decide in the ADR) |
-| OQ-02 | Navigation pattern at desktop width: permanent drawer vs compact nav rail | Default to a permanent drawer on desktop, collapsing to an overlay on phone; confirm during shell design |
-| OQ-03 | Exact responsive breakpoints and the initial-payload budget value | Default to MUI's standard breakpoints and the 250 KB budget above; tune during implementation |
+| OQ-01 | MUI styling engine: emotion runtime vs zero-runtime Pigment CSS | **Resolved (D6)**: use Pigment CSS (zero-runtime). Honours ADR-010's CSS-in-JS concern and helps the bundle budget. |
+| OQ-02 | Navigation pattern at desktop width | **Resolved (D7)**: permanent navigation drawer on desktop, overlay drawer on phone. |
+| OQ-03 | Responsive breakpoints and initial-payload budget value | **Resolved (D8)**: MUI standard breakpoints (xs/sm/md/lg/xl) and a 250 KB gzipped budget. |
 
 ---
 
 ## 13. Top 3 Risks
 
-1. **Bundle size / performance regression.** MUI plus emotion adds significant weight; without
-   disciplined tree-shaking and route code-splitting the LAN load time and UI-NFR-01 budget are
-   at risk. Mitigation: enforce the build-time bundle budget (UI-AC-11) from the first PR.
+1. **Pigment CSS maturity + bundle size.** Pigment CSS (D6) removes the emotion runtime, which
+   helps the budget, but it is newer than emotion and its integration across the full Material UI
+   component set may have rough edges; the Vite plugin adds build complexity. Combined with MUI's
+   component weight, the LAN load time and UI-NFR-01 budget remain at risk. Mitigation: enforce the
+   automated bundle budget (UI-AC-11) from the first PR, and keep the documented per-screen emotion
+   fallback (A-02) so a Pigment gap never blocks a screen.
 2. **ADR-010 supersession and architectural drift.** Adopting MUI reverses an Accepted ADR that
    deliberately rejected component frameworks and CSS-in-JS. Mitigation: write a superseding ADR
    up front (A-01/A-02) so the reversal is documented and intentional, not accidental.
