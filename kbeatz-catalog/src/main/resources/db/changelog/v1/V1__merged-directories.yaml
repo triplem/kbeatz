@@ -9,6 +9,12 @@ databaseChangeLog:
         Null for albums that come from a single directory.
         Used by TagWriteService to write tags to ALL merged directories, not just
         the primary directoryPath.
+      preConditions:
+        - onFail: MARK_RAN
+          not:
+            columnExists:
+              tableName: albums
+              columnName: merged_directories
       changes:
         - addColumn:
             tableName: albums

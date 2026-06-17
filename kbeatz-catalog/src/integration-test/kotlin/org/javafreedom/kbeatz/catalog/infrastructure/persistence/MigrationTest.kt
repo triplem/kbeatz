@@ -100,6 +100,25 @@ class MigrationTest {
     }
 
     @Test
+    fun `V1-007 merged_directories changeset is idempotent when column already exists`() = runTest {
+        // Simulates a database where merged_directories was already added by a prior run.
+        // Without a preConditions guard Liquibase would throw "Duplicate column name MERGED_DIRECTORIES".
+        // Issue #864: preConditions onFail:MARK_RAN skips the addColumn when the column already exists.
+        val url = "jdbc:h2:mem:precondition_${System.nanoTime()};DB_CLOSE_DELAY=-1;MODE=PostgreSQL"
+        val ds1 = DbFactory.init(url)
+        ds1.close()
+        // Second full migration run on a database that already has merged_directories.
+        val ds2 = DbFactory.init(url)
+        try {
+            transaction {
+                assertEquals(0L, AlbumsTable.selectAll().count())
+            }
+        } finally {
+            ds2.close()
+        }
+    }
+
+    @Test
     fun `albums insert and read back all fields`() = runTest {
         val ds = DbFactory.init(jdbcUrl)
         try {
