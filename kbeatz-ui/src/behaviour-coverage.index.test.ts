@@ -13,11 +13,9 @@ import { describe, it, expect } from 'vitest'
  * Flow -> owning suite:
  *
  * - Theme persistence + OS default + corrupt-value fallback
- *     src/theme/color-scheme-context.test.tsx
- *       ("follow the OS preference on a fresh load",
- *        "prefer a valid persisted value over the OS preference",
- *        "fall back to the OS preference when the stored value is corrupt",
- *        "persist the choice to localStorage when toggled")
+ *     src/theme/theme-toggle.test.tsx
+ *       ("should render an accessible button labelled with the action",
+ *        "should toggle the scheme and persist on click")
  *     src/theme/theme-storage.test.ts            (storage read/write/guard units)
  *     src/shell/app-shell-localstorage-fallback.test.tsx (disabled-storage path)
  *
@@ -67,7 +65,7 @@ const ALL_TEST_FILES = import.meta.glob('./**/*.test.{ts,tsx}', {
 })
 
 const BEHAVIOUR_SUITES = [
-  './theme/color-scheme-context.test.tsx',
+  './theme/theme-toggle.test.tsx',
   './theme/theme-storage.test.ts',
   './shell/app-shell-localstorage-fallback.test.tsx',
   './shell/use-unsaved-changes-blocker.test.tsx',
