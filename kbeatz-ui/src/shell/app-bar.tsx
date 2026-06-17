@@ -25,8 +25,8 @@ export interface AppTopBarProps {
 /**
  * Top application bar.
  *
- * Hosts the hamburger menu (xs/sm only - it toggles the temporary drawer),
- * the brand logo (links home), and the discoverable global controls
+ * Hosts the brand logo (links home), the hamburger menu (xs/sm only,
+ * toggles the temporary drawer), and the discoverable global controls
  * (theme toggle + language). At md+ the bar is offset to sit beside the
  * permanent drawer.
  */
@@ -50,29 +50,29 @@ export function AppTopBar({
       }}
     >
       <Toolbar>
-        <IconButton
-          color="inherit"
-          aria-label={t('nav.openMenu')}
-          aria-expanded={mobileOpen}
-          aria-controls={drawerId}
-          edge="start"
-          size="large"
-          onClick={onMenuClick}
-          sx={{ mr: 2, display: { md: 'none' } }}
-        >
-          <MenuIcon />
-        </IconButton>
         <Box
           component={RouterLink}
           to="/"
           aria-label={t('app.title')}
-          sx={{ display: 'flex', alignItems: 'center', mr: 'auto', textDecoration: 'none' }}
+          sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}
         >
           <picture>
             <source srcSet={logoFullDark} media="(prefers-color-scheme: dark)" />
             <Box component="img" src={logoFull} alt="" sx={{ height: 32, width: 'auto', display: 'block' }} />
           </picture>
         </Box>
+        <IconButton
+          color="inherit"
+          aria-label={t('nav.openMenu')}
+          aria-expanded={mobileOpen}
+          aria-controls={drawerId}
+          size="large"
+          onClick={onMenuClick}
+          sx={{ ml: 1, display: { md: 'none' } }}
+        >
+          <MenuIcon />
+        </IconButton>
+        <Box sx={{ flexGrow: 1 }} />
         <ThemeToggle />
         <LanguageToggle />
       </Toolbar>

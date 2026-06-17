@@ -19,29 +19,9 @@ exports[`AppShell visual regression > matches the shell snapshot in dark theme 1
       <div
         class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular css-1bmc26r-MuiToolbar-root"
       >
-        <button
-          aria-controls="app-mobile-drawer"
-          aria-expanded="false"
-          aria-label="Open navigation menu"
-          class="MuiButtonBase-root MuiIconButton-root MuiIconButton-colorInherit MuiIconButton-edgeStart MuiIconButton-sizeLarge css-6fpvwz-MuiButtonBase-root-MuiIconButton-root"
-          tabindex="0"
-          type="button"
-        >
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
-            data-testid="MenuIcon"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M3 18h18v-2H3zm0-5h18v-2H3zm0-7v2h18V6z"
-            />
-          </svg>
-        </button>
         <a
           aria-label="kbeatz"
-          class="MuiBox-root css-1l32d56"
+          class="MuiBox-root css-5k1n1y"
           data-discover="true"
           href="/"
         >
@@ -57,6 +37,29 @@ exports[`AppShell visual regression > matches the shell snapshot in dark theme 1
             />
           </picture>
         </a>
+        <button
+          aria-controls="app-mobile-drawer"
+          aria-expanded="false"
+          aria-label="Open navigation menu"
+          class="MuiButtonBase-root MuiIconButton-root MuiIconButton-colorInherit MuiIconButton-sizeLarge css-k7b2b2-MuiButtonBase-root-MuiIconButton-root"
+          tabindex="0"
+          type="button"
+        >
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
+            data-testid="MenuIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M3 18h18v-2H3zm0-5h18v-2H3zm0-7v2h18V6z"
+            />
+          </svg>
+        </button>
+        <div
+          class="MuiBox-root css-i9gxme"
+        />
         <button
           aria-label="Switch to light theme"
           class="MuiButtonBase-root MuiIconButton-root MuiIconButton-colorInherit MuiIconButton-sizeLarge css-1g3oe0e-MuiButtonBase-root-MuiIconButton-root"
@@ -271,29 +274,9 @@ exports[`AppShell visual regression > matches the shell snapshot in light theme 
       <div
         class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular css-1bmc26r-MuiToolbar-root"
       >
-        <button
-          aria-controls="app-mobile-drawer"
-          aria-expanded="false"
-          aria-label="Open navigation menu"
-          class="MuiButtonBase-root MuiIconButton-root MuiIconButton-colorInherit MuiIconButton-edgeStart MuiIconButton-sizeLarge css-6fpvwz-MuiButtonBase-root-MuiIconButton-root"
-          tabindex="0"
-          type="button"
-        >
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
-            data-testid="MenuIcon"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M3 18h18v-2H3zm0-5h18v-2H3zm0-7v2h18V6z"
-            />
-          </svg>
-        </button>
         <a
           aria-label="kbeatz"
-          class="MuiBox-root css-1l32d56"
+          class="MuiBox-root css-5k1n1y"
           data-discover="true"
           href="/"
         >
@@ -309,6 +292,29 @@ exports[`AppShell visual regression > matches the shell snapshot in light theme 
             />
           </picture>
         </a>
+        <button
+          aria-controls="app-mobile-drawer"
+          aria-expanded="false"
+          aria-label="Open navigation menu"
+          class="MuiButtonBase-root MuiIconButton-root MuiIconButton-colorInherit MuiIconButton-sizeLarge css-k7b2b2-MuiButtonBase-root-MuiIconButton-root"
+          tabindex="0"
+          type="button"
+        >
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
+            data-testid="MenuIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M3 18h18v-2H3zm0-5h18v-2H3zm0-7v2h18V6z"
+            />
+          </svg>
+        </button>
+        <div
+          class="MuiBox-root css-i9gxme"
+        />
         <button
           aria-label="Switch to dark theme"
           class="MuiButtonBase-root MuiIconButton-root MuiIconButton-colorInherit MuiIconButton-sizeLarge css-1g3oe0e-MuiButtonBase-root-MuiIconButton-root"
