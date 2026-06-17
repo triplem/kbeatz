@@ -1,6 +1,7 @@
 package org.javafreedom.kbeatz.catalog.domain.port
 
 import kotlin.uuid.Uuid
+import org.javafreedom.kbeatz.catalog.domain.model.SyncPreview
 import org.javafreedom.kbeatz.catalog.domain.model.SyncResult
 
 /**
@@ -18,6 +19,20 @@ interface SyncProvider {
 
     /** Human-readable name of this provider (e.g. "discogs"). */
     val name: String
+
+    /**
+     * Fetches proposed tag values from the external metadata source WITHOUT writing anything.
+     *
+     * Returns a [SyncPreview] describing what would change if [sync] were called. Only fields
+     * whose proposed value differs from the current album value are included in the preview.
+     *
+     * @param albumId UUID of the album to preview.
+     * @return [SyncPreview] with the proposed field changes.
+     * @throws org.javafreedom.kbeatz.common.ResourceNotFoundException when the album does not exist.
+     * @throws org.javafreedom.kbeatz.common.BusinessValidationException when the album is missing
+     *   required metadata (e.g. no source ID).
+     */
+    suspend fun preview(albumId: Uuid): SyncPreview
 
     /**
      * Syncs a single album from the external metadata source.

@@ -11,7 +11,10 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlin.uuid.Uuid
 import org.javafreedom.kbeatz.catalog.api.models.Album as ApiAlbum
 import org.javafreedom.kbeatz.catalog.api.models.ErrorResponse
+import org.javafreedom.kbeatz.catalog.api.models.SyncFieldChange as ApiSyncFieldChange
+import org.javafreedom.kbeatz.catalog.api.models.SyncPreviewResponse
 import org.javafreedom.kbeatz.catalog.domain.model.Album
+import org.javafreedom.kbeatz.catalog.domain.model.SyncPreview
 import org.javafreedom.kbeatz.catalog.domain.port.SyncProvider
 import org.javafreedom.kbeatz.common.BusinessValidationException
 import org.javafreedom.kbeatz.common.ImageQuotaExhaustedException
@@ -38,6 +41,23 @@ private val log = KotlinLogging.logger {}
  */
 @Suppress("TooGenericExceptionCaught") // Ktor route must catch all errors to return structured responses
 fun Route.syncRoutes(syncService: SyncProvider, libraryRoot: Path) {
+    get("/albums/{albumId}/sync/preview") {
+        val albumIdStr = call.parameters["albumId"]
+        val albumId = albumIdStr?.let { runCatching { Uuid.parse(it) }.getOrNull() }
+
+        when {
+            albumIdStr == null -> call.respond(
+                HttpStatusCode.BadRequest,
+                ErrorResponse(code = "INVALID_ALBUM_ID", message = "Missing albumId parameter"),
+            )
+            albumId == null -> call.respond(
+                HttpStatusCode.BadRequest,
+                ErrorResponse(code = "INVALID_ALBUM_ID", message = "Invalid UUID: $albumIdStr"),
+            )
+            else -> handlePreview(call, syncService, albumId)
+        }
+    }
+
     post("/albums/{albumId}/sync") {
         val albumIdStr = call.parameters["albumId"]
         val albumId = albumIdStr?.let { runCatching { Uuid.parse(it) }.getOrNull() }
@@ -53,6 +73,36 @@ fun Route.syncRoutes(syncService: SyncProvider, libraryRoot: Path) {
             )
             else -> handleSync(call, syncService, albumId, libraryRoot)
         }
+    }
+}
+
+@Suppress("TooGenericExceptionCaught") // catch-all for network/codec errors -> 503
+private suspend fun handlePreview(
+    call: ApplicationCall,
+    syncService: SyncProvider,
+    albumId: Uuid,
+) {
+    try {
+        val preview = syncService.preview(albumId)
+        call.respond(HttpStatusCode.OK, preview.toApiModel())
+    } catch (ex: ResourceNotFoundException) {
+        call.respond(
+            HttpStatusCode.NotFound,
+            ErrorResponse(code = "RESOURCE_NOT_FOUND", message = ex.message ?: "Album not found"),
+        )
+    } catch (ex: BusinessValidationException) {
+        call.respond(
+            HttpStatusCode.UnprocessableEntity,
+            ErrorResponse(code = "NO_SOURCE_ID", message = ex.message ?: "No source ID"),
+        )
+    } catch (ex: CancellationException) {
+        throw ex
+    } catch (ex: Exception) {
+        log.error(ex) { "Sync preview failed albumId=$albumId provider=${syncService.name}" }
+        call.respond(
+            HttpStatusCode.ServiceUnavailable,
+            ErrorResponse(code = "PREVIEW_FAILED", message = "Sync preview failed - check server logs for details"),
+        )
     }
 }
 
@@ -91,6 +141,17 @@ private suspend fun handleSync(
             ErrorResponse(code = "SYNC_FAILED", message = "Sync failed - check server logs for details"))
     }
 }
+
+internal fun SyncPreview.toApiModel(): SyncPreviewResponse = SyncPreviewResponse(
+    albumId = albumId.toString(),
+    proposedChanges = proposedChanges.map { change ->
+        ApiSyncFieldChange(
+            field = change.field,
+            currentValue = change.currentValue,  // empty string when field is not currently set
+            proposedValue = change.proposedValue,
+        )
+    },
+)
 
 internal fun Album.toSyncApiModel(libraryRoot: Path): ApiAlbum = ApiAlbum(
     id = id.toString(),

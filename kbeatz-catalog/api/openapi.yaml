@@ -320,6 +320,42 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /albums/{albumId}/sync/preview:
+    get:
+      operationId: previewSyncFromDiscogs
+      summary: Preview proposed Discogs tag changes without writing
+      description: |
+        Fetches the Discogs release identified by the album's discogsId and returns the
+        proposed field values as a diff (current vs proposed). Does NOT write anything.
+        Use this to show the user what will change before calling the sync endpoint.
+      tags: [Albums]
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/AlbumId"
+      responses:
+        "200":
+          description: Preview ready; returns proposed changes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncPreviewResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          description: Album has no Discogs ID set
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Discogs API unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /albums/{albumId}/sync:
     post:
       operationId: syncAlbumFromDiscogs
@@ -685,6 +721,43 @@ components:
           items:
             $ref: "#/components/schemas/TrackTagFieldUpdate"
           default: []
+
+    SyncFieldChange:
+      type: object
+      required: [field, currentValue, proposedValue]
+      description: "A single field comparison between the current album value and the value Discogs would write."
+      properties:
+        field:
+          type: string
+          description: "Vorbis Comment field name (uppercase)"
+          example: "GENRE"
+        currentValue:
+          type: string
+          description: "Current value stored in the album index (empty string if not set)"
+          example: "Jazz"
+        proposedValue:
+          type: string
+          description: "Value that Discogs sync would write"
+          example: "Modal Jazz"
+
+    SyncPreviewResponse:
+      type: object
+      required: [albumId, proposedChanges]
+      description: |
+        Result of a sync preview request. Contains the full list of field changes that would
+        be applied if the user confirms the sync. Fields where the current and proposed values
+        are identical are excluded.
+      properties:
+        albumId:
+          type: string
+          format: uuid
+          description: "Album UUID"
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        proposedChanges:
+          type: array
+          description: "Fields that would change (only fields where currentValue != proposedValue)"
+          items:
+            $ref: "#/components/schemas/SyncFieldChange"
 
     SyncRequest:
       type: object
