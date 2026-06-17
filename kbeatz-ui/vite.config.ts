@@ -42,6 +42,34 @@ function cspThemeScriptHash(isBuild: boolean): Plugin {
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => ({
   plugins: [react(), cspThemeScriptHash(command === 'build')],
+  build: {
+    rollupOptions: {
+      output: {
+        // Split the framework/vendor code out of the app entry chunk so the
+        // large, rarely-changing dependency set (MUI + emotion + React +
+        // router + query) caches independently of frequently-changing app
+        // code (#856). Kept deliberately coarse - one MUI/emotion chunk and
+        // one React-runtime chunk - to avoid over-splitting into many tiny
+        // request-amplifying chunks.
+        manualChunks(id) {
+          if (!id.includes('node_modules')) {
+            return undefined
+          }
+          if (id.includes('@mui') || id.includes('@emotion')) {
+            return 'mui'
+          }
+          if (
+            id.includes('react') ||
+            id.includes('scheduler') ||
+            id.includes('@tanstack')
+          ) {
+            return 'react-vendor'
+          }
+          return undefined
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
