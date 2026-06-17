@@ -4,14 +4,12 @@ import { act } from 'react'
 import { expect } from 'vitest'
 import { axe } from 'vitest-axe'
 import * as axeMatchers from 'vitest-axe/matchers'
-import { THEME_STORAGE_KEY } from '../theme/theme'
+import { applyTheme } from './render-helpers'
 
 // vitest-axe ships an empty `extend-expect` build artifact, so the matcher is
 // registered explicitly here. Importing this module is enough to make
 // `expect(results).toHaveNoViolations()` available in any spec.
 expect.extend(axeMatchers)
-
-export type A11yTheme = 'light' | 'dark'
 
 /**
  * Audit configuration.
@@ -34,16 +32,6 @@ const AXE_OPTIONS = {
   rules: {
     'color-contrast': { enabled: false },
   },
-}
-
-/**
- * Force the active MUI colour scheme before rendering by seeding the persisted
- * theme key the ColorSchemeProvider reads on mount, and setting the root
- * attribute the CSS-variable theme selects on.
- */
-function applyTheme(theme: A11yTheme): void {
-  window.localStorage.setItem(THEME_STORAGE_KEY, theme)
-  document.documentElement.setAttribute('data-mui-color-scheme', theme)
 }
 
 /**
