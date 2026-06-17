@@ -6,7 +6,12 @@
 
 == Status
 
-Accepted
+Accepted.
+
+NOTE: The *styling* decision in this ADR (CSS Modules + `tokens.css`; dark-only via
+`prefers-color-scheme`) is *superseded in part* by
+link:ADR-013-ui-mui-pigment-styling.adoc[ADR-013] (MUI + Pigment CSS, user-toggleable
+light/dark). The *server-state* decision below (TanStack Query) remains in force.
 
 == Context
 
