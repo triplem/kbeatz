@@ -1,9 +1,15 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import Alert from '@mui/material/Alert'
+import Button from '@mui/material/Button'
+import Checkbox from '@mui/material/Checkbox'
+import FormControlLabel from '@mui/material/FormControlLabel'
+import Snackbar from '@mui/material/Snackbar'
+import Typography from '@mui/material/Typography'
 import { Album, AlbumDetail, AlbumsService } from '../../api/generated'
 import { CancelError } from '../../api/generated/core/CancelablePromise'
-import styles from './sync-panel.module.css'
+import { PageSection, ConfirmDialog, LoadingState } from '../../components'
 
 /** Client-side timeout for Discogs sync requests (30 seconds). */
 const SYNC_TIMEOUT_MS = 30_000
@@ -50,6 +56,9 @@ interface SyncPanelProps {
 /**
  * SyncPanel - renders the "Sync from Discogs" control block for an album detail view.
  *
+ * Rebuilt on MUI primitives (PageSection, Checkbox, Button, Snackbar, Alert) and
+ * the shared ConfirmDialog so it is theme-aware in light and dark modes.
+ *
  * Only rendered when the album has a `discogsId`.
  * Calls POST /api/v1/albums/{albumId}/sync and handles all response states.
  * Displays the number of tag fields updated after a successful sync.
@@ -62,13 +71,6 @@ export function SyncPanel({ album, onSyncComplete, hasLocalEdits = false }: Sync
   const queryClient = useQueryClient()
   const [downloadImages, setDownloadImages] = useState(false)
   const [syncState, setSyncState] = useState<SyncState>({ status: 'idle' })
-  const cancelButtonRef = useRef<HTMLButtonElement>(null)
-
-  useEffect(() => {
-    if (syncState.status === 'confirmOverwrite') {
-      cancelButtonRef.current?.focus()
-    }
-  }, [syncState.status])
 
   const syncMutation = useMutation({
     mutationFn: () => {
@@ -120,7 +122,6 @@ export function SyncPanel({ album, onSyncComplete, hasLocalEdits = false }: Sync
 
   const handleSyncClick = () => {
     if (hasLocalEdits) {
-      // Show overwrite warning before proceeding
       setSyncState({ status: 'confirmOverwrite' })
     } else {
       executeSync()
@@ -135,29 +136,53 @@ export function SyncPanel({ album, onSyncComplete, hasLocalEdits = false }: Sync
     setSyncState({ status: 'idle' })
   }
 
+  const handleDismissSuccess = () => {
+    setSyncState({ status: 'idle' })
+  }
+
   const isLoading = syncState.status === 'loading'
 
   return (
-    <section aria-label={t('syncPanel.ariaLabel')} className={styles.syncPanel}>
-      <h3>{t('syncPanel.heading')}</h3>
-      <p className={styles.discogsId} data-testid="discogs-id">
+    <PageSection
+      title={t('syncPanel.heading')}
+      ariaLabel={t('syncPanel.ariaLabel')}
+      headingLevel="h3"
+      testId="sync-panel"
+    >
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        component="p"
+        data-testid="discogs-id"
+        sx={{ m: 0 }}
+      >
         {t('syncPanel.discogsId', { id: album.discogsId })}
-      </p>
+      </Typography>
 
-      <label className={styles.checkboxLabel}>
-        <input
-          type="checkbox"
-          checked={downloadImages}
-          onChange={(e) => { setDownloadImages(e.target.checked) }}
-          disabled={isLoading}
-          data-testid="download-images-checkbox"
-          aria-label={t('syncPanel.downloadImagesAriaLabel')}
-        />
-        {' '}{t('syncPanel.downloadImages')}
-      </label>
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={downloadImages}
+            onChange={(e) => { setDownloadImages(e.target.checked) }}
+            disabled={isLoading}
+            slotProps={{
+              // data-testid on the underlying input so toBeChecked()/click target the
+              // checkbox element rather than the MUI root span. The slot input props
+              // type does not enumerate data-* attributes, so it is widened here.
+              input: {
+                'aria-label': t('syncPanel.downloadImagesAriaLabel'),
+                'data-testid': 'download-images-checkbox',
+              } as React.InputHTMLAttributes<HTMLInputElement>,
+            }}
+          />
+        }
+        label={t('syncPanel.downloadImages')}
+        sx={{ alignSelf: 'flex-start', m: 0 }}
+      />
 
-      <button
+      <Button
         type="button"
+        variant="contained"
         onClick={handleSyncClick}
         disabled={isLoading}
         aria-disabled={isLoading}
@@ -165,68 +190,56 @@ export function SyncPanel({ album, onSyncComplete, hasLocalEdits = false }: Sync
           ? t('syncPanel.syncButtonLoading')
           : t('syncPanel.syncButton')}
         data-testid="sync-button"
-        className={styles.syncButton}
+        sx={{ alignSelf: 'flex-start', minHeight: 44 }}
       >
         {isLoading ? t('syncPanel.syncButtonLoading') : t('syncPanel.syncButton')}
-      </button>
+      </Button>
 
-      {/* Overwrite warning dialog */}
-      {syncState.status === 'confirmOverwrite' && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="sync-overwrite-title"
-          aria-describedby="sync-overwrite-body"
-          data-testid="sync-overwrite-dialog"
-          className={styles.overwriteDialog}
-        >
-          <h4 id="sync-overwrite-title">{t('syncPanel.overwriteTitle')}</h4>
-          <p id="sync-overwrite-body">{t('syncPanel.overwriteBody')}</p>
-          <div className={styles.overwriteActions}>
-            <button
-              ref={cancelButtonRef}
-              type="button"
-              onClick={handleCancelOverwrite}
-              data-testid="sync-overwrite-cancel"
-              className={styles.overwriteCancelButton}
-            >
-              {t('common.cancel')}
-            </button>
-            <button
-              type="button"
-              onClick={handleConfirmOverwrite}
-              data-testid="sync-overwrite-confirm"
-              className={styles.overwriteConfirmButton}
-            >
-              {t('syncPanel.overwriteConfirm')}
-            </button>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={syncState.status === 'confirmOverwrite'}
+        title={t('syncPanel.overwriteTitle')}
+        body={t('syncPanel.overwriteBody')}
+        confirmLabel={t('syncPanel.overwriteConfirm')}
+        cancelLabel={t('common.cancel')}
+        onConfirm={handleConfirmOverwrite}
+        onCancel={handleCancelOverwrite}
+        testId="sync-overwrite-dialog"
+      />
 
       {syncState.status === 'loading' && (
-        <p role="status" aria-live="polite" data-testid="sync-loading">
-          {t('syncPanel.loadingMessage')}
-        </p>
+        <LoadingState message={t('syncPanel.loadingMessage')} testId="sync-loading" />
       )}
 
-      {syncState.status === 'success' && (
-        <p role="status" aria-live="polite" data-testid="sync-success" className={styles.successMessage}>
-          {t('syncPanel.successMessage', { count: syncState.fieldsWritten })}
-        </p>
-      )}
+      <Snackbar
+        open={syncState.status === 'success'}
+        onClose={handleDismissSuccess}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={handleDismissSuccess}
+          severity="success"
+          role="status"
+          aria-live="polite"
+          data-testid="sync-success"
+          sx={{ width: '100%' }}
+        >
+          {syncState.status === 'success'
+            ? t('syncPanel.successMessage', { count: syncState.fieldsWritten })
+            : ''}
+        </Alert>
+      </Snackbar>
 
       {syncState.status === 'error' && (
-        <p role="alert" data-testid="sync-error" className={styles.errorMessage}>
+        <Alert severity="error" role="alert" data-testid="sync-error" sx={{ mt: 1 }}>
           {syncState.message}
-        </p>
+        </Alert>
       )}
 
       {syncState.status === 'quotaExhausted' && (
-        <p role="alert" data-testid="sync-quota-exhausted" className={styles.quotaMessage}>
+        <Alert severity="warning" role="alert" data-testid="sync-quota-exhausted" sx={{ mt: 1 }}>
           {t('syncPanel.quotaExhausted', { resetAt: syncState.resetAt })}
-        </p>
+        </Alert>
       )}
-    </section>
+    </PageSection>
   )
 }

@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SyncPanel } from './sync-panel'
 import { AlbumsService } from '../../api/generated'
+import { CancelError } from '../../api/generated/core/CancelablePromise'
 import type { Album, AlbumDetail } from '../../api/generated'
 
 vi.mock('../../api/generated', async (importOriginal) => {
@@ -182,6 +183,33 @@ describe('SyncPanel', () => {
     expect(screen.getByTestId('sync-error')).toHaveTextContent('Discogs API unavailable')
   })
 
+  it('should show a timeout error message when the request is cancelled', async () => {
+    const album = buildAlbumDetail()
+    // A CancelError simulates the client-side 30s timeout cancelling the request.
+    mockSyncAlbum.mockRejectedValue(
+      new CancelError('Request aborted') as unknown as Album,
+    )
+
+    renderSyncPanel({ album, onSyncComplete })
+    await userEvent.click(screen.getByTestId('sync-button'))
+
+    await waitFor(() => expect(screen.getByTestId('sync-error')).toBeInTheDocument())
+    expect(screen.getByTestId('sync-error')).toHaveTextContent('Sync timed out')
+  })
+
+  it('should dismiss the success snackbar when its close button is clicked', async () => {
+    const album = buildAlbumDetail()
+    mockSyncAlbum.mockResolvedValue(buildAlbum())
+
+    const user = userEvent.setup()
+    renderSyncPanel({ album, onSyncComplete })
+    await user.click(screen.getByTestId('sync-button'))
+
+    await waitFor(() => expect(screen.getByTestId('sync-success')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: 'Close' }))
+    await waitFor(() => expect(screen.queryByTestId('sync-success')).not.toBeInTheDocument())
+  })
+
   it('should show 404 error message when album not found in Discogs', async () => {
     const album = buildAlbumDetail()
     mockSyncAlbum.mockRejectedValue({
@@ -341,7 +369,7 @@ describe('SyncPanel', () => {
     await userEvent.click(screen.getByTestId('sync-button'))
 
     expect(screen.getByTestId('sync-overwrite-dialog')).toBeInTheDocument()
-    await userEvent.click(screen.getByTestId('sync-overwrite-cancel'))
+    await userEvent.click(screen.getByTestId('sync-overwrite-dialog-cancel'))
 
     // Dialog should be gone and sync should not have been called
     expect(screen.queryByTestId('sync-overwrite-dialog')).not.toBeInTheDocument()
@@ -354,7 +382,7 @@ describe('SyncPanel', () => {
     await userEvent.click(screen.getByTestId('sync-button'))
 
     expect(screen.getByTestId('sync-overwrite-dialog')).toBeInTheDocument()
-    await userEvent.click(screen.getByTestId('sync-overwrite-confirm'))
+    await userEvent.click(screen.getByTestId('sync-overwrite-dialog-confirm'))
 
     // Dialog gone and sync called
     expect(screen.queryByTestId('sync-overwrite-dialog')).not.toBeInTheDocument()

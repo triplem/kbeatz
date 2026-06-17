@@ -145,6 +145,25 @@ describe('ScanProgress - render states', () => {
     expect(banner).toHaveTextContent('Scanning: 100 / 500 albums')
   })
 
+  it('renders a determinate progress bar in the running state', async () => {
+    mockGetStatus.mockResolvedValue(
+      makeStatus('RUNNING', { scannedAlbums: 25, totalAlbums: 100 }),
+    )
+    renderWithQuery(<ScanProgress />)
+    await screen.findByRole('status')
+    const bar = document.querySelector('.MuiLinearProgress-root')
+    expect(bar).not.toBeNull()
+    expect(bar).toHaveClass('MuiLinearProgress-determinate')
+  })
+
+  it('renders an indeterminate progress bar when total is unknown', async () => {
+    mockGetStatus.mockResolvedValue(makeStatus('RUNNING', { scannedAlbums: 7 }))
+    renderWithQuery(<ScanProgress />)
+    await screen.findByRole('status')
+    const bar = document.querySelector('.MuiLinearProgress-root')
+    expect(bar).toHaveClass('MuiLinearProgress-indeterminate')
+  })
+
   it('running banner has aria-live="polite" and aria-atomic="true"', async () => {
     mockGetStatus.mockResolvedValue(
       makeStatus('RUNNING', { scannedAlbums: 5, totalAlbums: 50 }),

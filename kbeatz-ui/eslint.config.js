@@ -80,6 +80,17 @@ export default tseslint.config(
               'aria-live',
               'aria-atomic',
               'aria-modal',
+              'aria-busy',
+              'aria-expanded',
+              // Shared primitive structural props (heading level, MUI variant,
+              // ARIA-label pass-through, anchor origin) and MUI slot-config
+              // objects carry layout/structural values, not user-facing copy.
+              'headingLevel',
+              'titleVariant',
+              'ariaLabel',
+              'confirmColor',
+              'anchorOrigin',
+              'slotProps',
             ],
           },
         },
