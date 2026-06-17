@@ -63,6 +63,17 @@ interface EditableFieldProps {
    * used for track-level fields).
    */
   readonly onCommit?: (field: string, value: string) => void
+  /**
+   * Markup variant for the label/value wrapper.
+   *
+   * - `'dl'` (default): renders the field as a `<dt>`/`<dd>` pair, valid only
+   *   inside a `<dl>` (used by the album-tags definition list).
+   * - `'cell'`: renders plain `<div>` wrappers with a visually-hidden label, for
+   *   use inside a table cell where the column header already labels the field.
+   *   Emitting `<dt>`/`<dd>` outside a `<dl>` is a WCAG 1.3.1 violation, so
+   *   table-context fields must use this variant.
+   */
+  readonly variant?: 'dl' | 'cell'
 }
 
 /**
@@ -100,6 +111,7 @@ export function EditableField({
   scopeDescribedBy,
   displayValue,
   onCommit,
+  variant = 'dl',
 }: EditableFieldProps) {
   const { t } = useTranslation()
   const [editing, setEditing] = useState(false)
@@ -316,13 +328,15 @@ export function EditableField({
       data-testid={`${prefix}field-${fieldName.toLowerCase()}`}
     >
       <Typography
-        component="dt"
+        component={variant === 'dl' ? 'dt' : 'div'}
         variant="body2"
-        sx={{ color: 'text.secondary', fontWeight: 500 }}
+        sx={variant === 'dl'
+          ? { color: 'text.secondary', fontWeight: 500 }
+          : { ...visuallyHidden }}
       >
         {label}
       </Typography>
-      <Box component="dd" sx={{ m: 0, minWidth: 0 }}>
+      <Box component={variant === 'dl' ? 'dd' : 'div'} sx={{ m: 0, minWidth: 0 }}>
         {editing ? (
           <>
             {/* Programmatically associated label. Visually hidden because the

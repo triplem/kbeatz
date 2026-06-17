@@ -93,15 +93,22 @@ describe('ConfirmWriteDialog', () => {
     expect(title?.textContent).toMatch(/Write tags/)
   })
 
-  it('dialog element has aria-describedby referencing body and warning paragraphs', () => {
+  it('dialog element has aria-describedby referencing two paragraphs', () => {
     renderDialog()
     const dialog = screen.getByRole('dialog')
-    expect(dialog).toHaveAttribute('aria-describedby', 'confirm-dialog-body confirm-dialog-warning')
+    const describedBy = dialog.getAttribute('aria-describedby')
+    expect(describedBy).not.toBeNull()
+    // Two space-separated, non-empty, unique IDs (body + warning).
+    const ids = (describedBy ?? '').split(' ').filter(Boolean)
+    expect(ids).toHaveLength(2)
+    expect(new Set(ids).size).toBe(2)
   })
 
   it('aria-describedby body paragraph exists with an id and contains album info', () => {
     renderDialog({ albumTitle: 'Kind of Blue', trackCount: 5 })
-    const bodyEl = document.getElementById('confirm-dialog-body')
+    const dialog = screen.getByRole('dialog')
+    const bodyId = (dialog.getAttribute('aria-describedby') ?? '').split(' ')[0] ?? ''
+    const bodyEl = document.getElementById(bodyId)
     expect(bodyEl).toBeInTheDocument()
     expect(bodyEl?.textContent).toMatch(/5 FLAC files/)
     expect(bodyEl?.textContent).toMatch(/Kind of Blue/)
@@ -109,7 +116,9 @@ describe('ConfirmWriteDialog', () => {
 
   it('aria-describedby warning paragraph exists with an id and contains cannot be undone', () => {
     renderDialog()
-    const warningEl = document.getElementById('confirm-dialog-warning')
+    const dialog = screen.getByRole('dialog')
+    const warningId = (dialog.getAttribute('aria-describedby') ?? '').split(' ')[1] ?? ''
+    const warningEl = document.getElementById(warningId)
     expect(warningEl).toBeInTheDocument()
     expect(warningEl?.textContent).toMatch(/This cannot be undone/)
   })

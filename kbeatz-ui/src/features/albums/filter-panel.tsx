@@ -102,7 +102,7 @@ export function FilterPanel({ options, filters, onFiltersChange }: FilterPanelPr
   return (
     <Box component="aside" aria-label={t('filterPanel.ariaLabel')} sx={{ minWidth: 200 }}>
       {hasMultiValueSelection && (
-        <Alert severity="info" role="alert" sx={{ mb: 2 }}>
+        <Alert severity="info" role="status" sx={{ mb: 2 }}>
           {t('filterPanel.multiValueWarning')}
         </Alert>
       )}

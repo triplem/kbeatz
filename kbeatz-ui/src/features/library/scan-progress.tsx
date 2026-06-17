@@ -121,10 +121,17 @@ export function ScanProgress() {
           </Box>
         )}
       </Typography>
+      {/*
+        Determinate bar is exposed as a real progressbar so assistive tech can
+        read the current percentage on demand (WCAG 1.3.1 / 4.1.2). The
+        indeterminate bar carries no value, so it stays aria-hidden (it would
+        otherwise announce a meaningless progressbar with no value).
+      */}
       <LinearProgress
         variant={hasTotal ? 'determinate' : 'indeterminate'}
         value={progressValue}
-        aria-hidden="true"
+        aria-hidden={hasTotal ? undefined : 'true'}
+        aria-label={hasTotal ? t('scanProgress.running', { progress: progressText }) : undefined}
       />
     </Box>
   )

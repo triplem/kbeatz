@@ -87,7 +87,7 @@ export function SearchBox({ filters, onFiltersChange }: SearchBoxProps) {
                   edge="end"
                   size="small"
                 >
-                  <ClearIcon fontSize="small" />
+                  <ClearIcon fontSize="small" aria-hidden="true" />
                 </IconButton>
               </InputAdornment>
             ) : null,
