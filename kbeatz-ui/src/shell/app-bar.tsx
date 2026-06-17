@@ -25,8 +25,8 @@ export interface AppTopBarProps {
 /**
  * Top application bar.
  *
- * Hosts the hamburger menu (xs/sm only - it toggles the temporary drawer),
- * the brand logo (links home), and the discoverable global controls
+ * Hosts the brand logo (links home), the hamburger menu (xs/sm only,
+ * toggles the temporary drawer), and the discoverable global controls
  * (theme toggle + language). At md+ the bar is offset to sit beside the
  * permanent drawer.
  */
