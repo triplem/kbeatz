@@ -1,8 +1,12 @@
 [
   {
-    "name": "app entry (JS, gzipped) - 260 kB: #829 adds required MUI Card/Pagination/Select/Checkbox on the album-list critical path; acceptable for a LAN app (UI-NFR-01)",
-    "path": "dist/assets/index-*.js",
-    "limit": "260 kB",
+    "name": "first-load critical path (JS, gzipped) - 280 kB: #856 splits MUI/emotion + React-runtime vendor code out of the entry into long-cached chunks. The entry HTML modulepreloads all three (index + mui + react-vendor), so the budget measures their combined gzip. ~263 kB today; 280 kB gives headroom for the chunk-boundary overhead the split adds while staying close to the original <=260 kB single-chunk intent (UI-NFR-01). Acceptable for a LAN app.",
+    "path": [
+      "dist/assets/index-*.js",
+      "dist/assets/mui-*.js",
+      "dist/assets/react-vendor-*.js"
+    ],
+    "limit": "280 kB",
     "gzip": true
   }
 ]
