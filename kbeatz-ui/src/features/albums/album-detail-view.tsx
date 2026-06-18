@@ -8,6 +8,7 @@ import EditIcon from '@mui/icons-material/Edit'
 import { visuallyHidden } from '@mui/utils'
 import { type AlbumDetail as AlbumDetailModel } from '../../api/generated'
 import { AlbumHeroHeader } from './album-hero-header'
+import { AlbumTrackListView } from './album-tracklist-view'
 
 export interface AlbumDetailViewProps {
   /** Album data to display in read-only mode. */
@@ -70,21 +71,16 @@ export function AlbumDetailView({ album, onEnterEditMode, editButtonRef }: Album
 
       <AlbumHeroHeader album={album} />
 
-      {/* Tracklist placeholder - full implementation added in #911 */}
       <Box
         component="section"
         aria-label={t('albumDetail.tracksSection')}
-        data-testid="tracklist-placeholder"
+        data-testid="tracklist-section"
         sx={{ py: 2 }}
       >
         <Typography variant="h6" component="h2" sx={{ mb: 1 }}>
           {t('albumDetail.tracksSectionTitle')}
         </Typography>
-        <Typography component="p" variant="body2" color="text.secondary">
-          {album.tracks.length === 0
-            ? t('albumDetail.noTracks')
-            : t('albumDetail.tracksCount', { count: album.tracks.length })}
-        </Typography>
+        <AlbumTrackListView tracks={album.tracks} />
       </Box>
 
       {/* Credits placeholder - full implementation added in #912 */}
