@@ -97,7 +97,8 @@
     "composedByPrefix": "Komponiert von",
     "showCredits": "Mitwirkende anzeigen",
     "hideCredits": "Mitwirkende ausblenden",
-    "tracksCount": "{{count}} Titel"
+    "tracksCount_one": "1 Titel",
+    "tracksCount_other": "{{count}} Titel"
   },
   "editableField": {
     "editLabel": "{{label}} bearbeiten",

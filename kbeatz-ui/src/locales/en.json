@@ -97,7 +97,8 @@
     "composedByPrefix": "Composed By",
     "showCredits": "Show credits",
     "hideCredits": "Hide credits",
-    "tracksCount": "{{count}} tracks"
+    "tracksCount_one": "1 track",
+    "tracksCount_other": "{{count}} tracks"
   },
   "editableField": {
     "editLabel": "Edit {{label}}",

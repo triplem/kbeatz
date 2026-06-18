@@ -132,6 +132,7 @@ export function AlbumDetail() {
         album={displayAlbum}
         onExitEditMode={handleExitEditMode}
         onSyncComplete={handleSyncComplete}
+        onSaveComplete={() => { setHasLocalEdits(true) }}
         hasLocalEdits={hasLocalEdits}
         cancelButtonRef={cancelButtonRef}
       />

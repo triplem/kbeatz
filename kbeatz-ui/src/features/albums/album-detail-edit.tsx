@@ -116,6 +116,11 @@ export interface AlbumDetailEditProps {
   readonly onExitEditMode: () => void
   /** Called when a Discogs sync completes with the updated album data. */
   readonly onSyncComplete: (updated: Album) => void
+  /**
+   * Called immediately after a successful batch save so the parent wrapper can mark
+   * that local edits exist (relevant to the SyncPanel overwrite-warning dialog).
+   */
+  readonly onSaveComplete?: () => void
   /** True after any album-level tag has been successfully saved since the last sync. */
   readonly hasLocalEdits: boolean
   /** Ref attached to the Cancel button for focus management. */
@@ -138,6 +143,7 @@ export function AlbumDetailEdit({
   album,
   onExitEditMode,
   onSyncComplete,
+  onSaveComplete,
   hasLocalEdits,
   cancelButtonRef,
 }: AlbumDetailEditProps) {
@@ -255,6 +261,8 @@ export function AlbumDetailEdit({
       })
       setDirtyFields({})
       setDirtyTrackFields({})
+      // Notify parent that local edits now exist (for SyncPanel overwrite-warning dialog)
+      onSaveComplete?.()
       // Invalidate so grid reflects updated metadata
       void queryClient.invalidateQueries({ queryKey: ['albums'] })
     } catch (err) {
@@ -283,7 +291,7 @@ export function AlbumDetailEdit({
     } finally {
       setIsSaving(false)
     }
-  }, [albumId, dirtyFields, dirtyTrackFields, queryClient, t])
+  }, [albumId, dirtyFields, dirtyTrackFields, onSaveComplete, queryClient, t])
 
   /**
    * User clicked "Cancel" or pressed Escape on the ConfirmWriteDialog.
