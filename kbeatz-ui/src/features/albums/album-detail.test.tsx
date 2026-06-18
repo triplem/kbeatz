@@ -2210,3 +2210,67 @@ describe('AlbumDetail - hide/show credits toggle (view mode)', () => {
     })
   })
 })
+
+// ---------------------------------------------------------------------------
+// Discogs sync panel in view mode (#914)
+// ---------------------------------------------------------------------------
+
+describe('AlbumDetail - Discogs sync panel in view mode', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('renders SyncPanel in view mode when album has a discogsId', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ discogsId: '12345' }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('sync-panel')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('sync-panel')).toHaveAttribute('data-discogs-id', '12345')
+  })
+
+  it('does NOT render SyncPanel in view mode when album has no discogsId', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ discogsId: undefined }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('sync-panel')).not.toBeInTheDocument()
+  })
+
+  it('SyncPanel in view mode has accessible section aria-label', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ discogsId: '12345' }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('sync-panel')).toBeInTheDocument()
+    })
+    expect(screen.getByRole('region', { name: 'Discogs sync' })).toBeInTheDocument()
+  })
+
+  it('sync-complete from view mode updates displayed album metadata', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ discogsId: '12345' }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('sync-panel')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByTestId('mock-sync-complete'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('hero-artist')).toHaveTextContent('Updated Artist')
+      expect(screen.getByTestId('hero-album-title')).toHaveTextContent('Updated Album')
+    })
+  })
+
+  it('view mode SyncPanel is visible without entering edit mode', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ discogsId: '12345' }))
+    renderDetail()
+    await waitFor(() => {
+      // edit-button present = we are in view mode
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    // SyncPanel already visible - no edit mode needed
+    expect(screen.getByTestId('sync-panel')).toBeInTheDocument()
+    expect(screen.queryByTestId('cancel-edit-button')).not.toBeInTheDocument()
+  })
+})

@@ -8,10 +8,11 @@ import Typography from '@mui/material/Typography'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import EditIcon from '@mui/icons-material/Edit'
 import { visuallyHidden } from '@mui/utils'
-import { type AlbumDetail as AlbumDetailModel } from '../../api/generated'
+import { type Album, type AlbumDetail as AlbumDetailModel } from '../../api/generated'
 import { AlbumHeroHeader } from './album-hero-header'
 import { AlbumTrackListView } from './album-tracklist-view'
 import { AlbumCreditsSection } from './album-credits-section'
+import { SyncPanel } from '../sync/sync-panel'
 
 export interface AlbumDetailViewProps {
   /** Album data to display in read-only mode. */
@@ -20,6 +21,8 @@ export interface AlbumDetailViewProps {
   readonly onEnterEditMode: () => void
   /** Ref attached to the Edit button for focus management. */
   readonly editButtonRef: React.RefObject<HTMLButtonElement | null>
+  /** Called when Discogs sync completes successfully; updates the displayed album. */
+  readonly onSyncComplete: (updated: Album) => void
 }
 
 /**
@@ -39,7 +42,7 @@ export interface AlbumDetailViewProps {
  * least one track has a composer tag. The toggle collapses or restores the "Composed By"
  * sub-lines without leaving the view mode. Default state: credits visible.
  */
-export function AlbumDetailView({ album, onEnterEditMode, editButtonRef }: AlbumDetailViewProps) {
+export function AlbumDetailView({ album, onEnterEditMode, editButtonRef, onSyncComplete }: AlbumDetailViewProps) {
   const navigate = useNavigate()
   const { t } = useTranslation()
 
@@ -125,6 +128,12 @@ export function AlbumDetailView({ album, onEnterEditMode, editButtonRef }: Album
         conductor={album.conductor}
         ensemble={album.ensemble}
       />
+
+      {album.discogsId !== undefined && (
+        <Box component="section" aria-label={t('albumDetail.discogsSection')}>
+          <SyncPanel album={album} onSyncComplete={onSyncComplete} hasLocalEdits={false} />
+        </Box>
+      )}
 
       <Button
         ref={editButtonRef}
