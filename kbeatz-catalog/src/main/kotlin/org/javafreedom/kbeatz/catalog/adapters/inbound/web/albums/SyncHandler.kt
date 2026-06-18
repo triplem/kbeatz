@@ -8,6 +8,8 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import java.nio.file.Path
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlin.uuid.Uuid
 import org.javafreedom.kbeatz.catalog.api.models.Album as ApiAlbum
 import org.javafreedom.kbeatz.catalog.api.models.ErrorResponse
@@ -124,6 +126,7 @@ private suspend fun handleSync(
         call.respond(HttpStatusCode.UnprocessableEntity,
             ErrorResponse(code = "NO_SOURCE_ID", message = ex.message ?: "No source ID"))
     } catch (ex: ImageQuotaExhaustedException) {
+        call.response.headers.append(HttpHeaders.RetryAfter, computeRetryAfterSeconds(ex.resetAt).toString())
         call.respond(HttpStatusCode.TooManyRequests,
             ErrorResponse(
                 code = "IMAGE_QUOTA_EXHAUSTED",
@@ -152,6 +155,26 @@ internal fun SyncPreview.toApiModel(): SyncPreviewResponse = SyncPreviewResponse
         )
     },
 )
+
+/**
+ * Computes the number of whole seconds until the quota reset time described by [resetAt].
+ *
+ * [resetAt] is an ISO 8601 UTC timestamp produced by [DiscogsImageService] (e.g. "2026-06-19T00:00:00Z").
+ * If parsing fails or the reset time is already in the past, falls back to [RETRY_AFTER_FALLBACK_SECONDS]
+ * so the response always carries a valid, non-negative Retry-After value.
+ */
+@Suppress("TooGenericExceptionCaught") // any parse error must not suppress the 429 response
+internal fun computeRetryAfterSeconds(resetAt: String, clock: Clock = Clock.System): Long {
+    val secondsRemaining = runCatching {
+        val resetInstant = Instant.parse(resetAt)
+        val nowInstant = clock.now()
+        (resetInstant - nowInstant).inWholeSeconds
+    }.getOrDefault(RETRY_AFTER_FALLBACK_SECONDS)
+    return maxOf(secondsRemaining, 0L)
+}
+
+@Suppress("MagicNumber") // 3600 seconds = 1 hour fallback when resetAt cannot be parsed
+private const val RETRY_AFTER_FALLBACK_SECONDS = 3600L
 
 internal fun Album.toSyncApiModel(libraryRoot: Path): ApiAlbum = ApiAlbum(
     id = id.toString(),
