@@ -100,11 +100,15 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in d
       class="MuiBox-root css-1fwzste"
       data-testid="tracklist-section"
     >
-      <h2
-        class="MuiTypography-root MuiTypography-h6 css-1k7tr3w-MuiTypography-root"
+      <div
+        class="MuiBox-root css-1wnenka"
       >
-        Tracks
-      </h2>
+        <h2
+          class="MuiTypography-root MuiTypography-h6 css-14qenqz-MuiTypography-root"
+        >
+          Tracks
+        </h2>
+      </div>
       <div
         class="MuiTableContainer-root css-70zvr5-MuiTableContainer-root"
         data-testid="tracklist-view"
@@ -433,11 +437,15 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in l
       class="MuiBox-root css-1fwzste"
       data-testid="tracklist-section"
     >
-      <h2
-        class="MuiTypography-root MuiTypography-h6 css-1k7tr3w-MuiTypography-root"
+      <div
+        class="MuiBox-root css-1wnenka"
       >
-        Tracks
-      </h2>
+        <h2
+          class="MuiTypography-root MuiTypography-h6 css-14qenqz-MuiTypography-root"
+        >
+          Tracks
+        </h2>
+      </div>
       <div
         class="MuiTableContainer-root css-70zvr5-MuiTableContainer-root"
         data-testid="tracklist-view"

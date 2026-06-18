@@ -198,4 +198,41 @@ describe('AlbumTrackListView', () => {
     // Sanity check: the component renders
     expect(container.firstChild).not.toBeNull()
   })
+
+  // ─── showCredits prop ─────────────────────────────────────────────────────
+
+  it('shows "Composed By" sub-line by default (showCredits defaults to true)', () => {
+    const track = makeTrack({ id: 't1', composer: 'Miles Davis' })
+    render(<AlbumTrackListView tracks={[track]} />)
+    expect(screen.getByTestId('track-view-composer-t1')).toBeInTheDocument()
+  })
+
+  it('shows "Composed By" sub-line when showCredits is explicitly true', () => {
+    const track = makeTrack({ id: 't1', composer: 'Miles Davis' })
+    render(<AlbumTrackListView tracks={[track]} showCredits={true} />)
+    expect(screen.getByTestId('track-view-composer-t1')).toBeInTheDocument()
+  })
+
+  it('hides "Composed By" sub-line when showCredits is false', () => {
+    const track = makeTrack({ id: 't1', composer: 'Miles Davis' })
+    render(<AlbumTrackListView tracks={[track]} showCredits={false} />)
+    expect(screen.queryByTestId('track-view-composer-t1')).not.toBeInTheDocument()
+  })
+
+  it('hides all "Composed By" sub-lines when showCredits is false and multiple tracks have composers', () => {
+    const tracks = [
+      makeTrack({ id: 't1', composer: 'Mozart', filePath: '01.flac' }),
+      makeTrack({ id: 't2', composer: 'Beethoven', filePath: '02.flac' }),
+    ]
+    render(<AlbumTrackListView tracks={tracks} showCredits={false} />)
+    expect(screen.queryByTestId('track-view-composer-t1')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('track-view-composer-t2')).not.toBeInTheDocument()
+  })
+
+  it('still renders track rows when showCredits is false', () => {
+    const track = makeTrack({ id: 't1', title: 'So What', composer: 'Miles Davis' })
+    render(<AlbumTrackListView tracks={[track]} showCredits={false} />)
+    expect(screen.getByTestId('track-view-row-t1')).toBeInTheDocument()
+    expect(screen.getByTestId('track-view-title-t1')).toHaveTextContent('So What')
+  })
 })
