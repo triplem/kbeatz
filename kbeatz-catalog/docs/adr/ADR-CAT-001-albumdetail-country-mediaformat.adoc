@@ -1,0 +1,116 @@
+= ADR-CAT-001 - AlbumDetail Typed Fields for Country and Media Format
+:revnumber: 1.0
+:revdate: 2026-06-18
+:author: kbeatz team
+:status: Accepted
+
+== Status
+
+Accepted
+
+== Context
+
+The Discogs release page exposes two metadata fields that collectors find
+immediately useful when identifying a pressing: the country of manufacture
+(e.g., "USA & Canada", "Europe") and the media format description
+(e.g., "2 x Vinyl, LP, Album, Red Translucent"). Users want to see these
+at a glance on the album detail page without leaving the app.
+
+The Discogs sync feature (kbeatz-sources) already receives this data.
+The question is how to expose it through the AlbumDetail API schema:
+as explicit typed fields, or as a generic extra-tags map.
+
+Vorbis Comment tags carry this data on disk:
+
+* `COUNTRY` - country/region of manufacture
+* `MEDIA` - physical media format
+
+== Decision
+
+Add `country` and `mediaFormat` as explicit optional String fields directly
+on the `Album` domain model and the `AlbumDetail` / `Album` schemas in
+the OpenAPI specification.
+
+These fields follow the same pattern as existing fields such as `genre`,
+`label`, and `catalogNumber`.
+
+Typed fields were chosen over a generic map for the following reasons:
+
+* **Type safety**: The compiler and OpenAPI tooling enforce the field
+  contract. A `Map<String, String>` gives no compile-time guarantee that
+  `country` is present or correctly named.
+* **OpenAPI discoverability**: Frontend developers and API consumers can
+  see `country` and `mediaFormat` directly in the spec without inspecting
+  tag documentation.
+* **Frontend filtering**: Typed fields allow the UI to filter or sort by
+  country without parsing a free-form map or knowing which key to look for.
+* **Consistency**: All other business-significant Vorbis Comment fields
+  (`title`, `artist`, `albumArtist`, `genre`, `label`, `catalogNumber`)
+  are already typed fields on the domain model.
+
+== Consequences
+
+=== Positive
+
+* The API exposes pressing-specific metadata that collectors need to
+  identify editions, with no frontend workarounds required.
+* The OpenAPI specification remains the single source of truth for the
+  fields available to frontend consumers.
+* Fields absent from the FLAC tags (or not yet populated by the Discogs
+  sync) are represented as `null` / omitted in the API response, and the
+  frontend renders them conditionally.
+
+=== Negative / risks
+
+* Each additional Vorbis Comment field to be surfaced in the API requires
+  a coordinated change across four layers: domain model, OpenAPI spec,
+  Liquibase migration, and mapper. This is the accepted trade-off for v1
+  scope.
+* Both fields are stored and returned verbatim with no length cap or
+  encoding constraint enforced at the application layer. Values sourced
+  from Discogs or user-edited FLAC tags may be arbitrarily long strings.
+  The database column type (`VARCHAR`) implicitly caps them at the H2
+  default; no explicit application-level validation is applied in v1.
+
+=== Not affected
+
+* No DB index is added for `country` or `mediaFormat` in this ADR. A
+  future filtering endpoint (e.g., `GET /albums?country=Europe`) would
+  require a migration to add one. If that use case is implemented, the
+  migration should be treated as a separate story.
+* The tag-edit write path (`PATCH /api/v1/albums/{id}`) is not affected:
+  it already writes all supported Vorbis Comment fields present on the
+  domain model; the new fields participate automatically once added.
+
+== Alternatives Considered
+
+[cols="1,2,2", options="header"]
+|===
+|Option |Pros |Cons
+
+|Typed fields on AlbumDetail (this ADR)
+|Type-safe; discoverable in OpenAPI spec; consistent with existing fields;
+ enables frontend filtering without key knowledge
+|Each new field requires a coordinated change across domain, spec, schema,
+ and mapper layers
+
+|Generic extra-tags map (`Map<String, String>`)
+|Accept any Vorbis Comment key-value pair with no schema change per field;
+ flexible for future fields
+|Loses type safety; makes the OpenAPI spec opaque to consumers; requires
+ frontend to know which map keys exist and validate them at runtime;
+ makes filtering and sorting awkward; diverges from existing field pattern
+
+|Separate raw-tags endpoint (`GET /albums/{id}/tags`)
+|Surfaces all Vorbis Comment tags without polluting the main schema;
+ useful for a future full tag inspection use case
+|Over-engineering for v1 scope; the two fields being added have immediate
+ UI value and are well-defined; a raw-tags endpoint can be considered in
+ a future epic if a broader tag inspection use case arises
+
+|===
+
+== Related
+
+* Story #885: feat(api): add country field to AlbumDetail and Album models
+* Story #886: feat(api): add media format field to AlbumDetail and Album models
