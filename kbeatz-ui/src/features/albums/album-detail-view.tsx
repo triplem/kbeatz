@@ -1,0 +1,115 @@
+import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import Typography from '@mui/material/Typography'
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import EditIcon from '@mui/icons-material/Edit'
+import { visuallyHidden } from '@mui/utils'
+import { type AlbumDetail as AlbumDetailModel } from '../../api/generated'
+import { AlbumHeroHeader } from './album-hero-header'
+
+export interface AlbumDetailViewProps {
+  /** Album data to display in read-only mode. */
+  readonly album: AlbumDetailModel
+  /** Called when the user clicks the Edit button to enter edit mode. */
+  readonly onEnterEditMode: () => void
+  /** Ref attached to the Edit button for focus management. */
+  readonly editButtonRef: React.RefObject<HTMLButtonElement | null>
+}
+
+/**
+ * AlbumDetailView - read-only presentation of album metadata.
+ *
+ * Renders:
+ * - Back button
+ * - Visually-hidden h1 (album title)
+ * - AlbumHeroHeader (cover art + metadata summary)
+ * - Tracklist placeholder (tracks are added in #911)
+ * - Credits placeholder (credits are added in #912)
+ * - Edit button to switch to edit mode
+ *
+ * This component contains no input fields, no edit icons, and no hover affordances.
+ */
+export function AlbumDetailView({ album, onEnterEditMode, editButtonRef }: AlbumDetailViewProps) {
+  const navigate = useNavigate()
+  const { t } = useTranslation()
+
+  return (
+    <Box
+      component="article"
+      aria-label={t('albumDetail.albumTagsSection')}
+      sx={{
+        maxWidth: 1200,
+        mx: 'auto',
+        p: { xs: 2, md: 3 },
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 3,
+      }}
+    >
+      {/*
+        Visually-hidden page heading: the album is the subject of this route,
+        so it is exposed as the single <h1> to anchor the heading outline
+        (WCAG 1.3.1 / 2.4.6). Section titles below render as <h2>/<h3>.
+      */}
+      <Typography variant="h1" component="h1" sx={visuallyHidden}>
+        {album.album}
+      </Typography>
+
+      <Button
+        type="button"
+        variant="outlined"
+        startIcon={<ArrowBackIcon />}
+        onClick={() => { navigate(-1) }}
+        data-testid="back-button"
+        sx={{ alignSelf: 'flex-start', minHeight: 44 }}
+      >
+        {t('common.back')}
+      </Button>
+
+      <AlbumHeroHeader album={album} />
+
+      {/* Tracklist placeholder - full implementation added in #911 */}
+      <Box
+        component="section"
+        aria-label={t('albumDetail.tracksSection')}
+        data-testid="tracklist-placeholder"
+        sx={{ py: 2 }}
+      >
+        <Typography variant="h6" component="h2" sx={{ mb: 1 }}>
+          {t('albumDetail.tracksSectionTitle')}
+        </Typography>
+        <Typography component="p" variant="body2" color="text.secondary">
+          {album.tracks.length === 0
+            ? t('albumDetail.noTracks')
+            : t('albumDetail.tracksCount', { count: album.tracks.length })}
+        </Typography>
+      </Box>
+
+      {/* Credits placeholder - full implementation added in #912 */}
+      <Box
+        component="section"
+        aria-label={t('albumDetail.creditsSection')}
+        data-testid="credits-placeholder"
+        sx={{ py: 2 }}
+      >
+        <Typography variant="h6" component="h2" sx={{ mb: 1 }}>
+          {t('albumDetail.creditsTitle')}
+        </Typography>
+      </Box>
+
+      <Button
+        ref={editButtonRef}
+        type="button"
+        variant="contained"
+        startIcon={<EditIcon />}
+        onClick={onEnterEditMode}
+        data-testid="edit-button"
+        sx={{ alignSelf: 'flex-start', minHeight: 44 }}
+      >
+        {t('albumDetail.editButton')}
+      </Button>
+    </Box>
+  )
+}

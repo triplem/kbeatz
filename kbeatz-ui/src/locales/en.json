@@ -89,7 +89,15 @@
       "file": "File",
       "actions": "Actions"
     },
-    "showFilePath": "Show file path for track {{title}}"
+    "showFilePath": "Show file path for track {{title}}",
+    "editButton": "Edit",
+    "cancelButton": "Cancel",
+    "creditsTitle": "Credits",
+    "creditsSection": "Album credits",
+    "composedByPrefix": "Composed By",
+    "showCredits": "Show credits",
+    "hideCredits": "Hide credits",
+    "tracksCount": "{{count}} tracks"
   },
   "editableField": {
     "editLabel": "Edit {{label}}",
