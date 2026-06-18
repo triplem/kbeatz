@@ -421,6 +421,7 @@ class LibraryScanService(
             composer = null,
             conductor = null,
             ensemble = null,
+            country = country,
             discogsId = null,
             directoryPath = rootPath.toString(),
             extraTags = null,

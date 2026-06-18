@@ -482,6 +482,10 @@ components:
           type: string
           description: "ENSEMBLE tag"
           example: "Berlin Philharmoniker"
+        country:
+          type: string
+          description: "COUNTRY Vorbis Comment tag (country or region of release)"
+          example: "USA & Canada"
         discogsId:
           type: string
           description: "Discogs release ID from metadata.yml"
@@ -606,6 +610,10 @@ components:
           type: string
           description: "ENSEMBLE tag"
           example: "Berlin Philharmoniker"
+        country:
+          type: string
+          description: "COUNTRY Vorbis Comment tag (country or region of release)"
+          example: "USA & Canada"
         discogsId:
           type: string
           description: "Discogs release ID from metadata.yml"

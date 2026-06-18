@@ -73,6 +73,7 @@ internal fun Album.toDetailApiModel(tracks: List<Track>, libraryRoot: Path): Alb
         composer = composer,
         conductor = conductor,
         ensemble = ensemble,
+        country = country,
         discogsId = discogsId,
         tracks = tracks.map { it.toApiModel() },
     )

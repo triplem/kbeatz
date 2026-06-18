@@ -13,6 +13,7 @@ data class Album(
     val composer: String?,
     val conductor: String?,
     val ensemble: String?,
+    val country: String? = null,
     val discogsId: String?,
     val directoryPath: String,
     val extraTags: Map<String, String>?,

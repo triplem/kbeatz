@@ -166,5 +166,6 @@ internal fun Album.toSyncApiModel(libraryRoot: Path): ApiAlbum = ApiAlbum(
     composer = composer,
     conductor = conductor,
     ensemble = ensemble,
+    country = country,
     discogsId = discogsId,
 )

@@ -1,0 +1,16 @@
+databaseChangeLog:
+  - changeSet:
+      id: V1-006-add-country
+      author: kbeatz
+      comment: >
+        Add nullable country column to albums table for the COUNTRY Vorbis Comment tag.
+        Populated during library scan and exposed via GET /albums and GET /albums/{albumId}.
+      changes:
+        - addColumn:
+            tableName: albums
+            columns:
+              - column:
+                  name: country
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: true
