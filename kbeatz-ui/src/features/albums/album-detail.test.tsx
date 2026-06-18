@@ -1482,3 +1482,98 @@ describe('AlbumDetail - navigation guard (dirty fields)', () => {
     expect(screen.getByTestId('dirty-count')).toBeInTheDocument()
   })
 })
+
+// ---------------------------------------------------------------------------
+// Classical attribution (#884)
+// ---------------------------------------------------------------------------
+
+describe('AlbumDetail - classical attribution in track title cell', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('shows "Artist - Title" in title cell when track artist differs from album artist', async () => {
+    // AC: albumArtist="Lang Lang", track.artist="Beethoven", track.title="Fur Elise"
+    // => title cell shows "Beethoven - Fur Elise"
+    const track = makeTrack({ id: 'track-c1', artist: 'Beethoven', title: 'Fur Elise', filePath: '01 Fur Elise.flac' })
+    mockAlbumsService.getAlbum.mockResolvedValue(
+      makeAlbum({ albumArtist: 'Lang Lang', tracks: [track] })
+    )
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('track-track-c1-value-title')).toBeInTheDocument()
+    })
+
+    expect(screen.getByTestId('track-track-c1-value-title')).toHaveTextContent('Beethoven - Fur Elise')
+  })
+
+  it('shows only title when track has no artist tag', async () => {
+    // AC: track.artist undefined => no prefix
+    const track = makeTrack({ id: 'track-c2', artist: undefined, title: 'Aquarius', filePath: '01 Aquarius.flac' })
+    mockAlbumsService.getAlbum.mockResolvedValue(
+      makeAlbum({ albumArtist: 'Boards of Canada', tracks: [track] })
+    )
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('track-track-c2-value-title')).toBeInTheDocument()
+    })
+
+    expect(screen.getByTestId('track-track-c2-value-title')).toHaveTextContent('Aquarius')
+    expect(screen.getByTestId('track-track-c2-value-title')).not.toHaveTextContent(' - ')
+  })
+
+  it('shows only title when track artist equals album artist', async () => {
+    // AC: track.artist === albumArtist => no prefix
+    const track = makeTrack({ id: 'track-c3', artist: 'Boards of Canada', title: 'Music is Math', filePath: '02 Music is Math.flac' })
+    mockAlbumsService.getAlbum.mockResolvedValue(
+      makeAlbum({ albumArtist: 'Boards of Canada', tracks: [track] })
+    )
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('track-track-c3-value-title')).toBeInTheDocument()
+    })
+
+    expect(screen.getByTestId('track-track-c3-value-title')).toHaveTextContent('Music is Math')
+    expect(screen.getByTestId('track-track-c3-value-title')).not.toHaveTextContent('Boards of Canada -')
+  })
+
+  it('renders trailing asterisk in artist prefix as-is (Discogs asterisk notation)', async () => {
+    // AC: track.artist="Beethoven*" => title cell shows "Beethoven* - Fur Elise"
+    const track = makeTrack({ id: 'track-c4', artist: 'Beethoven*', title: 'Fur Elise', filePath: '01 Fur Elise.flac' })
+    mockAlbumsService.getAlbum.mockResolvedValue(
+      makeAlbum({ albumArtist: 'Lang Lang', tracks: [track] })
+    )
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('track-track-c4-value-title')).toBeInTheDocument()
+    })
+
+    expect(screen.getByTestId('track-track-c4-value-title')).toHaveTextContent('Beethoven* - Fur Elise')
+  })
+
+  it('TITLE EditableField value is only the track title when entering edit mode (no prefix)', async () => {
+    // AC: edit mode shows raw title only, not "Artist - Title"
+    const track = makeTrack({ id: 'track-c5', artist: 'Beethoven', title: 'Fur Elise', filePath: '01 Fur Elise.flac' })
+    mockAlbumsService.getAlbum.mockResolvedValue(
+      makeAlbum({ albumArtist: 'Lang Lang', tracks: [track] })
+    )
+    renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('track-track-c5-value-title')).toBeInTheDocument()
+    })
+
+    // Click to enter edit mode
+    fireEvent.click(screen.getByTestId('track-track-c5-value-title'))
+
+    // Input should contain only the raw title, not the attribution prefix
+    await waitFor(() => {
+      expect(screen.getByTestId('track-track-c5-input-title')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('track-track-c5-input-title')).toHaveValue('Fur Elise')
+  })
+})
