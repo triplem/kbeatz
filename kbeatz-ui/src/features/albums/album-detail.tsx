@@ -28,7 +28,6 @@ import { SyncPanel } from '../sync/sync-panel'
 import { formatDate } from '../../lib/i18n'
 import { formatTrackDuration } from '../../lib/format-duration'
 import { AlbumHeroHeader } from './album-hero-header'
-import { CommaSeparatedChips } from './comma-separated-chips'
 
 /** Album-level Vorbis Comment fields rendered as editable rows, in display order. */
 const ALBUM_FIELDS: ReadonlyArray<{ key: keyof AlbumDetailModel; labelKey: string; fieldName: string }> = [
@@ -485,12 +484,6 @@ export function AlbumDetail() {
                 }}
               />
             )}
-
-            <CommaSeparatedChips
-              value={displayAlbum.genre}
-              ariaLabel={t('albumDetail.genreChipsLabel')}
-              testId="genre-chips"
-            />
 
             <Box component="section" aria-labelledby="album-tags-heading">
               <Typography id="album-tags-heading" variant="h6" component="h2" sx={{ mb: 2 }}>
