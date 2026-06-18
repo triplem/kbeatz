@@ -108,8 +108,23 @@ function renderDetail(albumId = 'album-id-1') {
 }
 
 /**
+ * Helper: click the Edit button to switch to edit mode.
+ * Must be called after the album data has loaded.
+ */
+async function enterEditMode() {
+  await waitFor(() => {
+    expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+  })
+  fireEvent.click(screen.getByTestId('edit-button'))
+  await waitFor(() => {
+    expect(screen.getByTestId('cancel-edit-button')).toBeInTheDocument()
+  })
+}
+
+/**
  * Helper: open edit mode for a field, type a new value, press Enter to commit dirty,
  * then click the Save button, then click Confirm in the dialog.
+ * Assumes edit mode is already active.
  */
 async function editAlbumFieldAndConfirm(fieldTestId: string, inputTestId: string, newValue: string) {
   fireEvent.click(screen.getByTestId(fieldTestId))
@@ -138,7 +153,7 @@ describe('AlbumDetail', () => {
   })
 
   // ──────────────────────────────────────────────
-  // Initial render
+  // Initial render (view mode by default)
   // ──────────────────────────────────────────────
 
   it('shows loading state initially', () => {
@@ -147,9 +162,35 @@ describe('AlbumDetail', () => {
     expect(screen.getByText(/Loading album/)).toBeInTheDocument()
   })
 
-  it('renders album fields after loading', async () => {
+  it('renders in view mode by default - no editable fields on load', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    // View mode: no editable fields, no save button
+    expect(screen.queryByTestId('album-value-album')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('save-button')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('cancel-edit-button')).not.toBeInTheDocument()
+  })
+
+  it('renders album info in hero header in view mode', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('album-hero-header')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('hero-artist')).toHaveTextContent('Miles Davis')
+    expect(screen.getByTestId('hero-album-title')).toHaveTextContent('Kind of Blue')
+  })
+
+  it('renders album fields in edit mode after clicking Edit', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('album-value-album')).toBeInTheDocument()
     })
@@ -162,20 +203,21 @@ describe('AlbumDetail', () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ hasCoverArt: true }))
     renderDetail()
     await waitFor(() => {
-      expect(screen.getByTestId('album-cover')).toBeInTheDocument()
+      // Hero cover art is shown in view mode
+      expect(screen.getByTestId('hero-cover-art')).toBeInTheDocument()
     })
-    const img = screen.getByTestId('album-cover')
+    const img = screen.getByTestId('hero-cover-art')
     expect(img).toHaveAttribute('loading', 'lazy')
     expect(img).toHaveAttribute('src', '/api/v1/albums/album-id-1/cover')
   })
 
-  it('does not render cover image when hasCoverArt is false', async () => {
+  it('does not render hero cover art when hasCoverArt is false', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ hasCoverArt: false }))
     renderDetail()
     await waitFor(() => {
-      expect(screen.getByTestId('album-value-album')).toBeInTheDocument()
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
     })
-    expect(screen.queryByTestId('album-cover')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('hero-cover-art')).not.toBeInTheDocument()
   })
 
   it('renders error state when fetch fails', async () => {
@@ -186,9 +228,13 @@ describe('AlbumDetail', () => {
     })
   })
 
-  it('renders tracks table with editable track fields', async () => {
+  it('renders tracks table with editable track fields in edit mode', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByText(/Tracks/)).toBeInTheDocument()
     })
@@ -196,7 +242,7 @@ describe('AlbumDetail', () => {
     expect(screen.getByTestId(`track-${trackId}-value-title`)).toHaveTextContent('So What')
   })
 
-  it('renders all 9 album-level editable fields', async () => {
+  it('renders all 9 album-level editable fields in edit mode', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(
       makeAlbum({
         composer: 'Miles Davis',
@@ -205,6 +251,10 @@ describe('AlbumDetail', () => {
       }),
     )
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('album-value-album')).toBeInTheDocument()
     })
@@ -228,27 +278,39 @@ describe('AlbumDetail', () => {
   // Discogs SyncPanel wiring
   // ──────────────────────────────────────────────
 
-  it('renders SyncPanel when album has a discogsId', async () => {
+  it('renders SyncPanel in edit mode when album has a discogsId', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ discogsId: '12345' }))
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('sync-panel')).toBeInTheDocument()
     })
     expect(screen.getByTestId('sync-panel')).toHaveAttribute('data-discogs-id', '12345')
   })
 
-  it('does NOT render SyncPanel when album has no discogsId', async () => {
+  it('does NOT render SyncPanel in edit mode when album has no discogsId', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ discogsId: undefined }))
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('album-value-album')).toBeInTheDocument()
     })
     expect(screen.queryByTestId('sync-panel')).not.toBeInTheDocument()
   })
 
-  it('updates album tags when onSyncComplete is called', async () => {
+  it('updates album tags when onSyncComplete is called (in edit mode)', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ discogsId: '12345' }))
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('sync-panel')).toBeInTheDocument()
     })
@@ -256,8 +318,9 @@ describe('AlbumDetail', () => {
     fireEvent.click(screen.getByTestId('mock-sync-complete'))
 
     await waitFor(() => {
-      expect(screen.getByTestId('album-value-albumartist')).toHaveTextContent('Updated Artist')
-      expect(screen.getByTestId('album-value-album')).toHaveTextContent('Updated Album')
+      // Hero header reflects the synced data
+      expect(screen.getByTestId('hero-artist')).toHaveTextContent('Updated Artist')
+      expect(screen.getByTestId('hero-album-title')).toHaveTextContent('Updated Album')
     })
   })
 
@@ -265,9 +328,13 @@ describe('AlbumDetail', () => {
   // Click-to-edit: album level
   // ──────────────────────────────────────────────
 
-  it('shows input when album-level field is clicked', async () => {
+  it('shows input when album-level field is clicked (in edit mode)', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
     })
@@ -281,6 +348,10 @@ describe('AlbumDetail', () => {
     mockAlbumsService.bulkUpdateAlbumTags.mockResolvedValue(updatedAlbum)
     renderDetail()
 
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
     })
@@ -303,6 +374,10 @@ describe('AlbumDetail', () => {
     renderDetail()
 
     await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
+    await waitFor(() => {
       expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
     })
 
@@ -322,6 +397,10 @@ describe('AlbumDetail', () => {
     mockAlbumsService.bulkUpdateAlbumTags.mockRejectedValue(new Error('Server error'))
     renderDetail()
 
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
     })
@@ -367,6 +446,10 @@ describe('AlbumDetail', () => {
     renderDetail()
 
     await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
+    await waitFor(() => {
       expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
     })
 
@@ -388,10 +471,14 @@ describe('AlbumDetail', () => {
     })
   })
 
-  it('clears dirty fields when Discogs sync completes', async () => {
+  it('clears dirty fields when Discogs sync completes (in edit mode)', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ discogsId: '12345' }))
     renderDetail()
 
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
     })
@@ -421,6 +508,10 @@ describe('AlbumDetail', () => {
     mockAlbumsService.bulkUpdateAlbumTags.mockResolvedValue(makeAlbum({ genre: 'Rock' }))
     renderDetail()
 
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
     })
@@ -452,6 +543,10 @@ describe('AlbumDetail', () => {
     renderDetail()
 
     await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
+    await waitFor(() => {
       expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
     })
 
@@ -475,6 +570,10 @@ describe('AlbumDetail', () => {
     renderDetail()
 
     await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
+    await waitFor(() => {
       expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
     })
 
@@ -494,6 +593,10 @@ describe('AlbumDetail', () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     renderDetail()
 
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
     })
@@ -528,6 +631,10 @@ describe('AlbumDetail', () => {
     renderDetail()
 
     await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
+    await waitFor(() => {
       expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
     })
 
@@ -559,6 +666,10 @@ describe('AlbumDetail', () => {
     renderDetail()
 
     await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
+    await waitFor(() => {
       expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
     })
 
@@ -582,6 +693,10 @@ describe('AlbumDetail', () => {
     renderDetail()
 
     await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
+    await waitFor(() => {
       expect(screen.getByTestId('save-button')).toBeInTheDocument()
     })
 
@@ -592,6 +707,10 @@ describe('AlbumDetail', () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     renderDetail()
 
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
     })
@@ -609,6 +728,10 @@ describe('AlbumDetail', () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     renderDetail()
 
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
     })
@@ -628,6 +751,10 @@ describe('AlbumDetail', () => {
     renderDetail()
 
     await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
+    await waitFor(() => {
       expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
     })
 
@@ -646,6 +773,10 @@ describe('AlbumDetail', () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     renderDetail()
 
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
     })
@@ -669,6 +800,10 @@ describe('AlbumDetail', () => {
     mockAlbumsService.bulkUpdateAlbumTags.mockResolvedValue(makeAlbum({ genre: 'Rock', label: 'Blue Note' }))
     renderDetail()
 
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
     })
@@ -713,6 +848,11 @@ describe('AlbumDetail', () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     renderDetail()
 
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
+
     const trackId = 'track-id-1'
     await waitFor(() => {
       expect(screen.getByTestId(`track-${trackId}-value-title`)).toBeInTheDocument()
@@ -737,6 +877,11 @@ describe('AlbumDetail', () => {
   it('Save button becomes enabled after a track field is committed via Enter', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
 
     const trackId = 'track-id-1'
     await waitFor(() => {
@@ -764,6 +909,11 @@ describe('AlbumDetail', () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     mockAlbumsService.bulkUpdateAlbumTags.mockResolvedValue(updatedAlbum)
     renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
 
     const trackId = 'track-id-1'
     await waitFor(() => {
@@ -800,6 +950,11 @@ describe('AlbumDetail', () => {
     mockAlbumsService.bulkUpdateAlbumTags.mockResolvedValue(updatedAlbum)
     renderDetail()
 
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
+
     const trackId = 'track-id-1'
     await waitFor(() => {
       expect(screen.getByTestId(`track-${trackId}-value-title`)).toBeInTheDocument()
@@ -827,6 +982,11 @@ describe('AlbumDetail', () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     mockAlbumsService.bulkUpdateAlbumTags.mockRejectedValue(new Error('Server error'))
     renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
 
     const trackId = 'track-id-1'
     await waitFor(() => {
@@ -866,6 +1026,11 @@ describe('AlbumDetail', () => {
     mockAlbumsService.bulkUpdateAlbumTags.mockResolvedValue(updatedAlbum)
     renderDetail()
 
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
+
     const trackId = 'track-id-1'
     await waitFor(() => {
       expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
@@ -903,9 +1068,14 @@ describe('AlbumDetail', () => {
   // Click-to-edit: track level
   // ──────────────────────────────────────────────
 
-  it('shows input when track-level title field is clicked', async () => {
+  it('shows input when track-level title field is clicked (in edit mode)', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
+
     const trackId = 'track-id-1'
     await waitFor(() => {
       expect(screen.getByTestId(`track-${trackId}-value-title`)).toBeInTheDocument()
@@ -917,6 +1087,11 @@ describe('AlbumDetail', () => {
   it('Tab key on track field commits as dirty and enables Save button', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
 
     const trackId = 'track-id-1'
     await waitFor(() => {
@@ -937,10 +1112,15 @@ describe('AlbumDetail', () => {
     expect(mockAlbumsService.bulkUpdateAlbumTags).not.toHaveBeenCalled()
   })
 
-  it('VA track: ARTIST field is editable per track', async () => {
+  it('VA track: ARTIST field is editable per track (in edit mode)', async () => {
     const vaTrack = makeTrack({ artist: 'John Coltrane', id: 'track-va-1' })
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [vaTrack] }))
     renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
 
     const trackId = 'track-va-1'
     await waitFor(() => {
@@ -956,17 +1136,25 @@ describe('AlbumDetail', () => {
   // Tracklist section - empty state (#564)
   // ──────────────────────────────────────────────
 
-  it('shows no-tracks placeholder when album has no tracks', async () => {
+  it('shows no-tracks placeholder when album has no tracks (in edit mode)', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [] }))
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByText('No track information available')).toBeInTheDocument()
     })
   })
 
-  it('does not show no-tracks placeholder when album has tracks', async () => {
+  it('does not show no-tracks placeholder when album has tracks (in edit mode)', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [makeTrack()] }))
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.queryByText('No track information available')).not.toBeInTheDocument()
     })
@@ -976,10 +1164,7 @@ describe('AlbumDetail', () => {
   // Tracklist - distinct data per row (#701)
   // ──────────────────────────────────────────────
 
-  it('renders 3 tracks with distinct titles and track numbers', async () => {
-    // Regression test: each track row must show its own distinct metadata.
-    // Previously, duplicate keys could cause React to reuse the same DOM node for every
-    // row, making all tracks appear to reference the same file.
+  it('renders 3 tracks with distinct titles and track numbers (in edit mode)', async () => {
     const tracks = [
       makeTrack({ id: 'track-1', trackNumber: '1', title: 'So What', filePath: '01 So What.flac' }),
       makeTrack({ id: 'track-2', trackNumber: '2', title: 'Freddie Freeloader', filePath: '02 Freddie Freeloader.flac' }),
@@ -987,6 +1172,11 @@ describe('AlbumDetail', () => {
     ]
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks }))
     renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
 
     await waitFor(() => {
       expect(screen.getByTestId('track-row-track-1')).toBeInTheDocument()
@@ -1009,9 +1199,6 @@ describe('AlbumDetail', () => {
   })
 
   it('renders distinct rows when tracks have duplicate IDs (filePath+index key formula)', async () => {
-    // Regression test for the key formula: even if the backend returns tracks with
-    // duplicate `id` values, the React key `${track.filePath}-${trackIndex}` ensures
-    // each row renders its own distinct data without React reusing DOM nodes.
     const tracks = [
       makeTrack({ id: 'track-same-id', trackNumber: '1', title: 'So What', filePath: '01 So What.flac' }),
       makeTrack({ id: 'track-same-id', trackNumber: '2', title: 'Freddie Freeloader', filePath: '02 Freddie Freeloader.flac' }),
@@ -1019,6 +1206,11 @@ describe('AlbumDetail', () => {
     ]
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks }))
     renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
 
     // All 3 rows must be present (duplicate IDs produce multiple elements with the same testId)
     await waitFor(() => {
@@ -1048,11 +1240,15 @@ describe('AlbumDetail', () => {
   // Tracklist section - multi-disc grouping (#564)
   // ──────────────────────────────────────────────
 
-  it('renders disc header for multi-disc album', async () => {
+  it('renders disc header for multi-disc album (in edit mode)', async () => {
     const disc1Track = makeTrack({ id: 'track-d1', discNumber: '1', trackNumber: '1' })
     const disc2Track = makeTrack({ id: 'track-d2', discNumber: '2', trackNumber: '1', path: '02 disc2.flac' })
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [disc1Track, disc2Track] }))
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('track-row-track-d1')).toBeInTheDocument()
     })
@@ -1060,19 +1256,27 @@ describe('AlbumDetail', () => {
     expect(screen.getByText('Disc 2')).toBeInTheDocument()
   })
 
-  it('does not render disc headers for single-disc album', async () => {
+  it('does not render disc headers for single-disc album (in edit mode)', async () => {
     const track = makeTrack({ discNumber: undefined })
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [track] }))
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('track-row-track-id-1')).toBeInTheDocument()
     })
     expect(screen.queryByText(/^Disc /)).not.toBeInTheDocument()
   })
 
-  it('renders Position column header', async () => {
+  it('renders Position column header (in edit mode)', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [makeTrack()] }))
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByRole('columnheader', { name: 'Position' })).toBeInTheDocument()
     })
@@ -1082,18 +1286,26 @@ describe('AlbumDetail', () => {
   // Path display (#578)
   // ──────────────────────────────────────────────
 
-  it('renders album path as read-only text', async () => {
+  it('renders album path as read-only text (in edit mode)', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ albumPath: 'Jazz/Miles Davis/Kind of Blue' }))
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('album-path')).toBeInTheDocument()
     })
     expect(screen.getByTestId('album-path')).toHaveTextContent('Jazz/Miles Davis/Kind of Blue')
   })
 
-  it('renders Copy button for album path', async () => {
+  it('renders Copy button for album path (in edit mode)', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ albumPath: 'Jazz/Miles Davis/Kind of Blue' }))
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('album-path-copy')).toBeInTheDocument()
     })
@@ -1101,10 +1313,14 @@ describe('AlbumDetail', () => {
     expect(copyBtn).toHaveAttribute('aria-label')
   })
 
-  it('file path is hidden by default and shown in popover after clicking info button', async () => {
+  it('file path is hidden by default and shown in popover after clicking info button (in edit mode)', async () => {
     const track = makeTrack({ id: 'track-id-1', filePath: '01 So What.flac' })
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [track] }))
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('track-track-id-1-file-path-btn')).toBeInTheDocument()
     })
@@ -1118,10 +1334,14 @@ describe('AlbumDetail', () => {
     expect(screen.getByTestId('track-track-id-1-file-path')).toHaveTextContent('01 So What.flac')
   })
 
-  it('info button has accessible aria-label for the track', async () => {
+  it('info button has accessible aria-label for the track (in edit mode)', async () => {
     const track = makeTrack({ id: 'track-id-1', title: 'So What', filePath: '01 So What.flac' })
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [track] }))
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('track-track-id-1-file-path-btn')).toBeInTheDocument()
     })
@@ -1130,13 +1350,14 @@ describe('AlbumDetail', () => {
     expect(btn.getAttribute('aria-label')).toContain('So What')
   })
 
-  it('file path popover renders with onClose wired - popover element present when open', async () => {
-    // Tests that the Popover component is correctly rendered in the DOM when opened
-    // and that the data-testid is present for integration with screen readers and testing.
-    // Popover backdrop close is handled by MUI internally (tested via MUI's own test suite).
+  it('file path popover renders with onClose wired - popover element present when open (in edit mode)', async () => {
     const track = makeTrack({ id: 'track-id-1', filePath: '01 So What.flac' })
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [track] }))
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('track-track-id-1-file-path-btn')).toBeInTheDocument()
     })
@@ -1150,10 +1371,14 @@ describe('AlbumDetail', () => {
     expect(screen.getByTestId('track-track-id-1-file-path')).toBeInTheDocument()
   })
 
-  it('Copy button for track filePath is shown after opening the file path popover', async () => {
+  it('Copy button for track filePath is shown after opening the file path popover (in edit mode)', async () => {
     const track = makeTrack({ id: 'track-id-1', filePath: '01 So What.flac' })
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [track] }))
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('track-track-id-1-file-path-btn')).toBeInTheDocument()
     })
@@ -1166,9 +1391,13 @@ describe('AlbumDetail', () => {
     expect(copyBtn).toHaveAttribute('aria-label')
   })
 
-  it('File column header is not rendered as visible column in tracks table', async () => {
+  it('File column header is not rendered as visible column in tracks table (in edit mode)', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [makeTrack()] }))
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByRole('columnheader', { name: 'Position' })).toBeInTheDocument()
     })
@@ -1176,10 +1405,14 @@ describe('AlbumDetail', () => {
     expect(screen.queryByRole('columnheader', { name: 'File' })).not.toBeInTheDocument()
   })
 
-  it('renders paths with special chars and spaces correctly', async () => {
+  it('renders paths with special chars and spaces correctly (in edit mode)', async () => {
     const path = "Jazz & Blues (Miles Davis's)/Kind of Blue"
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ albumPath: path }))
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('album-path')).toBeInTheDocument()
     })
@@ -1190,9 +1423,13 @@ describe('AlbumDetail', () => {
   // Two-column layout (#579)
   // ──────────────────────────────────────────────
 
-  it('renders two-column layout container with metadata and tracklist columns', async () => {
+  it('renders two-column layout container with metadata and tracklist columns (in edit mode)', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('two-column-layout')).toBeInTheDocument()
     })
@@ -1200,9 +1437,13 @@ describe('AlbumDetail', () => {
     expect(screen.getByTestId('tracklist-column')).toBeInTheDocument()
   })
 
-  it('places album tags section inside the metadata column', async () => {
+  it('places album tags section inside the metadata column (in edit mode)', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('album-value-album')).toBeInTheDocument()
     })
@@ -1210,9 +1451,13 @@ describe('AlbumDetail', () => {
     expect(metadataCol).toContainElement(screen.getByTestId('album-value-album'))
   })
 
-  it('places tracks section inside the tracklist column', async () => {
+  it('places tracks section inside the tracklist column (in edit mode)', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('track-row-track-id-1')).toBeInTheDocument()
     })
@@ -1220,20 +1465,26 @@ describe('AlbumDetail', () => {
     expect(tracklistCol).toContainElement(screen.getByTestId('track-row-track-id-1'))
   })
 
-  it('back button is outside the two-column layout so it stays above both columns', async () => {
+  it('back button is present in both view mode and edit mode', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     renderDetail()
     await waitFor(() => {
       expect(screen.getByTestId('back-button')).toBeInTheDocument()
     })
-    const layout = screen.getByTestId('two-column-layout')
-    // back button must NOT be inside the layout grid
-    expect(layout).not.toContainElement(screen.getByTestId('back-button'))
+    // Back button present in view mode
+    expect(screen.getByTestId('back-button')).toBeInTheDocument()
+    await enterEditMode()
+    // Back button still present in edit mode
+    expect(screen.getByTestId('back-button')).toBeInTheDocument()
   })
 
-  it('renders the read-only Other tags section with an empty state', async () => {
+  it('renders the read-only Other tags section with an empty state (in edit mode)', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('other-tags-section')).toBeInTheDocument()
     })
@@ -1242,9 +1493,13 @@ describe('AlbumDetail', () => {
     expect(screen.getByTestId('other-tags-empty')).toHaveTextContent('No additional tags')
   })
 
-  it('SyncPanel is placed inside the metadata column when discogsId is set', async () => {
+  it('SyncPanel is placed inside the metadata column when discogsId is set (in edit mode)', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ discogsId: '42' }))
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('sync-panel')).toBeInTheDocument()
     })
@@ -1304,7 +1559,7 @@ describe('AlbumDetail - genre chips', () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ genre: ' ,  , ' }))
     renderDetail()
     await waitFor(() => {
-      expect(screen.getByTestId('album-value-album')).toBeInTheDocument()
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
     })
     expect(screen.queryByTestId('hero-genre-chips')).not.toBeInTheDocument()
   })
@@ -1313,7 +1568,7 @@ describe('AlbumDetail - genre chips', () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ genre: undefined }))
     renderDetail()
     await waitFor(() => {
-      expect(screen.getByTestId('album-value-album')).toBeInTheDocument()
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
     })
     expect(screen.queryByTestId('hero-genre-chips')).not.toBeInTheDocument()
   })
@@ -1328,9 +1583,13 @@ describe('AlbumDetail - genre chips', () => {
     expect(heroHeader).toContainElement(screen.getByTestId('hero-genre-chips'))
   })
 
-  it('editable GENRE field still shows the raw comma-separated value for editing', async () => {
+  it('editable GENRE field still shows the raw comma-separated value for editing (in edit mode)', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ genre: 'Downtempo, Ambient' }))
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
     })
@@ -1356,7 +1615,7 @@ describe('AlbumDetail - navigation guard (dirty fields)', () => {
     renderDetail()
 
     await waitFor(() => {
-      expect(screen.getByTestId('album-value-album')).toBeInTheDocument()
+      expect(screen.getByTestId('back-button')).toBeInTheDocument()
     })
 
     fireEvent.click(screen.getByTestId('back-button'))
@@ -1369,10 +1628,14 @@ describe('AlbumDetail - navigation guard (dirty fields)', () => {
     })
   })
 
-  it('shows nav guard dialog when there are dirty fields and Back is clicked', async () => {
+  it('shows nav guard dialog when there are dirty fields and Back is clicked (in edit mode)', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     renderDetail()
 
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('album-value-album')).toBeInTheDocument()
     })
@@ -1398,6 +1661,10 @@ describe('AlbumDetail - navigation guard (dirty fields)', () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     renderDetail()
 
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('album-value-album')).toBeInTheDocument()
     })
@@ -1431,6 +1698,10 @@ describe('AlbumDetail - navigation guard (dirty fields)', () => {
     renderDetail()
 
     await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
+    await waitFor(() => {
       expect(screen.getByTestId('album-value-album')).toBeInTheDocument()
     })
 
@@ -1456,7 +1727,7 @@ describe('AlbumDetail - navigation guard (dirty fields)', () => {
       expect(screen.queryByTestId('nav-guard-dialog')).not.toBeInTheDocument()
     })
 
-    // Still on album detail page
+    // Still on album detail page (in edit mode with dirty count)
     expect(screen.getByTestId('album-value-album')).toBeInTheDocument()
     // Dirty count must still be visible (changes preserved)
     expect(screen.getByTestId('dirty-count')).toBeInTheDocument()
@@ -1467,6 +1738,10 @@ describe('AlbumDetail - navigation guard (dirty fields)', () => {
     mockAlbumsService.bulkUpdateAlbumTags.mockResolvedValue(makeAlbum({ album: 'New Title' }))
     renderDetail()
 
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('album-value-album')).toBeInTheDocument()
     })
@@ -1493,10 +1768,7 @@ describe('AlbumDetail - navigation guard (dirty fields)', () => {
     })
 
     // Flush pending effects so react-router's useBlocker re-registers with the
-    // now-cleared (non-dirty) condition before we navigate. Without this, the
-    // Back click can race the blocker effect re-registration and transiently
-    // re-trigger the guard (test-only timing window; a real click cannot land
-    // inside it).
+    // now-cleared (non-dirty) condition before we navigate.
     await act(async () => {
       await Promise.resolve()
     })
@@ -1513,6 +1785,11 @@ describe('AlbumDetail - navigation guard (dirty fields)', () => {
   it('shows nav guard dialog when there are dirty track fields and Back is clicked', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
 
     const trackId = 'track-id-1'
     await waitFor(() => {
@@ -1540,6 +1817,10 @@ describe('AlbumDetail - navigation guard (dirty fields)', () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     renderDetail()
 
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
     await waitFor(() => {
       expect(screen.getByTestId('album-value-album')).toBeInTheDocument()
     })
@@ -1581,14 +1862,17 @@ describe('AlbumDetail - classical attribution in track title cell', () => {
     vi.clearAllMocks()
   })
 
-  it('shows "Artist - Title" in title cell when track artist differs from album artist', async () => {
-    // AC: albumArtist="Lang Lang", track.artist="Beethoven", track.title="Fur Elise"
-    // => title cell shows "Beethoven - Fur Elise"
+  it('shows "Artist - Title" in title cell when track artist differs from album artist (in edit mode)', async () => {
     const track = makeTrack({ id: 'track-c1', artist: 'Beethoven', title: 'Fur Elise', filePath: '01 Fur Elise.flac' })
     mockAlbumsService.getAlbum.mockResolvedValue(
       makeAlbum({ albumArtist: 'Lang Lang', tracks: [track] })
     )
     renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
 
     await waitFor(() => {
       expect(screen.getByTestId('track-track-c1-value-title')).toBeInTheDocument()
@@ -1597,13 +1881,17 @@ describe('AlbumDetail - classical attribution in track title cell', () => {
     expect(screen.getByTestId('track-track-c1-value-title')).toHaveTextContent('Beethoven - Fur Elise')
   })
 
-  it('shows only title when track has no artist tag', async () => {
-    // AC: track.artist undefined => no prefix
+  it('shows only title when track has no artist tag (in edit mode)', async () => {
     const track = makeTrack({ id: 'track-c2', artist: undefined, title: 'Aquarius', filePath: '01 Aquarius.flac' })
     mockAlbumsService.getAlbum.mockResolvedValue(
       makeAlbum({ albumArtist: 'Boards of Canada', tracks: [track] })
     )
     renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
 
     await waitFor(() => {
       expect(screen.getByTestId('track-track-c2-value-title')).toBeInTheDocument()
@@ -1613,13 +1901,17 @@ describe('AlbumDetail - classical attribution in track title cell', () => {
     expect(screen.getByTestId('track-track-c2-value-title')).not.toHaveTextContent(' - ')
   })
 
-  it('shows only title when track artist equals album artist', async () => {
-    // AC: track.artist === albumArtist => no prefix
+  it('shows only title when track artist equals album artist (in edit mode)', async () => {
     const track = makeTrack({ id: 'track-c3', artist: 'Boards of Canada', title: 'Music is Math', filePath: '02 Music is Math.flac' })
     mockAlbumsService.getAlbum.mockResolvedValue(
       makeAlbum({ albumArtist: 'Boards of Canada', tracks: [track] })
     )
     renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
 
     await waitFor(() => {
       expect(screen.getByTestId('track-track-c3-value-title')).toBeInTheDocument()
@@ -1630,12 +1922,16 @@ describe('AlbumDetail - classical attribution in track title cell', () => {
   })
 
   it('renders trailing asterisk in artist prefix as-is (Discogs asterisk notation)', async () => {
-    // AC: track.artist="Beethoven*" => title cell shows "Beethoven* - Fur Elise"
     const track = makeTrack({ id: 'track-c4', artist: 'Beethoven*', title: 'Fur Elise', filePath: '01 Fur Elise.flac' })
     mockAlbumsService.getAlbum.mockResolvedValue(
       makeAlbum({ albumArtist: 'Lang Lang', tracks: [track] })
     )
     renderDetail()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
 
     await waitFor(() => {
       expect(screen.getByTestId('track-track-c4-value-title')).toBeInTheDocument()
@@ -1645,7 +1941,6 @@ describe('AlbumDetail - classical attribution in track title cell', () => {
   })
 
   it('TITLE EditableField value is only the track title when entering edit mode (no prefix)', async () => {
-    // AC: edit mode shows raw title only, not "Artist - Title"
     const track = makeTrack({ id: 'track-c5', artist: 'Beethoven', title: 'Fur Elise', filePath: '01 Fur Elise.flac' })
     mockAlbumsService.getAlbum.mockResolvedValue(
       makeAlbum({ albumArtist: 'Lang Lang', tracks: [track] })
@@ -1653,10 +1948,15 @@ describe('AlbumDetail - classical attribution in track title cell', () => {
     renderDetail()
 
     await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
+
+    await waitFor(() => {
       expect(screen.getByTestId('track-track-c5-value-title')).toBeInTheDocument()
     })
 
-    // Click to enter edit mode
+    // Click to enter edit mode (within the editable field, not the page mode)
     fireEvent.click(screen.getByTestId('track-track-c5-value-title'))
 
     // Input should contain only the raw title, not the attribution prefix
@@ -1664,5 +1964,147 @@ describe('AlbumDetail - classical attribution in track title cell', () => {
       expect(screen.getByTestId('track-track-c5-input-title')).toBeInTheDocument()
     })
     expect(screen.getByTestId('track-track-c5-input-title')).toHaveValue('Fur Elise')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// View/Edit mode toggle (#910)
+// ---------------------------------------------------------------------------
+
+describe('AlbumDetail - view/edit mode toggle', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('starts in view mode by default', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('save-button')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('cancel-edit-button')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('album-value-album')).not.toBeInTheDocument()
+  })
+
+  it('switches to edit mode when Edit button is clicked', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByTestId('edit-button'))
+    await waitFor(() => {
+      expect(screen.getByTestId('cancel-edit-button')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('save-button')).toBeInTheDocument()
+    expect(screen.queryByTestId('edit-button')).not.toBeInTheDocument()
+  })
+
+  it('returns to view mode when Cancel is clicked with no dirty fields', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
+    fireEvent.click(screen.getByTestId('cancel-edit-button'))
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('cancel-edit-button')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('save-button')).not.toBeInTheDocument()
+  })
+
+  it('shows cancel guard dialog when Cancel is clicked with dirty fields', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
+    })
+
+    // Make a dirty change
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Rock' } })
+    fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
+    await waitFor(() => { expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument() })
+
+    // Click Cancel - should show the guard because fields are dirty
+    fireEvent.click(screen.getByTestId('cancel-edit-button'))
+    await waitFor(() => {
+      expect(screen.getByTestId('nav-guard-dialog')).toBeInTheDocument()
+    })
+    // Still in edit mode - guard is showing
+    expect(screen.getByTestId('cancel-edit-button')).toBeInTheDocument()
+  })
+
+  it('returns to view mode and discards dirty state when cancel guard is confirmed', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
+    })
+
+    // Make a dirty change
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Rock' } })
+    fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
+    await waitFor(() => { expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument() })
+    expect(screen.getByTestId('dirty-count')).toBeInTheDocument()
+
+    // Click Cancel -> guard appears -> confirm
+    fireEvent.click(screen.getByTestId('cancel-edit-button'))
+    await waitFor(() => {
+      expect(screen.getByTestId('nav-guard-dialog')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByTestId('nav-guard-confirm'))
+
+    // Should return to view mode with no dirty state
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('dirty-count')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('cancel-edit-button')).not.toBeInTheDocument()
+  })
+
+  it('stays in edit mode with dirty fields when cancel guard is dismissed', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    await enterEditMode()
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
+    })
+
+    // Make a dirty change
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    fireEvent.change(screen.getByTestId('album-input-genre'), { target: { value: 'Rock' } })
+    fireEvent.keyDown(screen.getByTestId('album-input-genre'), { key: 'Enter' })
+    await waitFor(() => { expect(screen.queryByTestId('album-input-genre')).not.toBeInTheDocument() })
+
+    // Click Cancel -> guard appears -> dismiss (stay in edit mode)
+    fireEvent.click(screen.getByTestId('cancel-edit-button'))
+    await waitFor(() => {
+      expect(screen.getByTestId('nav-guard-dialog')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByTestId('nav-guard-cancel'))
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('nav-guard-dialog')).not.toBeInTheDocument()
+    })
+
+    // Still in edit mode with dirty fields
+    expect(screen.getByTestId('cancel-edit-button')).toBeInTheDocument()
+    expect(screen.getByTestId('dirty-count')).toBeInTheDocument()
   })
 })

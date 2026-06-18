@@ -89,7 +89,16 @@
       "file": "Datei",
       "actions": "Aktionen"
     },
-    "showFilePath": "Dateipfad für Titel {{title}} anzeigen"
+    "showFilePath": "Dateipfad für Titel {{title}} anzeigen",
+    "editButton": "Bearbeiten",
+    "cancelButton": "Abbrechen",
+    "creditsTitle": "Mitwirkende",
+    "creditsSection": "Album-Mitwirkende",
+    "composedByPrefix": "Komponiert von",
+    "showCredits": "Mitwirkende anzeigen",
+    "hideCredits": "Mitwirkende ausblenden",
+    "tracksCount_one": "1 Titel",
+    "tracksCount_other": "{{count}} Titel"
   },
   "editableField": {
     "editLabel": "{{label}} bearbeiten",
