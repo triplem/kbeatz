@@ -125,12 +125,16 @@ function GenreStyleChips({ genre }: GenreStyleChipsProps) {
   if (values.length === 0) return null
   return (
     <Box
-      sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}
+      component="ul"
+      role="list"
+      sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, p: 0, m: 0, listStyle: 'none' }}
       data-testid="genre-chips"
       aria-label="Genre tags"
     >
       {values.map((value) => (
-        <Chip key={value} label={value} size="small" variant="outlined" />
+        <li key={value} role="listitem">
+          <Chip label={value} size="small" variant="outlined" />
+        </li>
       ))}
     </Box>
   )

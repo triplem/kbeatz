@@ -42,21 +42,26 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in d
         class="MuiBox-root css-1rsbvsd"
         data-testid="metadata-column"
       >
-        <div
+        <ul
           aria-label="Genre tags"
-          class="MuiBox-root css-a59z0g"
+          class="MuiBox-root css-toc6l2"
           data-testid="genre-chips"
+          role="list"
         >
-          <div
-            class="MuiChip-root MuiChip-outlined MuiChip-sizeSmall MuiChip-colorDefault css-t4kuez-MuiChip-root"
+          <li
+            role="listitem"
           >
-            <span
-              class="MuiChip-label css-19m61dl-MuiChip-label"
+            <div
+              class="MuiChip-root MuiChip-outlined MuiChip-sizeSmall MuiChip-colorDefault css-t4kuez-MuiChip-root"
             >
-              Jazz
-            </span>
-          </div>
-        </div>
+              <span
+                class="MuiChip-label css-19m61dl-MuiChip-label"
+              >
+                Jazz
+              </span>
+            </div>
+          </li>
+        </ul>
         <section
           aria-labelledby="album-tags-heading"
           class="MuiBox-root css-0"
@@ -1137,21 +1142,26 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in l
         class="MuiBox-root css-1rsbvsd"
         data-testid="metadata-column"
       >
-        <div
+        <ul
           aria-label="Genre tags"
-          class="MuiBox-root css-a59z0g"
+          class="MuiBox-root css-toc6l2"
           data-testid="genre-chips"
+          role="list"
         >
-          <div
-            class="MuiChip-root MuiChip-outlined MuiChip-sizeSmall MuiChip-colorDefault css-t4kuez-MuiChip-root"
+          <li
+            role="listitem"
           >
-            <span
-              class="MuiChip-label css-19m61dl-MuiChip-label"
+            <div
+              class="MuiChip-root MuiChip-outlined MuiChip-sizeSmall MuiChip-colorDefault css-t4kuez-MuiChip-root"
             >
-              Jazz
-            </span>
-          </div>
-        </div>
+              <span
+                class="MuiChip-label css-19m61dl-MuiChip-label"
+              >
+                Jazz
+              </span>
+            </div>
+          </li>
+        </ul>
         <section
           aria-labelledby="album-tags-heading"
           class="MuiBox-root css-0"

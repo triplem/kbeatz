@@ -1300,6 +1300,15 @@ describe('AlbumDetail - genre chips', () => {
     expect(chipsContainer.textContent).not.toContain('  Rock')
   })
 
+  it('does not render genre chips when genre contains only whitespace and commas', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ genre: ' ,  , ' }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-album')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('genre-chips')).not.toBeInTheDocument()
+  })
+
   it('does not render genre chips when genre is undefined', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ genre: undefined }))
     renderDetail()
