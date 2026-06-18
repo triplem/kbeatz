@@ -10,12 +10,12 @@
  */
 
 /** Selectable page sizes offered to the user. */
-export const PAGE_SIZE_OPTIONS = [24, 48, 96, 192] as const
+export const PAGE_SIZE_OPTIONS = [25, 50, 100, 250] as const
 
 export type PageSize = (typeof PAGE_SIZE_OPTIONS)[number]
 
-/** Sensible default page size (UI-FR-13: "~48"). */
-export const DEFAULT_PAGE_SIZE: PageSize = 48
+/** Sensible default page size (UI-FR-13: "~50"). */
+export const DEFAULT_PAGE_SIZE: PageSize = 50
 
 /** localStorage key for the persisted page size. */
 export const PAGE_SIZE_STORAGE_KEY = 'kbeatz.pageSize'

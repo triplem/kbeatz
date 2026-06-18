@@ -20,9 +20,9 @@ beforeEach(() => {
 describe('isPageSize', () => {
   it('accepts allowed sizes and rejects others', () => {
     for (const size of PAGE_SIZE_OPTIONS) expect(isPageSize(size)).toBe(true)
-    expect(isPageSize(50)).toBe(false)
+    expect(isPageSize(48)).toBe(false)
     expect(isPageSize(0)).toBe(false)
-    expect(isPageSize(-24)).toBe(false)
+    expect(isPageSize(-25)).toBe(false)
   })
 })
 
@@ -32,9 +32,9 @@ describe('loadPageSize / savePageSize', () => {
   })
 
   it('round-trips a valid stored value', () => {
-    savePageSize(24)
-    expect(localStorage.getItem(PAGE_SIZE_STORAGE_KEY)).toBe('24')
-    expect(loadPageSize()).toBe(24)
+    savePageSize(25)
+    expect(localStorage.getItem(PAGE_SIZE_STORAGE_KEY)).toBe('25')
+    expect(loadPageSize()).toBe(25)
   })
 
   it('falls back to the default for a corrupt stored value', () => {
@@ -58,7 +58,7 @@ describe('loadPageSize / savePageSize', () => {
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('quota')
     })
-    expect(() => savePageSize(96)).not.toThrow()
+    expect(() => savePageSize(100)).not.toThrow()
   })
 })
 
@@ -87,27 +87,27 @@ describe('parsePageParam', () => {
 
 describe('parseSizeParam', () => {
   it('returns the fallback for null', () => {
-    expect(parseSizeParam(null, 48)).toBe(48)
+    expect(parseSizeParam(null, 50)).toBe(50)
   })
 
   it('returns a valid size from the param', () => {
-    expect(parseSizeParam('24', 48)).toBe(24)
+    expect(parseSizeParam('25', 50)).toBe(25)
   })
 
   it('returns the fallback for a disallowed size', () => {
-    expect(parseSizeParam('17', 48)).toBe(48)
+    expect(parseSizeParam('17', 50)).toBe(50)
   })
 })
 
 describe('computeTotalPages', () => {
   it('is at least 1 for an empty list', () => {
-    expect(computeTotalPages(0, 48)).toBe(1)
+    expect(computeTotalPages(0, 50)).toBe(1)
   })
 
   it('rounds up partial pages', () => {
-    expect(computeTotalPages(100, 48)).toBe(3)
-    expect(computeTotalPages(48, 48)).toBe(1)
-    expect(computeTotalPages(49, 48)).toBe(2)
+    expect(computeTotalPages(100, 50)).toBe(2)
+    expect(computeTotalPages(50, 50)).toBe(1)
+    expect(computeTotalPages(51, 50)).toBe(2)
   })
 })
 

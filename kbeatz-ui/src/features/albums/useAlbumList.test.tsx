@@ -24,7 +24,7 @@ function wrapper({ children }: { children: ReactNode }) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>
 }
 
-const baseArgs = { page: 1, pageSize: 48, filters: EMPTY_FILTERS, sortBy: 'albumArtist' as const, sortDirection: 'asc' as const }
+const baseArgs = { page: 1, pageSize: 50, filters: EMPTY_FILTERS, sortBy: 'albumArtist' as const, sortDirection: 'asc' as const }
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -39,7 +39,7 @@ describe('useAlbumList', () => {
     await waitFor(() => expect(result.current.isPending).toBe(false))
 
     expect(result.current.mode).toBe('client')
-    expect(result.current.albums).toHaveLength(48) // one page slice
+    expect(result.current.albums).toHaveLength(50) // one page slice
     expect(result.current.totalCount).toBe(60)
     expect(result.current.filterOptions.artists.length).toBeGreaterThan(0)
   })
@@ -50,8 +50,8 @@ describe('useAlbumList', () => {
 
     const { result } = renderHook(() => useAlbumList({ ...baseArgs, page: 999 }), { wrapper })
     await waitFor(() => expect(result.current.isPending).toBe(false))
-    // 60 albums / 48 = 2 pages; page 999 clamps to page 2 = 12 remaining albums.
-    expect(result.current.albums).toHaveLength(12)
+    // 60 albums / 50 = 2 pages; page 999 clamps to page 2 = 10 remaining albums.
+    expect(result.current.albums).toHaveLength(10)
   })
 
   it('server mode: returns the server page content and total, empty filter options', async () => {
@@ -60,9 +60,9 @@ describe('useAlbumList', () => {
       Promise.resolve({
         content: [makeAlbum(q.page ?? 0)],
         page: q.page ?? 0,
-        size: q.size ?? 48,
+        size: q.size ?? 50,
         totalElements: over,
-        totalPages: Math.ceil(over / (q.size ?? 48)),
+        totalPages: Math.ceil(over / (q.size ?? 50)),
       } as AlbumPage) as ReturnType<typeof AlbumsService.listAlbums>,
     )
 

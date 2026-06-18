@@ -27,8 +27,8 @@ describe('usePageParams', () => {
   })
 
   it('reads the page and size from the URL', () => {
-    renderParams(['/?page=4&size=24'])
-    expect(screen.getByTestId('p')).toHaveTextContent('4/24')
+    renderParams(['/?page=4&size=25'])
+    expect(screen.getByTestId('p')).toHaveTextContent('4/25')
   })
 
   it('lower-bounds an out-of-range or non-numeric page at 1 (no upper clamp)', () => {
@@ -39,8 +39,8 @@ describe('usePageParams', () => {
   })
 
   it('prefers the URL size over the persisted default', () => {
-    localStorage.setItem(PAGE_SIZE_STORAGE_KEY, '96')
-    expect(renderParams(['/?size=24']).current?.pageSize).toBe(24)
-    expect(renderParams().current?.pageSize).toBe(96)
+    localStorage.setItem(PAGE_SIZE_STORAGE_KEY, '100')
+    expect(renderParams(['/?size=25']).current?.pageSize).toBe(25)
+    expect(renderParams().current?.pageSize).toBe(100)
   })
 })

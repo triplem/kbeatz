@@ -41,26 +41,26 @@ describe('usePagination', () => {
   it('starts on page 1 with the default page size', () => {
     const { captured } = renderPagination({ itemCount: 100, resetKey: 'a' })
     expect(captured.current?.page).toBe(1)
-    expect(captured.current?.pageSize).toBe(48)
-    expect(captured.current?.totalPages).toBe(3)
+    expect(captured.current?.pageSize).toBe(50)
+    expect(captured.current?.totalPages).toBe(2)
   })
 
   it('reads the page and size from the URL', () => {
-    const { captured } = renderPagination({ itemCount: 100, resetKey: 'a' }, ['/?page=2&size=24'])
-    expect(captured.current?.pageSize).toBe(24)
+    const { captured } = renderPagination({ itemCount: 100, resetKey: 'a' }, ['/?page=2&size=25'])
+    expect(captured.current?.pageSize).toBe(25)
     expect(captured.current?.page).toBe(2)
-    expect(captured.current?.totalPages).toBe(5)
+    expect(captured.current?.totalPages).toBe(4)
   })
 
   it('setPage writes the page to the URL', () => {
     const { captured } = renderPagination({ itemCount: 100, resetKey: 'a' })
-    act(() => captured.current?.setPage(3))
-    expect(screen.getByTestId('page')).toHaveTextContent('3')
-    expect(captured.search).toContain('page=3')
+    act(() => captured.current?.setPage(2))
+    expect(screen.getByTestId('page')).toHaveTextContent('2')
+    expect(captured.search).toContain('page=2')
   })
 
   it('setPage removes the param when navigating back to page 1', () => {
-    const { captured } = renderPagination({ itemCount: 100, resetKey: 'a' }, ['/?page=3'])
+    const { captured } = renderPagination({ itemCount: 100, resetKey: 'a' }, ['/?page=2'])
     act(() => captured.current?.setPage(1))
     expect(captured.search).not.toContain('page=')
   })
@@ -68,16 +68,16 @@ describe('usePagination', () => {
   it('setPage clamps above the maximum', () => {
     const { captured } = renderPagination({ itemCount: 100, resetKey: 'a' })
     act(() => captured.current?.setPage(999))
-    expect(screen.getByTestId('page')).toHaveTextContent('3')
+    expect(screen.getByTestId('page')).toHaveTextContent('2')
   })
 
   it('setPageSize persists to localStorage and resets to page 1', () => {
-    const { captured } = renderPagination({ itemCount: 100, resetKey: 'a' }, ['/?page=3'])
-    act(() => captured.current?.setPageSize(24))
-    expect(localStorage.getItem(PAGE_SIZE_STORAGE_KEY)).toBe('24')
-    expect(captured.current?.pageSize).toBe(24)
-    expect(captured.search).toContain('size=24')
-    expect(captured.search).not.toContain('page=3')
+    const { captured } = renderPagination({ itemCount: 100, resetKey: 'a' }, ['/?page=2'])
+    act(() => captured.current?.setPageSize(25))
+    expect(localStorage.getItem(PAGE_SIZE_STORAGE_KEY)).toBe('25')
+    expect(captured.current?.pageSize).toBe(25)
+    expect(captured.search).toContain('size=25')
+    expect(captured.search).not.toContain('page=2')
   })
 
   it('resets to page 1 when the resetKey changes (filter/sort change)', () => {
@@ -96,11 +96,11 @@ describe('usePagination', () => {
     }
 
     const router = createMemoryRouter([{ path: '*', element: <Harness /> }], {
-      initialEntries: ['/?page=3'],
+      initialEntries: ['/?page=2'],
     })
     render(<RouterProvider router={router} />)
 
-    expect(screen.getByTestId('state')).toHaveTextContent('3|3')
+    expect(screen.getByTestId('state')).toHaveTextContent('2|2')
 
     act(() => setKey?.('b'))
 
