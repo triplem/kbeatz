@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
+import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
 import Popover, { type PopoverOrigin } from '@mui/material/Popover'
 import Typography from '@mui/material/Typography'
@@ -104,6 +105,33 @@ function PathDisplay({ path, label, testId }: PathDisplayProps) {
       >
         {copied ? t('albumDetail.copied') : t('albumDetail.copy')}
       </Button>
+    </Box>
+  )
+}
+
+interface GenreStyleChipsProps {
+  /** Comma-separated genre string from the GENRE Vorbis Comment tag. */
+  readonly genre: string | undefined
+}
+
+/**
+ * Renders genre/style values from a comma-separated GENRE tag as individual MUI Chips.
+ * Each comma-separated value is trimmed and displayed as a separate chip.
+ * Returns null when the genre field is absent or empty.
+ */
+function GenreStyleChips({ genre }: GenreStyleChipsProps) {
+  if (!genre) return null
+  const values = genre.split(',').map((v) => v.trim()).filter((v) => v.length > 0)
+  if (values.length === 0) return null
+  return (
+    <Box
+      sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}
+      data-testid="genre-chips"
+      aria-label="Genre tags"
+    >
+      {values.map((value) => (
+        <Chip key={value} label={value} size="small" variant="outlined" />
+      ))}
     </Box>
   )
 }
@@ -481,6 +509,8 @@ export function AlbumDetail() {
                 }}
               />
             )}
+
+            <GenreStyleChips genre={displayAlbum.genre} />
 
             <Box component="section" aria-labelledby="album-tags-heading">
               <Typography id="album-tags-heading" variant="h6" component="h2" sx={{ mb: 2 }}>

@@ -1254,6 +1254,86 @@ describe('AlbumDetail', () => {
 })
 
 // ---------------------------------------------------------------------------
+// Genre style chips (#881)
+// ---------------------------------------------------------------------------
+
+describe('AlbumDetail - genre chips', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('renders a single chip when genre has one value', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ genre: 'Jazz' }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('genre-chips')).toBeInTheDocument()
+    })
+    // One chip for "Jazz"
+    expect(screen.getByTestId('genre-chips')).toHaveTextContent('Jazz')
+  })
+
+  it('renders multiple chips when genre is comma-separated', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ genre: 'Downtempo, Ambient, IDM, Experimental' }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('genre-chips')).toBeInTheDocument()
+    })
+    const chipsContainer = screen.getByTestId('genre-chips')
+    expect(chipsContainer).toHaveTextContent('Downtempo')
+    expect(chipsContainer).toHaveTextContent('Ambient')
+    expect(chipsContainer).toHaveTextContent('IDM')
+    expect(chipsContainer).toHaveTextContent('Experimental')
+    // Should not contain the raw comma-separated string as one element
+    expect(chipsContainer.textContent).not.toBe('Downtempo, Ambient, IDM, Experimental')
+  })
+
+  it('trims whitespace from each chip value', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ genre: '  Rock  ,  Blues  ' }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('genre-chips')).toBeInTheDocument()
+    })
+    const chipsContainer = screen.getByTestId('genre-chips')
+    expect(chipsContainer).toHaveTextContent('Rock')
+    expect(chipsContainer).toHaveTextContent('Blues')
+    // No leading/trailing whitespace in displayed values
+    expect(chipsContainer.textContent).not.toContain('  Rock')
+  })
+
+  it('does not render genre chips when genre is undefined', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ genre: undefined }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-album')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('genre-chips')).not.toBeInTheDocument()
+  })
+
+  it('genre chips are in the metadata column', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ genre: 'Electronic' }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('genre-chips')).toBeInTheDocument()
+    })
+    const metadataCol = screen.getByTestId('metadata-column')
+    expect(metadataCol).toContainElement(screen.getByTestId('genre-chips'))
+  })
+
+  it('editable GENRE field still shows the raw comma-separated value for editing', async () => {
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ genre: 'Downtempo, Ambient' }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('album-value-genre')).toBeInTheDocument()
+    })
+    // The editable field still shows the full raw string
+    expect(screen.getByTestId('album-value-genre')).toHaveTextContent('Downtempo, Ambient')
+    // Clicking it opens an input with the raw value
+    fireEvent.click(screen.getByTestId('album-value-genre'))
+    expect(screen.getByTestId('album-input-genre')).toHaveValue('Downtempo, Ambient')
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Navigation guard (back navigation with unsaved dirty fields)
 // ---------------------------------------------------------------------------
 
