@@ -120,6 +120,7 @@ interface GenreStyleChipsProps {
  * Returns null when the genre field is absent or empty.
  */
 function GenreStyleChips({ genre }: GenreStyleChipsProps) {
+  const { t } = useTranslation()
   if (!genre) return null
   const values = genre.split(',').map((v) => v.trim()).filter((v) => v.length > 0)
   if (values.length === 0) return null
@@ -129,7 +130,7 @@ function GenreStyleChips({ genre }: GenreStyleChipsProps) {
       role="list"
       sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, p: 0, m: 0, listStyle: 'none' }}
       data-testid="genre-chips"
-      aria-label="Genre tags"
+      aria-label={t('albumDetail.genreChipsLabel')}
     >
       {values.map((value) => (
         <li key={value} role="listitem">

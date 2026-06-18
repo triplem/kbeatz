@@ -75,6 +75,7 @@
     "otherTagsTitle": "Weitere Tags",
     "otherTagsDescription": "Nicht standardisierte Tags in diesen Dateien. In dieser Version schreibgeschützt.",
     "otherTagsEmpty": "Keine weiteren Tags.",
+    "genreChipsLabel": "Genre-Tags",
     "trackColumns": {
       "position": "Position",
       "title": "Titel",
