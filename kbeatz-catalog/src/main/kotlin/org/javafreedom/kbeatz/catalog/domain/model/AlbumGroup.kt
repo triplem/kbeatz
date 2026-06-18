@@ -20,6 +20,7 @@ import java.nio.file.Path
  * @property albumArtist ALBUMARTIST Vorbis Comment tag from the first FLAC file in the group.
  * @property albumTitle ALBUM Vorbis Comment tag from the first FLAC file.
  * @property date DATE Vorbis Comment tag from the first FLAC file, or null if absent.
+ * @property country COUNTRY Vorbis Comment tag from the first FLAC file, or null if absent.
  */
 data class AlbumGroup(
     val rootPath: Path,
@@ -28,4 +29,5 @@ data class AlbumGroup(
     val albumArtist: String,
     val albumTitle: String,
     val date: String?,
+    val country: String? = null,
 )

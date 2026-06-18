@@ -114,7 +114,7 @@ class LibraryWalker {
         // are treated as the same release.  The AlbumGroup carries the full date
         // string from the first track encountered.  See ADR-010-album-deduplication.adoc.
         data class GroupKey(val albumArtist: String, val albumTitle: String, val yearKey: String?)
-        data class TrackMeta(val path: Path, val canonicalDir: Path, val fullDate: String?)
+        data class TrackMeta(val path: Path, val canonicalDir: Path, val fullDate: String?, val country: String?)
 
         val groups = mutableMapOf<GroupKey, MutableList<TrackMeta>>()
 
@@ -127,12 +127,13 @@ class LibraryWalker {
             // Normalise to 4-digit year for grouping so that "1959" and "1959-05-04" merge.
             @Suppress("MagicNumber") // 4 = length of 4-digit year prefix in ISO date strings
             val yearKey = fullDate?.take(4)
+            val country = tags["COUNTRY"]?.takeIf { it.isNotBlank() }
 
             val dir = flacPath.parent ?: libraryRoot
             val canonicalDir = if (isDiscSubdir(dir)) dir.parent ?: dir else dir
 
             val key = GroupKey(albumArtist, albumTitle, yearKey)
-            groups.getOrPut(key) { mutableListOf() }.add(TrackMeta(flacPath, canonicalDir, fullDate))
+            groups.getOrPut(key) { mutableListOf() }.add(TrackMeta(flacPath, canonicalDir, fullDate, country))
         }
 
         return groups.map { (key, tracks) ->
@@ -145,6 +146,8 @@ class LibraryWalker {
 
             // Carry the full date string (not just the year) from the first track.
             val representativeDate = tracks.firstNotNullOfOrNull { it.fullDate }
+            // Carry the COUNTRY tag from the first track that has one.
+            val representativeCountry = tracks.firstNotNullOfOrNull { it.country }
 
             AlbumGroup(
                 rootPath = rootPath,
@@ -153,6 +156,7 @@ class LibraryWalker {
                 albumArtist = key.albumArtist,
                 albumTitle = key.albumTitle,
                 date = representativeDate,
+                country = representativeCountry,
             )
         }
     }
