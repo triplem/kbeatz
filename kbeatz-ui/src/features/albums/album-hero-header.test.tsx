@@ -142,6 +142,18 @@ describe('AlbumHeroHeader', () => {
     expect(screen.getByTestId('hero-media-format')).toBeInTheDocument()
   })
 
+  it('omits genre chips when genre is empty string', () => {
+    renderHero(makeAlbum({ genre: '' }))
+    expect(screen.queryByTestId('hero-genre-chips')).toBeNull()
+  })
+
+  it('renders genre chips without error when genre contains duplicate values', () => {
+    // Duplicate chip values produce duplicate React keys - component should still render
+    renderHero(makeAlbum({ genre: 'Jazz, Jazz' }))
+    // At minimum one chip should be present; no throw expected
+    expect(screen.getByTestId('hero-genre-chips')).toBeInTheDocument()
+  })
+
   it('renders only artist and title when all optional fields are absent', () => {
     renderHero(
       makeAlbum({

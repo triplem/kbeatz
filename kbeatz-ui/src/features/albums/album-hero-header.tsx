@@ -1,54 +1,17 @@
 import Box from '@mui/material/Box'
-import Chip from '@mui/material/Chip'
 import Typography from '@mui/material/Typography'
 import { useTranslation } from 'react-i18next'
 import { type AlbumDetail } from '../../api/generated'
 import { formatDate } from '../../lib/i18n'
+import { CommaSeparatedChips } from './comma-separated-chips'
 
 interface AlbumHeroHeaderProps {
   /** Full album detail object from the API. */
   readonly album: AlbumDetail
 }
 
-interface StyleChipsListProps {
-  /** Comma-separated style values (e.g. "Hard Bop, Modal"). */
-  readonly value: string | undefined
-  /** Accessible label for the chip list. */
-  readonly ariaLabel: string
-  /** data-testid applied to the wrapper element. */
-  readonly testId: string
-}
-
-/**
- * Renders a comma-separated string as individual MUI Chips.
- * Returns null when the value is absent or empty after splitting.
- */
-function StyleChipsList({ value, ariaLabel, testId }: StyleChipsListProps) {
-  if (!value) return null
-  const items = value
-    .split(',')
-    .map((v) => v.trim())
-    .filter((v) => v.length > 0)
-  if (items.length === 0) return null
-  return (
-    <Box
-      component="ul"
-      role="list"
-      sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, p: 0, m: 0, listStyle: 'none' }}
-      data-testid={testId}
-      aria-label={ariaLabel}
-    >
-      {items.map((item) => (
-        <li key={item} role="listitem">
-          <Chip label={item} size="small" variant="outlined" />
-        </li>
-      ))}
-    </Box>
-  )
-}
-
 interface MetaRowProps {
-  /** Short label shown before the value (e.g. "Land:"). */
+  /** Short label shown before the value (e.g. "Country:"). */
   readonly label: string
   /** Value to display. Row is omitted when this is absent or empty. */
   readonly value: string | undefined
@@ -74,11 +37,10 @@ function MetaRow({ label, value, testId }: MetaRowProps) {
  * Layout: two-column on sm+ (cover art left, metadata right), single-column on xs.
  *
  * Fields omitted when null/undefined:
- * - cover art (only when hasCoverArt is true)
+ * - cover art (only shown when hasCoverArt is true)
  * - label + catalog number
  * - release date
- * - genre chips
- * - styles chips
+ * - genre/style chips (comma-separated GENRE tag values)
  * - country
  * - media format
  */
@@ -90,7 +52,7 @@ export function AlbumHeroHeader({ album }: AlbumHeroHeaderProps) {
   return (
     <Box
       component="section"
-      aria-label={t('albumDetail.heroSection')}
+      aria-labelledby="hero-album-title"
       data-testid="album-hero-header"
       sx={{
         display: 'grid',
@@ -132,20 +94,21 @@ export function AlbumHeroHeader({ album }: AlbumHeroHeaderProps) {
         data-testid="hero-metadata"
         sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}
       >
-        {/* Artist name */}
+        {/* Artist name - rendered as h2 for correct heading outline */}
         <Typography
           variant="h5"
-          component="p"
+          component="h2"
           data-testid="hero-artist"
           sx={{ fontWeight: 700, lineHeight: 1.2 }}
         >
           {album.albumArtist}
         </Typography>
 
-        {/* Album title */}
+        {/* Album title - rendered as h3; also the accessible name for the section via aria-labelledby */}
         <Typography
+          id="hero-album-title"
           variant="h4"
-          component="p"
+          component="h3"
           data-testid="hero-album-title"
           sx={{ fontWeight: 700, lineHeight: 1.2 }}
         >
@@ -166,8 +129,8 @@ export function AlbumHeroHeader({ album }: AlbumHeroHeaderProps) {
           </Typography>
         )}
 
-        {/* Genre chips */}
-        <StyleChipsList
+        {/* Genre/style chips (comma-separated GENRE tag) */}
+        <CommaSeparatedChips
           value={album.genre}
           ariaLabel={t('albumDetail.genreChipsLabel')}
           testId="hero-genre-chips"

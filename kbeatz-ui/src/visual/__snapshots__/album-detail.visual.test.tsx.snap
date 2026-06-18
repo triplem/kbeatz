@@ -35,7 +35,7 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in d
       Back
     </button>
     <section
-      aria-label="Album summary"
+      aria-labelledby="hero-album-title"
       class="MuiBox-root css-1x7nj5q"
       data-testid="album-hero-header"
     >
@@ -48,18 +48,19 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in d
         class="MuiBox-root css-bly4bm"
         data-testid="hero-metadata"
       >
-        <p
+        <h2
           class="MuiTypography-root MuiTypography-h5 css-n9kgla-MuiTypography-root"
           data-testid="hero-artist"
         >
           Miles Davis
-        </p>
-        <p
+        </h2>
+        <h3
           class="MuiTypography-root MuiTypography-h4 css-1xy6faa-MuiTypography-root"
           data-testid="hero-album-title"
+          id="hero-album-title"
         >
           Kind of Blue
-        </p>
+        </h3>
         <p
           class="MuiTypography-root MuiTypography-body1 css-1fz3vqa-MuiTypography-root"
           data-testid="hero-label-catalog"
@@ -1195,7 +1196,7 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in l
       Back
     </button>
     <section
-      aria-label="Album summary"
+      aria-labelledby="hero-album-title"
       class="MuiBox-root css-1x7nj5q"
       data-testid="album-hero-header"
     >
@@ -1208,18 +1209,19 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in l
         class="MuiBox-root css-bly4bm"
         data-testid="hero-metadata"
       >
-        <p
+        <h2
           class="MuiTypography-root MuiTypography-h5 css-n9kgla-MuiTypography-root"
           data-testid="hero-artist"
         >
           Miles Davis
-        </p>
-        <p
+        </h2>
+        <h3
           class="MuiTypography-root MuiTypography-h4 css-1xy6faa-MuiTypography-root"
           data-testid="hero-album-title"
+          id="hero-album-title"
         >
           Kind of Blue
-        </p>
+        </h3>
         <p
           class="MuiTypography-root MuiTypography-body1 css-1fz3vqa-MuiTypography-root"
           data-testid="hero-label-catalog"

@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
 import Popover, { type PopoverOrigin } from '@mui/material/Popover'
 import Typography from '@mui/material/Typography'
@@ -29,6 +28,7 @@ import { SyncPanel } from '../sync/sync-panel'
 import { formatDate } from '../../lib/i18n'
 import { formatTrackDuration } from '../../lib/format-duration'
 import { AlbumHeroHeader } from './album-hero-header'
+import { CommaSeparatedChips } from './comma-separated-chips'
 
 /** Album-level Vorbis Comment fields rendered as editable rows, in display order. */
 const ALBUM_FIELDS: ReadonlyArray<{ key: keyof AlbumDetailModel; labelKey: string; fieldName: string }> = [
@@ -106,38 +106,6 @@ function PathDisplay({ path, label, testId }: PathDisplayProps) {
       >
         {copied ? t('albumDetail.copied') : t('albumDetail.copy')}
       </Button>
-    </Box>
-  )
-}
-
-interface GenreStyleChipsProps {
-  /** Comma-separated genre string from the GENRE Vorbis Comment tag. */
-  readonly genre: string | undefined
-}
-
-/**
- * Renders genre/style values from a comma-separated GENRE tag as individual MUI Chips.
- * Each comma-separated value is trimmed and displayed as a separate chip.
- * Returns null when the genre field is absent or empty.
- */
-function GenreStyleChips({ genre }: GenreStyleChipsProps) {
-  const { t } = useTranslation()
-  if (!genre) return null
-  const values = genre.split(',').map((v) => v.trim()).filter((v) => v.length > 0)
-  if (values.length === 0) return null
-  return (
-    <Box
-      component="ul"
-      role="list"
-      sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, p: 0, m: 0, listStyle: 'none' }}
-      data-testid="genre-chips"
-      aria-label={t('albumDetail.genreChipsLabel')}
-    >
-      {values.map((value) => (
-        <li key={value} role="listitem">
-          <Chip label={value} size="small" variant="outlined" />
-        </li>
-      ))}
     </Box>
   )
 }
@@ -518,7 +486,11 @@ export function AlbumDetail() {
               />
             )}
 
-            <GenreStyleChips genre={displayAlbum.genre} />
+            <CommaSeparatedChips
+              value={displayAlbum.genre}
+              ariaLabel={t('albumDetail.genreChipsLabel')}
+              testId="genre-chips"
+            />
 
             <Box component="section" aria-labelledby="album-tags-heading">
               <Typography id="album-tags-heading" variant="h6" component="h2" sx={{ mb: 2 }}>
