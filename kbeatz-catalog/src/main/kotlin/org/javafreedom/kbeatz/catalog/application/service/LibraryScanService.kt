@@ -422,6 +422,7 @@ class LibraryScanService(
             conductor = null,
             ensemble = null,
             country = country,
+            mediaFormat = mediaFormat,
             discogsId = null,
             directoryPath = rootPath.toString(),
             extraTags = null,

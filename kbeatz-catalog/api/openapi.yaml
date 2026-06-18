@@ -486,6 +486,10 @@ components:
           type: string
           description: "COUNTRY Vorbis Comment tag (country or region of release)"
           example: "USA & Canada"
+        mediaFormat:
+          type: string
+          description: "MEDIA Vorbis Comment tag (physical media format of the release)"
+          example: "2 x Vinyl, LP, Album, Red Translucent"
         discogsId:
           type: string
           description: "Discogs release ID from metadata.yml"
@@ -614,6 +618,10 @@ components:
           type: string
           description: "COUNTRY Vorbis Comment tag (country or region of release)"
           example: "USA & Canada"
+        mediaFormat:
+          type: string
+          description: "MEDIA Vorbis Comment tag (physical media format of the release)"
+          example: "2 x Vinyl, LP, Album, Red Translucent"
         discogsId:
           type: string
           description: "Discogs release ID from metadata.yml"

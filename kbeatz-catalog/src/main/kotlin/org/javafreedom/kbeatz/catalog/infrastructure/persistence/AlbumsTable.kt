@@ -26,6 +26,7 @@ object AlbumsTable : UUIDTable("albums") {
     val conductor = varchar("conductor", 500).nullable()
     val ensemble = varchar("ensemble", 500).nullable()
     val country = varchar("country", 100).nullable()
+    val mediaFormat = varchar("media_format", 500).nullable()
     val discogsId = varchar("discogs_id", 50).nullable()
     val discogsJson = text("discogs_json").nullable()
     val extraTags = text("extra_tags").nullable()
