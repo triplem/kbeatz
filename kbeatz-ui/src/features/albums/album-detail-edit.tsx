@@ -28,6 +28,7 @@ import { SyncPanel } from '../sync/sync-panel'
 import { formatDate } from '../../lib/i18n'
 import { formatTrackDuration } from '../../lib/format-duration'
 import { AlbumHeroHeader } from './album-hero-header'
+import { groupByDisc } from './trackListUtils'
 
 /** Album-level Vorbis Comment fields rendered as editable rows, in display order. */
 const ALBUM_FIELDS: ReadonlyArray<{ key: keyof AlbumDetailModel; labelKey: string; fieldName: string }> = [
@@ -672,28 +673,7 @@ interface TrackListProps {
 function TrackList({ tracks, albumArtist, onSave, onCommit, disabled = false }: TrackListProps) {
   const { t } = useTranslation()
 
-  // Sort tracks by disc number (numeric prefix), then by track number (numeric prefix).
-  const sorted = [...tracks].sort((a, b) => {
-    const discA = parseLeadingInt(a.discNumber)
-    const discB = parseLeadingInt(b.discNumber)
-    if (discA !== discB) return discA - discB
-    return parseLeadingInt(a.trackNumber) - parseLeadingInt(b.trackNumber)
-  })
-
-  // Determine whether any track has a disc number - if so, render disc headers.
-  const isMultiDisc = sorted.some((tr) => tr.discNumber !== undefined && tr.discNumber !== null && tr.discNumber !== '')
-
-  // Group by disc number for multi-disc rendering.
-  const groups: { discLabel: string | null; tracks: Track[] }[] = []
-  for (const track of sorted) {
-    const discKey = track.discNumber ?? null
-    const last = groups[groups.length - 1]
-    if (last !== undefined && last.discLabel === discKey) {
-      last.tracks.push(track)
-    } else {
-      groups.push({ discLabel: discKey, tracks: [track] })
-    }
-  }
+  const { groups, isMultiDisc } = groupByDisc(tracks)
 
   return (
     <TableContainer>
@@ -855,9 +835,3 @@ function TrackRow({ track, albumArtist, onSave, onCommit, disabled = false }: Tr
   )
 }
 
-/** Parse the leading integer from a string like "1", "2", "A1". Returns Infinity for null/empty. */
-function parseLeadingInt(value: string | null | undefined): number {
-  if (value === undefined || value === null || value === '') return Infinity
-  const match = /^(\d+)/.exec(value)
-  return match !== null && match[1] !== undefined ? parseInt(match[1], 10) : Infinity
-}

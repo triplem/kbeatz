@@ -98,18 +98,164 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in d
     <section
       aria-label="Tracks"
       class="MuiBox-root css-1fwzste"
-      data-testid="tracklist-placeholder"
+      data-testid="tracklist-section"
     >
       <h2
         class="MuiTypography-root MuiTypography-h6 css-1k7tr3w-MuiTypography-root"
       >
         Tracks
       </h2>
-      <p
-        class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+      <div
+        class="MuiTableContainer-root css-70zvr5-MuiTableContainer-root"
+        data-testid="tracklist-view"
       >
-        3 tracks
-      </p>
+        <table
+          aria-label="Tracks"
+          class="MuiTable-root css-14v49c2-MuiTable-root"
+        >
+          <thead
+            class="MuiTableHead-root css-1a7iywq-MuiTableHead-root"
+          >
+            <tr
+              class="MuiTableRow-root MuiTableRow-head css-92sqde-MuiTableRow-root"
+            >
+              <th
+                class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-1i831q5-MuiTableCell-root"
+                scope="col"
+              >
+                Position
+              </th>
+              <th
+                class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-6372fc-MuiTableCell-root"
+                scope="col"
+              >
+                Title
+              </th>
+              <th
+                class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-1erfwdf-MuiTableCell-root"
+                scope="col"
+              >
+                Duration
+              </th>
+            </tr>
+          </thead>
+          <tbody
+            class="MuiTableBody-root css-gmh7jj-MuiTableBody-root"
+          >
+            <tr
+              class="MuiTableRow-root css-92sqde-MuiTableRow-root"
+              data-testid="track-view-row-track-0001"
+            >
+              <td
+                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-xndwfg-MuiTableCell-root"
+              >
+                <p
+                  class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+                >
+                  1
+                </p>
+              </td>
+              <td
+                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-18ejcq6-MuiTableCell-root"
+              >
+                <div
+                  class="MuiBox-root css-0"
+                >
+                  <p
+                    class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+                    data-testid="track-view-title-track-0001"
+                  >
+                    So What
+                  </p>
+                </div>
+              </td>
+              <td
+                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-sz8vye-MuiTableCell-root"
+              >
+                <p
+                  class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+                >
+                  9:25
+                </p>
+              </td>
+            </tr>
+            <tr
+              class="MuiTableRow-root css-92sqde-MuiTableRow-root"
+              data-testid="track-view-row-track-0002"
+            >
+              <td
+                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-xndwfg-MuiTableCell-root"
+              >
+                <p
+                  class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+                >
+                  2
+                </p>
+              </td>
+              <td
+                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-18ejcq6-MuiTableCell-root"
+              >
+                <div
+                  class="MuiBox-root css-0"
+                >
+                  <p
+                    class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+                    data-testid="track-view-title-track-0002"
+                  >
+                    Freddie Freeloader
+                  </p>
+                </div>
+              </td>
+              <td
+                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-sz8vye-MuiTableCell-root"
+              >
+                <p
+                  class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+                >
+                  9:46
+                </p>
+              </td>
+            </tr>
+            <tr
+              class="MuiTableRow-root css-92sqde-MuiTableRow-root"
+              data-testid="track-view-row-track-0003"
+            >
+              <td
+                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-xndwfg-MuiTableCell-root"
+              >
+                <p
+                  class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+                >
+                  3
+                </p>
+              </td>
+              <td
+                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-18ejcq6-MuiTableCell-root"
+              >
+                <div
+                  class="MuiBox-root css-0"
+                >
+                  <p
+                    class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+                    data-testid="track-view-title-track-0003"
+                  >
+                    Blue in Green
+                  </p>
+                </div>
+              </td>
+              <td
+                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-sz8vye-MuiTableCell-root"
+              >
+                <p
+                  class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+                >
+                  5:37
+                </p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </section>
     <section
       aria-label="Album credits"
@@ -247,18 +393,164 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in l
     <section
       aria-label="Tracks"
       class="MuiBox-root css-1fwzste"
-      data-testid="tracklist-placeholder"
+      data-testid="tracklist-section"
     >
       <h2
         class="MuiTypography-root MuiTypography-h6 css-1k7tr3w-MuiTypography-root"
       >
         Tracks
       </h2>
-      <p
-        class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+      <div
+        class="MuiTableContainer-root css-70zvr5-MuiTableContainer-root"
+        data-testid="tracklist-view"
       >
-        3 tracks
-      </p>
+        <table
+          aria-label="Tracks"
+          class="MuiTable-root css-14v49c2-MuiTable-root"
+        >
+          <thead
+            class="MuiTableHead-root css-1a7iywq-MuiTableHead-root"
+          >
+            <tr
+              class="MuiTableRow-root MuiTableRow-head css-92sqde-MuiTableRow-root"
+            >
+              <th
+                class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-1i831q5-MuiTableCell-root"
+                scope="col"
+              >
+                Position
+              </th>
+              <th
+                class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-6372fc-MuiTableCell-root"
+                scope="col"
+              >
+                Title
+              </th>
+              <th
+                class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-1erfwdf-MuiTableCell-root"
+                scope="col"
+              >
+                Duration
+              </th>
+            </tr>
+          </thead>
+          <tbody
+            class="MuiTableBody-root css-gmh7jj-MuiTableBody-root"
+          >
+            <tr
+              class="MuiTableRow-root css-92sqde-MuiTableRow-root"
+              data-testid="track-view-row-track-0001"
+            >
+              <td
+                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-xndwfg-MuiTableCell-root"
+              >
+                <p
+                  class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+                >
+                  1
+                </p>
+              </td>
+              <td
+                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-18ejcq6-MuiTableCell-root"
+              >
+                <div
+                  class="MuiBox-root css-0"
+                >
+                  <p
+                    class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+                    data-testid="track-view-title-track-0001"
+                  >
+                    So What
+                  </p>
+                </div>
+              </td>
+              <td
+                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-sz8vye-MuiTableCell-root"
+              >
+                <p
+                  class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+                >
+                  9:25
+                </p>
+              </td>
+            </tr>
+            <tr
+              class="MuiTableRow-root css-92sqde-MuiTableRow-root"
+              data-testid="track-view-row-track-0002"
+            >
+              <td
+                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-xndwfg-MuiTableCell-root"
+              >
+                <p
+                  class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+                >
+                  2
+                </p>
+              </td>
+              <td
+                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-18ejcq6-MuiTableCell-root"
+              >
+                <div
+                  class="MuiBox-root css-0"
+                >
+                  <p
+                    class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+                    data-testid="track-view-title-track-0002"
+                  >
+                    Freddie Freeloader
+                  </p>
+                </div>
+              </td>
+              <td
+                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-sz8vye-MuiTableCell-root"
+              >
+                <p
+                  class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+                >
+                  9:46
+                </p>
+              </td>
+            </tr>
+            <tr
+              class="MuiTableRow-root css-92sqde-MuiTableRow-root"
+              data-testid="track-view-row-track-0003"
+            >
+              <td
+                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-xndwfg-MuiTableCell-root"
+              >
+                <p
+                  class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+                >
+                  3
+                </p>
+              </td>
+              <td
+                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-18ejcq6-MuiTableCell-root"
+              >
+                <div
+                  class="MuiBox-root css-0"
+                >
+                  <p
+                    class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+                    data-testid="track-view-title-track-0003"
+                  >
+                    Blue in Green
+                  </p>
+                </div>
+              </td>
+              <td
+                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-sz8vye-MuiTableCell-root"
+              >
+                <p
+                  class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+                >
+                  5:37
+                </p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </section>
     <section
       aria-label="Album credits"
