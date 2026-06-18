@@ -614,6 +614,7 @@ export function AlbumDetail() {
                 : (
                   <TrackList
                     tracks={displayAlbum.tracks}
+                    albumArtist={displayAlbum.albumArtist}
                     onSave={handleTrackTagSaveSentinel}
                     onCommit={handleTrackFieldCommit}
                     disabled={isSaving}
@@ -653,6 +654,7 @@ function OtherTagsSection() {
 
 interface TrackListProps {
   readonly tracks: Track[]
+  readonly albumArtist: string | undefined
   readonly onSave: (trackId: string) => (field: string, value: string) => Promise<void>
   readonly onCommit: (trackId: string) => (field: string, value: string) => void
   /** When true, all track fields are in read-only mode (e.g. during a batch save in flight). */
@@ -663,7 +665,7 @@ interface TrackListProps {
  * Renders the full tracklist, sorted by disc number then track position.
  * Multi-disc albums are grouped with a "Disc N" header row between groups.
  */
-function TrackList({ tracks, onSave, onCommit, disabled = false }: TrackListProps) {
+function TrackList({ tracks, albumArtist, onSave, onCommit, disabled = false }: TrackListProps) {
   const { t } = useTranslation()
 
   // Sort tracks by disc number (numeric prefix), then by track number (numeric prefix).
@@ -726,6 +728,7 @@ function TrackList({ tracks, onSave, onCommit, disabled = false }: TrackListProp
                 <TrackRow
                   key={`${track.filePath}-${trackIndex}`}
                   track={track}
+                  albumArtist={albumArtist}
                   onSave={onSave(track.id)}
                   onCommit={onCommit(track.id)}
                   disabled={disabled}
@@ -745,17 +748,29 @@ const FILE_POPOVER_TRANSFORM_ORIGIN: PopoverOrigin = { vertical: 'top', horizont
 
 interface TrackRowProps {
   readonly track: Track
+  /** Album-level artist used to detect when a track has a different composer/artist attribution. */
+  readonly albumArtist: string | undefined
   readonly onSave: (field: string, value: string) => Promise<void>
   readonly onCommit: (field: string, value: string) => void
   /** When true, all track fields are in read-only mode. */
   readonly disabled?: boolean
 }
 
-function TrackRow({ track, onSave, onCommit, disabled = false }: TrackRowProps) {
+function TrackRow({ track, albumArtist, onSave, onCommit, disabled = false }: TrackRowProps) {
   const { t } = useTranslation()
   const durationDisplay = track.durationSeconds !== undefined
     ? formatTrackDuration(track.durationSeconds)
     : '-'
+
+  /**
+   * Classical attribution: when a track has a different artist from the album artist,
+   * show "Artist - Title" in the title cell (read-only display only).
+   * The EditableField value is always the raw track title so editing only modifies the title.
+   */
+  const titleAttributionDisplay =
+    track.artist !== undefined && track.artist !== albumArtist && track.title !== undefined
+      ? `${track.artist} - ${track.title}`
+      : undefined
 
   const [popoverAnchor, setPopoverAnchor] = useState<HTMLButtonElement | null>(null)
   const popoverOpen = Boolean(popoverAnchor)
@@ -787,6 +802,7 @@ function TrackRow({ track, onSave, onCommit, disabled = false }: TrackRowProps) 
         <EditableField
           label={t('albumDetail.fields.title')}
           value={track.title}
+          displayValue={titleAttributionDisplay}
           fieldName="TITLE"
           onSave={onSave}
           onCommit={onCommit}
