@@ -88,9 +88,7 @@ class SyncHandlerTest {
 
     @Test
     fun `should return 429 with Retry-After header when image quota is exhausted`() = testApplication {
-        // resetAt is set 60 seconds in the future relative to a fixed "now"
-        val fixedNow = Instant.parse("2026-06-19T00:00:00Z")
-        val resetAt = "2026-06-19T00:01:00Z" // 60 seconds later
+        val resetAt = "2026-06-19T00:01:00Z"
         coEvery { syncService.sync(albumId, any()) } throws ImageQuotaExhaustedException(resetAt)
 
         install(ContentNegotiation) { json(json) }
