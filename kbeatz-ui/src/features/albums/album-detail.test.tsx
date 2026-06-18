@@ -976,7 +976,7 @@ describe('AlbumDetail', () => {
   // Tracklist - distinct data per row (#701)
   // ──────────────────────────────────────────────
 
-  it('renders 3 tracks with distinct titles, track numbers, and file paths', async () => {
+  it('renders 3 tracks with distinct titles and track numbers', async () => {
     // Regression test: each track row must show its own distinct metadata.
     // Previously, duplicate keys could cause React to reuse the same DOM node for every
     // row, making all tracks appear to reference the same file.
@@ -1002,10 +1002,10 @@ describe('AlbumDetail', () => {
     expect(screen.getByTestId('track-track-2-value-tracknumber')).toHaveTextContent('2')
     expect(screen.getByTestId('track-track-3-value-tracknumber')).toHaveTextContent('3')
 
-    // Each row must show its own file path
-    expect(screen.getByTestId('track-track-1-file-path')).toHaveTextContent('01 So What.flac')
-    expect(screen.getByTestId('track-track-2-file-path')).toHaveTextContent('02 Freddie Freeloader.flac')
-    expect(screen.getByTestId('track-track-3-file-path')).toHaveTextContent('03 Blue in Green.flac')
+    // Each row has its own info button (file path is behind popover - not visible by default)
+    expect(screen.getByTestId('track-track-1-file-path-btn')).toBeInTheDocument()
+    expect(screen.getByTestId('track-track-2-file-path-btn')).toBeInTheDocument()
+    expect(screen.getByTestId('track-track-3-file-path-btn')).toBeInTheDocument()
   })
 
   it('renders distinct rows when tracks have duplicate IDs (filePath+index key formula)', async () => {
@@ -1039,12 +1039,9 @@ describe('AlbumDetail', () => {
     expect(trackNumEls[1]).toHaveTextContent('2')
     expect(trackNumEls[2]).toHaveTextContent('3')
 
-    // Each row must show its own distinct file path
-    const filePathEls = screen.getAllByTestId('track-track-same-id-file-path')
-    expect(filePathEls).toHaveLength(3)
-    expect(filePathEls[0]).toHaveTextContent('01 So What.flac')
-    expect(filePathEls[1]).toHaveTextContent('02 Freddie Freeloader.flac')
-    expect(filePathEls[2]).toHaveTextContent('03 Blue in Green.flac')
+    // Each row has its own info button (file paths are behind popovers - not visible by default)
+    const filePathBtns = screen.getAllByTestId('track-track-same-id-file-path-btn')
+    expect(filePathBtns).toHaveLength(3)
   })
 
   // ──────────────────────────────────────────────
@@ -1104,20 +1101,64 @@ describe('AlbumDetail', () => {
     expect(copyBtn).toHaveAttribute('aria-label')
   })
 
-  it('renders track filePath in each track row', async () => {
+  it('file path is hidden by default and shown in popover after clicking info button', async () => {
     const track = makeTrack({ id: 'track-id-1', filePath: '01 So What.flac' })
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [track] }))
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('track-track-id-1-file-path-btn')).toBeInTheDocument()
+    })
+    // File path not shown by default
+    expect(screen.queryByTestId('track-track-id-1-file-path')).not.toBeInTheDocument()
+    // Click the info button to reveal file path in popover
+    fireEvent.click(screen.getByTestId('track-track-id-1-file-path-btn'))
     await waitFor(() => {
       expect(screen.getByTestId('track-track-id-1-file-path')).toBeInTheDocument()
     })
     expect(screen.getByTestId('track-track-id-1-file-path')).toHaveTextContent('01 So What.flac')
   })
 
-  it('renders Copy button for track filePath', async () => {
+  it('info button has accessible aria-label for the track', async () => {
+    const track = makeTrack({ id: 'track-id-1', title: 'So What', filePath: '01 So What.flac' })
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [track] }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('track-track-id-1-file-path-btn')).toBeInTheDocument()
+    })
+    const btn = screen.getByTestId('track-track-id-1-file-path-btn')
+    expect(btn).toHaveAttribute('aria-label')
+    expect(btn.getAttribute('aria-label')).toContain('So What')
+  })
+
+  it('file path popover renders with onClose wired - popover element present when open', async () => {
+    // Tests that the Popover component is correctly rendered in the DOM when opened
+    // and that the data-testid is present for integration with screen readers and testing.
+    // Popover backdrop close is handled by MUI internally (tested via MUI's own test suite).
     const track = makeTrack({ id: 'track-id-1', filePath: '01 So What.flac' })
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [track] }))
     renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('track-track-id-1-file-path-btn')).toBeInTheDocument()
+    })
+    // Popover not present before interaction
+    expect(screen.queryByTestId('track-track-id-1-file-popover')).not.toBeInTheDocument()
+    // Open popover
+    fireEvent.click(screen.getByTestId('track-track-id-1-file-path-btn'))
+    await waitFor(() => {
+      expect(screen.getByTestId('track-track-id-1-file-popover')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('track-track-id-1-file-path')).toBeInTheDocument()
+  })
+
+  it('Copy button for track filePath is shown after opening the file path popover', async () => {
+    const track = makeTrack({ id: 'track-id-1', filePath: '01 So What.flac' })
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [track] }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('track-track-id-1-file-path-btn')).toBeInTheDocument()
+    })
+    // Open popover
+    fireEvent.click(screen.getByTestId('track-track-id-1-file-path-btn'))
     await waitFor(() => {
       expect(screen.getByTestId('track-track-id-1-file-path-copy')).toBeInTheDocument()
     })
@@ -1125,12 +1166,14 @@ describe('AlbumDetail', () => {
     expect(copyBtn).toHaveAttribute('aria-label')
   })
 
-  it('renders File column header in tracks table', async () => {
+  it('File column header is not rendered as visible column in tracks table', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [makeTrack()] }))
     renderDetail()
     await waitFor(() => {
-      expect(screen.getByRole('columnheader', { name: 'File' })).toBeInTheDocument()
+      expect(screen.getByRole('columnheader', { name: 'Position' })).toBeInTheDocument()
     })
+    // File column is no longer a visible column header
+    expect(screen.queryByRole('columnheader', { name: 'File' })).not.toBeInTheDocument()
   })
 
   it('renders paths with special chars and spaces correctly', async () => {

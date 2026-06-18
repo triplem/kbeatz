@@ -80,8 +80,10 @@
       "title": "Title",
       "artist": "Artist",
       "duration": "Duration",
-      "file": "File"
-    }
+      "file": "File",
+      "actions": "Actions"
+    },
+    "showFilePath": "Show file path for track {{title}}"
   },
   "editableField": {
     "editLabel": "Edit {{label}}",
