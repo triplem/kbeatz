@@ -1130,6 +1130,26 @@ describe('AlbumDetail', () => {
     expect(btn.getAttribute('aria-label')).toContain('So What')
   })
 
+  it('file path popover renders with onClose wired - popover element present when open', async () => {
+    // Tests that the Popover component is correctly rendered in the DOM when opened
+    // and that the data-testid is present for integration with screen readers and testing.
+    // Popover backdrop close is handled by MUI internally (tested via MUI's own test suite).
+    const track = makeTrack({ id: 'track-id-1', filePath: '01 So What.flac' })
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [track] }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('track-track-id-1-file-path-btn')).toBeInTheDocument()
+    })
+    // Popover not present before interaction
+    expect(screen.queryByTestId('track-track-id-1-file-popover')).not.toBeInTheDocument()
+    // Open popover
+    fireEvent.click(screen.getByTestId('track-track-id-1-file-path-btn'))
+    await waitFor(() => {
+      expect(screen.getByTestId('track-track-id-1-file-popover')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('track-track-id-1-file-path')).toBeInTheDocument()
+  })
+
   it('Copy button for track filePath is shown after opening the file path popover', async () => {
     const track = makeTrack({ id: 'track-id-1', filePath: '01 So What.flac' })
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [track] }))

@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useRef, useState } from 'react'
+import { Fragment, useCallback, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
@@ -699,7 +699,7 @@ function TrackList({ tracks, onSave, onCommit, disabled = false }: TrackListProp
             <TableCell scope="col">{t('albumDetail.trackColumns.title')}</TableCell>
             <TableCell scope="col">{t('albumDetail.trackColumns.artist')}</TableCell>
             <TableCell scope="col">{t('albumDetail.trackColumns.duration')}</TableCell>
-            <TableCell scope="col" sx={visuallyHidden}>{t('albumDetail.trackColumns.actions')}</TableCell>
+            <TableCell scope="col" aria-label={t('albumDetail.trackColumns.actions')} />
           </TableRow>
         </TableHead>
         <TableBody>
@@ -754,7 +754,6 @@ function TrackRow({ track, onSave, onCommit, disabled = false }: TrackRowProps) 
     : '-'
 
   const [popoverAnchor, setPopoverAnchor] = useState<HTMLButtonElement | null>(null)
-  const buttonRef = useRef<HTMLButtonElement | null>(null)
   const popoverOpen = Boolean(popoverAnchor)
   const popoverId = popoverOpen ? `track-${track.id}-file-popover` : undefined
 
@@ -807,7 +806,6 @@ function TrackRow({ track, onSave, onCommit, disabled = false }: TrackRowProps) 
       <TableCell sx={{ verticalAlign: 'middle' }}>{durationDisplay}</TableCell>
       <TableCell sx={{ verticalAlign: 'middle', width: 40, px: 0.5 }}>
         <IconButton
-          ref={buttonRef}
           size="small"
           aria-label={t('albumDetail.showFilePath', { title: track.title ?? track.filePath })}
           aria-describedby={popoverId}

@@ -554,11 +554,10 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in d
                     Duration
                   </th>
                   <th
-                    class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-c4wrbp-MuiTableCell-root"
+                    aria-label="Actions"
+                    class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-6372fc-MuiTableCell-root"
                     scope="col"
-                  >
-                    Actions
-                  </th>
+                  />
                 </tr>
               </thead>
               <tbody
@@ -1635,11 +1634,10 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in l
                     Duration
                   </th>
                   <th
-                    class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-c4wrbp-MuiTableCell-root"
+                    aria-label="Actions"
+                    class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-6372fc-MuiTableCell-root"
                     scope="col"
-                  >
-                    Actions
-                  </th>
+                  />
                 </tr>
               </thead>
               <tbody
