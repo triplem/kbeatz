@@ -5,7 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import IconButton from '@mui/material/IconButton'
-import Popover from '@mui/material/Popover'
+import Popover, { type PopoverOrigin } from '@mui/material/Popover'
 import Typography from '@mui/material/Typography'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
@@ -739,6 +739,10 @@ function TrackList({ tracks, onSave, onCommit, disabled = false }: TrackListProp
   )
 }
 
+/** Popover anchor/transform origin for the file path popover - extracted to avoid i18n lint warnings on literal strings. */
+const FILE_POPOVER_ANCHOR_ORIGIN: PopoverOrigin = { vertical: 'bottom', horizontal: 'right' }
+const FILE_POPOVER_TRANSFORM_ORIGIN: PopoverOrigin = { vertical: 'top', horizontal: 'right' }
+
 interface TrackRowProps {
   readonly track: Track
   readonly onSave: (field: string, value: string) => Promise<void>
@@ -820,8 +824,8 @@ function TrackRow({ track, onSave, onCommit, disabled = false }: TrackRowProps) 
           open={popoverOpen}
           anchorEl={popoverAnchor}
           onClose={handlePopoverClose}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          anchorOrigin={FILE_POPOVER_ANCHOR_ORIGIN}
+          transformOrigin={FILE_POPOVER_TRANSFORM_ORIGIN}
           data-testid={`track-${track.id}-file-popover`}
         >
           <Box sx={{ p: 1.5, maxWidth: 480 }}>
