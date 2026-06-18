@@ -259,14 +259,52 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in d
     </section>
     <section
       aria-label="Album credits"
-      class="MuiBox-root css-1fwzste"
-      data-testid="credits-placeholder"
+      aria-labelledby="album-credits-heading"
+      class="MuiBox-root css-0"
+      data-testid="album-credits-section"
     >
       <h2
         class="MuiTypography-root MuiTypography-h6 css-1k7tr3w-MuiTypography-root"
+        id="album-credits-heading"
       >
         Credits
       </h2>
+      <div
+        class="MuiBox-root css-1xfd6nh"
+      >
+        <div
+          class="MuiBox-root css-103391m"
+          data-testid="credit-row-composer"
+        >
+          <p
+            class="MuiTypography-root MuiTypography-body2 css-uyhbma-MuiTypography-root"
+          >
+            Composer
+            :
+          </p>
+          <p
+            class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+          >
+            Miles Davis
+          </p>
+        </div>
+        <div
+          class="MuiBox-root css-103391m"
+          data-testid="credit-row-ensemble"
+        >
+          <p
+            class="MuiTypography-root MuiTypography-body2 css-uyhbma-MuiTypography-root"
+          >
+            Ensemble
+            :
+          </p>
+          <p
+            class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+          >
+            Miles Davis Sextet
+          </p>
+        </div>
+      </div>
     </section>
     <button
       class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-sizeMedium MuiButton-colorPrimary css-1psfeg2-MuiButtonBase-root-MuiButton-root"
@@ -554,14 +592,52 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in l
     </section>
     <section
       aria-label="Album credits"
-      class="MuiBox-root css-1fwzste"
-      data-testid="credits-placeholder"
+      aria-labelledby="album-credits-heading"
+      class="MuiBox-root css-0"
+      data-testid="album-credits-section"
     >
       <h2
         class="MuiTypography-root MuiTypography-h6 css-1k7tr3w-MuiTypography-root"
+        id="album-credits-heading"
       >
         Credits
       </h2>
+      <div
+        class="MuiBox-root css-1xfd6nh"
+      >
+        <div
+          class="MuiBox-root css-103391m"
+          data-testid="credit-row-composer"
+        >
+          <p
+            class="MuiTypography-root MuiTypography-body2 css-uyhbma-MuiTypography-root"
+          >
+            Composer
+            :
+          </p>
+          <p
+            class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+          >
+            Miles Davis
+          </p>
+        </div>
+        <div
+          class="MuiBox-root css-103391m"
+          data-testid="credit-row-ensemble"
+        >
+          <p
+            class="MuiTypography-root MuiTypography-body2 css-uyhbma-MuiTypography-root"
+          >
+            Ensemble
+            :
+          </p>
+          <p
+            class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+          >
+            Miles Davis Sextet
+          </p>
+        </div>
+      </div>
     </section>
     <button
       class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-sizeMedium MuiButton-colorPrimary css-1psfeg2-MuiButtonBase-root-MuiButton-root"

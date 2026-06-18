@@ -9,6 +9,7 @@ import { visuallyHidden } from '@mui/utils'
 import { type AlbumDetail as AlbumDetailModel } from '../../api/generated'
 import { AlbumHeroHeader } from './album-hero-header'
 import { AlbumTrackListView } from './album-tracklist-view'
+import { AlbumCreditsSection } from './album-credits-section'
 
 export interface AlbumDetailViewProps {
   /** Album data to display in read-only mode. */
@@ -26,8 +27,8 @@ export interface AlbumDetailViewProps {
  * - Back button
  * - Visually-hidden h1 (album title)
  * - AlbumHeroHeader (cover art + metadata summary)
- * - Tracklist placeholder (tracks are added in #911)
- * - Credits placeholder (credits are added in #912)
+ * - AlbumTrackListView (read-only tracklist with optional "Composed By" sub-lines)
+ * - AlbumCreditsSection (album-level composer/conductor/ensemble; hidden when all absent)
  * - Edit button to switch to edit mode
  *
  * This component contains no input fields, no edit icons, and no hover affordances.
@@ -83,17 +84,11 @@ export function AlbumDetailView({ album, onEnterEditMode, editButtonRef }: Album
         <AlbumTrackListView tracks={album.tracks} />
       </Box>
 
-      {/* Credits placeholder - full implementation added in #912 */}
-      <Box
-        component="section"
-        aria-label={t('albumDetail.creditsSection')}
-        data-testid="credits-placeholder"
-        sx={{ py: 2 }}
-      >
-        <Typography variant="h6" component="h2" sx={{ mb: 1 }}>
-          {t('albumDetail.creditsTitle')}
-        </Typography>
-      </Box>
+      <AlbumCreditsSection
+        composer={album.composer}
+        conductor={album.conductor}
+        ensemble={album.ensemble}
+      />
 
       <Button
         ref={editButtonRef}
