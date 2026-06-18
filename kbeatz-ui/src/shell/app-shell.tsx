@@ -13,16 +13,16 @@ const MOBILE_DRAWER_ID = 'app-mobile-drawer'
 const MAIN_CONTENT_ID = 'main-content'
 
 /**
- * Top-level application shell: fixed App Bar + responsive navigation Drawer +
+ * Top-level application shell: fixed App Bar + mobile navigation Drawer +
  * routed content region. This component owns ONLY layout and the
  * mobile-drawer open/closed state - no business logic lives here. Routed
  * pages render through <Outlet />.
  *
- * Responsive behaviour (AC1 / AC8):
- * - Drawer is a temporary overlay at xs/sm, permanent at md+ (handled inside
- *   NavDrawer via MUI `display` breakpoints).
- * - The content region offsets by the drawer width at md+ so there is no
- *   horizontal scroll and content never sits under the permanent drawer.
+ * Responsive behaviour:
+ * - Desktop (md+): no permanent sidebar; main content spans full viewport
+ *   width; primary nav links are in the AppBar.
+ * - Mobile (xs/sm): hamburger button in AppBar toggles a temporary overlay
+ *   drawer (handled inside NavDrawer).
  */
 export function AppShell(): ReactElement {
   const { t } = useTranslation()
@@ -67,7 +67,6 @@ export function AppShell(): ReactElement {
         {t('app.skipToContent')}
       </Link>
       <AppTopBar
-        drawerWidth={DRAWER_WIDTH}
         onMenuClick={handleDrawerToggle}
         mobileOpen={mobileOpen}
         drawerId={MOBILE_DRAWER_ID}
@@ -85,7 +84,6 @@ export function AppShell(): ReactElement {
         sx={{
           flexGrow: 1,
           minWidth: 0,
-          width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
         }}
       >
         {/* Spacer matching the fixed AppBar height so content is not hidden beneath it. */}

@@ -13,7 +13,7 @@ exports[`AppShell visual regression > matches the shell snapshot in dark theme 1
       Skip to main content
     </a>
     <header
-      class="MuiPaper-root MuiPaper-elevation MuiPaper-elevation0 MuiAppBar-root MuiAppBar-colorInherit MuiAppBar-positionFixed mui-fixed css-eptzcz-MuiPaper-root-MuiAppBar-root"
+      class="MuiPaper-root MuiPaper-elevation MuiPaper-elevation0 MuiAppBar-root MuiAppBar-colorInherit MuiAppBar-positionFixed mui-fixed css-16zxc7a-MuiPaper-root-MuiAppBar-root"
       style="--Paper-shadow: var(--mui-shadows-0); --Paper-overlay: var(--mui-overlays-0);"
     >
       <div
@@ -51,6 +51,36 @@ exports[`AppShell visual regression > matches the shell snapshot in dark theme 1
             />
           </svg>
         </button>
+        <nav
+          aria-label="Primary navigation"
+          class="MuiBox-root css-gbul8"
+        >
+          <a
+            aria-current="page"
+            class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorInherit css-1mae5c5-MuiButtonBase-root-MuiButton-root active"
+            data-discover="true"
+            href="/"
+            tabindex="0"
+          >
+            Albums
+          </a>
+          <a
+            class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorInherit css-1mae5c5-MuiButtonBase-root-MuiButton-root"
+            data-discover="true"
+            href="/library"
+            tabindex="0"
+          >
+            Library
+          </a>
+          <a
+            class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorInherit css-1mae5c5-MuiButtonBase-root-MuiButton-root"
+            data-discover="true"
+            href="/settings"
+            tabindex="0"
+          >
+            Settings
+          </a>
+        </nav>
         <div
           class="MuiBox-root css-i9gxme"
         />
@@ -103,133 +133,10 @@ exports[`AppShell visual regression > matches the shell snapshot in dark theme 1
     </header>
     <nav
       aria-label="Primary navigation"
-      class="MuiBox-root css-1at9qkq"
-    >
-      <div
-        class="MuiDrawer-root MuiDrawer-anchorLeft MuiDrawer-docked css-17h82c3-MuiDrawer-docked"
-      >
-        <div
-          class="MuiPaper-root MuiPaper-elevation MuiPaper-elevation0 MuiDrawer-paper css-oc2eyy-MuiPaper-root-MuiDrawer-paper"
-          style="--Paper-shadow: var(--mui-shadows-0); --Paper-overlay: var(--mui-overlays-0);"
-        >
-          <div
-            class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular css-1bmc26r-MuiToolbar-root"
-          />
-          <ul
-            class="MuiList-root MuiList-padding css-b7dj7n-MuiList-root"
-          >
-            <li
-              class="MuiListItem-root MuiListItem-gutters css-19f6boz-MuiListItem-root"
-            >
-              <a
-                aria-current="page"
-                class="MuiButtonBase-root MuiListItemButton-root MuiListItemButton-gutters css-1donwgn-MuiButtonBase-root-MuiListItemButton-root active"
-                data-discover="true"
-                href="/"
-                tabindex="0"
-              >
-                <div
-                  class="MuiListItemIcon-root css-1is484l-MuiListItemIcon-root"
-                >
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
-                    data-testid="LibraryMusicIcon"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2m-2 5h-3v5.5c0 1.38-1.12 2.5-2.5 2.5S10 13.88 10 12.5s1.12-2.5 2.5-2.5c.57 0 1.08.19 1.5.51V5h4zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4z"
-                    />
-                  </svg>
-                </div>
-                <div
-                  class="MuiListItemText-root css-cfq8qh-MuiListItemText-root"
-                >
-                  <span
-                    class="MuiTypography-root MuiTypography-body1 MuiListItemText-primary css-1fz3vqa-MuiTypography-root"
-                  >
-                    Albums
-                  </span>
-                </div>
-              </a>
-            </li>
-            <li
-              class="MuiListItem-root MuiListItem-gutters css-19f6boz-MuiListItem-root"
-            >
-              <a
-                class="MuiButtonBase-root MuiListItemButton-root MuiListItemButton-gutters css-1donwgn-MuiButtonBase-root-MuiListItemButton-root"
-                data-discover="true"
-                href="/library"
-                tabindex="0"
-              >
-                <div
-                  class="MuiListItemIcon-root css-1is484l-MuiListItemIcon-root"
-                >
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
-                    data-testid="StorageIcon"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M2 20h20v-4H2zm2-3h2v2H4zM2 4v4h20V4zm4 3H4V5h2zm-4 7h20v-4H2zm2-3h2v2H4z"
-                    />
-                  </svg>
-                </div>
-                <div
-                  class="MuiListItemText-root css-cfq8qh-MuiListItemText-root"
-                >
-                  <span
-                    class="MuiTypography-root MuiTypography-body1 MuiListItemText-primary css-1fz3vqa-MuiTypography-root"
-                  >
-                    Library
-                  </span>
-                </div>
-              </a>
-            </li>
-            <li
-              class="MuiListItem-root MuiListItem-gutters css-19f6boz-MuiListItem-root"
-            >
-              <a
-                class="MuiButtonBase-root MuiListItemButton-root MuiListItemButton-gutters css-1donwgn-MuiButtonBase-root-MuiListItemButton-root"
-                data-discover="true"
-                href="/settings"
-                tabindex="0"
-              >
-                <div
-                  class="MuiListItemIcon-root css-1is484l-MuiListItemIcon-root"
-                >
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
-                    data-testid="SettingsIcon"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6"
-                    />
-                  </svg>
-                </div>
-                <div
-                  class="MuiListItemText-root css-cfq8qh-MuiListItemText-root"
-                >
-                  <span
-                    class="MuiTypography-root MuiTypography-body1 MuiListItemText-primary css-1fz3vqa-MuiTypography-root"
-                  >
-                    Settings
-                  </span>
-                </div>
-              </a>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </nav>
+      class="MuiBox-root css-0"
+    />
     <main
-      class="MuiBox-root css-1pecbk"
+      class="MuiBox-root css-15ync0s"
       id="main-content"
       tabindex="-1"
     >
@@ -262,7 +169,7 @@ exports[`AppShell visual regression > matches the shell snapshot in light theme 
       Skip to main content
     </a>
     <header
-      class="MuiPaper-root MuiPaper-elevation MuiPaper-elevation0 MuiAppBar-root MuiAppBar-colorInherit MuiAppBar-positionFixed mui-fixed css-eptzcz-MuiPaper-root-MuiAppBar-root"
+      class="MuiPaper-root MuiPaper-elevation MuiPaper-elevation0 MuiAppBar-root MuiAppBar-colorInherit MuiAppBar-positionFixed mui-fixed css-16zxc7a-MuiPaper-root-MuiAppBar-root"
       style="--Paper-shadow: var(--mui-shadows-0); --Paper-overlay: var(--mui-overlays-0);"
     >
       <div
@@ -300,6 +207,36 @@ exports[`AppShell visual regression > matches the shell snapshot in light theme 
             />
           </svg>
         </button>
+        <nav
+          aria-label="Primary navigation"
+          class="MuiBox-root css-gbul8"
+        >
+          <a
+            aria-current="page"
+            class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorInherit css-1mae5c5-MuiButtonBase-root-MuiButton-root active"
+            data-discover="true"
+            href="/"
+            tabindex="0"
+          >
+            Albums
+          </a>
+          <a
+            class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorInherit css-1mae5c5-MuiButtonBase-root-MuiButton-root"
+            data-discover="true"
+            href="/library"
+            tabindex="0"
+          >
+            Library
+          </a>
+          <a
+            class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorInherit css-1mae5c5-MuiButtonBase-root-MuiButton-root"
+            data-discover="true"
+            href="/settings"
+            tabindex="0"
+          >
+            Settings
+          </a>
+        </nav>
         <div
           class="MuiBox-root css-i9gxme"
         />
@@ -352,133 +289,10 @@ exports[`AppShell visual regression > matches the shell snapshot in light theme 
     </header>
     <nav
       aria-label="Primary navigation"
-      class="MuiBox-root css-1at9qkq"
-    >
-      <div
-        class="MuiDrawer-root MuiDrawer-anchorLeft MuiDrawer-docked css-17h82c3-MuiDrawer-docked"
-      >
-        <div
-          class="MuiPaper-root MuiPaper-elevation MuiPaper-elevation0 MuiDrawer-paper css-oc2eyy-MuiPaper-root-MuiDrawer-paper"
-          style="--Paper-shadow: var(--mui-shadows-0); --Paper-overlay: var(--mui-overlays-0);"
-        >
-          <div
-            class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular css-1bmc26r-MuiToolbar-root"
-          />
-          <ul
-            class="MuiList-root MuiList-padding css-b7dj7n-MuiList-root"
-          >
-            <li
-              class="MuiListItem-root MuiListItem-gutters css-19f6boz-MuiListItem-root"
-            >
-              <a
-                aria-current="page"
-                class="MuiButtonBase-root MuiListItemButton-root MuiListItemButton-gutters css-1donwgn-MuiButtonBase-root-MuiListItemButton-root active"
-                data-discover="true"
-                href="/"
-                tabindex="0"
-              >
-                <div
-                  class="MuiListItemIcon-root css-1is484l-MuiListItemIcon-root"
-                >
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
-                    data-testid="LibraryMusicIcon"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2m-2 5h-3v5.5c0 1.38-1.12 2.5-2.5 2.5S10 13.88 10 12.5s1.12-2.5 2.5-2.5c.57 0 1.08.19 1.5.51V5h4zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4z"
-                    />
-                  </svg>
-                </div>
-                <div
-                  class="MuiListItemText-root css-cfq8qh-MuiListItemText-root"
-                >
-                  <span
-                    class="MuiTypography-root MuiTypography-body1 MuiListItemText-primary css-1fz3vqa-MuiTypography-root"
-                  >
-                    Albums
-                  </span>
-                </div>
-              </a>
-            </li>
-            <li
-              class="MuiListItem-root MuiListItem-gutters css-19f6boz-MuiListItem-root"
-            >
-              <a
-                class="MuiButtonBase-root MuiListItemButton-root MuiListItemButton-gutters css-1donwgn-MuiButtonBase-root-MuiListItemButton-root"
-                data-discover="true"
-                href="/library"
-                tabindex="0"
-              >
-                <div
-                  class="MuiListItemIcon-root css-1is484l-MuiListItemIcon-root"
-                >
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
-                    data-testid="StorageIcon"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M2 20h20v-4H2zm2-3h2v2H4zM2 4v4h20V4zm4 3H4V5h2zm-4 7h20v-4H2zm2-3h2v2H4z"
-                    />
-                  </svg>
-                </div>
-                <div
-                  class="MuiListItemText-root css-cfq8qh-MuiListItemText-root"
-                >
-                  <span
-                    class="MuiTypography-root MuiTypography-body1 MuiListItemText-primary css-1fz3vqa-MuiTypography-root"
-                  >
-                    Library
-                  </span>
-                </div>
-              </a>
-            </li>
-            <li
-              class="MuiListItem-root MuiListItem-gutters css-19f6boz-MuiListItem-root"
-            >
-              <a
-                class="MuiButtonBase-root MuiListItemButton-root MuiListItemButton-gutters css-1donwgn-MuiButtonBase-root-MuiListItemButton-root"
-                data-discover="true"
-                href="/settings"
-                tabindex="0"
-              >
-                <div
-                  class="MuiListItemIcon-root css-1is484l-MuiListItemIcon-root"
-                >
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
-                    data-testid="SettingsIcon"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6"
-                    />
-                  </svg>
-                </div>
-                <div
-                  class="MuiListItemText-root css-cfq8qh-MuiListItemText-root"
-                >
-                  <span
-                    class="MuiTypography-root MuiTypography-body1 MuiListItemText-primary css-1fz3vqa-MuiTypography-root"
-                  >
-                    Settings
-                  </span>
-                </div>
-              </a>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </nav>
+      class="MuiBox-root css-0"
+    />
     <main
-      class="MuiBox-root css-1pecbk"
+      class="MuiBox-root css-15ync0s"
       id="main-content"
       tabindex="-1"
     >
