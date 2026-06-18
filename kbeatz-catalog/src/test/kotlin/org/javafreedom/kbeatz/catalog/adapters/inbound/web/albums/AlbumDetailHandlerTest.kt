@@ -219,4 +219,37 @@ class AlbumDetailHandlerTest {
         assertEquals("Herbert von Karajan", detail.conductor)
         assertEquals("Berlin Philharmoniker", detail.ensemble)
     }
+
+    @Test
+    fun `GET albums albumId maps country field when present`() = testApplication {
+        install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        routing { albumDetailRoutes(albumService, libraryRoot) }
+        val client = createClient { install(ClientContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }
+
+        val albumWithCountry = buildAlbum().copy(country = "USA & Canada")
+        coEvery { albumRepository.findById(albumId) } returns albumWithCountry
+        coEvery { trackRepository.findByAlbumId(albumId) } returns emptyList()
+
+        val response = client.get("/albums/${albumId}")
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val detail = response.body<AlbumDetail>()
+        assertEquals("USA & Canada", detail.country)
+    }
+
+    @Test
+    fun `GET albums albumId returns null country when COUNTRY tag is absent`() = testApplication {
+        install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        routing { albumDetailRoutes(albumService, libraryRoot) }
+        val client = createClient { install(ClientContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }
+
+        coEvery { albumRepository.findById(albumId) } returns buildAlbum()
+        coEvery { trackRepository.findByAlbumId(albumId) } returns emptyList()
+
+        val response = client.get("/albums/${albumId}")
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val detail = response.body<AlbumDetail>()
+        assertEquals(null, detail.country)
+    }
 }
