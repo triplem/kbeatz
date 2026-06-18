@@ -28,6 +28,7 @@ import { useUnsavedChangesBlocker } from '../../shell/use-unsaved-changes-blocke
 import { SyncPanel } from '../sync/sync-panel'
 import { formatDate } from '../../lib/i18n'
 import { formatTrackDuration } from '../../lib/format-duration'
+import { AlbumHeroHeader } from './album-hero-header'
 
 /** Album-level Vorbis Comment fields rendered as editable rows, in display order. */
 const ALBUM_FIELDS: ReadonlyArray<{ key: keyof AlbumDetailModel; labelKey: string; fieldName: string }> = [
@@ -476,6 +477,8 @@ export function AlbumDetail() {
         >
           {t('common.back')}
         </Button>
+
+        <AlbumHeroHeader album={displayAlbum} />
 
         <Box
           data-testid="two-column-layout"

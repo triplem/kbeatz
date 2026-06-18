@@ -45,6 +45,14 @@ export type AlbumDetail = {
      */
     ensemble?: string;
     /**
+     * COUNTRY Vorbis Comment tag (country or region of release)
+     */
+    country?: string;
+    /**
+     * MEDIA Vorbis Comment tag (physical media format of the release)
+     */
+    mediaFormat?: string;
+    /**
      * Discogs release ID from metadata.yml
      */
     discogsId?: string;
