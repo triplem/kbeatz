@@ -6,7 +6,6 @@ import { AppThemeProvider } from '../theme'
 import { AppShell } from './app-shell'
 import {
   BREAKPOINTS,
-  type Breakpoint,
   installViewportAutoReset,
   setViewport,
 } from '../test/breakpoints'
