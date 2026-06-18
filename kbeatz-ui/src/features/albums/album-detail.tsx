@@ -144,6 +144,7 @@ export function AlbumDetail() {
       album={displayAlbum}
       onEnterEditMode={handleEnterEditMode}
       editButtonRef={editButtonRef}
+      onSyncComplete={handleSyncComplete}
     />
   )
 }

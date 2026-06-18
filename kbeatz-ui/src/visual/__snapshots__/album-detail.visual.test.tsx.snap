@@ -310,6 +310,14 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in d
         </div>
       </div>
     </section>
+    <section
+      aria-label="Discogs sync"
+      class="MuiBox-root css-0"
+    >
+      <div
+        data-testid="sync-panel"
+      />
+    </section>
     <button
       class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-sizeMedium MuiButton-colorPrimary css-1psfeg2-MuiButtonBase-root-MuiButton-root"
       data-testid="edit-button"
@@ -646,6 +654,14 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in l
           </p>
         </div>
       </div>
+    </section>
+    <section
+      aria-label="Discogs sync"
+      class="MuiBox-root css-0"
+    >
+      <div
+        data-testid="sync-panel"
+      />
     </section>
     <button
       class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-sizeMedium MuiButton-colorPrimary css-1psfeg2-MuiButtonBase-root-MuiButton-root"
