@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
+import IconButton from '@mui/material/IconButton'
 import Typography from '@mui/material/Typography'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import EditIcon from '@mui/icons-material/Edit'
@@ -32,10 +34,28 @@ export interface AlbumDetailViewProps {
  * - Edit button to switch to edit mode
  *
  * This component contains no input fields, no edit icons, and no hover affordances.
+ *
+ * A "Hide/Show credits" toggle is rendered in the tracklist section heading when at
+ * least one track has a composer tag. The toggle collapses or restores the "Composed By"
+ * sub-lines without leaving the view mode. Default state: credits visible.
  */
 export function AlbumDetailView({ album, onEnterEditMode, editButtonRef }: AlbumDetailViewProps) {
   const navigate = useNavigate()
   const { t } = useTranslation()
+
+  /**
+   * Whether "Composed By" sub-lines are currently visible.
+   * Default: true (credits shown on first render).
+   */
+  const [showCredits, setShowCredits] = useState(true)
+
+  /**
+   * The toggle is only rendered when at least one track has a non-empty composer.
+   * When no composer exists there is nothing to hide so the button is omitted entirely.
+   */
+  const hasAnyComposer = album.tracks.some(
+    (t) => t.composer !== undefined && t.composer !== null && t.composer !== '',
+  )
 
   return (
     <Box
@@ -78,10 +98,26 @@ export function AlbumDetailView({ album, onEnterEditMode, editButtonRef }: Album
         data-testid="tracklist-section"
         sx={{ py: 2 }}
       >
-        <Typography variant="h6" component="h2" sx={{ mb: 1 }}>
-          {t('albumDetail.tracksSectionTitle')}
-        </Typography>
-        <AlbumTrackListView tracks={album.tracks} />
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
+          <Typography variant="h6" component="h2">
+            {t('albumDetail.tracksSectionTitle')}
+          </Typography>
+          {hasAnyComposer && (
+            <IconButton
+              size="small"
+              onClick={() => { setShowCredits((prev) => !prev) }}
+              aria-expanded={showCredits}
+              aria-label={showCredits ? t('albumDetail.hideCredits') : t('albumDetail.showCredits')}
+              data-testid="credits-toggle"
+            >
+              {/* Visual label inside the button for sighted users */}
+              <Typography variant="caption" component="span">
+                {showCredits ? t('albumDetail.hideCredits') : t('albumDetail.showCredits')}
+              </Typography>
+            </IconButton>
+          )}
+        </Box>
+        <AlbumTrackListView tracks={album.tracks} showCredits={showCredits} />
       </Box>
 
       <AlbumCreditsSection

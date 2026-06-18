@@ -14,6 +14,11 @@ import { groupByDisc } from './trackListUtils'
 
 interface AlbumTrackListViewProps {
   readonly tracks: Track[]
+  /**
+   * When false, "Composed By" sub-lines are omitted from the DOM entirely.
+   * Defaults to true (credits visible).
+   */
+  readonly showCredits?: boolean
 }
 
 /**
@@ -25,8 +30,11 @@ interface AlbumTrackListViewProps {
  * - "Disc N" separator rows for multi-disc albums
  *
  * No input fields, no edit icons, no hover affordances.
+ *
+ * The `showCredits` prop (default true) controls whether "Composed By" sub-lines
+ * are rendered. When false, sub-lines are omitted from the DOM (not hidden with CSS).
  */
-export function AlbumTrackListView({ tracks }: AlbumTrackListViewProps) {
+export function AlbumTrackListView({ tracks, showCredits = true }: AlbumTrackListViewProps) {
   const { t } = useTranslation()
 
   if (tracks.length === 0) {
@@ -67,7 +75,7 @@ export function AlbumTrackListView({ tracks }: AlbumTrackListViewProps) {
                 </TableRow>
               )}
               {group.tracks.map((track, trackIndex) => (
-                <TrackViewRow key={`${track.filePath}-${trackIndex}`} track={track} />
+                <TrackViewRow key={`${track.filePath}-${trackIndex}`} track={track} showCredits={showCredits} />
               ))}
             </Fragment>
           ))}
@@ -79,6 +87,7 @@ export function AlbumTrackListView({ tracks }: AlbumTrackListViewProps) {
 
 interface TrackViewRowProps {
   readonly track: Track
+  readonly showCredits: boolean
 }
 
 /**
@@ -89,8 +98,11 @@ interface TrackViewRowProps {
  * The sub-line also carries an aria-label including the track title so
  * assistive technology users can identify which track it belongs to when
  * navigating by landmark or focus.
+ *
+ * When `showCredits` is false the sub-line element is not rendered at all
+ * (omitted from the DOM, not hidden with CSS).
  */
-function TrackViewRow({ track }: TrackViewRowProps) {
+function TrackViewRow({ track, showCredits }: TrackViewRowProps) {
   const { t } = useTranslation()
 
   const durationDisplay = track.durationSeconds !== undefined
@@ -107,7 +119,7 @@ function TrackViewRow({ track }: TrackViewRowProps) {
           <Typography variant="body2" data-testid={`track-view-title-${track.id}`}>
             {track.title ?? '-'}
           </Typography>
-          {track.composer !== undefined && track.composer !== null && track.composer !== '' && (
+          {showCredits && track.composer !== undefined && track.composer !== null && track.composer !== '' && (
             <Typography
               variant="caption"
               color="text.secondary"

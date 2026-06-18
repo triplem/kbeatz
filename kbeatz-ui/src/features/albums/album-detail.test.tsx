@@ -2108,3 +2108,105 @@ describe('AlbumDetail - view/edit mode toggle', () => {
     expect(screen.getByTestId('dirty-count')).toBeInTheDocument()
   })
 })
+
+// ---------------------------------------------------------------------------
+// Hide/show credits toggle (#913)
+// ---------------------------------------------------------------------------
+
+describe('AlbumDetail - hide/show credits toggle (view mode)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('renders credits toggle when at least one track has a composer', async () => {
+    const track = makeTrack({ composer: 'Miles Davis' })
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [track] }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('credits-toggle')).toBeInTheDocument()
+    })
+  })
+
+  it('does not render credits toggle when no tracks have a composer', async () => {
+    const track = makeTrack({ composer: undefined })
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [track] }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('edit-button')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('credits-toggle')).not.toBeInTheDocument()
+  })
+
+  it('credits toggle has aria-expanded="true" by default (credits visible)', async () => {
+    const track = makeTrack({ composer: 'Miles Davis' })
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [track] }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('credits-toggle')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('credits-toggle')).toHaveAttribute('aria-expanded', 'true')
+  })
+
+  it('clicking the toggle hides composer sub-lines and sets aria-expanded="false"', async () => {
+    const track = makeTrack({ id: 'track-id-1', composer: 'Miles Davis' })
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [track] }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('credits-toggle')).toBeInTheDocument()
+    })
+    // Composer sub-line is visible by default
+    expect(screen.getByTestId('track-view-composer-track-id-1')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByTestId('credits-toggle'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('credits-toggle')).toHaveAttribute('aria-expanded', 'false')
+    })
+    expect(screen.queryByTestId('track-view-composer-track-id-1')).not.toBeInTheDocument()
+  })
+
+  it('clicking the toggle again restores composer sub-lines and sets aria-expanded="true"', async () => {
+    const track = makeTrack({ id: 'track-id-1', composer: 'Miles Davis' })
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [track] }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('credits-toggle')).toBeInTheDocument()
+    })
+
+    // Hide credits
+    fireEvent.click(screen.getByTestId('credits-toggle'))
+    await waitFor(() => {
+      expect(screen.queryByTestId('track-view-composer-track-id-1')).not.toBeInTheDocument()
+    })
+
+    // Show credits again
+    fireEvent.click(screen.getByTestId('credits-toggle'))
+    await waitFor(() => {
+      expect(screen.getByTestId('track-view-composer-track-id-1')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('credits-toggle')).toHaveAttribute('aria-expanded', 'true')
+  })
+
+  it('toggle label is "Hide credits" when credits are visible', async () => {
+    const track = makeTrack({ composer: 'Miles Davis' })
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [track] }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('credits-toggle')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('credits-toggle')).toHaveAttribute('aria-label', 'Hide credits')
+  })
+
+  it('toggle label changes to "Show credits" when credits are hidden', async () => {
+    const track = makeTrack({ composer: 'Miles Davis' })
+    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [track] }))
+    renderDetail()
+    await waitFor(() => {
+      expect(screen.getByTestId('credits-toggle')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByTestId('credits-toggle'))
+    await waitFor(() => {
+      expect(screen.getByTestId('credits-toggle')).toHaveAttribute('aria-label', 'Show credits')
+    })
+  })
+})
