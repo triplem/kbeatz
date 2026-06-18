@@ -9,6 +9,8 @@ interface AlbumCreditsSectionProps {
 }
 
 interface CreditRowProps {
+  /** Stable field key used for data-testid (not locale-dependent). */
+  readonly fieldKey: string
   readonly label: string
   readonly value?: string | null
 }
@@ -17,12 +19,12 @@ interface CreditRowProps {
  * Renders a single credit label-value row.
  * Returns null when value is absent (null, undefined, or empty string).
  */
-function CreditRow({ label, value }: CreditRowProps) {
+function CreditRow({ fieldKey, label, value }: CreditRowProps) {
   if (value === undefined || value === null || value === '') return null
   return (
     <Box
       sx={{ display: 'flex', gap: 1, alignItems: 'baseline' }}
-      data-testid={`credit-row-${label.toLowerCase()}`}
+      data-testid={`credit-row-${fieldKey}`}
     >
       <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, flexShrink: 0 }}>
         {label}:
@@ -61,9 +63,9 @@ export function AlbumCreditsSection({ composer, conductor, ensemble }: AlbumCred
         {t('albumDetail.creditsTitle')}
       </Typography>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-        <CreditRow label={t('albumDetail.fields.composer')} value={composer} />
-        <CreditRow label={t('albumDetail.fields.conductor')} value={conductor} />
-        <CreditRow label={t('albumDetail.fields.ensemble')} value={ensemble} />
+        <CreditRow fieldKey="composer" label={t('albumDetail.fields.composer')} value={composer} />
+        <CreditRow fieldKey="conductor" label={t('albumDetail.fields.conductor')} value={conductor} />
+        <CreditRow fieldKey="ensemble" label={t('albumDetail.fields.ensemble')} value={ensemble} />
       </Box>
     </Box>
   )

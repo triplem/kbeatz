@@ -91,6 +91,8 @@ export default tseslint.config(
               'confirmColor',
               'anchorOrigin',
               'slotProps',
+              // Stable domain-field key used for data-testid derivation; not user-facing text.
+              'fieldKey',
             ],
           },
         },
