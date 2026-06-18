@@ -554,10 +554,10 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in d
                     Duration
                   </th>
                   <th
-                    class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-6372fc-MuiTableCell-root"
+                    class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-c4wrbp-MuiTableCell-root"
                     scope="col"
                   >
-                    File
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -710,28 +710,27 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in d
                     9:25
                   </td>
                   <td
-                    class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-x59lm5-MuiTableCell-root"
+                    class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-5z3e6t-MuiTableCell-root"
                   >
-                    <span
-                      class="MuiBox-root css-1iwpvdr"
-                      data-testid="track-track-0001-file-path"
+                    <button
+                      aria-label="Show file path for track So What"
+                      class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeSmall css-mo314w-MuiButtonBase-root-MuiIconButton-root"
+                      data-testid="track-track-0001-file-path-btn"
+                      tabindex="0"
+                      type="button"
                     >
-                      <span
-                        class="MuiBox-root css-1gp2pk"
-                        title="Jazz/Miles Davis/Kind of Blue/01 So What.flac"
+                      <svg
+                        aria-hidden="true"
+                        class="MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-1ud1u39-MuiSvgIcon-root"
+                        data-testid="InfoOutlinedIcon"
+                        focusable="false"
+                        viewBox="0 0 24 24"
                       >
-                        Jazz/Miles Davis/Kind of Blue/01 So What.flac
-                      </span>
-                      <button
-                        aria-label="Copy File"
-                        class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-sizeSmall MuiButton-colorPrimary css-155j4wy-MuiButtonBase-root-MuiButton-root"
-                        data-testid="track-track-0001-file-path-copy"
-                        tabindex="0"
-                        type="button"
-                      >
-                        Copy
-                      </button>
-                    </span>
+                        <path
+                          d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8"
+                        />
+                      </svg>
+                    </button>
                   </td>
                 </tr>
                 <tr
@@ -880,28 +879,27 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in d
                     9:46
                   </td>
                   <td
-                    class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-x59lm5-MuiTableCell-root"
+                    class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-5z3e6t-MuiTableCell-root"
                   >
-                    <span
-                      class="MuiBox-root css-1iwpvdr"
-                      data-testid="track-track-0002-file-path"
+                    <button
+                      aria-label="Show file path for track Freddie Freeloader"
+                      class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeSmall css-mo314w-MuiButtonBase-root-MuiIconButton-root"
+                      data-testid="track-track-0002-file-path-btn"
+                      tabindex="0"
+                      type="button"
                     >
-                      <span
-                        class="MuiBox-root css-1gp2pk"
-                        title="Jazz/Miles Davis/Kind of Blue/02 Freddie Freeloader.flac"
+                      <svg
+                        aria-hidden="true"
+                        class="MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-1ud1u39-MuiSvgIcon-root"
+                        data-testid="InfoOutlinedIcon"
+                        focusable="false"
+                        viewBox="0 0 24 24"
                       >
-                        Jazz/Miles Davis/Kind of Blue/02 Freddie Freeloader.flac
-                      </span>
-                      <button
-                        aria-label="Copy File"
-                        class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-sizeSmall MuiButton-colorPrimary css-155j4wy-MuiButtonBase-root-MuiButton-root"
-                        data-testid="track-track-0002-file-path-copy"
-                        tabindex="0"
-                        type="button"
-                      >
-                        Copy
-                      </button>
-                    </span>
+                        <path
+                          d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8"
+                        />
+                      </svg>
+                    </button>
                   </td>
                 </tr>
                 <tr
@@ -1050,28 +1048,27 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in d
                     5:37
                   </td>
                   <td
-                    class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-x59lm5-MuiTableCell-root"
+                    class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-5z3e6t-MuiTableCell-root"
                   >
-                    <span
-                      class="MuiBox-root css-1iwpvdr"
-                      data-testid="track-track-0003-file-path"
+                    <button
+                      aria-label="Show file path for track Blue in Green"
+                      class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeSmall css-mo314w-MuiButtonBase-root-MuiIconButton-root"
+                      data-testid="track-track-0003-file-path-btn"
+                      tabindex="0"
+                      type="button"
                     >
-                      <span
-                        class="MuiBox-root css-1gp2pk"
-                        title="Jazz/Miles Davis/Kind of Blue/03 Blue in Green.flac"
+                      <svg
+                        aria-hidden="true"
+                        class="MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-1ud1u39-MuiSvgIcon-root"
+                        data-testid="InfoOutlinedIcon"
+                        focusable="false"
+                        viewBox="0 0 24 24"
                       >
-                        Jazz/Miles Davis/Kind of Blue/03 Blue in Green.flac
-                      </span>
-                      <button
-                        aria-label="Copy File"
-                        class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-sizeSmall MuiButton-colorPrimary css-155j4wy-MuiButtonBase-root-MuiButton-root"
-                        data-testid="track-track-0003-file-path-copy"
-                        tabindex="0"
-                        type="button"
-                      >
-                        Copy
-                      </button>
-                    </span>
+                        <path
+                          d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8"
+                        />
+                      </svg>
+                    </button>
                   </td>
                 </tr>
               </tbody>
@@ -1638,10 +1635,10 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in l
                     Duration
                   </th>
                   <th
-                    class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-6372fc-MuiTableCell-root"
+                    class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-c4wrbp-MuiTableCell-root"
                     scope="col"
                   >
-                    File
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -1794,28 +1791,27 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in l
                     9:25
                   </td>
                   <td
-                    class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-x59lm5-MuiTableCell-root"
+                    class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-5z3e6t-MuiTableCell-root"
                   >
-                    <span
-                      class="MuiBox-root css-1iwpvdr"
-                      data-testid="track-track-0001-file-path"
+                    <button
+                      aria-label="Show file path for track So What"
+                      class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeSmall css-mo314w-MuiButtonBase-root-MuiIconButton-root"
+                      data-testid="track-track-0001-file-path-btn"
+                      tabindex="0"
+                      type="button"
                     >
-                      <span
-                        class="MuiBox-root css-1gp2pk"
-                        title="Jazz/Miles Davis/Kind of Blue/01 So What.flac"
+                      <svg
+                        aria-hidden="true"
+                        class="MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-1ud1u39-MuiSvgIcon-root"
+                        data-testid="InfoOutlinedIcon"
+                        focusable="false"
+                        viewBox="0 0 24 24"
                       >
-                        Jazz/Miles Davis/Kind of Blue/01 So What.flac
-                      </span>
-                      <button
-                        aria-label="Copy File"
-                        class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-sizeSmall MuiButton-colorPrimary css-155j4wy-MuiButtonBase-root-MuiButton-root"
-                        data-testid="track-track-0001-file-path-copy"
-                        tabindex="0"
-                        type="button"
-                      >
-                        Copy
-                      </button>
-                    </span>
+                        <path
+                          d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8"
+                        />
+                      </svg>
+                    </button>
                   </td>
                 </tr>
                 <tr
@@ -1964,28 +1960,27 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in l
                     9:46
                   </td>
                   <td
-                    class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-x59lm5-MuiTableCell-root"
+                    class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-5z3e6t-MuiTableCell-root"
                   >
-                    <span
-                      class="MuiBox-root css-1iwpvdr"
-                      data-testid="track-track-0002-file-path"
+                    <button
+                      aria-label="Show file path for track Freddie Freeloader"
+                      class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeSmall css-mo314w-MuiButtonBase-root-MuiIconButton-root"
+                      data-testid="track-track-0002-file-path-btn"
+                      tabindex="0"
+                      type="button"
                     >
-                      <span
-                        class="MuiBox-root css-1gp2pk"
-                        title="Jazz/Miles Davis/Kind of Blue/02 Freddie Freeloader.flac"
+                      <svg
+                        aria-hidden="true"
+                        class="MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-1ud1u39-MuiSvgIcon-root"
+                        data-testid="InfoOutlinedIcon"
+                        focusable="false"
+                        viewBox="0 0 24 24"
                       >
-                        Jazz/Miles Davis/Kind of Blue/02 Freddie Freeloader.flac
-                      </span>
-                      <button
-                        aria-label="Copy File"
-                        class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-sizeSmall MuiButton-colorPrimary css-155j4wy-MuiButtonBase-root-MuiButton-root"
-                        data-testid="track-track-0002-file-path-copy"
-                        tabindex="0"
-                        type="button"
-                      >
-                        Copy
-                      </button>
-                    </span>
+                        <path
+                          d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8"
+                        />
+                      </svg>
+                    </button>
                   </td>
                 </tr>
                 <tr
@@ -2134,28 +2129,27 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in l
                     5:37
                   </td>
                   <td
-                    class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-x59lm5-MuiTableCell-root"
+                    class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-5z3e6t-MuiTableCell-root"
                   >
-                    <span
-                      class="MuiBox-root css-1iwpvdr"
-                      data-testid="track-track-0003-file-path"
+                    <button
+                      aria-label="Show file path for track Blue in Green"
+                      class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeSmall css-mo314w-MuiButtonBase-root-MuiIconButton-root"
+                      data-testid="track-track-0003-file-path-btn"
+                      tabindex="0"
+                      type="button"
                     >
-                      <span
-                        class="MuiBox-root css-1gp2pk"
-                        title="Jazz/Miles Davis/Kind of Blue/03 Blue in Green.flac"
+                      <svg
+                        aria-hidden="true"
+                        class="MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-1ud1u39-MuiSvgIcon-root"
+                        data-testid="InfoOutlinedIcon"
+                        focusable="false"
+                        viewBox="0 0 24 24"
                       >
-                        Jazz/Miles Davis/Kind of Blue/03 Blue in Green.flac
-                      </span>
-                      <button
-                        aria-label="Copy File"
-                        class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-sizeSmall MuiButton-colorPrimary css-155j4wy-MuiButtonBase-root-MuiButton-root"
-                        data-testid="track-track-0003-file-path-copy"
-                        tabindex="0"
-                        type="button"
-                      >
-                        Copy
-                      </button>
-                    </span>
+                        <path
+                          d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8"
+                        />
+                      </svg>
+                    </button>
                   </td>
                 </tr>
               </tbody>

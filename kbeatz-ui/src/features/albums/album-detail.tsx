@@ -1,9 +1,11 @@
-import { Fragment, useCallback, useState } from 'react'
+import { Fragment, useCallback, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
+import IconButton from '@mui/material/IconButton'
+import Popover from '@mui/material/Popover'
 import Typography from '@mui/material/Typography'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
@@ -12,6 +14,7 @@ import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import { visuallyHidden } from '@mui/utils'
 import { type Album, type AlbumDetail as AlbumDetailModel, AlbumsService, type Track } from '../../api/generated'
 import { ApiError } from '../../api/generated/core/ApiError'
@@ -696,7 +699,7 @@ function TrackList({ tracks, onSave, onCommit, disabled = false }: TrackListProp
             <TableCell scope="col">{t('albumDetail.trackColumns.title')}</TableCell>
             <TableCell scope="col">{t('albumDetail.trackColumns.artist')}</TableCell>
             <TableCell scope="col">{t('albumDetail.trackColumns.duration')}</TableCell>
-            <TableCell scope="col">{t('albumDetail.trackColumns.file')}</TableCell>
+            <TableCell scope="col" sx={visuallyHidden}>{t('albumDetail.trackColumns.actions')}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -750,6 +753,19 @@ function TrackRow({ track, onSave, onCommit, disabled = false }: TrackRowProps) 
     ? formatTrackDuration(track.durationSeconds)
     : '-'
 
+  const [popoverAnchor, setPopoverAnchor] = useState<HTMLButtonElement | null>(null)
+  const buttonRef = useRef<HTMLButtonElement | null>(null)
+  const popoverOpen = Boolean(popoverAnchor)
+  const popoverId = popoverOpen ? `track-${track.id}-file-popover` : undefined
+
+  const handleInfoClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    setPopoverAnchor(event.currentTarget)
+  }, [])
+
+  const handlePopoverClose = useCallback(() => {
+    setPopoverAnchor(null)
+  }, [])
+
   return (
     <TableRow data-testid={`track-row-${track.id}`} hover>
       <TableCell sx={{ verticalAlign: 'middle' }}>
@@ -789,12 +805,38 @@ function TrackRow({ track, onSave, onCommit, disabled = false }: TrackRowProps) 
         />
       </TableCell>
       <TableCell sx={{ verticalAlign: 'middle' }}>{durationDisplay}</TableCell>
-      <TableCell sx={{ verticalAlign: 'middle' }}>
-        <PathDisplay
-          path={track.filePath}
-          label={t('albumDetail.trackColumns.file')}
-          testId={`track-${track.id}-file-path`}
-        />
+      <TableCell sx={{ verticalAlign: 'middle', width: 40, px: 0.5 }}>
+        <IconButton
+          ref={buttonRef}
+          size="small"
+          aria-label={t('albumDetail.showFilePath', { title: track.title ?? track.filePath })}
+          aria-describedby={popoverId}
+          onClick={handleInfoClick}
+          data-testid={`track-${track.id}-file-path-btn`}
+          sx={{ minHeight: 36, minWidth: 36 }}
+        >
+          <InfoOutlinedIcon fontSize="small" />
+        </IconButton>
+        <Popover
+          id={popoverId}
+          open={popoverOpen}
+          anchorEl={popoverAnchor}
+          onClose={handlePopoverClose}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          data-testid={`track-${track.id}-file-popover`}
+        >
+          <Box sx={{ p: 1.5, maxWidth: 480 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+              {t('albumDetail.trackColumns.file')}
+            </Typography>
+            <PathDisplay
+              path={track.filePath}
+              label={t('albumDetail.trackColumns.file')}
+              testId={`track-${track.id}-file-path`}
+            />
+          </Box>
+        </Popover>
       </TableCell>
     </TableRow>
   )
