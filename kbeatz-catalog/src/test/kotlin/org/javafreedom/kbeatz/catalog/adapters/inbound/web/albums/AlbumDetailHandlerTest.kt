@@ -252,4 +252,37 @@ class AlbumDetailHandlerTest {
         val detail = response.body<AlbumDetail>()
         assertEquals(null, detail.country)
     }
+
+    @Test
+    fun `GET albums albumId maps mediaFormat field when present`() = testApplication {
+        install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        routing { albumDetailRoutes(albumService, libraryRoot) }
+        val client = createClient { install(ClientContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }
+
+        val albumWithMediaFormat = buildAlbum().copy(mediaFormat = "2 x Vinyl, LP, Album, Red Translucent")
+        coEvery { albumRepository.findById(albumId) } returns albumWithMediaFormat
+        coEvery { trackRepository.findByAlbumId(albumId) } returns emptyList()
+
+        val response = client.get("/albums/${albumId}")
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val detail = response.body<AlbumDetail>()
+        assertEquals("2 x Vinyl, LP, Album, Red Translucent", detail.mediaFormat)
+    }
+
+    @Test
+    fun `GET albums albumId returns null mediaFormat when MEDIA tag is absent`() = testApplication {
+        install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        routing { albumDetailRoutes(albumService, libraryRoot) }
+        val client = createClient { install(ClientContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }
+
+        coEvery { albumRepository.findById(albumId) } returns buildAlbum()
+        coEvery { trackRepository.findByAlbumId(albumId) } returns emptyList()
+
+        val response = client.get("/albums/${albumId}")
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val detail = response.body<AlbumDetail>()
+        assertEquals(null, detail.mediaFormat)
+    }
 }

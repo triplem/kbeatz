@@ -1,0 +1,17 @@
+databaseChangeLog:
+  - changeSet:
+      id: V1-007-add-media-format
+      author: kbeatz
+      comment: >
+        Add nullable media_format column to albums table for the MEDIA Vorbis Comment tag.
+        Populated during library scan and exposed via GET /albums and GET /albums/{albumId}.
+        Named media_format (not format) to avoid reserved word conflicts and Kotlin stdlib clashes.
+      changes:
+        - addColumn:
+            tableName: albums
+            columns:
+              - column:
+                  name: media_format
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: true

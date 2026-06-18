@@ -70,6 +70,7 @@ internal fun Album.toApiModel(libraryRoot: Path): ApiAlbum = ApiAlbum(
     conductor = conductor,
     ensemble = ensemble,
     country = country,
+    mediaFormat = mediaFormat,
     discogsId = discogsId,
     trackCount = trackCount,
     totalDurationSeconds = totalDurationSeconds,

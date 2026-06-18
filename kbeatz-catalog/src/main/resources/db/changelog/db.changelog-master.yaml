@@ -11,3 +11,5 @@ databaseChangeLog:
       file: db/changelog/v1/V1__lower-functional-indexes.yaml
   - include:
       file: db/changelog/v1/V1__add-country.yaml
+  - include:
+      file: db/changelog/v1/V1__add-media-format.yaml

@@ -14,6 +14,7 @@ data class Album(
     val conductor: String?,
     val ensemble: String?,
     val country: String? = null,
+    val mediaFormat: String? = null,
     val discogsId: String?,
     val directoryPath: String,
     val extraTags: Map<String, String>?,

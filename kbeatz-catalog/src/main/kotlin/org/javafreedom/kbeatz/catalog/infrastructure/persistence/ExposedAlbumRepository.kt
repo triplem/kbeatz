@@ -291,6 +291,7 @@ private fun insertAlbum(album: Album) {
         it[conductor] = album.conductor
         it[ensemble] = album.ensemble
         it[country] = album.country
+        it[mediaFormat] = album.mediaFormat
         it[discogsId] = album.discogsId
         it[discogsJson] = null
         it[extraTags] = JsonSerde.encodeExtraTags(album.extraTags)
@@ -312,6 +313,7 @@ private fun updateAlbum(album: Album) {
         it[conductor] = album.conductor
         it[ensemble] = album.ensemble
         it[country] = album.country
+        it[mediaFormat] = album.mediaFormat
         it[discogsId] = album.discogsId
         it[extraTags] = JsonSerde.encodeExtraTags(album.extraTags)
         it[images] = JsonSerde.encodeImages(album.images)
@@ -336,9 +338,10 @@ private fun updateAlbumStructural(album: Album) {
         it[albumArtist] = album.albumArtist
         it[AlbumsTable.album] = album.album
         it[albumDate] = album.date.orEmpty()
-        // country is a scan-derived field: update it on every rescan so that
-        // adding or removing a COUNTRY tag in FLAC files is reflected in the index.
+        // country and mediaFormat are scan-derived fields: update them on every rescan so that
+        // adding or removing these tags in FLAC files is reflected in the index.
         it[country] = album.country
+        it[mediaFormat] = album.mediaFormat
         it[directoryPath] = album.directoryPath
         it[mergedDirectories] = JsonSerde.encodeMergedDirectories(album.mergedDirectories)
     }
@@ -356,6 +359,7 @@ internal fun ResultRow.toAlbum(): Album = Album(
     conductor = this[AlbumsTable.conductor],
     ensemble = this[AlbumsTable.ensemble],
     country = this[AlbumsTable.country],
+    mediaFormat = this[AlbumsTable.mediaFormat],
     discogsId = this[AlbumsTable.discogsId],
     extraTags = JsonSerde.decodeExtraTags(this[AlbumsTable.extraTags]),
     images = JsonSerde.decodeImages(this[AlbumsTable.images]),

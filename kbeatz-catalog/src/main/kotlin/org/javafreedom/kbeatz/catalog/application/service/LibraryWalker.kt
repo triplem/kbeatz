@@ -114,7 +114,13 @@ class LibraryWalker {
         // are treated as the same release.  The AlbumGroup carries the full date
         // string from the first track encountered.  See ADR-010-album-deduplication.adoc.
         data class GroupKey(val albumArtist: String, val albumTitle: String, val yearKey: String?)
-        data class TrackMeta(val path: Path, val canonicalDir: Path, val fullDate: String?, val country: String?)
+        data class TrackMeta(
+            val path: Path,
+            val canonicalDir: Path,
+            val fullDate: String?,
+            val country: String?,
+            val mediaFormat: String?,
+        )
 
         val groups = mutableMapOf<GroupKey, MutableList<TrackMeta>>()
 
@@ -128,12 +134,14 @@ class LibraryWalker {
             @Suppress("MagicNumber") // 4 = length of 4-digit year prefix in ISO date strings
             val yearKey = fullDate?.take(4)
             val country = tags["COUNTRY"]?.takeIf { it.isNotBlank() }
+            val mediaFormat = tags["MEDIA"]?.takeIf { it.isNotBlank() }
 
             val dir = flacPath.parent ?: libraryRoot
             val canonicalDir = if (isDiscSubdir(dir)) dir.parent ?: dir else dir
 
             val key = GroupKey(albumArtist, albumTitle, yearKey)
-            groups.getOrPut(key) { mutableListOf() }.add(TrackMeta(flacPath, canonicalDir, fullDate, country))
+            groups.getOrPut(key) { mutableListOf() }
+                .add(TrackMeta(flacPath, canonicalDir, fullDate, country, mediaFormat))
         }
 
         return groups.map { (key, tracks) ->
@@ -148,6 +156,8 @@ class LibraryWalker {
             val representativeDate = tracks.firstNotNullOfOrNull { it.fullDate }
             // Carry the COUNTRY tag from the first track that has one.
             val representativeCountry = tracks.firstNotNullOfOrNull { it.country }
+            // Carry the MEDIA tag from the first track that has one.
+            val representativeMediaFormat = tracks.firstNotNullOfOrNull { it.mediaFormat }
 
             AlbumGroup(
                 rootPath = rootPath,
@@ -157,6 +167,7 @@ class LibraryWalker {
                 albumTitle = key.albumTitle,
                 date = representativeDate,
                 country = representativeCountry,
+                mediaFormat = representativeMediaFormat,
             )
         }
     }
