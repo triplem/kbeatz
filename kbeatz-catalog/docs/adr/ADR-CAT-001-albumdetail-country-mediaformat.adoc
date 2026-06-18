@@ -34,8 +34,6 @@ the OpenAPI specification.
 These fields follow the same pattern as existing fields such as `genre`,
 `label`, and `catalogNumber`.
 
-== Rationale
-
 Typed fields were chosen over a generic map for the following reasons:
 
 * **Type safety**: The compiler and OpenAPI tooling enforce the field
@@ -52,14 +50,37 @@ Typed fields were chosen over a generic map for the following reasons:
 
 == Consequences
 
-* Each additional Vorbis Comment field to be surfaced in the API requires
-  a domain model change, an OpenAPI schema update, a Liquibase migration,
-  and a mapper update. This is the accepted trade-off for v1 scope.
+=== Positive
+
+* The API exposes pressing-specific metadata that collectors need to
+  identify editions, with no frontend workarounds required.
 * The OpenAPI specification remains the single source of truth for the
   fields available to frontend consumers.
-* Fields that are absent from the FLAC tags (or not yet populated by the
-  Discogs sync) are represented as `null` / omitted in the API response,
-  and the frontend renders them conditionally.
+* Fields absent from the FLAC tags (or not yet populated by the Discogs
+  sync) are represented as `null` / omitted in the API response, and the
+  frontend renders them conditionally.
+
+=== Negative / risks
+
+* Each additional Vorbis Comment field to be surfaced in the API requires
+  a coordinated change across four layers: domain model, OpenAPI spec,
+  Liquibase migration, and mapper. This is the accepted trade-off for v1
+  scope.
+* Both fields are stored and returned verbatim with no length cap or
+  encoding constraint enforced at the application layer. Values sourced
+  from Discogs or user-edited FLAC tags may be arbitrarily long strings.
+  The database column type (`VARCHAR`) implicitly caps them at the H2
+  default; no explicit application-level validation is applied in v1.
+
+=== Not affected
+
+* No DB index is added for `country` or `mediaFormat` in this ADR. A
+  future filtering endpoint (e.g., `GET /albums?country=Europe`) would
+  require a migration to add one. If that use case is implemented, the
+  migration should be treated as a separate story.
+* The tag-edit write path (`PATCH /api/v1/albums/{id}`) is not affected:
+  it already writes all supported Vorbis Comment fields present on the
+  domain model; the new fields participate automatically once added.
 
 == Alternatives Considered
 
