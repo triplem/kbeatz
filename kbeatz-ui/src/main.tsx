@@ -10,7 +10,7 @@ import { AlbumListPage } from './App'
 import { AppShell } from './shell'
 import { NotFoundPage } from './features/not-found/not-found-page'
 import { ErrorBoundary } from './lib/error-boundary'
-import { AppThemeProvider } from './theme'
+import { AppThemeProvider, sanitizePersistedColorScheme } from './theme'
 import { OpenAPI } from './api/generated'
 
 // Allow runtime override via VITE_API_BASE_URL for LAN deployments where the UI
@@ -88,6 +88,13 @@ const router = createBrowserRouter([
     ],
   },
 ])
+
+// Remove any corrupt/unknown persisted theme value before the theme provider
+// mounts, so MUI's runtime useColorScheme() falls back to the OS preference
+// (system) instead of reading the invalid value verbatim. This keeps the React
+// runtime consistent with the no-flash bootstrap in index.html, which already
+// sanitises the same key. Must run before AppThemeProvider renders.
+sanitizePersistedColorScheme()
 
 const rootEl = document.getElementById('root')
 if (!rootEl) throw new Error('Root element not found')

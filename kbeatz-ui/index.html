@@ -24,19 +24,24 @@
       No-flash theme bootstrap. Runs before the bundle so the correct colour
       scheme is applied before any theme-dependent UI renders. Mirrors
       src/theme/theme-storage.ts: read 'kbeatz-theme', accept only
-      'light'|'dark', otherwise follow prefers-color-scheme.
+      'light'|'dark', otherwise follow prefers-color-scheme. A corrupt/unknown
+      stored value is removed here so MUI's runtime reader also falls back to
+      the OS preference (matches sanitizePersistedColorScheme in main.tsx).
     -->
     <script>
       (function () {
         try {
           var stored = window.localStorage.getItem('kbeatz-theme');
-          var scheme =
-            stored === 'light' || stored === 'dark'
-              ? stored
-              : window.matchMedia &&
-                  window.matchMedia('(prefers-color-scheme: dark)').matches
-                ? 'dark'
-                : 'light';
+          var valid = stored === 'light' || stored === 'dark';
+          if (stored !== null && !valid) {
+            window.localStorage.removeItem('kbeatz-theme');
+          }
+          var scheme = valid
+            ? stored
+            : window.matchMedia &&
+                window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light';
           document.documentElement.setAttribute('data-mui-color-scheme', scheme);
         } catch (e) {
           document.documentElement.setAttribute('data-mui-color-scheme', 'light');

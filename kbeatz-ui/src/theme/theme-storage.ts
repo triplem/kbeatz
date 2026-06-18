@@ -39,6 +39,29 @@ export function resolveInitialColorScheme(): ColorScheme {
 }
 
 /**
+ * Remove a corrupt/unknown persisted `kbeatz-theme` value so the React runtime
+ * (MUI `useColorScheme`) never reads an invalid mode. Unlike the no-flash
+ * bootstrap and `isColorScheme()` guard, MUI does NOT sanitise the stored mode:
+ * it would otherwise read a corrupt value verbatim and diverge from the
+ * pre-paint bootstrap (theme mismatch/flash). Call this once at startup before
+ * rendering the theme provider so MUI falls back to `system` (OS preference),
+ * matching the bootstrap.
+ *
+ * A valid value is left untouched. localStorage access is guarded so a
+ * disabled/unavailable store degrades gracefully rather than throwing.
+ */
+export function sanitizePersistedColorScheme(): void {
+  try {
+    const raw = window.localStorage.getItem(THEME_STORAGE_KEY)
+    if (raw !== null && !isColorScheme(raw)) {
+      window.localStorage.removeItem(THEME_STORAGE_KEY)
+    }
+  } catch {
+    // localStorage unavailable (private mode, disabled) - non-fatal.
+  }
+}
+
+/**
  * Persist the user's explicit choice. Silently no-ops when localStorage is
  * unavailable so the in-memory toggle still works.
  */
