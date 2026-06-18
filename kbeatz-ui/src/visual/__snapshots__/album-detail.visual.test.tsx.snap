@@ -34,6 +34,67 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in d
       </span>
       Back
     </button>
+    <section
+      aria-labelledby="hero-album-title"
+      class="MuiBox-root css-1x7nj5q"
+      data-testid="album-hero-header"
+    >
+      <div
+        aria-hidden="true"
+        class="MuiBox-root css-1ty2qe2"
+        data-testid="hero-cover-placeholder"
+      />
+      <div
+        class="MuiBox-root css-bly4bm"
+        data-testid="hero-metadata"
+      >
+        <h2
+          class="MuiTypography-root MuiTypography-h5 css-n9kgla-MuiTypography-root"
+          data-testid="hero-artist"
+        >
+          Miles Davis
+        </h2>
+        <h3
+          class="MuiTypography-root MuiTypography-h4 css-1xy6faa-MuiTypography-root"
+          data-testid="hero-album-title"
+          id="hero-album-title"
+        >
+          Kind of Blue
+        </h3>
+        <p
+          class="MuiTypography-root MuiTypography-body1 css-1fz3vqa-MuiTypography-root"
+          data-testid="hero-label-catalog"
+        >
+          Columbia - CL 1355
+        </p>
+        <p
+          class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+          data-testid="hero-release-date"
+        >
+          1959
+        </p>
+        <ul
+          aria-label="Genre tags"
+          class="MuiBox-root css-toc6l2"
+          data-testid="hero-genre-chips"
+          role="list"
+        >
+          <li
+            role="listitem"
+          >
+            <div
+              class="MuiChip-root MuiChip-outlined MuiChip-sizeSmall MuiChip-colorDefault css-t4kuez-MuiChip-root"
+            >
+              <span
+                class="MuiChip-label css-19m61dl-MuiChip-label"
+              >
+                Jazz
+              </span>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </section>
     <div
       class="MuiBox-root css-1ube9x9"
       data-testid="two-column-layout"
@@ -1134,6 +1195,67 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in l
       </span>
       Back
     </button>
+    <section
+      aria-labelledby="hero-album-title"
+      class="MuiBox-root css-1x7nj5q"
+      data-testid="album-hero-header"
+    >
+      <div
+        aria-hidden="true"
+        class="MuiBox-root css-1ty2qe2"
+        data-testid="hero-cover-placeholder"
+      />
+      <div
+        class="MuiBox-root css-bly4bm"
+        data-testid="hero-metadata"
+      >
+        <h2
+          class="MuiTypography-root MuiTypography-h5 css-n9kgla-MuiTypography-root"
+          data-testid="hero-artist"
+        >
+          Miles Davis
+        </h2>
+        <h3
+          class="MuiTypography-root MuiTypography-h4 css-1xy6faa-MuiTypography-root"
+          data-testid="hero-album-title"
+          id="hero-album-title"
+        >
+          Kind of Blue
+        </h3>
+        <p
+          class="MuiTypography-root MuiTypography-body1 css-1fz3vqa-MuiTypography-root"
+          data-testid="hero-label-catalog"
+        >
+          Columbia - CL 1355
+        </p>
+        <p
+          class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+          data-testid="hero-release-date"
+        >
+          1959
+        </p>
+        <ul
+          aria-label="Genre tags"
+          class="MuiBox-root css-toc6l2"
+          data-testid="hero-genre-chips"
+          role="list"
+        >
+          <li
+            role="listitem"
+          >
+            <div
+              class="MuiChip-root MuiChip-outlined MuiChip-sizeSmall MuiChip-colorDefault css-t4kuez-MuiChip-root"
+            >
+              <span
+                class="MuiChip-label css-19m61dl-MuiChip-label"
+              >
+                Jazz
+              </span>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </section>
     <div
       class="MuiBox-root css-1ube9x9"
       data-testid="two-column-layout"

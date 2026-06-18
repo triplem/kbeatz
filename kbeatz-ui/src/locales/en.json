@@ -76,6 +76,11 @@
     "otherTagsDescription": "Non-standard tags found in these files. Read-only in this version.",
     "otherTagsEmpty": "No additional tags.",
     "genreChipsLabel": "Genre tags",
+    "heroSection": "Album summary",
+    "hero": {
+      "countryLabel": "Country:",
+      "formatLabel": "Format:"
+    },
     "trackColumns": {
       "position": "Position",
       "title": "Title",

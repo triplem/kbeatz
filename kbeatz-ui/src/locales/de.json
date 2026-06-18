@@ -76,6 +76,11 @@
     "otherTagsDescription": "Nicht standardisierte Tags in diesen Dateien. In dieser Version schreibgeschützt.",
     "otherTagsEmpty": "Keine weiteren Tags.",
     "genreChipsLabel": "Genre-Tags",
+    "heroSection": "Album-Zusammenfassung",
+    "hero": {
+      "countryLabel": "Land:",
+      "formatLabel": "Format:"
+    },
     "trackColumns": {
       "position": "Position",
       "title": "Titel",
