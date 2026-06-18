@@ -128,10 +128,10 @@ describe('AlbumListPage - loading and error', () => {
 // ---------------------------------------------------------------------------
 
 describe('AlbumListPage - renders one page of cards', () => {
-  it('renders only the first page (default size 48) when more albums exist', () => {
+  it('renders only the first page (default size 50) when more albums exist', () => {
     mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(100)) })))
     renderApp()
-    expect(screen.getAllByTestId('album-card')).toHaveLength(48)
+    expect(screen.getAllByTestId('album-card')).toHaveLength(50)
   })
 
   it('renders all albums when fewer than one page exist (no pagination)', () => {
@@ -145,7 +145,7 @@ describe('AlbumListPage - renders one page of cards', () => {
     mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(100)) })))
     renderApp()
     const status = screen.getByTestId('album-grid-result-count')
-    expect(status).toHaveTextContent('Showing 48 of 100 albums')
+    expect(status).toHaveTextContent('Showing 50 of 100 albums')
     expect(status).toHaveAttribute('aria-live', 'polite')
   })
 })
@@ -160,38 +160,38 @@ describe('AlbumListPage - page navigation', () => {
     mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(100)) })))
     const { router } = renderApp()
 
-    // First page: cards 0..47, so "Album 0000" present, "Album 0048" absent.
+    // First page: cards 0..49, so "Album 0000" present, "Album 0050" absent.
     expect(screen.getByTitle('Album 0000')).toBeInTheDocument()
-    expect(screen.queryByTitle('Album 0048')).not.toBeInTheDocument()
+    expect(screen.queryByTitle('Album 0050')).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Go to page 2' }))
 
-    // Second page: cards 48..95
-    expect(screen.getByTitle('Album 0048')).toBeInTheDocument()
+    // Second page: cards 50..99
+    expect(screen.getByTitle('Album 0050')).toBeInTheDocument()
     expect(screen.queryByTitle('Album 0000')).not.toBeInTheDocument()
     // URL reflects the page (AC5)
     expect(router.state.location.search).toContain('page=2')
-    expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 2 of 3')
+    expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 2 of 2')
   })
 
   it('deep-links to a page via the URL query param (AC5)', () => {
     mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(100)) })))
     renderApp({ initialEntries: ['/?page=2'] })
-    expect(screen.getByTitle('Album 0048')).toBeInTheDocument()
-    expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 2 of 3')
+    expect(screen.getByTitle('Album 0050')).toBeInTheDocument()
+    expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 2 of 2')
   })
 
   it('clamps an out-of-range page param into the valid range', () => {
     mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(100)) })))
     renderApp({ initialEntries: ['/?page=999'] })
-    // 100 albums / 48 = 3 pages; clamps to last page (3)
-    expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 3 of 3')
+    // 100 albums / 50 = 2 pages; clamps to last page (2)
+    expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 2 of 2')
   })
 
   it('ignores a non-numeric page param and shows page 1', () => {
     mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(100)) })))
     renderApp({ initialEntries: ['/?page=abc'] })
-    expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 1 of 3')
+    expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 1 of 2')
   })
 })
 
@@ -205,9 +205,9 @@ describe('AlbumListPage - filter resets pagination', () => {
     // timeout even when the suite runs concurrently with the CPU-heavy axe tests.
     const user = userEvent.setup({ delay: null })
     mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(100)) })))
-    const { router } = renderApp({ initialEntries: ['/?page=3'] })
+    const { router } = renderApp({ initialEntries: ['/?page=2'] })
 
-    expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 3 of 3')
+    expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 2 of 2')
 
     // Search for a single album. "Album 0042" matches exactly one record.
     await user.type(screen.getByRole('searchbox'), 'Album 0042')
@@ -217,7 +217,7 @@ describe('AlbumListPage - filter resets pagination', () => {
     expect(screen.getAllByTestId('album-card')).toHaveLength(1)
     expect(screen.queryByTestId('album-pagination')).not.toBeInTheDocument()
     // page param dropped on reset
-    expect(router.state.location.search).not.toContain('page=3')
+    expect(router.state.location.search).not.toContain('page=2')
   })
 
   it('paginates over the FILTERED results, not the full set', async () => {
@@ -245,35 +245,35 @@ describe('AlbumListPage - page size', () => {
     mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(100)) })))
     renderApp()
 
-    expect(screen.getAllByTestId('album-card')).toHaveLength(48)
+    expect(screen.getAllByTestId('album-card')).toHaveLength(50)
 
-    // Open the page-size select and pick 24.
+    // Open the page-size select and pick 25.
     await user.click(screen.getByRole('combobox', { name: 'Per page' }))
-    await user.click(screen.getByRole('option', { name: '24 per page' }))
+    await user.click(screen.getByRole('option', { name: '25 per page' }))
 
-    expect(screen.getAllByTestId('album-card')).toHaveLength(24)
-    expect(localStorage.getItem(PAGE_SIZE_STORAGE_KEY)).toBe('24')
+    expect(screen.getAllByTestId('album-card')).toHaveLength(25)
+    expect(localStorage.getItem(PAGE_SIZE_STORAGE_KEY)).toBe('25')
   })
 
   it('reads the persisted page size from localStorage on load', () => {
-    localStorage.setItem(PAGE_SIZE_STORAGE_KEY, '24')
+    localStorage.setItem(PAGE_SIZE_STORAGE_KEY, '25')
     mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(100)) })))
     renderApp()
-    expect(screen.getAllByTestId('album-card')).toHaveLength(24)
+    expect(screen.getAllByTestId('album-card')).toHaveLength(25)
   })
 
   it('falls back to the default when localStorage holds a corrupt page size', () => {
     localStorage.setItem(PAGE_SIZE_STORAGE_KEY, 'not-a-number')
     mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(100)) })))
     renderApp()
-    expect(screen.getAllByTestId('album-card')).toHaveLength(48)
+    expect(screen.getAllByTestId('album-card')).toHaveLength(50)
   })
 
   it('a URL size param overrides the persisted default', () => {
-    localStorage.setItem(PAGE_SIZE_STORAGE_KEY, '48')
+    localStorage.setItem(PAGE_SIZE_STORAGE_KEY, '50')
     mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(100)) })))
-    renderApp({ initialEntries: ['/?size=24'] })
-    expect(screen.getAllByTestId('album-card')).toHaveLength(24)
+    renderApp({ initialEntries: ['/?size=25'] })
+    expect(screen.getAllByTestId('album-card')).toHaveLength(25)
   })
 })
 
@@ -298,7 +298,7 @@ describe('AlbumListPage - accessibility', () => {
     goToPage2.focus()
     expect(goToPage2).toHaveFocus()
     await user.keyboard('{Enter}')
-    expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 2 of 3')
+    expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 2 of 2')
   })
 
   it('search box and sort have visible labels (no placeholder-only labelling)', () => {
@@ -320,12 +320,12 @@ describe('AlbumListPage - navigation preserves state', () => {
     const { router } = renderApp({ initialEntries: ['/?page=2'] })
 
     // Confirm page 2 rendered, then click a card to navigate to detail.
-    const card = screen.getByRole('button', { name: /View details for Album 0048/ })
+    const card = screen.getByRole('button', { name: /View details for Album 0050/ })
     await user.click(card)
 
     expect(screen.getByTestId('album-detail-route')).toBeInTheDocument()
     // Returning to "/" with the prior search restores the page; the router back
     // entry retains page=2 (the grid reads it from the URL on remount).
-    expect(router.state.location.pathname).toBe('/albums/album-48')
+    expect(router.state.location.pathname).toBe('/albums/album-50')
   })
 })

@@ -175,7 +175,7 @@ exports[`AlbumListPage visual regression > matches the empty snapshot in dark th
             role="combobox"
             tabindex="0"
           >
-            48 per page
+            50 per page
           </div>
           <input
             aria-hidden="true"
@@ -183,7 +183,7 @@ exports[`AlbumListPage visual regression > matches the empty snapshot in dark th
             class="MuiSelect-nativeInput css-j0riat-MuiSelect-nativeInput"
             id="<reactid>"
             tabindex="-1"
-            value="48"
+            value="50"
           />
           <svg
             aria-hidden="true"
@@ -404,7 +404,7 @@ exports[`AlbumListPage visual regression > matches the empty snapshot in light t
             role="combobox"
             tabindex="0"
           >
-            48 per page
+            50 per page
           </div>
           <input
             aria-hidden="true"
@@ -412,7 +412,7 @@ exports[`AlbumListPage visual regression > matches the empty snapshot in light t
             class="MuiSelect-nativeInput css-j0riat-MuiSelect-nativeInput"
             id="<reactid>"
             tabindex="-1"
-            value="48"
+            value="50"
           />
           <svg
             aria-hidden="true"
@@ -633,7 +633,7 @@ exports[`AlbumListPage visual regression > matches the error snapshot in dark th
             role="combobox"
             tabindex="0"
           >
-            48 per page
+            50 per page
           </div>
           <input
             aria-hidden="true"
@@ -641,7 +641,7 @@ exports[`AlbumListPage visual regression > matches the error snapshot in dark th
             class="MuiSelect-nativeInput css-j0riat-MuiSelect-nativeInput"
             id="<reactid>"
             tabindex="-1"
-            value="48"
+            value="50"
           />
           <svg
             aria-hidden="true"
@@ -875,7 +875,7 @@ exports[`AlbumListPage visual regression > matches the error snapshot in light t
             role="combobox"
             tabindex="0"
           >
-            48 per page
+            50 per page
           </div>
           <input
             aria-hidden="true"
@@ -883,7 +883,7 @@ exports[`AlbumListPage visual regression > matches the error snapshot in light t
             class="MuiSelect-nativeInput css-j0riat-MuiSelect-nativeInput"
             id="<reactid>"
             tabindex="-1"
-            value="48"
+            value="50"
           />
           <svg
             aria-hidden="true"
@@ -1117,7 +1117,7 @@ exports[`AlbumListPage visual regression > matches the loading snapshot in dark 
             role="combobox"
             tabindex="0"
           >
-            48 per page
+            50 per page
           </div>
           <input
             aria-hidden="true"
@@ -1125,7 +1125,7 @@ exports[`AlbumListPage visual regression > matches the loading snapshot in dark 
             class="MuiSelect-nativeInput css-j0riat-MuiSelect-nativeInput"
             id="<reactid>"
             tabindex="-1"
-            value="48"
+            value="50"
           />
           <svg
             aria-hidden="true"
@@ -1364,7 +1364,7 @@ exports[`AlbumListPage visual regression > matches the loading snapshot in light
             role="combobox"
             tabindex="0"
           >
-            48 per page
+            50 per page
           </div>
           <input
             aria-hidden="true"
@@ -1372,7 +1372,7 @@ exports[`AlbumListPage visual regression > matches the loading snapshot in light
             class="MuiSelect-nativeInput css-j0riat-MuiSelect-nativeInput"
             id="<reactid>"
             tabindex="-1"
-            value="48"
+            value="50"
           />
           <svg
             aria-hidden="true"
@@ -1611,7 +1611,7 @@ exports[`AlbumListPage visual regression > matches the populated-list snapshot i
             role="combobox"
             tabindex="0"
           >
-            48 per page
+            50 per page
           </div>
           <input
             aria-hidden="true"
@@ -1619,7 +1619,7 @@ exports[`AlbumListPage visual regression > matches the populated-list snapshot i
             class="MuiSelect-nativeInput css-j0riat-MuiSelect-nativeInput"
             id="<reactid>"
             tabindex="-1"
-            value="48"
+            value="50"
           />
           <svg
             aria-hidden="true"
@@ -2196,7 +2196,7 @@ exports[`AlbumListPage visual regression > matches the populated-list snapshot i
             role="combobox"
             tabindex="0"
           >
-            48 per page
+            50 per page
           </div>
           <input
             aria-hidden="true"
@@ -2204,7 +2204,7 @@ exports[`AlbumListPage visual regression > matches the populated-list snapshot i
             class="MuiSelect-nativeInput css-j0riat-MuiSelect-nativeInput"
             id="<reactid>"
             tabindex="-1"
-            value="48"
+            value="50"
           />
           <svg
             aria-hidden="true"
