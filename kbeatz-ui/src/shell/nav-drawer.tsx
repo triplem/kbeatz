@@ -21,7 +21,7 @@ const ICONS: Record<NavItem['icon'], ReactElement> = {
 }
 
 export interface NavDrawerProps {
-  /** Drawer width in pixels; shared with the AppBar offset so they align. */
+  /** Drawer width in pixels for the temporary overlay paper. */
   readonly width: number
   /** True when the temporary (mobile overlay) drawer is open. */
   readonly mobileOpen: boolean
@@ -68,12 +68,11 @@ function NavList({ onNavigate }: NavListProps): ReactElement {
 }
 
 /**
- * Primary navigation drawer.
+ * Mobile navigation drawer (temporary overlay only).
  *
- * Renders two MUI Drawer variants behind responsive `display` toggles so the
- * correct one is mounted per breakpoint without JS measurement:
- * - `temporary` (overlay + backdrop + focus trap) is shown at xs/sm.
- * - `permanent` (always-visible side rail) is shown at md and up.
+ * Renders a single MUI `temporary` Drawer variant - a modal overlay with
+ * backdrop and focus trap at xs/sm breakpoints. On desktop (md+) navigation
+ * is handled by AppBar links; this drawer is hidden via CSS.
  *
  * MUI's `temporary` Drawer provides the WCAG-required focus trap, Escape to
  * close, and backdrop dismissal out of the box.
@@ -90,7 +89,6 @@ export function NavDrawer({
     <Box
       component="nav"
       aria-label={t('nav.primaryLabel')}
-      sx={{ width: { md: width }, flexShrink: { md: 0 } }}
     >
       <Drawer
         id={mobileDrawerId}
@@ -105,17 +103,6 @@ export function NavDrawer({
       >
         <Toolbar />
         <NavList onNavigate={onClose} />
-      </Drawer>
-      <Drawer
-        variant="permanent"
-        open
-        sx={{
-          display: { xs: 'none', md: 'block' },
-          '& .MuiDrawer-paper': { boxSizing: 'border-box', width },
-        }}
-      >
-        <Toolbar />
-        <NavList onNavigate={() => undefined} />
       </Drawer>
     </Box>
   )

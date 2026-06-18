@@ -45,16 +45,6 @@ describe('NavDrawer', () => {
     vi.unstubAllGlobals()
   })
 
-  it('renders the permanent drawer with all primary destinations', () => {
-    renderDrawer()
-    // The permanent variant is always mounted (visibility is CSS-controlled).
-    const navs = screen.getAllByRole('navigation', { name: 'Primary navigation' })
-    const labels = ['Albums', 'Library', 'Settings']
-    for (const label of labels) {
-      expect(navs.some((n) => within(n).queryByRole('link', { name: label }))).toBe(true)
-    }
-  })
-
   it('does not render the temporary overlay drawer when closed', () => {
     renderDrawer({ mobileOpen: false })
     // The temporary Drawer uses a Modal; when closed it is not in the DOM.
@@ -64,6 +54,15 @@ describe('NavDrawer', () => {
   it('renders the temporary overlay drawer (modal) when mobileOpen is true', () => {
     renderDrawer({ mobileOpen: true })
     expect(screen.getByRole('presentation')).toBeInTheDocument()
+  })
+
+  it('renders the nav links (Albums, Library, Settings) inside the temporary drawer when open', () => {
+    renderDrawer({ mobileOpen: true })
+    const presentation = screen.getByRole('presentation')
+    const labels = ['Albums', 'Library', 'Settings']
+    for (const label of labels) {
+      expect(within(presentation).getByRole('link', { name: label })).toBeInTheDocument()
+    }
   })
 
   it('calls onClose when a destination is tapped in the temporary drawer', async () => {
