@@ -1,7 +1,8 @@
-import { render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useColorScheme } from '@mui/material/styles'
 import { AppThemeProvider } from './app-theme-provider'
+import { sanitizePersistedColorScheme } from './theme-storage'
 import { COLOR_SCHEME_ATTR, THEME_STORAGE_KEY } from './theme'
 
 // Debug component to expose the MUI color scheme context value
@@ -92,7 +93,14 @@ describe('AppThemeProvider color-scheme edge cases', () => {
     vi.unstubAllGlobals()
   })
 
+  /**
+   * Mirror the app startup sequence in main.tsx: corrupt persisted values are
+   * removed by `sanitizePersistedColorScheme()` BEFORE the theme provider
+   * mounts. Rendering through this helper therefore exercises the real runtime
+   * path MUI sees after sanitisation.
+   */
   function renderDebug() {
+    sanitizePersistedColorScheme()
     render(
       <AppThemeProvider>
         <DebugColorScheme />
@@ -101,41 +109,60 @@ describe('AppThemeProvider color-scheme edge cases', () => {
     return screen.getByTestId('debug')
   }
 
-  it('should not crash and should leave the colour scheme unresolved for a corrupt stored value', () => {
-    // DIVERGENCE FROM ISSUE #875 ASSUMPTION: MUI's ThemeProvider does NOT sanitise
-    // an unknown persisted mode. It reads the raw 'kbeatz-theme' value, passes it
-    // through as `mode` verbatim, and because 'corrupt' is not a known mode it
-    // cannot resolve a `colorScheme` - so `colorScheme` is `undefined` and no
-    // `data-mui-color-scheme` attribute is written to <html>. The visual fallback
-    // is the light CSS-variable defaults emitted on :root, but the context exposes
-    // no resolved scheme. We assert the real, observed behaviour of our config
-    // (no throw, mode passed through, scheme unresolved) rather than the issue's
-    // assumed 'light' fallback. The project's own theme-storage.isColorScheme()
-    // DOES sanitise this case, but that guard feeds the no-flash inline script /
-    // toggle, not MUI's useColorScheme().
+  it('should sanitise a corrupt stored value and fall back to the OS scheme (system mode)', () => {
+    // BEHAVIOUR CHANGE (issue #877): MUI's ThemeProvider does NOT sanitise an
+    // unknown persisted mode - left alone it would read 'corrupt' verbatim as
+    // `mode`, leave `colorScheme` undefined, and write no data-mui-color-scheme,
+    // diverging from the no-flash bootstrap. We now remove the invalid key at
+    // startup (sanitizePersistedColorScheme), so MUI falls back to its 'system'
+    // default and follows the OS preference - identical to the bootstrap.
     window.localStorage.setItem(THEME_STORAGE_KEY, 'corrupt')
     stubMatchMedia(false) // OS = light
 
     const debug = renderDebug()
 
-    expect(debug.getAttribute('data-mode')).toBe('corrupt')
-    // colorScheme === undefined, so React omits the data-scheme attribute entirely.
-    expect(debug.getAttribute('data-scheme')).toBeNull()
-    expect(document.documentElement.getAttribute(COLOR_SCHEME_ATTR)).toBeNull()
+    // Invalid value removed: MUI sees no stored mode and uses 'system'.
+    expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBeNull()
+    expect(debug.getAttribute('data-mode')).toBe('system')
+    expect(debug.getAttribute('data-scheme')).toBe('light')
   })
 
-  it('should behave identically for a corrupt value regardless of OS preference', () => {
-    // The corrupt-value path ignores the OS preference entirely (mode is the raw
-    // corrupt string, not 'system'), so the unresolved-scheme outcome is the same
-    // whether the OS prefers dark or light.
+  it('should resolve a corrupt value to the OS scheme regardless of OS preference (dark)', () => {
+    // After sanitisation the corrupt path follows 'system', so the OS preference
+    // now drives the outcome: OS dark resolves to 'dark' (not an unresolved
+    // scheme as in the pre-#877 behaviour).
     window.localStorage.setItem(THEME_STORAGE_KEY, 'corrupt')
     stubMatchMedia(true) // OS = dark
 
     const debug = renderDebug()
 
-    expect(debug.getAttribute('data-mode')).toBe('corrupt')
-    expect(debug.getAttribute('data-scheme')).toBeNull()
-    expect(document.documentElement.getAttribute(COLOR_SCHEME_ATTR)).toBeNull()
+    expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBeNull()
+    expect(debug.getAttribute('data-mode')).toBe('system')
+    expect(debug.getAttribute('data-scheme')).toBe('dark')
+  })
+
+  it('should resolve a corrupt value the SAME way as a fresh load (bootstrap/MUI equivalence)', () => {
+    // AC#2: the corrupt path and the no-stored-value path must agree. Both
+    // resolve to 'system' mode following the OS preference. Here OS = dark.
+    stubMatchMedia(true) // OS = dark
+
+    // Fresh load: nothing persisted.
+    window.localStorage.clear()
+    const fresh = renderDebug()
+    const freshMode = fresh.getAttribute('data-mode')
+    const freshScheme = fresh.getAttribute('data-scheme')
+    cleanup()
+
+    // Corrupt value: sanitised at startup, then resolved.
+    window.localStorage.clear()
+    document.documentElement.removeAttribute(COLOR_SCHEME_ATTR)
+    window.localStorage.setItem(THEME_STORAGE_KEY, 'corrupt')
+    const corrupt = renderDebug()
+
+    expect(corrupt.getAttribute('data-mode')).toBe(freshMode)
+    expect(corrupt.getAttribute('data-scheme')).toBe(freshScheme)
+    expect(corrupt.getAttribute('data-mode')).toBe('system')
+    expect(corrupt.getAttribute('data-scheme')).toBe('dark')
   })
 
   it('should resolve to dark when no value is stored and the OS prefers dark', () => {

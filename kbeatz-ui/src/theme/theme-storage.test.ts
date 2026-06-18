@@ -5,6 +5,7 @@ import {
   isColorScheme,
   readStoredColorScheme,
   resolveInitialColorScheme,
+  sanitizePersistedColorScheme,
   storeColorScheme,
 } from './theme-storage'
 
@@ -111,6 +112,56 @@ describe('resolveInitialColorScheme', () => {
     stubMatchMedia(false) // OS = light
     window.localStorage.setItem(THEME_STORAGE_KEY, 'not-a-theme')
     expect(resolveInitialColorScheme()).toBe('light')
+  })
+})
+
+describe('sanitizePersistedColorScheme', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  it('should remove a corrupt/unknown stored value', () => {
+    window.localStorage.setItem(THEME_STORAGE_KEY, 'rainbow')
+    sanitizePersistedColorScheme()
+    expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBeNull()
+  })
+
+  it('should leave a valid light value untouched', () => {
+    window.localStorage.setItem(THEME_STORAGE_KEY, 'light')
+    sanitizePersistedColorScheme()
+    expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe('light')
+  })
+
+  it('should leave a valid dark value untouched', () => {
+    window.localStorage.setItem(THEME_STORAGE_KEY, 'dark')
+    sanitizePersistedColorScheme()
+    expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark')
+  })
+
+  it('should no-op when nothing is stored', () => {
+    expect(() => sanitizePersistedColorScheme()).not.toThrow()
+    expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBeNull()
+  })
+
+  it('should not throw when localStorage getItem is unavailable', () => {
+    const spy = vi
+      .spyOn(Storage.prototype, 'getItem')
+      .mockImplementation(() => {
+        throw new Error('blocked')
+      })
+    expect(() => sanitizePersistedColorScheme()).not.toThrow()
+    spy.mockRestore()
+  })
+
+  it('should not throw when localStorage removeItem is unavailable', () => {
+    window.localStorage.setItem(THEME_STORAGE_KEY, 'rainbow')
+    const spy = vi
+      .spyOn(Storage.prototype, 'removeItem')
+      .mockImplementation(() => {
+        throw new Error('blocked')
+      })
+    expect(() => sanitizePersistedColorScheme()).not.toThrow()
+    spy.mockRestore()
   })
 })
 

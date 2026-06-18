@@ -6,5 +6,6 @@ export {
   isColorScheme,
   readStoredColorScheme,
   resolveInitialColorScheme,
+  sanitizePersistedColorScheme,
   storeColorScheme,
 } from './theme-storage'
