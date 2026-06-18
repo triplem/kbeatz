@@ -94,21 +94,22 @@ export function AlbumHeroHeader({ album }: AlbumHeroHeaderProps) {
         data-testid="hero-metadata"
         sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}
       >
-        {/* Artist name - rendered as h2 for correct heading outline */}
+        {/* Artist name - rendered as plain text; not a structural heading */}
         <Typography
           variant="h5"
-          component="h2"
+          component="p"
           data-testid="hero-artist"
           sx={{ fontWeight: 700, lineHeight: 1.2 }}
         >
           {album.albumArtist}
         </Typography>
 
-        {/* Album title - rendered as h3; also the accessible name for the section via aria-labelledby */}
+        {/* Album title - rendered as h2 to match other section headings (Album Tags, Tracks);
+            also the accessible name for the section via aria-labelledby="hero-album-title" */}
         <Typography
           id="hero-album-title"
           variant="h4"
-          component="h3"
+          component="h2"
           data-testid="hero-album-title"
           sx={{ fontWeight: 700, lineHeight: 1.2 }}
         >
