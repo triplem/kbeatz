@@ -154,6 +154,19 @@ describe('AlbumHeroHeader', () => {
     expect(screen.getByTestId('hero-genre-chips')).toBeInTheDocument()
   })
 
+  it('renders album title as h2 heading', () => {
+    renderHero(makeAlbum())
+    expect(screen.getByRole('heading', { level: 2, name: 'Kind of Blue' })).toBeInTheDocument()
+  })
+
+  it('renders artist name as plain text paragraph, not a heading', () => {
+    renderHero(makeAlbum())
+    // Artist must not appear as a heading at any level
+    expect(screen.queryByRole('heading', { name: 'Miles Davis' })).toBeNull()
+    // Artist is still rendered as visible text
+    expect(screen.getByTestId('hero-artist')).toHaveTextContent('Miles Davis')
+  })
+
   it('renders only artist and title when all optional fields are absent', () => {
     renderHero(
       makeAlbum({

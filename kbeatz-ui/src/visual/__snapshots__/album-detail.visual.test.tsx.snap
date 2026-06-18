@@ -48,19 +48,19 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in d
         class="MuiBox-root css-bly4bm"
         data-testid="hero-metadata"
       >
-        <h2
+        <p
           class="MuiTypography-root MuiTypography-h5 css-n9kgla-MuiTypography-root"
           data-testid="hero-artist"
         >
           Miles Davis
-        </h2>
-        <h3
+        </p>
+        <h2
           class="MuiTypography-root MuiTypography-h4 css-1xy6faa-MuiTypography-root"
           data-testid="hero-album-title"
           id="hero-album-title"
         >
           Kind of Blue
-        </h3>
+        </h2>
         <p
           class="MuiTypography-root MuiTypography-body1 css-1fz3vqa-MuiTypography-root"
           data-testid="hero-label-catalog"
@@ -1209,19 +1209,19 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in l
         class="MuiBox-root css-bly4bm"
         data-testid="hero-metadata"
       >
-        <h2
+        <p
           class="MuiTypography-root MuiTypography-h5 css-n9kgla-MuiTypography-root"
           data-testid="hero-artist"
         >
           Miles Davis
-        </h2>
-        <h3
+        </p>
+        <h2
           class="MuiTypography-root MuiTypography-h4 css-1xy6faa-MuiTypography-root"
           data-testid="hero-album-title"
           id="hero-album-title"
         >
           Kind of Blue
-        </h3>
+        </h2>
         <p
           class="MuiTypography-root MuiTypography-body1 css-1fz3vqa-MuiTypography-root"
           data-testid="hero-label-catalog"
