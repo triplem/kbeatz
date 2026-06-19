@@ -37,8 +37,8 @@ export function CommaSeparatedChips({ value, ariaLabel, testId }: CommaSeparated
       data-testid={testId}
       aria-label={ariaLabel}
     >
-      {items.map((item) => (
-        <li key={item} role="listitem">
+      {items.map((item, index) => (
+        <li key={`${index}-${item}`} role="listitem">
           <Chip label={item} size="small" variant="outlined" />
         </li>
       ))}

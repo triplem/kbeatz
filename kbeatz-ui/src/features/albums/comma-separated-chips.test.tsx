@@ -53,9 +53,11 @@ describe('CommaSeparatedChips', () => {
     expect(items).toHaveLength(1)
   })
 
-  it('renders without error when duplicate values are present', () => {
-    // Duplicate values produce duplicate React keys - component should still mount
+  it('renders without duplicate React keys when duplicate values are present', () => {
+    // Index-prefixed keys ensure uniqueness even when values repeat (e.g. 'Jazz, Jazz')
     render(<CommaSeparatedChips value="Jazz, Jazz" ariaLabel="Genres" testId="chips" />)
+    const items = screen.getAllByRole('listitem')
+    expect(items).toHaveLength(2)
     expect(screen.getByTestId('chips')).toBeInTheDocument()
   })
 })
