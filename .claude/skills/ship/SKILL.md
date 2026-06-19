@@ -195,10 +195,10 @@ EOF
 | 9 | Operations | Structured logging, health check impact, graceful shutdown |
 
 Severity guide:
-- **BLOCKER**: data loss, security hole, broken critical path — fix directly on the PR branch before merge
-- **MAJOR**: correctness bug, missing test for a stated AC, design smell — fix directly on the PR branch before merge
-- **MINOR**: style/naming, unlikely edge case, missing optional test — fix directly on the PR branch before merge
-- **NIT**: whitespace, comment wording, pedantic — fix directly on the PR branch before merge
+- **BLOCKER**: data loss, security hole, broken critical path - fix on PR branch or open issue and fix immediately
+- **MAJOR**: correctness bug, missing test for a stated AC, design smell - fix on PR branch or open issue and fix immediately
+- **MINOR**: style/naming, unlikely edge case, missing optional test - fix on PR branch or open issue and fix immediately
+- **NIT**: whitespace, comment wording, pedantic - fix on PR branch or open issue and fix immediately
 
 **Default behavior**: Comment ALL findings (BLOCKER through NIT) on the PR, then fix every finding before merging. For each finding choose the appropriate path:
 
