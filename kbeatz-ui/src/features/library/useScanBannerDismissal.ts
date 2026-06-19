@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 
 const STORAGE_KEY = 'kbeatz.scanBanner.dismissedAt'
 
@@ -53,10 +53,10 @@ export function useScanBannerDismissal(completedAt: string): UseScanBannerDismis
     return readDismissedAt() === completedAt
   })
 
-  const dismiss = (): void => {
+  const dismiss = useCallback((): void => {
     writeDismissedAt(completedAt)
     setIsDismissed(true)
-  }
+  }, [completedAt])
 
   return { isDismissed, dismiss }
 }
