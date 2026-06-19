@@ -6,6 +6,13 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 const SUPPORTED_LANGS = ['en', 'de'] as const
 type SupportedLang = (typeof SUPPORTED_LANGS)[number]
 
+/**
+ * The localStorage key used by i18next-browser-languagedetector to persist the
+ * selected language. Exported so tests can assert on the same key without
+ * duplicating the string literal.
+ */
+export const LANG_STORAGE_KEY = 'i18nextLng'
+
 /** WCAG 2.5.5 minimum touch-target size in px. */
 const MIN_TOUCH_TARGET = 44
 
@@ -30,7 +37,16 @@ export function LanguageToggle() {
     // Exclusive groups emit null when the active button is re-clicked; keep the
     // current language selected rather than deselecting everything.
     if (next === null || next === currentLang) return
-    void i18n.changeLanguage(next)
+    void i18n.changeLanguage(next).then(() => {
+      // Explicitly persist the selection so tests and environments where the
+      // i18next-browser-languagedetector localStorage cache is unavailable still
+      // see the correct value via the canonical key.
+      try {
+        window.localStorage.setItem(LANG_STORAGE_KEY, next)
+      } catch {
+        // Silently ignore - localStorage may be unavailable in some environments.
+      }
+    })
   }
 
   return (

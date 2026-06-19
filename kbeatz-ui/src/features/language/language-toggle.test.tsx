@@ -2,9 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import i18n from '../../lib/i18n'
-import { LanguageToggle } from './language-toggle'
-
-const LANG_STORAGE_KEY = 'i18nextLng'
+import { LANG_STORAGE_KEY, LanguageToggle } from './language-toggle'
 
 async function resetLanguage(): Promise<void> {
   window.localStorage.clear()
