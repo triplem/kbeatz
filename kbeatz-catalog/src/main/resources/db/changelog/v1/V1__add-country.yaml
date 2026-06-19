@@ -14,3 +14,7 @@ databaseChangeLog:
                   type: VARCHAR(100)
                   constraints:
                     nullable: true
+      rollback:
+        - dropColumn:
+            tableName: albums
+            columnName: country
