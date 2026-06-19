@@ -22,11 +22,11 @@ const AUTO_DISMISS_DELAY_MS = 5000
  * a page reload. A different `completedAt` value (new scan) always shows the
  * banner once regardless of prior dismissals.
  */
-interface CompletedBannerProps {
+export interface CompletedBannerProps {
   readonly completedAt: string
 }
 
-function CompletedBanner({ completedAt }: CompletedBannerProps) {
+export function CompletedBanner({ completedAt }: CompletedBannerProps) {
   const { t } = useTranslation()
   const { isDismissed, dismiss } = useScanBannerDismissal(completedAt)
 

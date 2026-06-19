@@ -2,8 +2,9 @@ import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ScanProgress } from './scan-progress'
+import { ScanProgress, CompletedBanner } from './scan-progress'
 import type { ScanStatus } from '../../api/generated'
+import * as scanBannerDismissal from './useScanBannerDismissal'
 
 // Mock the LibraryService
 vi.mock('../../api/generated', () => ({
@@ -342,5 +343,77 @@ describe('ScanProgress - polling', () => {
     // Second poll fired, service called twice
     expect(mockGetStatus).toHaveBeenCalledTimes(2)
     expect(mockGetStatus).toHaveBeenNthCalledWith(2)
+  })
+})
+
+// Tests for CompletedBanner auto-dismiss timer.
+//
+// Isolated to CompletedBanner (not the full ScanProgress tree) so the tests
+// avoid React Query timer interactions and run with predictable fake timers.
+// useScanBannerDismissal is spied on so dismiss() is observable directly.
+describe('CompletedBanner - auto-dismiss timer', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    try { localStorage.clear() } catch { /* unavailable */ }
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.useRealTimers()
+  })
+
+  it('calls dismiss after 5 seconds', () => {
+    const dismiss = vi.fn()
+    vi.spyOn(scanBannerDismissal, 'useScanBannerDismissal').mockReturnValue({
+      isDismissed: false,
+      dismiss,
+    })
+
+    render(<CompletedBanner completedAt="2026-06-09T20:31:20Z" />)
+    expect(dismiss).not.toHaveBeenCalled()
+
+    act(() => { vi.advanceTimersByTime(5000) })
+
+    expect(dismiss).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not call dismiss before 5 seconds have elapsed', () => {
+    const dismiss = vi.fn()
+    vi.spyOn(scanBannerDismissal, 'useScanBannerDismissal').mockReturnValue({
+      isDismissed: false,
+      dismiss,
+    })
+
+    render(<CompletedBanner completedAt="2026-06-09T20:31:20Z" />)
+
+    act(() => { vi.advanceTimersByTime(4999) })
+
+    expect(dismiss).not.toHaveBeenCalled()
+  })
+
+  it('does not call dismiss after unmount (timer cleanup)', () => {
+    const dismiss = vi.fn()
+    vi.spyOn(scanBannerDismissal, 'useScanBannerDismissal').mockReturnValue({
+      isDismissed: false,
+      dismiss,
+    })
+
+    const { unmount } = render(<CompletedBanner completedAt="2026-06-09T20:31:20Z" />)
+    unmount()
+
+    act(() => { vi.advanceTimersByTime(5000) })
+
+    expect(dismiss).not.toHaveBeenCalled()
+  })
+
+  it('renders nothing when isDismissed is true', () => {
+    vi.spyOn(scanBannerDismissal, 'useScanBannerDismissal').mockReturnValue({
+      isDismissed: true,
+      dismiss: vi.fn(),
+    })
+
+    const { container } = render(<CompletedBanner completedAt="2026-06-09T20:31:20Z" />)
+
+    expect(container.firstChild).toBeNull()
   })
 })
