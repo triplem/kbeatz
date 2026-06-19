@@ -1,5 +1,9 @@
 package org.javafreedom.kbeatz.catalog.application.service
 
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -15,11 +19,14 @@ import kotlin.uuid.Uuid
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import org.javafreedom.kbeatz.catalog.application.service.LibraryScanService.Companion.COUNTRY_MAX_LENGTH
+import org.javafreedom.kbeatz.catalog.application.service.LibraryScanService.Companion.MEDIA_FORMAT_MAX_LENGTH
 import org.javafreedom.kbeatz.catalog.domain.model.AlbumGroup
 import org.javafreedom.kbeatz.catalog.domain.model.ScanState
 import org.javafreedom.kbeatz.catalog.domain.model.ScanStatus
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 import org.javafreedom.kbeatz.catalog.domain.repository.TrackRepository
+import org.slf4j.LoggerFactory
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class LibraryScanServiceTest {
@@ -467,6 +474,130 @@ class LibraryScanServiceTest {
         coVerify(exactly = 0) { trackRepository.deleteByAlbumId(any()) }
         coVerify(exactly = 0) { trackRepository.saveAll(any()) }
         assertEquals(ScanState.COMPLETE, svc.status().state)
+    }
+
+    // --- Tag truncation tests ---
+
+    private fun captureWarnLogs(): Pair<ListAppender<ILoggingEvent>, Logger> {
+        val appender = ListAppender<ILoggingEvent>().also { it.start() }
+        val logger = LoggerFactory.getLogger(
+            "org.javafreedom.kbeatz.catalog.application.service",
+        ) as Logger
+        logger.level = Level.WARN
+        logger.addAppender(appender)
+        return appender to logger
+    }
+
+    @Test
+    fun `toAlbum truncates country to 100 chars when value exceeds limit and emits WARN`() {
+        val (logAppender, logger) = captureWarnLogs()
+        try {
+            val longCountry = "A".repeat(COUNTRY_MAX_LENGTH + 1)
+            val group = AlbumGroup(
+                rootPath = Path.of("/music/classical/bach"),
+                sourceDirs = listOf(Path.of("/music/classical/bach")),
+                flacPaths = emptyList(),
+                albumArtist = "Bach",
+                albumTitle = "BWV 998",
+                date = "1720",
+                country = longCountry,
+            )
+
+            val album = with(LibraryScanService.Companion) { group.toAlbum() }
+
+            assertEquals(COUNTRY_MAX_LENGTH, album.country?.length,
+                "country must be truncated to $COUNTRY_MAX_LENGTH characters")
+            assertTrue(
+                logAppender.list.any { it.level == Level.WARN && it.formattedMessage.contains("COUNTRY") },
+                "Expected WARN log containing 'COUNTRY' but got: ${logAppender.list.map { it.formattedMessage }}",
+            )
+        } finally {
+            logger.detachAppender(logAppender)
+        }
+    }
+
+    @Test
+    fun `toAlbum truncates mediaFormat to 500 chars when value exceeds limit and emits WARN`() {
+        val (logAppender, logger) = captureWarnLogs()
+        try {
+            val longMedia = "B".repeat(MEDIA_FORMAT_MAX_LENGTH + 1)
+            val group = AlbumGroup(
+                rootPath = Path.of("/music/classical/bach"),
+                sourceDirs = listOf(Path.of("/music/classical/bach")),
+                flacPaths = emptyList(),
+                albumArtist = "Bach",
+                albumTitle = "BWV 998",
+                date = "1720",
+                mediaFormat = longMedia,
+            )
+
+            val album = with(LibraryScanService.Companion) { group.toAlbum() }
+
+            assertEquals(MEDIA_FORMAT_MAX_LENGTH, album.mediaFormat?.length,
+                "mediaFormat must be truncated to $MEDIA_FORMAT_MAX_LENGTH characters")
+            assertTrue(
+                logAppender.list.any { it.level == Level.WARN && it.formattedMessage.contains("MEDIA") },
+                "Expected WARN log containing 'MEDIA' but got: ${logAppender.list.map { it.formattedMessage }}",
+            )
+        } finally {
+            logger.detachAppender(logAppender)
+        }
+    }
+
+    @Test
+    fun `toAlbum does not truncate country when value is exactly at the limit`() {
+        val (logAppender, logger) = captureWarnLogs()
+        try {
+            val exactCountry = "A".repeat(COUNTRY_MAX_LENGTH)
+            val group = AlbumGroup(
+                rootPath = Path.of("/music/classical/bach"),
+                sourceDirs = listOf(Path.of("/music/classical/bach")),
+                flacPaths = emptyList(),
+                albumArtist = "Bach",
+                albumTitle = "BWV 998",
+                date = "1720",
+                country = exactCountry,
+            )
+
+            val album = with(LibraryScanService.Companion) { group.toAlbum() }
+
+            assertEquals(COUNTRY_MAX_LENGTH, album.country?.length,
+                "country at exactly the limit must not be truncated")
+            assertTrue(
+                logAppender.list.none { it.level == Level.WARN && it.formattedMessage.contains("COUNTRY") },
+                "No WARN log expected when country is within limit",
+            )
+        } finally {
+            logger.detachAppender(logAppender)
+        }
+    }
+
+    @Test
+    fun `toAlbum does not truncate mediaFormat when value is exactly at the limit`() {
+        val (logAppender, logger) = captureWarnLogs()
+        try {
+            val exactMedia = "B".repeat(MEDIA_FORMAT_MAX_LENGTH)
+            val group = AlbumGroup(
+                rootPath = Path.of("/music/classical/bach"),
+                sourceDirs = listOf(Path.of("/music/classical/bach")),
+                flacPaths = emptyList(),
+                albumArtist = "Bach",
+                albumTitle = "BWV 998",
+                date = "1720",
+                mediaFormat = exactMedia,
+            )
+
+            val album = with(LibraryScanService.Companion) { group.toAlbum() }
+
+            assertEquals(MEDIA_FORMAT_MAX_LENGTH, album.mediaFormat?.length,
+                "mediaFormat at exactly the limit must not be truncated")
+            assertTrue(
+                logAppender.list.none { it.level == Level.WARN && it.formattedMessage.contains("MEDIA") },
+                "No WARN log expected when mediaFormat is within limit",
+            )
+        } finally {
+            logger.detachAppender(logAppender)
+        }
     }
 
     @Test
