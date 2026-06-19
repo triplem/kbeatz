@@ -390,4 +390,133 @@ class LibraryWalkerTest {
         assertEquals(listOf(albumDir), groups[0].sourceDirs,
             "Single-directory album must have exactly one entry in sourceDirs")
     }
+
+    // --- COUNTRY tag extraction tests (issue #898) ---
+
+    @Test
+    fun `walk sets country when all tracks have COUNTRY tag`(@TempDir root: Path) {
+        val albumDir = Files.createDirectories(root.resolve("jazz/miles-davis/kind-of-blue"))
+        writeFile(albumDir, "01 - So What.flac", flacBytes(
+            "ALBUMARTIST=Miles Davis", "ALBUM=Kind of Blue", "DATE=1959", "COUNTRY=USA"
+        ))
+        writeFile(albumDir, "02 - Freddie Freeloader.flac", flacBytes(
+            "ALBUMARTIST=Miles Davis", "ALBUM=Kind of Blue", "DATE=1959", "COUNTRY=USA"
+        ))
+
+        val groups = walker.walk(root)
+
+        assertEquals(1, groups.size)
+        assertEquals("USA", groups[0].country, "country must be set when all tracks carry the COUNTRY tag")
+    }
+
+    @Test
+    fun `walk uses first track country when only some tracks have COUNTRY tag`(@TempDir root: Path) {
+        val albumDir = Files.createDirectories(root.resolve("jazz/miles-davis/kind-of-blue"))
+        // First track has no COUNTRY tag
+        writeFile(albumDir, "01 - So What.flac", flacBytes(
+            "ALBUMARTIST=Miles Davis", "ALBUM=Kind of Blue", "DATE=1959"
+        ))
+        // Second track has COUNTRY tag
+        writeFile(albumDir, "02 - Freddie Freeloader.flac", flacBytes(
+            "ALBUMARTIST=Miles Davis", "ALBUM=Kind of Blue", "DATE=1959", "COUNTRY=UK"
+        ))
+
+        val groups = walker.walk(root)
+
+        assertEquals(1, groups.size)
+        assertEquals("UK", groups[0].country,
+            "country must be taken from the first track that has a COUNTRY tag (firstNotNullOfOrNull)")
+    }
+
+    @Test
+    fun `walk sets country to null when no tracks have COUNTRY tag`(@TempDir root: Path) {
+        val albumDir = Files.createDirectories(root.resolve("jazz/miles-davis/kind-of-blue"))
+        writeFile(albumDir, "01 - So What.flac", flacBytes(
+            "ALBUMARTIST=Miles Davis", "ALBUM=Kind of Blue", "DATE=1959"
+        ))
+
+        val groups = walker.walk(root)
+
+        assertEquals(1, groups.size)
+        assertEquals(null, groups[0].country, "country must be null when no track has a COUNTRY tag")
+    }
+
+    @Test
+    fun `walk treats blank COUNTRY tag as absent`(@TempDir root: Path) {
+        val albumDir = Files.createDirectories(root.resolve("jazz/miles-davis/kind-of-blue"))
+        writeFile(albumDir, "01 - So What.flac", flacBytes(
+            "ALBUMARTIST=Miles Davis", "ALBUM=Kind of Blue", "DATE=1959", "COUNTRY=   "
+        ))
+
+        val groups = walker.walk(root)
+
+        assertEquals(1, groups.size)
+        assertEquals(null, groups[0].country,
+            "blank COUNTRY tag must be treated as absent (takeIf { it.isNotBlank() })")
+    }
+
+    // --- MEDIA tag extraction tests (issue #898) ---
+
+    @Test
+    fun `walk sets mediaFormat when all tracks have MEDIA tag`(@TempDir root: Path) {
+        val albumDir = Files.createDirectories(root.resolve("jazz/miles-davis/kind-of-blue"))
+        writeFile(albumDir, "01 - So What.flac", flacBytes(
+            "ALBUMARTIST=Miles Davis", "ALBUM=Kind of Blue", "DATE=1959", "MEDIA=CD"
+        ))
+        writeFile(albumDir, "02 - Freddie Freeloader.flac", flacBytes(
+            "ALBUMARTIST=Miles Davis", "ALBUM=Kind of Blue", "DATE=1959", "MEDIA=CD"
+        ))
+
+        val groups = walker.walk(root)
+
+        assertEquals(1, groups.size)
+        assertEquals("CD", groups[0].mediaFormat,
+            "mediaFormat must be set when all tracks carry the MEDIA tag")
+    }
+
+    @Test
+    fun `walk uses first track mediaFormat when only some tracks have MEDIA tag`(@TempDir root: Path) {
+        val albumDir = Files.createDirectories(root.resolve("jazz/miles-davis/kind-of-blue"))
+        // First track has no MEDIA tag
+        writeFile(albumDir, "01 - So What.flac", flacBytes(
+            "ALBUMARTIST=Miles Davis", "ALBUM=Kind of Blue", "DATE=1959"
+        ))
+        // Second track has MEDIA tag
+        writeFile(albumDir, "02 - Freddie Freeloader.flac", flacBytes(
+            "ALBUMARTIST=Miles Davis", "ALBUM=Kind of Blue", "DATE=1959", "MEDIA=Vinyl"
+        ))
+
+        val groups = walker.walk(root)
+
+        assertEquals(1, groups.size)
+        assertEquals("Vinyl", groups[0].mediaFormat,
+            "mediaFormat must be taken from the first track that has a MEDIA tag (firstNotNullOfOrNull)")
+    }
+
+    @Test
+    fun `walk sets mediaFormat to null when no tracks have MEDIA tag`(@TempDir root: Path) {
+        val albumDir = Files.createDirectories(root.resolve("jazz/miles-davis/kind-of-blue"))
+        writeFile(albumDir, "01 - So What.flac", flacBytes(
+            "ALBUMARTIST=Miles Davis", "ALBUM=Kind of Blue", "DATE=1959"
+        ))
+
+        val groups = walker.walk(root)
+
+        assertEquals(1, groups.size)
+        assertEquals(null, groups[0].mediaFormat, "mediaFormat must be null when no track has a MEDIA tag")
+    }
+
+    @Test
+    fun `walk treats blank MEDIA tag as absent`(@TempDir root: Path) {
+        val albumDir = Files.createDirectories(root.resolve("jazz/miles-davis/kind-of-blue"))
+        writeFile(albumDir, "01 - So What.flac", flacBytes(
+            "ALBUMARTIST=Miles Davis", "ALBUM=Kind of Blue", "DATE=1959", "MEDIA=   "
+        ))
+
+        val groups = walker.walk(root)
+
+        assertEquals(1, groups.size)
+        assertEquals(null, groups[0].mediaFormat,
+            "blank MEDIA tag must be treated as absent (takeIf { it.isNotBlank() })")
+    }
 }
