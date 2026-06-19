@@ -1420,10 +1420,10 @@ describe('AlbumDetail', () => {
   })
 
   // ──────────────────────────────────────────────
-  // Two-column layout (#579)
+  // Stacked edit layout (#947)
   // ──────────────────────────────────────────────
 
-  it('renders two-column layout container with metadata and tracklist columns (in edit mode)', async () => {
+  it('renders stacked edit layout container with metadata and tracklist columns (in edit mode)', async () => {
     mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum())
     renderDetail()
     await waitFor(() => {
@@ -1431,7 +1431,7 @@ describe('AlbumDetail', () => {
     })
     await enterEditMode()
     await waitFor(() => {
-      expect(screen.getByTestId('two-column-layout')).toBeInTheDocument()
+      expect(screen.getByTestId('edit-layout')).toBeInTheDocument()
     })
     expect(screen.getByTestId('metadata-column')).toBeInTheDocument()
     expect(screen.getByTestId('tracklist-column')).toBeInTheDocument()

@@ -450,11 +450,10 @@ export function AlbumDetailEdit({
         <AlbumHeroHeader album={album} />
 
         <Box
-          data-testid="two-column-layout"
+          data-testid="edit-layout"
           sx={{
             display: 'grid',
-            gridTemplateColumns: { xs: '1fr', lg: '35fr 65fr' },
-            alignItems: { lg: 'start' },
+            gridTemplateColumns: '1fr',
             gap: 3,
           }}
         >
@@ -464,9 +463,6 @@ export function AlbumDetailEdit({
               display: 'flex',
               flexDirection: 'column',
               gap: 2,
-              position: { lg: 'sticky' },
-              top: { lg: 64 },
-              alignSelf: { lg: 'start' },
             }}
           >
             {album.hasCoverArt && (
