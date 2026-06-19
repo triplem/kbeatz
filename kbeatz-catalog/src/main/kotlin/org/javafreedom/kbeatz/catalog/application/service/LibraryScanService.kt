@@ -400,13 +400,15 @@ class LibraryScanService(
         const val DEFAULT_REPAIR_TIMEOUT_SECONDS: Long = 60L
 
         /**
-         * Maximum length for the country column, matching the VARCHAR(100) in AlbumsTable.
+         * Maximum length for the country column (mirrors VARCHAR(100) in AlbumsTable.country).
+         * If the schema column width changes, update this constant to match.
          * Values longer than this are truncated in [AlbumGroup.toAlbum] with a WARN log.
          */
         const val COUNTRY_MAX_LENGTH: Int = 100
 
         /**
-         * Maximum length for the media_format column, matching the VARCHAR(500) in AlbumsTable.
+         * Maximum length for the media_format column (mirrors VARCHAR(500) in AlbumsTable.mediaFormat).
+         * If the schema column width changes, update this constant to match.
          * Values longer than this are truncated in [AlbumGroup.toAlbum] with a WARN log.
          */
         const val MEDIA_FORMAT_MAX_LENGTH: Int = 500
