@@ -115,9 +115,10 @@ describe('AlbumHeroHeader', () => {
     expect(screen.queryByTestId('hero-cover-art')).toBeNull()
   })
 
-  it('renders placeholder element when hasCoverArt is false', () => {
+  it('does not render a cover placeholder when hasCoverArt is false (metadata takes full width)', () => {
     renderHero(makeAlbum({ hasCoverArt: false }))
-    expect(screen.getByTestId('hero-cover-placeholder')).toBeInTheDocument()
+    expect(screen.queryByTestId('hero-cover-placeholder')).toBeNull()
+    expect(screen.getByTestId('hero-metadata')).toBeInTheDocument()
   })
 
   it('renders all fields when all are populated', () => {

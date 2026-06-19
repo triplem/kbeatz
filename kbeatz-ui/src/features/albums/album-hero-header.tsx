@@ -56,7 +56,9 @@ export function AlbumHeroHeader({ album }: AlbumHeroHeaderProps) {
       data-testid="album-hero-header"
       sx={{
         display: 'grid',
-        gridTemplateColumns: { xs: '1fr', sm: '200px 1fr' },
+        gridTemplateColumns: album.hasCoverArt
+          ? { xs: '1fr', sm: '200px 1fr' }
+          : '1fr',
         gap: { xs: 2, sm: 3 },
         alignItems: 'start',
       }}
@@ -77,15 +79,6 @@ export function AlbumHeroHeader({ album }: AlbumHeroHeaderProps) {
             borderRadius: 2,
             boxShadow: 3,
           }}
-        />
-      )}
-
-      {/* When no cover art, placeholder so the metadata column still fills the right slot */}
-      {!album.hasCoverArt && (
-        <Box
-          aria-hidden="true"
-          data-testid="hero-cover-placeholder"
-          sx={{ display: { xs: 'none', sm: 'block' }, width: 200 }}
         />
       )}
 
