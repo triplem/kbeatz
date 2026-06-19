@@ -450,7 +450,7 @@ export function AlbumDetailEdit({
         <AlbumHeroHeader album={album} />
 
         <Box
-          data-testid="two-column-layout"
+          data-testid="edit-layout"
           sx={{
             display: 'grid',
             gridTemplateColumns: '1fr',
