@@ -132,7 +132,7 @@ For EACH issue, follow this lifecycle:
   9. gh pr create --title "..." --body "..."
  10. Challenge the PR from all 9 specialist perspectives (see §Challenge below)
  11. Comment ALL findings (BLOCKER through NIT) as a single consolidated comment on the PR
- 12. Fix ALL findings directly on the branch (including MINOR and NIT) — not just BLOCKER/MAJOR; re-run quality gates after fixes
+ 12. Fix ALL findings (BLOCKER through NIT): for each finding either (a) fix directly on this PR branch and push, or (b) open a new GitHub issue and immediately implement the fix on a fresh branch, PR, and merge — no finding may be left unfixed or deferred without a matching issue + fix already merged; re-run quality gates after all fixes
  13. gh pr checks <pr-num>  # wait for CI green
  14. gh pr merge <pr-num> --squash --delete-branch
  15. gh issue close NNN --comment "Fixed in PR #PR_NUM."
@@ -195,12 +195,17 @@ EOF
 | 9 | Operations | Structured logging, health check impact, graceful shutdown |
 
 Severity guide:
-- **BLOCKER**: data loss, security hole, broken critical path — fix directly on the PR branch before merge
-- **MAJOR**: correctness bug, missing test for a stated AC, design smell — fix directly on the PR branch before merge
-- **MINOR**: style/naming, unlikely edge case, missing optional test — fix directly on the PR branch before merge
-- **NIT**: whitespace, comment wording, pedantic — fix directly on the PR branch before merge
+- **BLOCKER**: data loss, security hole, broken critical path - fix on PR branch or open issue and fix immediately
+- **MAJOR**: correctness bug, missing test for a stated AC, design smell - fix on PR branch or open issue and fix immediately
+- **MINOR**: style/naming, unlikely edge case, missing optional test - fix on PR branch or open issue and fix immediately
+- **NIT**: whitespace, comment wording, pedantic - fix on PR branch or open issue and fix immediately
 
-**Default behavior**: Fix ALL findings (BLOCKER through NIT) directly on the branch and push before merging. Do NOT open separate GitHub issues for individual PR findings. The Phase 5 issue-creation step applies only to Phase 4 main branch challenge findings.
+**Default behavior**: Comment ALL findings (BLOCKER through NIT) on the PR, then fix every finding before merging. For each finding choose the appropriate path:
+
+- **Fix on PR branch** (preferred for small, in-scope changes): push the fix to the current branch and re-run quality gates.
+- **Open issue + fix immediately** (for out-of-scope or non-trivial changes): create a GitHub issue, implement the fix on a dedicated branch, PR, merge - and confirm it is merged before the original PR merges.
+
+No finding may be left unfixed or deferred to a future sprint. The Phase 5 issue-creation step applies to Phase 4 main branch challenge findings (same rule: open the issue and fix it immediately, do not defer).
 
 ---
 
@@ -448,10 +453,13 @@ Long-running agents (implementing 7+ stories) can hit network idle timeouts. Bef
 ### CI must cover all modules before final merge
 The main branch challenge consistently reveals gaps when CI only covers the backend. Add frontend build/lint/test as a parallel CI job early — before the first wave merges.
 
-### Fix ALL challenge findings directly on the PR branch - do not defer to follow-up issues
-The user prefers that every PR challenge finding (BLOCKER through NIT) is fixed directly on the feature branch and pushed before merging. Do not open separate GitHub issues for findings from individual PR challenges; only Phase 4 main branch challenge findings become issues. This keeps the main branch clean after each merge without leaving a trail of NIT-level debt.
+### Fix ALL challenge findings - comment on PR, then fix immediately (on branch or via a new issue)
+Every PR challenge finding (BLOCKER through NIT) must be commented on the PR as a consolidated report AND fixed before the PR merges. Two valid paths:
 
-In practice this means step 12 in the agent lifecycle is "Fix ALL findings (not just BLOCKER/MAJOR), re-run quality gates, push." The consolidated PR comment still lists all findings so the review record exists.
+1. **Fix on PR branch** - push the fix to the current branch and re-run quality gates (preferred for small, in-scope changes).
+2. **Open issue + fix immediately** - create a GitHub issue, implement on a dedicated branch, merge, then reference the merged fix in the original PR. The fix must be merged before the triggering PR merges.
+
+There is no "defer to a future sprint" option. The consolidated PR comment lists all findings so the review record exists. The same rule applies to Phase 4 main branch challenge findings: open the issue and fix it immediately, do not leave it as a backlog item.
 
 ### Local branch cleanup is a mandatory step in each agent lifecycle
 After `gh pr merge --squash --delete-branch`, delete the local branch with `git branch -D <branch>` inside the worktree. Without this, worktrees accumulate stale branches that can conflict with subsequent issues in the same agent session.
