@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
@@ -149,5 +149,37 @@ describe('AppShell', () => {
     expect(menuButton).toHaveAttribute('aria-controls', 'app-mobile-drawer')
     await user.click(menuButton)
     expect(menuButton).toHaveAttribute('aria-expanded', 'true')
+  })
+
+  it('full mobile nav flow: burger click opens drawer with Albums/Library/Settings, link tap navigates and closes drawer', async () => {
+    const user = userEvent.setup()
+    const { router } = renderShell(['/'])
+
+    // Step 1: hamburger is present (CSS hides it at md+ but it is in the DOM)
+    const menuButton = screen.getByRole('button', { name: 'Open navigation menu' })
+    expect(menuButton).toBeInTheDocument()
+
+    // Step 2: click burger - drawer opens
+    await user.click(menuButton)
+    const drawer = screen.getByRole('presentation')
+    expect(drawer).toBeInTheDocument()
+
+    // Step 3: Albums, Library, and Settings links are visible inside the drawer
+    const drawerNav = within(drawer)
+    expect(drawerNav.getByRole('link', { name: 'Albums' })).toBeInTheDocument()
+    expect(drawerNav.getByRole('link', { name: 'Library' })).toBeInTheDocument()
+    expect(drawerNav.getByRole('link', { name: 'Settings' })).toBeInTheDocument()
+
+    // Step 4: tap the Settings link inside the drawer - navigates correctly
+    await user.click(drawerNav.getByRole('link', { name: 'Settings' }))
+    expect(screen.getByTestId('settings-route')).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/settings')
+
+    // Step 5: drawer closes after navigation - aria-expanded on the burger
+    // button flips back to false when mobileOpen becomes false.
+    // (keepMounted keeps the drawer DOM node but the state is reflected on the button.)
+    await waitFor(() => {
+      expect(menuButton).toHaveAttribute('aria-expanded', 'false')
+    })
   })
 })
