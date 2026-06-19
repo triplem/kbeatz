@@ -32,9 +32,9 @@ export interface AlbumDetailViewProps {
  * - Back button
  * - Visually-hidden h1 (album title)
  * - AlbumHeroHeader (cover art + metadata summary)
+ * - Edit button (near hero header, per AD-FR-06)
  * - AlbumTrackListView (read-only tracklist with optional "Composed By" sub-lines)
  * - AlbumCreditsSection (album-level composer/conductor/ensemble; hidden when all absent)
- * - Edit button to switch to edit mode
  *
  * This component contains no input fields, no edit icons, and no hover affordances.
  *
@@ -95,6 +95,18 @@ export function AlbumDetailView({ album, onEnterEditMode, editButtonRef, onSyncC
 
       <AlbumHeroHeader album={album} />
 
+      <Button
+        ref={editButtonRef}
+        type="button"
+        variant="contained"
+        startIcon={<EditIcon />}
+        onClick={onEnterEditMode}
+        data-testid="edit-button"
+        sx={{ alignSelf: 'flex-start', minHeight: 44 }}
+      >
+        {t('albumDetail.editButton')}
+      </Button>
+
       <Box
         component="section"
         aria-label={t('albumDetail.tracksSection')}
@@ -135,17 +147,6 @@ export function AlbumDetailView({ album, onEnterEditMode, editButtonRef, onSyncC
         </Box>
       )}
 
-      <Button
-        ref={editButtonRef}
-        type="button"
-        variant="contained"
-        startIcon={<EditIcon />}
-        onClick={onEnterEditMode}
-        data-testid="edit-button"
-        sx={{ alignSelf: 'flex-start', minHeight: 44 }}
-      >
-        {t('albumDetail.editButton')}
-      </Button>
     </Box>
   )
 }
