@@ -400,18 +400,6 @@ class LibraryScanService(
         const val DEFAULT_REPAIR_TIMEOUT_SECONDS: Long = 60L
 
         /**
-         * Maximum length for the country column, matching the VARCHAR(100) in AlbumsTable.
-         * Values longer than this are truncated in [AlbumGroup.toAlbum] with a WARN log.
-         */
-        const val COUNTRY_MAX_LENGTH: Int = 100
-
-        /**
-         * Maximum length for the media_format column, matching the VARCHAR(500) in AlbumsTable.
-         * Values longer than this are truncated in [AlbumGroup.toAlbum] with a WARN log.
-         */
-        const val MEDIA_FORMAT_MAX_LENGTH: Int = 500
-
-        /**
          * Maps a [AlbumGroup] from the walker to an [Album] suitable for persistence.
          *
          * If [existingId] is supplied (looked up by natural key from the repository), it is reused
@@ -422,46 +410,26 @@ class LibraryScanService(
          * [AlbumGroup.rootPath]. This allows [TagWriteService] to write tags to all directories that
          * were merged during deduplication (issue #666).
          */
-        fun AlbumGroup.toAlbum(existingId: Uuid? = null): Album {
-            val countryValue = country?.let { raw ->
-                if (raw.length > COUNTRY_MAX_LENGTH) {
-                    log.warn {
-                        "COUNTRY tag truncated albumDir=$rootPath " +
-                            "originalLength=${raw.length} maxLength=$COUNTRY_MAX_LENGTH"
-                    }
-                    raw.take(COUNTRY_MAX_LENGTH)
-                } else raw
-            }
-            val mediaFormatValue = mediaFormat?.let { raw ->
-                if (raw.length > MEDIA_FORMAT_MAX_LENGTH) {
-                    log.warn {
-                        "MEDIA tag truncated albumDir=$rootPath " +
-                            "originalLength=${raw.length} maxLength=$MEDIA_FORMAT_MAX_LENGTH"
-                    }
-                    raw.take(MEDIA_FORMAT_MAX_LENGTH)
-                } else raw
-            }
-            return Album(
-                id = existingId ?: Uuid.random(),
-                albumArtist = albumArtist,
-                album = albumTitle,
-                date = date,
-                genre = null,
-                label = null,
-                catalogNumber = null,
-                composer = null,
-                conductor = null,
-                ensemble = null,
-                country = countryValue,
-                mediaFormat = mediaFormatValue,
-                discogsId = null,
-                directoryPath = rootPath.toString(),
-                extraTags = null,
-                images = null,
-                mergedDirectories = sourceDirs
-                    .map { it.toString() }
-                    .filterNot { it == rootPath.toString() },
-            )
-        }
+        fun AlbumGroup.toAlbum(existingId: Uuid? = null): Album = Album(
+            id = existingId ?: Uuid.random(),
+            albumArtist = albumArtist,
+            album = albumTitle,
+            date = date,
+            genre = null,
+            label = null,
+            catalogNumber = null,
+            composer = null,
+            conductor = null,
+            ensemble = null,
+            country = country,
+            mediaFormat = mediaFormat,
+            discogsId = null,
+            directoryPath = rootPath.toString(),
+            extraTags = null,
+            images = null,
+            mergedDirectories = sourceDirs
+                .map { it.toString() }
+                .filterNot { it == rootPath.toString() },
+        )
     }
 }

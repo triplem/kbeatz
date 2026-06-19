@@ -2209,17 +2209,6 @@ describe('AlbumDetail - hide/show credits toggle (view mode)', () => {
       expect(screen.getByTestId('credits-toggle')).toHaveAttribute('aria-label', 'Show credits')
     })
   })
-
-  it('credits toggle has aria-controls pointing to the tracklist region (WCAG 4.1.2)', async () => {
-    const track = makeTrack({ composer: 'Miles Davis' })
-    mockAlbumsService.getAlbum.mockResolvedValue(makeAlbum({ tracks: [track] }))
-    renderDetail()
-    await waitFor(() => {
-      expect(screen.getByTestId('credits-toggle')).toBeInTheDocument()
-    })
-    expect(screen.getByTestId('credits-toggle')).toHaveAttribute('aria-controls', 'composer-credits-region')
-    expect(document.getElementById('composer-credits-region')).toBeInTheDocument()
-  })
 })
 
 // ---------------------------------------------------------------------------

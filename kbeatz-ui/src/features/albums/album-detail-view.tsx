@@ -110,7 +110,6 @@ export function AlbumDetailView({ album, onEnterEditMode, editButtonRef, onSyncC
               size="small"
               onClick={() => { setShowCredits((prev) => !prev) }}
               aria-expanded={showCredits}
-              aria-controls="composer-credits-region"
               aria-label={showCredits ? t('albumDetail.hideCredits') : t('albumDetail.showCredits')}
               data-testid="credits-toggle"
             >
