@@ -174,7 +174,7 @@ internal fun computeRetryAfterSeconds(resetAt: String, clock: Clock = Clock.Syst
 }
 
 @Suppress("MagicNumber") // 3600 seconds = 1 hour fallback when resetAt cannot be parsed
-private const val RETRY_AFTER_FALLBACK_SECONDS = 3600L
+internal const val RETRY_AFTER_FALLBACK_SECONDS = 3600L
 
 internal fun Album.toSyncApiModel(libraryRoot: Path): ApiAlbum = ApiAlbum(
     id = id.toString(),

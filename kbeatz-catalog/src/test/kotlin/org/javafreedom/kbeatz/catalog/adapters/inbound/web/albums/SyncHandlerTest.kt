@@ -136,6 +136,6 @@ class SyncHandlerTest {
     @Test
     fun `computeRetryAfterSeconds returns fallback when resetAt is unparseable`() {
         val result = computeRetryAfterSeconds("not-a-valid-timestamp")
-        assert(result >= 0) { "Result must be non-negative" }
+        assertEquals(RETRY_AFTER_FALLBACK_SECONDS, result)
     }
 }
