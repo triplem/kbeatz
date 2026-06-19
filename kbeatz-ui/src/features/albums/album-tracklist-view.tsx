@@ -48,7 +48,7 @@ export function AlbumTrackListView({ tracks, showCredits = true }: AlbumTrackLis
   const { groups, isMultiDisc } = groupByDisc(tracks)
 
   return (
-    <TableContainer data-testid="tracklist-view">
+    <TableContainer id="composer-credits-region" data-testid="tracklist-view">
       <Table size="small" aria-label={t('albumDetail.tracksSectionTitle')}>
         <TableHead>
           <TableRow>

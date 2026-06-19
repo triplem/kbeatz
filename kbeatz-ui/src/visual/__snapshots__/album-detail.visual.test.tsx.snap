@@ -112,6 +112,7 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in d
       <div
         class="MuiTableContainer-root css-70zvr5-MuiTableContainer-root"
         data-testid="tracklist-view"
+        id="composer-credits-region"
       >
         <table
           aria-label="Tracks"
@@ -457,6 +458,7 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in l
       <div
         class="MuiTableContainer-root css-70zvr5-MuiTableContainer-root"
         data-testid="tracklist-view"
+        id="composer-credits-region"
       >
         <table
           aria-label="Tracks"
