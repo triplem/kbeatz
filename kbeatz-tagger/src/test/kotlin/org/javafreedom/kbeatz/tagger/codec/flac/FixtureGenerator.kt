@@ -19,7 +19,7 @@ object FixtureGenerator {
     const val SAMPLE_RATE = 44100
     const val CHANNELS = 2
     const val BITS_PER_SAMPLE = 16
-    const val TOTAL_SAMPLES = 4410L   // 100ms of silence — keeps fixture files under 20 KB
+    const val TOTAL_SAMPLES = 227932L  // matches test.flac (real FLAC used as audio base)
 
     /** Known VorbisComment tag values in with-tags.flac and with-cover.flac. */
     const val TAG_TITLE = "Kind of Blue"
@@ -82,21 +82,25 @@ object FixtureGenerator {
     )
 
     /**
-     * Silence: 1 second at 44100 Hz, 16-bit stereo.
-     * The audio data is raw PCM zeros. FlacReader treats everything after the last
-     * metadata block as opaque audio-frame bytes, so no FLAC frame encoding is needed.
+     * Reads the encoded audio frames from test.flac, used as the audio base for all generated fixtures.
+     * FlacReader treats everything after the last metadata block as opaque audio-frame bytes,
+     * so the frames are transferred verbatim into the generated file.
      */
-    @Suppress("MagicNumber") // 2 channels * 2 bytes per sample * totalSamples
-    private fun silenceAudio(): ByteArray = ByteArray(TOTAL_SAMPLES.toInt() * CHANNELS * 2)
+    private fun audioFrames(): ByteArray {
+        val stream = checkNotNull(
+            FixtureGenerator::class.java.classLoader.getResourceAsStream("fixtures/test.flac"),
+        ) { "test.flac fixture not found on classpath" }
+        return stream.use { FlacReader().parse(it.readBytes()).audioFrames }
+    }
 
     private fun writeWithTags(file: File) {
         val blocks = listOf(streamInfo(), vorbisComment())
-        file.writeBytes(FlacWriter(targetPaddingBytes = 0).write(blocks, silenceAudio()))
+        file.writeBytes(FlacWriter(targetPaddingBytes = 0).write(blocks, audioFrames()))
     }
 
     private fun writeWithCover(file: File) {
         val blocks = listOf(streamInfo(), vorbisComment(), picture())
-        file.writeBytes(FlacWriter(targetPaddingBytes = 0).write(blocks, silenceAudio()))
+        file.writeBytes(FlacWriter(targetPaddingBytes = 0).write(blocks, audioFrames()))
     }
 
     private fun writeCorrupted(file: File) {
