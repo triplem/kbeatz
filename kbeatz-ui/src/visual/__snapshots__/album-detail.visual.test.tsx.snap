@@ -36,14 +36,9 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in d
     </button>
     <section
       aria-labelledby="hero-album-title"
-      class="MuiBox-root css-1x7nj5q"
+      class="MuiBox-root css-7uzzu1"
       data-testid="album-hero-header"
     >
-      <div
-        aria-hidden="true"
-        class="MuiBox-root css-1ty2qe2"
-        data-testid="hero-cover-placeholder"
-      />
       <div
         class="MuiBox-root css-bly4bm"
         data-testid="hero-metadata"
@@ -382,14 +377,9 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in l
     </button>
     <section
       aria-labelledby="hero-album-title"
-      class="MuiBox-root css-1x7nj5q"
+      class="MuiBox-root css-7uzzu1"
       data-testid="album-hero-header"
     >
-      <div
-        aria-hidden="true"
-        class="MuiBox-root css-1ty2qe2"
-        data-testid="hero-cover-placeholder"
-      />
       <div
         class="MuiBox-root css-bly4bm"
         data-testid="hero-metadata"
