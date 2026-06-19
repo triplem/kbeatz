@@ -23,9 +23,9 @@ class DiscogsMetadataSourceSyncTest {
 
     private val sampleReleaseJson = """
         {
-          "id": "12345",
+          "id": 12345,
           "title": "Kind of Blue",
-          "artists": [{"id": "1", "name": "Miles Davis", "role": "", "join": null}],
+          "artists": [{"id": 1, "name": "Miles Davis", "role": "", "join": null}],
           "extraartists": [],
           "year": 1959,
           "released": "1959-08-17",
@@ -48,9 +48,9 @@ class DiscogsMetadataSourceSyncTest {
 
     private val multiDiscReleaseJson = """
         {
-          "id": "67890",
+          "id": 67890,
           "title": "The Wall",
-          "artists": [{"id": "2", "name": "Pink Floyd", "role": "", "join": null}],
+          "artists": [{"id": 2, "name": "Pink Floyd", "role": "", "join": null}],
           "extraartists": [],
           "year": 1979,
           "released": null,

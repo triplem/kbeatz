@@ -13,20 +13,20 @@ import kotlin.test.assertTrue
  */
 class DiscogsTagMapperTest {
 
-    private val minimalRelease = DiscogsRelease(id = "12345", title = "Test Album")
+    private val minimalRelease = DiscogsRelease(id = 12345, title = "Test Album")
 
     // ---- album-level mapping ----
 
     @Test
     fun `should map all 14 standard fields when release is fully populated`() {
         val release = DiscogsRelease(
-            id = "12345",
+            id = 12345,
             title = "Kind of Blue",
-            artists = listOf(DiscogsArtist(id = "1", name = "Miles Davis")),
+            artists = listOf(DiscogsArtist(id = 1, name = "Miles Davis")),
             extraartists = listOf(
-                DiscogsArtist(id = "10", name = "Beethoven", role = "Composed By"),
-                DiscogsArtist(id = "11", name = "Karajan", role = "Conductor"),
-                DiscogsArtist(id = "12", name = "Berlin Phil", role = "Orchestra"),
+                DiscogsArtist(id = 10, name = "Beethoven", role = "Composed By"),
+                DiscogsArtist(id = 11, name = "Karajan", role = "Conductor"),
+                DiscogsArtist(id = 12, name = "Berlin Phil", role = "Orchestra"),
             ),
             year = 1959,
             labels = listOf(DiscogsLabel(name = "Columbia", catno = "CL 1355")),
@@ -88,8 +88,8 @@ class DiscogsTagMapperTest {
     fun `should set ALBUMARTIST from first artist name`() {
         val release = minimalRelease.copy(
             artists = listOf(
-                DiscogsArtist(id = "1", name = "Miles Davis"),
-                DiscogsArtist(id = "2", name = "John Coltrane"),
+                DiscogsArtist(id = 1, name = "Miles Davis"),
+                DiscogsArtist(id = 2, name = "John Coltrane"),
             ),
         )
 
@@ -216,7 +216,7 @@ class DiscogsTagMapperTest {
     fun `should match COMPOSER role case-insensitively`() {
         val release = minimalRelease.copy(
             extraartists = listOf(
-                DiscogsArtist(id = "1", name = "Beethoven", role = "COMPOSED BY"),
+                DiscogsArtist(id = 1, name = "Beethoven", role = "COMPOSED BY"),
             ),
         )
 
@@ -229,7 +229,7 @@ class DiscogsTagMapperTest {
     fun `should match Conductor role with mixed case`() {
         val release = minimalRelease.copy(
             extraartists = listOf(
-                DiscogsArtist(id = "1", name = "Karajan", role = "Conductor"),
+                DiscogsArtist(id = 1, name = "Karajan", role = "Conductor"),
             ),
         )
 
@@ -242,7 +242,7 @@ class DiscogsTagMapperTest {
     fun `should match Orchestra role case-insensitively`() {
         val release = minimalRelease.copy(
             extraartists = listOf(
-                DiscogsArtist(id = "1", name = "Berlin Phil", role = "orchestra"),
+                DiscogsArtist(id = 1, name = "Berlin Phil", role = "orchestra"),
             ),
         )
 
@@ -255,7 +255,7 @@ class DiscogsTagMapperTest {
     fun `should omit COMPOSER when no matching extraArtist role`() {
         val release = minimalRelease.copy(
             extraartists = listOf(
-                DiscogsArtist(id = "1", name = "Some Person", role = "Piano"),
+                DiscogsArtist(id = 1, name = "Some Person", role = "Piano"),
             ),
         )
 

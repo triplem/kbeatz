@@ -79,7 +79,7 @@ object DiscogsToKbeatzMapper {
 
         return KbeatzMetadata(
             source = "discogs",
-            sourceId = release.id,
+            sourceId = release.id.toString(),
             fetchedAt = fetchedAt,
             album = buildAlbum(release, discCount),
             tracks = tracks,
