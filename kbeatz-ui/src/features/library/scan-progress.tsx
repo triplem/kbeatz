@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -7,6 +8,9 @@ import { ScanErrors } from './scan-errors'
 import { formatDateTime } from '../../lib/i18n'
 import { useScanStatus } from './useScanStatus'
 import { useScanBannerDismissal } from './useScanBannerDismissal'
+
+/** Auto-dismiss delay in milliseconds after a scan completes successfully. */
+const AUTO_DISMISS_DELAY_MS = 5000
 
 /**
  * Dismissible completion banner for a single scan epoch.
@@ -25,6 +29,18 @@ interface CompletedBannerProps {
 function CompletedBanner({ completedAt }: CompletedBannerProps) {
   const { t } = useTranslation()
   const { isDismissed, dismiss } = useScanBannerDismissal(completedAt)
+
+  /*
+   * Auto-dismiss: start a 5-second timer when the banner first appears.
+   * The timer is cancelled (cleanup) if the user dismisses manually first,
+   * or if the component unmounts for any other reason.
+   * `dismiss` is stable (useCallback in useScanBannerDismissal) so this
+   * effect only re-runs when completedAt changes (i.e. a new scan).
+   */
+  useEffect(() => {
+    const timer = setTimeout(dismiss, AUTO_DISMISS_DELAY_MS)
+    return () => { clearTimeout(timer) }
+  }, [dismiss])
 
   if (isDismissed) return null
 

@@ -156,7 +156,7 @@
     "failed": "Scan failed: {{message}}",
     "unknownError": "Unknown error",
     "startedAt": "Started: {{time}}",
-    "completedAt": "Completed: {{time}}"
+    "completedAt": "Library scan completed at {{time}}"
   },
   "scanErrors": {
     "summary_one": "{{count}} album could not be scanned - check file permissions or FLAC integrity",
