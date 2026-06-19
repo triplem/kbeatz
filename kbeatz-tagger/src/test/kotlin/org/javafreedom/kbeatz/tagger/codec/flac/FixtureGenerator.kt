@@ -13,13 +13,11 @@ import java.io.File
  */
 object FixtureGenerator {
 
-    private val md5Zeros = ByteString(ByteArray(16))
-
-    /** Known StreamInfo values shared by all generated fixtures. */
+    /** Known StreamInfo values - must match test.flac which is the base file. */
     const val SAMPLE_RATE = 44100
     const val CHANNELS = 2
     const val BITS_PER_SAMPLE = 16
-    const val TOTAL_SAMPLES = 227932L  // matches test.flac (real FLAC used as audio base)
+    const val TOTAL_SAMPLES = 227932L
 
     /** Known VorbisComment tag values in with-tags.flac and with-cover.flac. */
     const val TAG_TITLE = "Kind of Blue"
@@ -41,22 +39,11 @@ object FixtureGenerator {
 
     fun generate(fixturesDir: File) {
         fixturesDir.mkdirs()
-        writeWithTags(File(fixturesDir, "with-tags.flac"))
-        writeWithCover(File(fixturesDir, "with-cover.flac"))
+        val base: FlacParseResult = FlacReader().parse(File(fixturesDir, "test.flac").readBytes())
+        writeWithTags(File(fixturesDir, "with-tags.flac"), base)
+        writeWithCover(File(fixturesDir, "with-cover.flac"), base)
         writeCorrupted(File(fixturesDir, "corrupted.flac"))
     }
-
-    private fun streamInfo() = FlacMetadataBlock.StreamInfo(
-        minBlockSize = 4096,
-        maxBlockSize = 4096,
-        minFrameSize = 0,
-        maxFrameSize = 0,
-        sampleRate = SAMPLE_RATE,
-        channels = CHANNELS,
-        bitsPerSample = BITS_PER_SAMPLE,
-        totalSamples = TOTAL_SAMPLES,
-        md5 = md5Zeros,
-    )
 
     private fun vorbisComment() = FlacMetadataBlock.VorbisComment(
         vendor = TAG_VENDOR,
@@ -81,26 +68,16 @@ object FixtureGenerator {
         data = ByteString(MINIMAL_JPEG),
     )
 
-    /**
-     * Reads the encoded audio frames from test.flac, used as the audio base for all generated fixtures.
-     * FlacReader treats everything after the last metadata block as opaque audio-frame bytes,
-     * so the frames are transferred verbatim into the generated file.
-     */
-    private fun audioFrames(): ByteArray {
-        val stream = checkNotNull(
-            FixtureGenerator::class.java.classLoader.getResourceAsStream("fixtures/test.flac"),
-        ) { "test.flac fixture not found on classpath" }
-        return stream.use { FlacReader().parse(it.readBytes()).audioFrames }
+    private fun writeWithTags(file: File, base: FlacParseResult) {
+        val blocks = base.blocks.filterNot { it is FlacMetadataBlock.VorbisComment } + vorbisComment()
+        file.writeBytes(FlacWriter(targetPaddingBytes = 0).write(blocks, base.audioFrames))
     }
 
-    private fun writeWithTags(file: File) {
-        val blocks = listOf(streamInfo(), vorbisComment())
-        file.writeBytes(FlacWriter(targetPaddingBytes = 0).write(blocks, audioFrames()))
-    }
-
-    private fun writeWithCover(file: File) {
-        val blocks = listOf(streamInfo(), vorbisComment(), picture())
-        file.writeBytes(FlacWriter(targetPaddingBytes = 0).write(blocks, audioFrames()))
+    private fun writeWithCover(file: File, base: FlacParseResult) {
+        val blocks = base.blocks
+            .filterNot { it is FlacMetadataBlock.VorbisComment || it is FlacMetadataBlock.Picture } +
+            vorbisComment() + picture()
+        file.writeBytes(FlacWriter(targetPaddingBytes = 0).write(blocks, base.audioFrames))
     }
 
     private fun writeCorrupted(file: File) {
