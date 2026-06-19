@@ -37,6 +37,8 @@ class AlbumsHandlerTest {
         albumArtist: String = "Miles Davis",
         genre: String? = "Jazz",
         composer: String? = null,
+        country: String? = null,
+        mediaFormat: String? = null,
     ) = Album(
         id = id,
         albumArtist = albumArtist,
@@ -48,6 +50,8 @@ class AlbumsHandlerTest {
         composer = composer,
         conductor = null,
         ensemble = null,
+        country = country,
+        mediaFormat = mediaFormat,
         discogsId = null,
         directoryPath = "/music/kind-of-blue",
         extraTags = null,
@@ -216,5 +220,73 @@ class AlbumsHandlerTest {
         assertFalse(first.albumPath!!.isBlank(), "albumPath must not be blank")
         assertFalse(first.albumPath!!.startsWith("/"), "albumPath must be relative, not absolute")
         assertEquals("kind-of-blue", first.albumPath)
+    }
+
+    // --- country field tests (issue #899) ---
+
+    @Test
+    fun `GET albums returns country when COUNTRY tag is present`() = testApplication {
+        install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        routing { albumRoutes(albumService, libraryRoot) }
+        val client = createClient { install(ClientContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }
+
+        val albums = listOf(buildAlbum(country = "USA"))
+        coEvery { albumRepository.findAllWithCount(0, 20, AlbumFilter()) } returns (albums to 1L)
+
+        val response = client.get("/albums")
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val page = response.body<AlbumPage>()
+        assertEquals("USA", page.content.first().country)
+    }
+
+    @Test
+    fun `GET albums returns null country when COUNTRY tag is absent`() = testApplication {
+        install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        routing { albumRoutes(albumService, libraryRoot) }
+        val client = createClient { install(ClientContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }
+
+        val albums = listOf(buildAlbum())
+        coEvery { albumRepository.findAllWithCount(0, 20, AlbumFilter()) } returns (albums to 1L)
+
+        val response = client.get("/albums")
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val page = response.body<AlbumPage>()
+        assertEquals(null, page.content.first().country, "country must be null when COUNTRY tag is absent")
+    }
+
+    // --- mediaFormat field tests (issue #899) ---
+
+    @Test
+    fun `GET albums returns mediaFormat when MEDIA tag is present`() = testApplication {
+        install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        routing { albumRoutes(albumService, libraryRoot) }
+        val client = createClient { install(ClientContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }
+
+        val albums = listOf(buildAlbum(mediaFormat = "2 x Vinyl, LP, Album"))
+        coEvery { albumRepository.findAllWithCount(0, 20, AlbumFilter()) } returns (albums to 1L)
+
+        val response = client.get("/albums")
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val page = response.body<AlbumPage>()
+        assertEquals("2 x Vinyl, LP, Album", page.content.first().mediaFormat)
+    }
+
+    @Test
+    fun `GET albums returns null mediaFormat when MEDIA tag is absent`() = testApplication {
+        install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        routing { albumRoutes(albumService, libraryRoot) }
+        val client = createClient { install(ClientContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }
+
+        val albums = listOf(buildAlbum())
+        coEvery { albumRepository.findAllWithCount(0, 20, AlbumFilter()) } returns (albums to 1L)
+
+        val response = client.get("/albums")
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val page = response.body<AlbumPage>()
+        assertEquals(null, page.content.first().mediaFormat, "mediaFormat must be null when MEDIA tag is absent")
     }
 }
