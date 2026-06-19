@@ -27,7 +27,7 @@ A minimal FLAC file with a StreamInfo block and a VorbisComment block. No cover 
 | Sample rate | 44100 Hz |
 | Channels | 2 (stereo) |
 | Bits per sample | 16 |
-| Total samples | 4410 (100 ms of silence) |
+| Total samples | 227932 (audio frames from test.flac) |
 
 #### VorbisComment
 

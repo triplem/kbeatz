@@ -17,6 +17,16 @@ tasks.test {
     }
 }
 
+tasks.register<Test>("generateFixtures") {
+    description = "Regenerates committed FLAC fixture files from FixtureGenerator."
+    group = "verification"
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    useJUnitPlatform {
+        includeTags("generators")
+    }
+}
+
 dependencies {
     api(lib("kotlinx-io-core"))
     implementation("org.javafreedom.kbeatz:kbeatz-common")
