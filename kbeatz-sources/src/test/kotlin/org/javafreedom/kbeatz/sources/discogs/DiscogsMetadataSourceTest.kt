@@ -532,4 +532,29 @@ class DiscogsMetadataSourceTest {
         val imageRequests = requests.count { it.contains("img.discogs.com") }
         assertEquals(1, imageRequests)
     }
+
+    /**
+     * End-to-end deserialization test using a real Discogs JSON fixture (2454735.json,
+     * "The Yellow Shark" by Frank Zappa).
+     *
+     * The fixture's inner release JSON is served as the mock-engine response body.
+     * The HttpClient is configured with `ignoreUnknownKeys = true` to handle extra Discogs
+     * fields that are not modelled in [DiscogsRelease].
+     *
+     * This confirms that the full HTTP deserialization path (ContentNegotiation -> body<DiscogsRelease>()
+     * -> toDomain()) handles real-world Discogs data without errors.
+     */
+    @Test
+    fun `fetchRelease deserializes real fixture JSON through the HTTP layer`() = runBlocking {
+        val fixtureJson = DiscogsFixtureLoader.rawReleaseJson("2454735.json")
+        val source = buildSource(releaseResponse = fixtureJson)
+
+        val release = source.fetchRelease("2454735")
+
+        assertNotNull(release)
+        assertEquals("The Yellow Shark", release.title)
+        assertEquals("discogs", release.sourceName)
+        assertEquals("2454735", release.sourceId)
+        assertTrue(release.tracklist.isNotEmpty(), "Expected non-empty tracklist from fixture")
+    }
 }
