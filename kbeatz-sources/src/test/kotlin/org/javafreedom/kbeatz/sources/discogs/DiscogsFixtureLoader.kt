@@ -1,12 +1,8 @@
 package org.javafreedom.kbeatz.sources.discogs
 
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * Loads Discogs JSON fixture files from `src/test/resources/discogs/`.
@@ -16,13 +12,10 @@ import kotlinx.serialization.json.jsonPrimitive
  * { "resp": { "status": true, "release": { "id": 12345, ... } } }
  * ```
  *
- * The inner `release` object matches [DiscogsRelease] except:
- * - `"id"` fields are integers in JSON but Kotlin models declare them as [String].
- * - Extra unknown fields (e.g. `anv`, `resource_url`, `tracks` per artist) may be present.
- *
- * Integer-to-String coercion is performed by recursively traversing the parsed JSON tree
- * and converting any field named `"id"` from an integer [JsonPrimitive] to a string
- * [JsonPrimitive]. Unknown keys are dropped via `ignoreUnknownKeys = true`.
+ * The inner `release` object matches [DiscogsRelease]. Integer `id` fields in the JSON
+ * are correctly typed now that the model uses [Int] for `id` fields.
+ * Extra unknown fields (e.g. `anv`, `resource_url`, `tracks` per artist) are dropped
+ * via `ignoreUnknownKeys = true`.
  */
 object DiscogsFixtureLoader {
 
@@ -59,17 +52,16 @@ object DiscogsFixtureLoader {
     }
 
     /**
-     * Returns the inner release JSON as a [String] with all `"id"` integer fields
-     * converted to quoted strings. Suitable for use as a Ktor mock-engine response body.
+     * Returns the inner release JSON as a [String]. Suitable for use as a Ktor
+     * mock-engine response body.
      *
      * The caller's HttpClient must be configured with `ignoreUnknownKeys = true` to
      * handle the extra Discogs fields present in the fixture.
      */
-    fun rawReleaseJson(filename: String): String {
+    internal fun rawReleaseJson(filename: String): String {
         val rawJson = readResource("/discogs/$filename")
         val releaseElement = extractReleaseObject(rawJson)
-        val patched = coerceIds(releaseElement)
-        return json.encodeToString(JsonElement.serializer(), patched)
+        return json.encodeToString(JsonElement.serializer(), releaseElement)
     }
 
     private fun readResource(path: String): String {
@@ -81,34 +73,11 @@ object DiscogsFixtureLoader {
 
     private fun parseEnvelope(rawJson: String): DiscogsRelease {
         val releaseElement = extractReleaseObject(rawJson)
-        val patched = coerceIds(releaseElement)
-        return json.decodeFromJsonElement(DiscogsRelease.serializer(), patched)
+        return json.decodeFromJsonElement(DiscogsRelease.serializer(), releaseElement)
     }
 
     private fun extractReleaseObject(rawJson: String): JsonElement =
         json.parseToJsonElement(rawJson)
             .jsonObject["resp"]!!
             .jsonObject["release"]!!
-
-    /**
-     * Recursively traverses the JSON tree and converts any field named `"id"` from an
-     * integer [JsonPrimitive] to a string [JsonPrimitive].
-     *
-     * Discogs API returns integer ids for releases, artists, labels, etc., while the
-     * Kotlin model uses [String] for interoperability across sources.
-     */
-    private fun coerceIds(element: JsonElement): JsonElement =
-        when (element) {
-            is JsonObject -> JsonObject(
-                element.entries.associate { (key, value) ->
-                    key to when {
-                        key == "id" && value is JsonPrimitive && !value.isString ->
-                            JsonPrimitive(value.jsonPrimitive.content)
-                        else -> coerceIds(value)
-                    }
-                }
-            )
-            is JsonArray -> JsonArray(element.map { coerceIds(it) })
-            else -> element
-        }
 }

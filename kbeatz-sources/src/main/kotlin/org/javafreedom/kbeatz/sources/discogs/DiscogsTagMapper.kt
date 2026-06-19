@@ -42,7 +42,7 @@ object DiscogsTagMapper {
     fun albumTags(release: DiscogsRelease): Map<String, String> {
         val tags = mutableMapOf<String, String>()
 
-        tags["DISCOGS_RELEASE_ID"] = release.id
+        tags["DISCOGS_RELEASE_ID"] = release.id.toString()
 
         release.masterId?.takeIf { it > 0 }?.let { tags["DISCOGS_MASTER_ID"] = it.toString() }
 

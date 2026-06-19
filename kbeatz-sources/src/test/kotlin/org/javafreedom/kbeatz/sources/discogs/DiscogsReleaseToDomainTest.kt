@@ -9,7 +9,7 @@ import kotlin.test.assertNotNull
 
 class DiscogsReleaseToDomainTest {
 
-    private val minimalRelease = DiscogsRelease(id = "12345", title = "Test Album")
+    private val minimalRelease = DiscogsRelease(id = 12345, title = "Test Album")
 
     @Test
     fun `should map id and title correctly`() {
@@ -24,8 +24,8 @@ class DiscogsReleaseToDomainTest {
     fun `should map primary artists preserving join and suppressing role`() {
         val release = minimalRelease.copy(
             artists = listOf(
-                DiscogsArtist(id = "1", name = "Beethoven", role = "Main Artist", join = "&"),
-                DiscogsArtist(id = "2", name = "Brahms", role = "Main Artist", join = null),
+                DiscogsArtist(id = 1, name = "Beethoven", role = "Main Artist", join = "&"),
+                DiscogsArtist(id = 2, name = "Brahms", role = "Main Artist", join = null),
             ),
         )
 
@@ -40,9 +40,9 @@ class DiscogsReleaseToDomainTest {
     fun `should map classical extraArtist roles Composed By, Conductor and Orchestra`() {
         val release = minimalRelease.copy(
             extraartists = listOf(
-                DiscogsArtist(id = "10", name = "Beethoven", role = "Composed By"),
-                DiscogsArtist(id = "11", name = "Karajan", role = "Conductor"),
-                DiscogsArtist(id = "12", name = "Berlin Phil", role = "Orchestra"),
+                DiscogsArtist(id = 10, name = "Beethoven", role = "Composed By"),
+                DiscogsArtist(id = 11, name = "Karajan", role = "Conductor"),
+                DiscogsArtist(id = 12, name = "Berlin Phil", role = "Orchestra"),
             ),
         )
 
@@ -145,7 +145,7 @@ class DiscogsReleaseToDomainTest {
                     position = "A1",
                     title = "Symphony No. 5",
                     duration = "7:15",
-                    extraartists = listOf(DiscogsArtist(id = "11", name = "Karajan", role = "Conductor")),
+                    extraartists = listOf(DiscogsArtist(id = 11, name = "Karajan", role = "Conductor")),
                 ),
             ),
         )

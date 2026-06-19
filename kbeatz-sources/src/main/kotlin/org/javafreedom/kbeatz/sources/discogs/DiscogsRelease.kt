@@ -11,7 +11,7 @@ import org.javafreedom.kbeatz.sources.Track
 
 @Serializable
 data class DiscogsArtist(
-    val id: String = "",
+    val id: Int = 0,
     val name: String = "",
     val role: String = "",
     val join: String? = null,
@@ -48,7 +48,7 @@ data class DiscogsTrack(
 
 @Serializable
 data class DiscogsRelease(
-    val id: String,
+    val id: Int,
     val title: String,
     val artists: List<DiscogsArtist> = emptyList(),
     val extraartists: List<DiscogsArtist> = emptyList(),
@@ -79,7 +79,7 @@ fun DiscogsRelease.toDomain(): Release {
     val barcode = identifiers?.firstOrNull { it.type == "Barcode" }?.value
 
     return Release(
-        sourceId = id,
+        sourceId = id.toString(),
         sourceName = "discogs",
         title = title,
         artists = artists.map { it.toReleaseArtist(includeRole = false) },
@@ -100,7 +100,7 @@ fun DiscogsRelease.toDomain(): Release {
 }
 
 private fun DiscogsArtist.toReleaseArtist(includeRole: Boolean) = ReleaseArtist(
-    id = id,
+    id = id.toString(),
     name = name,
     role = if (includeRole) role.takeIf { it.isNotBlank() } else null,
     join = join,

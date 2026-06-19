@@ -27,9 +27,9 @@ class DiscogsMetadataSourceTest {
 
     private val sampleReleaseJson = """
         {
-          "id": "12345",
+          "id": 12345,
           "title": "Kind of Blue",
-          "artists": [{"id": "1", "name": "Miles Davis", "role": "", "join": null}],
+          "artists": [{"id": 1, "name": "Miles Davis", "role": "", "join": null}],
           "extraartists": [],
           "year": 1959,
           "released": "1959-08-17",

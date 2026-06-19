@@ -16,7 +16,7 @@ class DiscogsToKbeatzMapperTest {
 
     private val fetchedAt = Instant.parse("2026-06-09T10:00:00Z")
 
-    private val minimalRelease = DiscogsRelease(id = "12345", title = "Test Album")
+    private val minimalRelease = DiscogsRelease(id = 12345, title = "Test Album")
 
     // --- parsePosition unit tests ---
 
@@ -268,7 +268,7 @@ class DiscogsToKbeatzMapperTest {
     @Test
     fun `album artist is taken from first artist`() {
         val release = minimalRelease.copy(
-            artists = listOf(DiscogsArtist(id = "1", name = "Miles Davis", role = "")),
+            artists = listOf(DiscogsArtist(id = 1, name = "Miles Davis", role = "")),
         )
 
         val metadata = DiscogsToKbeatzMapper.map(release, fetchedAt)
@@ -301,7 +301,7 @@ class DiscogsToKbeatzMapperTest {
     @Test
     fun `composer mapped from Composed By extra artist`() {
         val release = minimalRelease.copy(
-            extraartists = listOf(DiscogsArtist(id = "10", name = "Beethoven", role = "Composed By")),
+            extraartists = listOf(DiscogsArtist(id = 10, name = "Beethoven", role = "Composed By")),
         )
 
         val metadata = DiscogsToKbeatzMapper.map(release, fetchedAt)
