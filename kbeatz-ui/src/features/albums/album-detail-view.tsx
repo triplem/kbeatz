@@ -57,7 +57,7 @@ export function AlbumDetailView({ album, onEnterEditMode, editButtonRef, onSyncC
    * When no composer exists there is nothing to hide so the button is omitted entirely.
    */
   const hasAnyComposer = album.tracks.some(
-    (t) => t.composer !== undefined && t.composer !== null && t.composer !== '',
+    (track) => track.composer !== undefined && track.composer !== null && track.composer !== '',
   )
 
   return (
