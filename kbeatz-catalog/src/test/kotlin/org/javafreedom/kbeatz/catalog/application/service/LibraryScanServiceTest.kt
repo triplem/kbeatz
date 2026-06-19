@@ -539,7 +539,7 @@ class LibraryScanServiceTest {
     private fun captureWarnLogs(): Pair<ListAppender<ILoggingEvent>, Logger> {
         val appender = ListAppender<ILoggingEvent>().also { it.start() }
         val logger = LoggerFactory.getLogger(
-            "org.javafreedom.kbeatz.catalog.application.service",
+            LibraryScanService::class.java.name,
         ) as Logger
         logger.level = Level.WARN
         logger.addAppender(appender)
