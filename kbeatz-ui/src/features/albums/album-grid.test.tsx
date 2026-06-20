@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
+import userEvent from '@testing-library/user-event'
+import { describe, it, expect, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { AlbumGrid } from './album-grid'
 import type { Album } from '../../api/generated'
@@ -85,5 +86,39 @@ describe('AlbumGrid', () => {
     const region = screen.getByTestId('album-grid-result-count')
     expect(region).toHaveAttribute('role', 'status')
     expect(region).toHaveAttribute('aria-live', 'polite')
+  })
+
+  // ─────────────────────────────────
+  // Multi-select
+  // ─────────────────────────────────
+
+  it('renders no selection checkboxes by default', () => {
+    const albums = [makeAlbum('id-1', 'Kind of Blue')]
+    render(<MemoryRouter><AlbumGrid albums={albums} /></MemoryRouter>)
+    expect(screen.queryByTestId('album-select-id-1')).not.toBeInTheDocument()
+  })
+
+  it('renders a selection checkbox per card when selection is provided', () => {
+    const albums = [makeAlbum('id-1', 'Kind of Blue'), makeAlbum('id-2', 'Bitches Brew')]
+    render(
+      <MemoryRouter>
+        <AlbumGrid albums={albums} selection={{ isSelected: () => false, onToggle: vi.fn() }} />
+      </MemoryRouter>,
+    )
+    expect(screen.getByTestId('album-select-id-1')).toBeInTheDocument()
+    expect(screen.getByTestId('album-select-id-2')).toBeInTheDocument()
+  })
+
+  it('reflects the selected state and toggles via the checkbox', async () => {
+    const onToggle = vi.fn()
+    const albums = [makeAlbum('id-1', 'Kind of Blue')]
+    render(
+      <MemoryRouter>
+        <AlbumGrid albums={albums} selection={{ isSelected: (id) => id === 'id-1', onToggle }} />
+      </MemoryRouter>,
+    )
+    expect(screen.getByTestId('album-select-checkbox-id-1')).toBeChecked()
+    await userEvent.click(screen.getByTestId('album-select-checkbox-id-1'))
+    expect(onToggle).toHaveBeenCalledWith('id-1')
   })
 })

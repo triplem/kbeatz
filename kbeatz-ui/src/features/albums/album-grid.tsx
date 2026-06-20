@@ -4,6 +4,18 @@ import Typography from '@mui/material/Typography'
 import { Album } from '../../api/generated'
 import { AlbumCard } from './album-card'
 
+/**
+ * Selection wiring for the grid. When provided, each card shows a selection
+ * checkbox; when omitted the grid renders plain (non-selectable) cards so the
+ * default browse experience is unchanged.
+ */
+export interface AlbumGridSelection {
+  /** Returns true when the given album id is selected. */
+  readonly isSelected: (albumId: string) => boolean
+  /** Toggle the selection state of an album id. */
+  readonly onToggle: (albumId: string) => void
+}
+
 interface AlbumGridProps {
   /** The single page of albums to render. */
   readonly albums: ReadonlyArray<Album>
@@ -13,6 +25,11 @@ interface AlbumGridProps {
    * equal to the visible count, the announcement says "Showing all N albums".
    */
   readonly totalCount?: number
+  /**
+   * Optional multi-select wiring. When present each card becomes selectable;
+   * when absent cards render in plain browse mode.
+   */
+  readonly selection?: AlbumGridSelection
 }
 
 /**
@@ -28,7 +45,7 @@ interface AlbumGridProps {
  * - A polite live region announces the visible/total count when it changes.
  * - The grid is a labelled region.
  */
-export function AlbumGrid({ albums, totalCount }: AlbumGridProps) {
+export function AlbumGrid({ albums, totalCount, selection }: AlbumGridProps) {
   const { t } = useTranslation()
 
   const isFiltered = totalCount !== undefined && totalCount !== albums.length
@@ -67,9 +84,19 @@ export function AlbumGrid({ albums, totalCount }: AlbumGridProps) {
           gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
         }}
       >
-        {albums.map((album) => (
-          <AlbumCard key={album.id} album={album} />
-        ))}
+        {albums.map((album) =>
+          selection ? (
+            <AlbumCard
+              key={album.id}
+              album={album}
+              selectable
+              selected={selection.isSelected(album.id)}
+              onToggleSelect={selection.onToggle}
+            />
+          ) : (
+            <AlbumCard key={album.id} album={album} />
+          ),
+        )}
       </Box>
     </Box>
   )

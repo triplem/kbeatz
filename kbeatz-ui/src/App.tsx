@@ -8,11 +8,14 @@ import CircularProgress from '@mui/material/CircularProgress'
 import { visuallyHidden } from '@mui/utils'
 import { AlbumGrid } from './features/albums/album-grid'
 import { AlbumPagination } from './features/albums/album-pagination'
+import { BulkActionToolbar } from './features/albums/bulk-action-toolbar'
 import { FilterPanel } from './features/albums/filter-panel'
 import { PageSizeSelect } from './features/albums/page-size-select'
 import { SearchBox } from './features/albums/search-box'
 import { SortPreference } from './features/albums/sort-preference'
 import { useAlbumList } from './features/albums/useAlbumList'
+import { useAlbumSelection } from './features/albums/useAlbumSelection'
+import { ChangePlanWorkflow } from './features/change-plan'
 import { useAlbumFilters } from './features/albums/useAlbumFilters'
 import { usePageParams } from './features/albums/usePageParams'
 import { usePagination } from './features/albums/usePagination'
@@ -51,6 +54,22 @@ export function AlbumListPage() {
   const { filters, setFilters } = useAlbumFilters()
   const [sortBy, setSortBy] = useState<SortField>(() => loadSortPreference())
   const [sortDirection, setSortDirection] = useState<SortDirection>(() => loadSortDirection())
+
+  // Local multi-select state and the active bulk-reorganize workflow ids.
+  // Both are ephemeral page-level UI state (react-patterns.md: no global store).
+  const selection = useAlbumSelection()
+  const [workflowAlbumIds, setWorkflowAlbumIds] = useState<readonly string[] | null>(null)
+
+  const handleReorganize = useCallback(() => {
+    setWorkflowAlbumIds(selection.selectedIds)
+  }, [selection.selectedIds])
+
+  const handleWorkflowClose = useCallback((applied: boolean) => {
+    setWorkflowAlbumIds(null)
+    if (applied) {
+      selection.clear()
+    }
+  }, [selection])
 
   // Stable key describing the active filter/sort so pagination resets to page 1
   // whenever any of them change (AC4). Drives both modes.
@@ -184,7 +203,32 @@ export function AlbumListPage() {
 
           {!isPending && !isError && (
             <>
-              <AlbumGrid albums={albums} totalCount={totalCount} />
+              {workflowAlbumIds !== null && workflowAlbumIds.length > 0 && (
+                <Box
+                  component="section"
+                  aria-label={t('albumSelection.workflowLabel')}
+                  data-testid="bulk-relayout-workflow"
+                  sx={{ mb: 2, p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}
+                >
+                  <ChangePlanWorkflow
+                    operation="RELAYOUT"
+                    albumIds={workflowAlbumIds}
+                    onClose={handleWorkflowClose}
+                  />
+                </Box>
+              )}
+              {selection.hasSelection && workflowAlbumIds === null && (
+                <BulkActionToolbar
+                  selectedCount={selection.selectedCount}
+                  onReorganize={handleReorganize}
+                  onClear={selection.clear}
+                />
+              )}
+              <AlbumGrid
+                albums={albums}
+                totalCount={totalCount}
+                selection={{ isSelected: selection.isSelected, onToggle: selection.toggle }}
+              />
               <AlbumPagination page={displayPage} totalPages={totalPages} onPageChange={setPage} />
             </>
           )}

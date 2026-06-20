@@ -8,6 +8,7 @@ import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Chip from '@mui/material/Chip'
 import Stack from '@mui/material/Stack'
+import Checkbox from '@mui/material/Checkbox'
 import MusicNoteIcon from '@mui/icons-material/MusicNote'
 import { Album } from '../../api/generated'
 import { formatDate } from '../../lib/i18n'
@@ -15,6 +16,16 @@ import { formatAlbumDuration } from '../../lib/format-duration'
 
 interface AlbumCardProps {
   readonly album: Album
+  /**
+   * When true, a selection checkbox is shown in the card corner so the album
+   * can be added to a bulk action. Defaults to false so the default browse
+   * card is unchanged.
+   */
+  readonly selectable?: boolean
+  /** Whether this card is currently selected. Only meaningful when selectable. */
+  readonly selected?: boolean
+  /** Called with the album id when the selection checkbox is toggled. */
+  readonly onToggleSelect?: (albumId: string) => void
 }
 
 /**
@@ -32,12 +43,21 @@ interface AlbumCardProps {
  * - The cover image has descriptive alt text; the placeholder is decorative
  *   and hidden from assistive tech (the card label already conveys the album).
  */
-export function AlbumCard({ album }: AlbumCardProps) {
+export function AlbumCard({
+  album,
+  selectable = false,
+  selected = false,
+  onToggleSelect,
+}: AlbumCardProps) {
   const [coverError, setCoverError] = useState(false)
   const navigate = useNavigate()
   const { t } = useTranslation()
 
   const albumTitle = album.album ?? t('albumCard.unknownAlbum')
+
+  const handleToggleSelect = (): void => {
+    onToggleSelect?.(album.id)
+  }
   const primaryAttribution = album.composer ?? album.albumArtist ?? t('albumCard.unknownArtist')
   const showCover = album.hasCoverArt && !coverError
 
@@ -52,9 +72,41 @@ export function AlbumCard({ album }: AlbumCardProps) {
   return (
     <Card
       variant="outlined"
-      sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}
       data-testid="album-card"
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        ...(selectable ? { position: 'relative' } : {}),
+        ...(selectable && selected
+          ? { outline: 2, outlineColor: 'primary.main', outlineOffset: -2 }
+          : {}),
+      }}
     >
+      {selectable && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 4,
+            left: 4,
+            zIndex: 1,
+            bgcolor: 'background.paper',
+            borderRadius: 1,
+          }}
+        >
+          <Checkbox
+            checked={selected}
+            onChange={handleToggleSelect}
+            data-testid={`album-select-${album.id}`}
+            slotProps={{
+              input: {
+                'aria-label': t('albumSelection.selectAlbum', { album: albumTitle }),
+                'data-testid': `album-select-checkbox-${album.id}`,
+              } as React.InputHTMLAttributes<HTMLInputElement>,
+            }}
+          />
+        </Box>
+      )}
       <CardActionArea
         onClick={handleNavigate}
         aria-label={t('albumCard.viewDetails', { album: albumTitle, artist: primaryAttribution })}
