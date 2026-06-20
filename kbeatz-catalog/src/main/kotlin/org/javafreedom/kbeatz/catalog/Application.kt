@@ -39,8 +39,12 @@ fun Application.module() {
     // Wire all outbound adapters and construct services via DependencyContainer
     val deps = DependencyContainer(config, libraryRootPath, dataDirPath)
 
-    // Run startup repair synchronously before accepting requests
-    runBlocking { deps.scanService.repairOnStartup() }
+    // Run startup repair synchronously before accepting requests. Move-journal recovery runs in the
+    // same phase (before traffic) so no album is left in a partially-applied move state (issue #814).
+    runBlocking {
+        deps.directoryMoveRecovery.recoverInterruptedMoves()
+        deps.scanService.repairOnStartup()
+    }
 
     attributes.put(ScanServiceKey, deps.scanService)
     attributes.put(AlbumServiceKey, deps.albumService)

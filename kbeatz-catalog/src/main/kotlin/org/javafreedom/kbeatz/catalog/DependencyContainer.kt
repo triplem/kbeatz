@@ -12,6 +12,8 @@ import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 import org.javafreedom.kbeatz.catalog.infrastructure.persistence.AlbumsTable
 import org.javafreedom.kbeatz.catalog.infrastructure.persistence.DbFactory
 import org.javafreedom.kbeatz.catalog.infrastructure.persistence.ExposedAlbumRepository
+import org.javafreedom.kbeatz.catalog.infrastructure.move.DirectoryMoveExecutor
+import org.javafreedom.kbeatz.catalog.infrastructure.move.DirectoryMoveRecovery
 import org.javafreedom.kbeatz.catalog.infrastructure.persistence.ExposedTrackRepository
 import org.javafreedom.kbeatz.catalog.infrastructure.sync.buildDiscogsSyncProvider
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -51,6 +53,12 @@ class DependencyContainer(config: AppConfig, libraryRootPath: Path, dataDirPath:
     )
     val syncService: SyncProvider = buildDiscogsSyncProvider(config, albumRepository, libraryRootPath, dataDirPath)
     val tagWriteService = TagWriteService(albumRepository, trackRepository, libraryRootPath)
+
+    /** Executes directory moves on disk with journalled crash safety (issue #814). */
+    val directoryMoveExecutor = DirectoryMoveExecutor(albumRepository, libraryRootPath, dataDirPath)
+
+    /** Reconciles directory moves interrupted by a process kill; runs at startup before traffic. */
+    val directoryMoveRecovery = DirectoryMoveRecovery(albumRepository, dataDirPath)
 
     /**
      * Liveness probe for the database: executes a minimal query against AlbumsTable.
