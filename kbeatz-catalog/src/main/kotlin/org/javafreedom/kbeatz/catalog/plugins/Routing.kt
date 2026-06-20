@@ -14,6 +14,7 @@ import org.javafreedom.kbeatz.catalog.adapters.inbound.web.library.libraryRoutes
 import org.javafreedom.kbeatz.catalog.application.service.AlbumService
 import org.javafreedom.kbeatz.catalog.application.service.CoverArtService
 import org.javafreedom.kbeatz.catalog.application.service.LibraryScanService
+import org.javafreedom.kbeatz.catalog.application.service.ChangePlanApplyService
 import org.javafreedom.kbeatz.catalog.application.service.ChangePlanFacade
 import org.javafreedom.kbeatz.catalog.application.service.TagWriteService
 import org.javafreedom.kbeatz.catalog.domain.port.SyncProvider
@@ -26,6 +27,7 @@ fun Application.configureRouting(
     syncService: SyncProvider,
     tagWriteService: TagWriteService,
     changePlanFacade: ChangePlanFacade,
+    changePlanApplyService: ChangePlanApplyService,
     healthConfig: HealthConfig,
 ) {
     routing {
@@ -38,7 +40,7 @@ fun Application.configureRouting(
             tagRoutes(albumService, tagWriteService, healthConfig.libraryRoot)
             coverArtRoutes(coverArtService)
             syncRoutes(syncService, healthConfig.libraryRoot)
-            changePlanRoutes(changePlanFacade)
+            changePlanRoutes(changePlanFacade, changePlanApplyService)
         }
     }
 }

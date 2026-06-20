@@ -490,6 +490,34 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /change-plans/{planId}/apply:
+    post:
+      operationId: applyChangePlan
+      summary: Apply a previously computed change plan by id
+      description: |
+        Applies the stored dry-run ChangePlan identified by planId. This call is the user's
+        confirmation: no directory is moved and no tag is written until this endpoint is invoked.
+        Each release is applied as an atomic, lock-protected, crash-recoverable unit; a single
+        release failure does not abort the batch. Releases that carry conflicts are skipped.
+        Re-applying the same plan is a safe idempotent no-op: an already-moved release reconciles
+        to APPLIED without error. Per-release problems are reported inside the 200 result body
+        (per release: APPLIED, SKIPPED or FAILED), never as an error status code.
+      tags: [ChangePlans]
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/PlanId"
+      responses:
+        "200":
+          description: The plan was processed. Per-release outcomes are in the body.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplyChangePlanResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
 components:
   parameters:
     AlbumId:
@@ -1133,6 +1161,67 @@ components:
           type: boolean
           description: "True when any release in the plan has at least one conflict."
           example: true
+
+    ReleaseApplyOutcome:
+      type: string
+      description: |
+        The outcome of applying a single release within a change plan. APPLIED: the change was
+        written to disk (or reconciled as an idempotent no-op). SKIPPED: the release had conflicts
+        and was left untouched. FAILED: applying the release raised an error; the atomic executor
+        guarantees the release is not left half-applied.
+      enum: [APPLIED, SKIPPED, FAILED]
+      example: APPLIED
+
+    ReleaseApplyResult:
+      type: object
+      required: [albumId, outcome]
+      description: "The result of applying one release within a change plan."
+      properties:
+        albumId:
+          type: string
+          format: uuid
+          description: "The release this result describes."
+          example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+        outcome:
+          $ref: "#/components/schemas/ReleaseApplyOutcome"
+        message:
+          type: string
+          nullable: true
+          description: "A human-readable explanation for a SKIPPED or FAILED outcome (no PII or secrets)."
+          example: "Skipped: target directory already exists"
+
+    ApplyChangePlanResult:
+      type: object
+      required: [planId, releases, appliedCount, skippedCount, failedCount]
+      description: |
+        The aggregate result of applying a change plan. Reports a per-release outcome and the
+        counts of applied, skipped, and failed releases.
+      properties:
+        planId:
+          type: string
+          format: uuid
+          description: "The id of the plan that was applied."
+          example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+        releases:
+          type: array
+          description: "The per-release apply results, one entry per release in the plan."
+          items:
+            $ref: "#/components/schemas/ReleaseApplyResult"
+        appliedCount:
+          type: integer
+          format: int32
+          description: "The number of releases applied successfully."
+          example: 2
+        skippedCount:
+          type: integer
+          format: int32
+          description: "The number of releases skipped because of conflicts."
+          example: 1
+        failedCount:
+          type: integer
+          format: int32
+          description: "The number of releases that failed to apply."
+          example: 0
 
   responses:
     BadRequest:

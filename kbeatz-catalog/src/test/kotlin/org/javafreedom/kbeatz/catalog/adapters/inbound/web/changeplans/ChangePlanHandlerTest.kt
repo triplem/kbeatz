@@ -25,10 +25,13 @@ import kotlinx.serialization.json.Json
 import org.javafreedom.kbeatz.catalog.api.models.ChangePlan as ApiChangePlan
 import org.javafreedom.kbeatz.catalog.api.models.ErrorResponse
 import org.javafreedom.kbeatz.catalog.api.models.PlanConflict as ApiPlanConflict
+import org.javafreedom.kbeatz.catalog.application.service.ChangePlanApplyService
 import org.javafreedom.kbeatz.catalog.application.service.ChangePlanFacade
 import org.javafreedom.kbeatz.catalog.application.service.ChangePlanService
 import org.javafreedom.kbeatz.catalog.application.service.InMemoryChangePlanStore
 import org.javafreedom.kbeatz.catalog.application.service.PlanningFilesystem
+import org.javafreedom.kbeatz.catalog.application.service.UnavailableTagChangeApplier
+import org.javafreedom.kbeatz.catalog.infrastructure.move.DirectoryMoveExecutor
 import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.model.DirectoryTemplate
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumFilter
@@ -101,6 +104,15 @@ class ChangePlanHandlerTest {
         return ChangePlanFacade(service, store)
     }
 
+    // These handler tests cover create/get/apply routing; create/get tests never invoke apply, so a
+    // throwaway apply service over an unrelated store and mocked executor is sufficient for wiring.
+    private fun applyService(store: InMemoryChangePlanStore = InMemoryChangePlanStore()) =
+        ChangePlanApplyService(
+            store = store,
+            directoryMoveExecutor = mockk<DirectoryMoveExecutor>(),
+            tagChangeApplier = UnavailableTagChangeApplier(),
+        )
+
     @Test
     fun `should return 201 with consolidated plan for a single album relayout`() = testApplication {
         val id = Uuid.random()
@@ -109,7 +121,7 @@ class ChangePlanHandlerTest {
         val f = facade(listOf(album(id, directoryPath = targetPath)))
 
         install(ContentNegotiation) { json(json) }
-        routing { changePlanRoutes(f) }
+        routing { changePlanRoutes(f, applyService()) }
         val client = createClient { install(ClientContentNegotiation) { json(json) } }
 
         val response = client.post("/change-plans") {
@@ -142,7 +154,7 @@ class ChangePlanHandlerTest {
         val f = facade(albums)
 
         install(ContentNegotiation) { json(json) }
-        routing { changePlanRoutes(f) }
+        routing { changePlanRoutes(f, applyService()) }
         val client = createClient { install(ClientContentNegotiation) { json(json) } }
 
         val response = client.post("/change-plans") {
@@ -168,7 +180,7 @@ class ChangePlanHandlerTest {
         val f = facade(listOf(album(id, directoryPath = source)), pathExists = { false })
 
         install(ContentNegotiation) { json(json) }
-        routing { changePlanRoutes(f) }
+        routing { changePlanRoutes(f, applyService()) }
         val client = createClient { install(ClientContentNegotiation) { json(json) } }
 
         val response = client.post("/change-plans") {
@@ -191,7 +203,7 @@ class ChangePlanHandlerTest {
         val f = facade(emptyList())
 
         install(ContentNegotiation) { json(json) }
-        routing { changePlanRoutes(f) }
+        routing { changePlanRoutes(f, applyService()) }
         val client = createClient { install(ClientContentNegotiation) { json(json) } }
 
         val response = client.post("/change-plans") {
@@ -212,7 +224,7 @@ class ChangePlanHandlerTest {
         val f = facade(listOf(album(id, directoryPath = target)), store = store)
 
         install(ContentNegotiation) { json(json) }
-        routing { changePlanRoutes(f) }
+        routing { changePlanRoutes(f, applyService()) }
         val client = createClient { install(ClientContentNegotiation) { json(json) } }
 
         val created = client.post("/change-plans") {
@@ -229,7 +241,7 @@ class ChangePlanHandlerTest {
     fun `should return 404 for an unknown plan id`() = testApplication {
         val f = facade(emptyList())
         install(ContentNegotiation) { json(json) }
-        routing { changePlanRoutes(f) }
+        routing { changePlanRoutes(f, applyService()) }
         val client = createClient { install(ClientContentNegotiation) { json(json) } }
 
         val response = client.get("/change-plans/${Uuid.random()}")
@@ -242,7 +254,7 @@ class ChangePlanHandlerTest {
     fun `should return 400 for an invalid plan id`() = testApplication {
         val f = facade(emptyList())
         install(ContentNegotiation) { json(json) }
-        routing { changePlanRoutes(f) }
+        routing { changePlanRoutes(f, applyService()) }
         val client = createClient { install(ClientContentNegotiation) { json(json) } }
 
         val response = client.get("/change-plans/not-a-uuid")
@@ -256,7 +268,7 @@ class ChangePlanHandlerTest {
         val id = Uuid.random()
         val f = facade(listOf(album(id, directoryPath = "/srv/music/incoming/x")))
         install(ContentNegotiation) { json(json) }
-        routing { changePlanRoutes(f) }
+        routing { changePlanRoutes(f, applyService()) }
         val client = createClient { install(ClientContentNegotiation) { json(json) } }
 
         val response = client.post("/change-plans") {
@@ -272,7 +284,7 @@ class ChangePlanHandlerTest {
     fun `should return 400 for an invalid album uuid`() = testApplication {
         val f = facade(emptyList())
         install(ContentNegotiation) { json(json) }
-        routing { changePlanRoutes(f) }
+        routing { changePlanRoutes(f, applyService()) }
         val client = createClient { install(ClientContentNegotiation) { json(json) } }
 
         val response = client.post("/change-plans") {
@@ -288,7 +300,7 @@ class ChangePlanHandlerTest {
     fun `should return 400 for empty albumIds`() = testApplication {
         val f = facade(emptyList())
         install(ContentNegotiation) { json(json) }
-        routing { changePlanRoutes(f) }
+        routing { changePlanRoutes(f, applyService()) }
         val client = createClient { install(ClientContentNegotiation) { json(json) } }
 
         val response = client.post("/change-plans") {
@@ -304,7 +316,7 @@ class ChangePlanHandlerTest {
     fun `should return 400 for a malformed request body`() = testApplication {
         val f = facade(emptyList())
         install(ContentNegotiation) { json(json) }
-        routing { changePlanRoutes(f) }
+        routing { changePlanRoutes(f, applyService()) }
         val client = createClient { install(ClientContentNegotiation) { json(json) } }
 
         val response = client.post("/change-plans") {

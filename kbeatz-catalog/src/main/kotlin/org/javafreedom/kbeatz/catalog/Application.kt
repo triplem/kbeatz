@@ -72,6 +72,7 @@ fun Application.module() {
         deps.syncService,
         deps.tagWriteService,
         deps.changePlanFacade,
+        deps.changePlanApplyService,
         healthConfig,
     )
 

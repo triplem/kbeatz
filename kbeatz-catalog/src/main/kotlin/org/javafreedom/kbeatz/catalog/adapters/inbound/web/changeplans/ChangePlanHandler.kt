@@ -9,14 +9,22 @@ import io.ktor.server.routing.*
 import kotlin.uuid.Uuid
 import org.javafreedom.kbeatz.catalog.api.models.ChangePlan as ApiChangePlan
 import org.javafreedom.kbeatz.catalog.api.models.ChangePlanOperation as ApiChangePlanOperation
+import org.javafreedom.kbeatz.catalog.api.models.ApplyChangePlanResult as ApiApplyChangePlanResult
 import org.javafreedom.kbeatz.catalog.api.models.CreateChangePlanRequest
 import org.javafreedom.kbeatz.catalog.api.models.DirectoryMove as ApiDirectoryMove
 import org.javafreedom.kbeatz.catalog.api.models.ErrorResponse
 import org.javafreedom.kbeatz.catalog.api.models.PlanConflict as ApiPlanConflict
+import org.javafreedom.kbeatz.catalog.api.models.ReleaseApplyOutcome as ApiReleaseApplyOutcome
+import org.javafreedom.kbeatz.catalog.api.models.ReleaseApplyResult as ApiReleaseApplyResult
 import org.javafreedom.kbeatz.catalog.api.models.ReleaseChangeSet as ApiReleaseChangeSet
 import org.javafreedom.kbeatz.catalog.api.models.TagChange as ApiTagChange
+import org.javafreedom.kbeatz.catalog.application.service.ApplyResult
+import org.javafreedom.kbeatz.catalog.application.service.ChangePlanApplyService
 import org.javafreedom.kbeatz.catalog.application.service.ChangePlanFacade
 import org.javafreedom.kbeatz.catalog.application.service.OperationNotAvailableException
+import org.javafreedom.kbeatz.catalog.application.service.ReleaseApplyOutcome
+import org.javafreedom.kbeatz.catalog.application.service.ReleaseApplyResult
+import org.javafreedom.kbeatz.common.ResourceNotFoundException
 import org.javafreedom.kbeatz.catalog.domain.model.ChangeOperation
 import org.javafreedom.kbeatz.catalog.domain.model.ChangePlan
 import org.javafreedom.kbeatz.catalog.domain.model.ConflictType
@@ -37,7 +45,7 @@ private val log = KotlinLogging.logger {}
  * Planning performs zero disk writes. Conflicts are returned inside the plan body as data,
  * never as request failures. No auth in v1 (trusted LAN deployment).
  */
-fun Route.changePlanRoutes(facade: ChangePlanFacade) {
+fun Route.changePlanRoutes(facade: ChangePlanFacade, applyService: ChangePlanApplyService) {
     post("/change-plans") {
         val request = runCatching { call.receive<CreateChangePlanRequest>() }.getOrNull()
         if (request == null) {
@@ -75,6 +83,59 @@ fun Route.changePlanRoutes(facade: ChangePlanFacade) {
             }
         }
     }
+
+    post("/change-plans/{planId}/apply") {
+        val planIdStr = call.parameters["planId"]
+        val planId = planIdStr?.let { runCatching { Uuid.parse(it) }.getOrNull() }
+        when {
+            planIdStr == null -> call.respond(
+                HttpStatusCode.BadRequest,
+                ErrorResponse(code = "INVALID_PLAN_ID", message = "Missing planId parameter"),
+            )
+            planId == null -> call.respond(
+                HttpStatusCode.BadRequest,
+                ErrorResponse(code = "INVALID_PLAN_ID", message = "Invalid UUID: $planIdStr"),
+            )
+            else -> handleApply(call, applyService, planId)
+        }
+    }
+}
+
+private suspend fun handleApply(
+    call: ApplicationCall,
+    applyService: ChangePlanApplyService,
+    planId: Uuid,
+) {
+    try {
+        val result = applyService.apply(planId)
+        call.respond(HttpStatusCode.OK, result.toApiApplyResult())
+    } catch (ex: ResourceNotFoundException) {
+        log.info { "change_plan_apply_not_found planId=$planId" }
+        call.respond(
+            HttpStatusCode.NotFound,
+            ErrorResponse(code = "RESOURCE_NOT_FOUND", message = ex.message ?: "Change plan not found"),
+        )
+    }
+}
+
+private fun ApplyResult.toApiApplyResult(): ApiApplyChangePlanResult = ApiApplyChangePlanResult(
+    planId = planId.toString(),
+    releases = releases.map { it.toApiReleaseApplyResult() },
+    appliedCount = appliedCount,
+    skippedCount = skippedCount,
+    failedCount = failedCount,
+)
+
+private fun ReleaseApplyResult.toApiReleaseApplyResult(): ApiReleaseApplyResult = ApiReleaseApplyResult(
+    albumId = albumId.toString(),
+    outcome = outcome.toApiOutcome(),
+    message = message,
+)
+
+private fun ReleaseApplyOutcome.toApiOutcome(): ApiReleaseApplyOutcome = when (this) {
+    ReleaseApplyOutcome.APPLIED -> ApiReleaseApplyOutcome.APPLIED
+    ReleaseApplyOutcome.SKIPPED -> ApiReleaseApplyOutcome.SKIPPED
+    ReleaseApplyOutcome.FAILED -> ApiReleaseApplyOutcome.FAILED
 }
 
 private suspend fun handleCreate(

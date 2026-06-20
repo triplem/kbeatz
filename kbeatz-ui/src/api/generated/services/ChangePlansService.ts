@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { ApplyChangePlanResult } from '../models/ApplyChangePlanResult';
 import type { ChangePlan } from '../models/ChangePlan';
 import type { CreateChangePlanRequest } from '../models/CreateChangePlanRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -52,6 +53,39 @@ export class ChangePlansService {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/change-plans/{planId}',
+            path: {
+                'planId': planId,
+            },
+            errors: {
+                400: `Validation error`,
+                404: `Resource not found`,
+            },
+        });
+    }
+    /**
+     * Apply a previously computed change plan by id
+     * Applies the stored dry-run ChangePlan identified by planId. This call is the user's
+     * confirmation: no directory is moved and no tag is written until this endpoint is invoked.
+     * Each release is applied as an atomic, lock-protected, crash-recoverable unit; a single
+     * release failure does not abort the batch. Releases that carry conflicts are skipped.
+     * Re-applying the same plan is a safe idempotent no-op: an already-moved release reconciles
+     * to APPLIED without error. Per-release problems are reported inside the 200 result body
+     * (per release: APPLIED, SKIPPED or FAILED), never as an error status code.
+     *
+     * @returns ApplyChangePlanResult The plan was processed. Per-release outcomes are in the body.
+     * @throws ApiError
+     */
+    public static applyChangePlan({
+        planId,
+    }: {
+        /**
+         * Change plan UUID
+         */
+        planId: string,
+    }): CancelablePromise<ApplyChangePlanResult> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/change-plans/{planId}/apply',
             path: {
                 'planId': planId,
             },

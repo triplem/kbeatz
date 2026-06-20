@@ -3,6 +3,7 @@ package org.javafreedom.kbeatz.catalog
 import java.nio.file.Path
 import kotlinx.coroutines.Dispatchers
 import org.javafreedom.kbeatz.catalog.application.service.AlbumService
+import org.javafreedom.kbeatz.catalog.application.service.ChangePlanApplyService
 import org.javafreedom.kbeatz.catalog.application.service.ChangePlanFacade
 import org.javafreedom.kbeatz.catalog.application.service.ChangePlanService
 import org.javafreedom.kbeatz.catalog.application.service.CoverArtService
@@ -10,6 +11,7 @@ import org.javafreedom.kbeatz.catalog.application.service.InMemoryChangePlanStor
 import org.javafreedom.kbeatz.catalog.application.service.LibraryScanService
 import org.javafreedom.kbeatz.catalog.application.service.LibraryWalker
 import org.javafreedom.kbeatz.catalog.application.service.TagWriteService
+import org.javafreedom.kbeatz.catalog.application.service.UnavailableTagChangeApplier
 import org.javafreedom.kbeatz.catalog.domain.model.DirectoryTemplate
 import org.javafreedom.kbeatz.catalog.domain.port.SyncProvider
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
@@ -68,11 +70,26 @@ class DependencyContainer(config: AppConfig, libraryRootPath: Path, dataDirPath:
         libraryRoot = config.catalogLibraryRoot,
     )
 
+    // Process-lifetime store shared between the planning step (#815) and the apply step (#816),
+    // so a plan computed by createPlan can be looked up by id and applied.
+    private val changePlanStore = InMemoryChangePlanStore()
+
     /** Computes, stores, and retrieves dry-run change plans (issue #815). */
-    val changePlanFacade = ChangePlanFacade(changePlanService, InMemoryChangePlanStore())
+    val changePlanFacade = ChangePlanFacade(changePlanService, changePlanStore)
 
     /** Executes directory moves on disk with journalled crash safety (issue #814). */
     val directoryMoveExecutor = DirectoryMoveExecutor(albumRepository, libraryRootPath, dataDirPath)
+
+    /**
+     * Applies a stored change plan by id (issue #816): atomic per-release moves via
+     * [directoryMoveExecutor], idempotent re-apply, per-release outcome reporting.
+     * The tag-write path uses a placeholder applier until story #817 supplies the real one.
+     */
+    val changePlanApplyService = ChangePlanApplyService(
+        store = changePlanStore,
+        directoryMoveExecutor = directoryMoveExecutor,
+        tagChangeApplier = UnavailableTagChangeApplier(),
+    )
 
     /** Reconciles directory moves interrupted by a process kill; runs at startup before traffic. */
     val directoryMoveRecovery = DirectoryMoveRecovery(albumRepository, dataDirPath)
