@@ -3,12 +3,17 @@ package org.javafreedom.kbeatz.catalog
 import java.nio.file.Path
 import kotlinx.coroutines.Dispatchers
 import org.javafreedom.kbeatz.catalog.application.service.AlbumService
+import org.javafreedom.kbeatz.catalog.application.service.ChangePlanFacade
+import org.javafreedom.kbeatz.catalog.application.service.ChangePlanService
 import org.javafreedom.kbeatz.catalog.application.service.CoverArtService
+import org.javafreedom.kbeatz.catalog.application.service.InMemoryChangePlanStore
 import org.javafreedom.kbeatz.catalog.application.service.LibraryScanService
 import org.javafreedom.kbeatz.catalog.application.service.LibraryWalker
 import org.javafreedom.kbeatz.catalog.application.service.TagWriteService
+import org.javafreedom.kbeatz.catalog.domain.model.DirectoryTemplate
 import org.javafreedom.kbeatz.catalog.domain.port.SyncProvider
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
+import org.javafreedom.kbeatz.catalog.domain.service.DirectoryLayoutPlanner
 import org.javafreedom.kbeatz.catalog.infrastructure.persistence.AlbumsTable
 import org.javafreedom.kbeatz.catalog.infrastructure.persistence.DbFactory
 import org.javafreedom.kbeatz.catalog.infrastructure.persistence.ExposedAlbumRepository
@@ -53,6 +58,18 @@ class DependencyContainer(config: AppConfig, libraryRootPath: Path, dataDirPath:
     )
     val syncService: SyncProvider = buildDiscogsSyncProvider(config, albumRepository, libraryRootPath, dataDirPath)
     val tagWriteService = TagWriteService(albumRepository, trackRepository, libraryRootPath)
+
+    // Dry-run change-plan pipeline (issue #815). The plan service performs zero disk writes;
+    // the store is a process-lifetime singleton shared with the apply step (issue #816).
+    private val changePlanService = ChangePlanService(
+        albumRepository = albumRepository,
+        trackRepository = trackRepository,
+        directoryLayoutPlanner = DirectoryLayoutPlanner(DirectoryTemplate(config.layoutDirectoryTemplate)),
+        libraryRoot = config.catalogLibraryRoot,
+    )
+
+    /** Computes, stores, and retrieves dry-run change plans (issue #815). */
+    val changePlanFacade = ChangePlanFacade(changePlanService, InMemoryChangePlanStore())
 
     /** Executes directory moves on disk with journalled crash safety (issue #814). */
     val directoryMoveExecutor = DirectoryMoveExecutor(albumRepository, libraryRootPath, dataDirPath)

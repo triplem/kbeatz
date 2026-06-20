@@ -71,6 +71,7 @@ fun Application.module() {
         deps.coverArtService,
         deps.syncService,
         deps.tagWriteService,
+        deps.changePlanFacade,
         healthConfig,
     )
 

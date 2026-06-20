@@ -21,6 +21,8 @@ tags:
     description: Album browsing and tag management
   - name: Library
     description: Library scan operations
+  - name: ChangePlans
+    description: Dry-run change plans for bulk directory relayout and retagging
 
 paths:
   /healthz:
@@ -427,6 +429,67 @@ paths:
               schema:
                 $ref: "#/components/schemas/ScanStatus"
 
+  /change-plans:
+    post:
+      operationId: createChangePlan
+      summary: Compute a dry-run change plan for one or many releases
+      description: |
+        Computes a consolidated dry-run ChangePlan for the requested releases under a
+        single operation. No disk writes occur: only read-only filesystem checks are used
+        to detect conflicts. Conflicts (target exists, lock held, source missing, path
+        traversal) are returned as data inside the plan, not as request failures. The
+        returned plan is stored and can be retrieved by id for a later apply step.
+      tags: [ChangePlans]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateChangePlanRequest"
+      responses:
+        "201":
+          description: Plan computed and stored. The Location header points to the stored plan.
+          headers:
+            Location:
+              description: "Relative URL of the stored plan: /change-plans/{planId}"
+              schema:
+                type: string
+                example: "/change-plans/7c9e6679-7425-40de-944b-e07fc1f90ae7"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChangePlan"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "422":
+          description: The requested operation is not available in this iteration (RETAG and DISCOGS_SYNC dry runs ship later)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /change-plans/{planId}:
+    get:
+      operationId: getChangePlan
+      summary: Retrieve a previously computed change plan by id
+      description: Returns the stored dry-run ChangePlan identified by planId, for review or apply.
+      tags: [ChangePlans]
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/PlanId"
+      responses:
+        "200":
+          description: The stored change plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChangePlan"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
 components:
   parameters:
     AlbumId:
@@ -434,6 +497,12 @@ components:
       in: path
       required: true
       description: "Album UUID"
+      schema: { type: string, format: uuid }
+    PlanId:
+      name: planId
+      in: path
+      required: true
+      description: "Change plan UUID"
       schema: { type: string, format: uuid }
 
   schemas:
@@ -889,6 +958,181 @@ components:
           type: array
           items:
             type: string
+
+    ChangePlanOperation:
+      type: string
+      description: |
+        The kind of bulk operation a change plan describes. RELAYOUT moves release
+        directories to match the configured template. RETAG applies manual tag values.
+        DISCOGS_SYNC applies tag values sourced from a Discogs release.
+      enum: [RELAYOUT, RETAG, DISCOGS_SYNC]
+      example: "RELAYOUT"
+
+    CreateChangePlanRequest:
+      type: object
+      required: [operation, albumIds]
+      description: "Request to compute a dry-run change plan for one or many releases."
+      properties:
+        operation:
+          $ref: "#/components/schemas/ChangePlanOperation"
+        albumIds:
+          type: array
+          description: "The releases to include in the plan. Must contain at least one album UUID."
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+            description: "Album UUID"
+            example: "550e8400-e29b-41d4-a716-446655440000"
+
+    PlanConflict:
+      type: object
+      required: [type, albumId, message]
+      description: "A condition that prevents or warns about applying part of a plan, surfaced as data."
+      properties:
+        type:
+          type: string
+          description: "The category of conflict."
+          enum: [TARGET_EXISTS, PATH_TRAVERSAL, SOURCE_MISSING, LOCK_HELD]
+          example: "TARGET_EXISTS"
+        albumId:
+          type: string
+          format: uuid
+          description: "The release the conflict relates to."
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        path:
+          type: string
+          nullable: true
+          description: "The on-disk path involved, when applicable."
+          example: "/music/Miles Davis/Kind of Blue (1959)"
+        message:
+          type: string
+          description: "A human-readable explanation without secrets or stack traces."
+          example: "Target directory already exists on disk"
+
+    DirectoryMove:
+      type: object
+      required: [albumId, fromPath, toPath, mergedFromPaths]
+      description: "A planned directory relocation for one release. No move is performed by this value."
+      properties:
+        albumId:
+          type: string
+          format: uuid
+          description: "The release being moved."
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        fromPath:
+          type: string
+          description: "The current absolute directory path."
+          example: "/music/incoming/kind-of-blue"
+        toPath:
+          type: string
+          description: "The planned absolute target directory path."
+          example: "/music/Miles Davis/Kind of Blue (1959)"
+        mergedFromPaths:
+          type: array
+          description: "Additional merged source directories that also relocate."
+          items:
+            type: string
+            description: "An absolute source directory path."
+            example: "/music/incoming/kind-of-blue-disc2"
+
+    TagChange:
+      type: object
+      required: [targetPath, field]
+      description: "A single proposed tag-field change for a target file or scope."
+      properties:
+        targetPath:
+          type: string
+          description: "Identifies the file or scope the change applies to."
+          example: "/music/Miles Davis/Kind of Blue (1959)/01.flac"
+        field:
+          type: string
+          description: "The Vorbis Comment field name."
+          example: "ALBUM"
+        currentValue:
+          type: string
+          nullable: true
+          description: "The current value, or null when the field is absent."
+          example: "Kind of Blue"
+        proposedValue:
+          type: string
+          nullable: true
+          description: "The proposed value, or null when the field is removed."
+          example: "Kind of Blue (Remastered)"
+
+    ReleaseChangeSet:
+      type: object
+      required: [albumId, tagChanges, conflicts, hasConflicts]
+      description: "The complete set of planned changes for a single release."
+      properties:
+        albumId:
+          type: string
+          format: uuid
+          description: "The release this change set describes."
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        directoryMove:
+          description: "The planned move, or null when the directory already matches the template."
+          oneOf:
+            - $ref: "#/components/schemas/DirectoryMove"
+          nullable: true
+        tagChanges:
+          type: array
+          description: "The per-field tag diffs. Empty for a pure relayout."
+          items:
+            $ref: "#/components/schemas/TagChange"
+        conflicts:
+          type: array
+          description: "Any conflicts detected for this release during planning."
+          items:
+            $ref: "#/components/schemas/PlanConflict"
+        hasConflicts:
+          type: boolean
+          description: "True when this release has at least one conflict."
+          example: false
+
+    ChangePlan:
+      type: object
+      required: [id, operation, releases, createdAt, totalMoves, totalTagChanges, totalConflicts, hasConflicts]
+      description: |
+        A consolidated dry-run plan describing every directory move and tag change for one
+        or many releases under a single operation. Producing a plan performs zero disk writes.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Unique identifier for this plan instance."
+          example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+        operation:
+          $ref: "#/components/schemas/ChangePlanOperation"
+        releases:
+          type: array
+          description: "The per-release change sets, one entry per requested release."
+          items:
+            $ref: "#/components/schemas/ReleaseChangeSet"
+        createdAt:
+          type: string
+          format: date-time
+          description: "When the plan was assembled."
+          example: "2026-06-20T14:00:00Z"
+        totalMoves:
+          type: integer
+          format: int32
+          description: "The total number of directory moves across all releases."
+          example: 2
+        totalTagChanges:
+          type: integer
+          format: int32
+          description: "The total number of tag changes across all releases."
+          example: 0
+        totalConflicts:
+          type: integer
+          format: int32
+          description: "The total number of conflicts across all releases."
+          example: 1
+        hasConflicts:
+          type: boolean
+          description: "True when any release in the plan has at least one conflict."
+          example: true
 
   responses:
     BadRequest:
