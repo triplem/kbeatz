@@ -1,0 +1,313 @@
+= Developer Reference: Directory Templating and the ChangePlan Workflow
+:revnumber: 1.0
+:revdate: 2026-06-20
+:author: kbeatz team
+:toc: left
+:icons: font
+
+== Overview
+
+This reference documents the directory-layout template engine and the unified
+dry-run / confirm / apply workflow that `kbeatz-catalog` uses to reorganise release
+directories and to apply Discogs sync changes. The audience is a developer extending the
+feature. The architectural rationale lives in
+link:../../docs/adr/ADR-014-directory-templating-and-change-plan-workflow.adoc[ADR-014].
+
+== Directory Template Engine
+
+The template is configured by the HOCON key `catalog.layout.directoryTemplate`
+(env override `CATALOG_LAYOUT_DIRECTORY_TEMPLATE`), defaulting to:
+
+----
+${ALBUMARTIST}/${ALBUM} (${DATE})
+----
+
+It is parsed into `AppConfig.layoutDirectoryTemplate`. `DirectoryTemplate` is a value object
+that renders and validates a template. `DirectoryLayoutPlanner.planTargetDirectory(album,
+libraryRoot)` renders the template against an album and returns a
+`DirectoryLayoutResult(relativePath, absolutePath)`.
+
+=== Token table
+
+[cols="1,3", options="header"]
+|===
+| Token | Album source
+
+| `ALBUMARTIST` | `Album.albumArtist`
+| `ALBUM` | `Album.title`
+| `DATE` | `Album.date` (full date string)
+| `YEAR` | First 4 characters of `DATE`
+| `GENRE` | `Album.genre`
+| `LABEL` | `Album.label`
+| `CATALOGNUMBER` | `Album.catalogNumber`
+| `COMPOSER` | `Album.composer`
+| `CONDUCTOR` | `Album.conductor`
+| `ENSEMBLE` | `Album.ensemble`
+| `COUNTRY` | `Album.country`
+| `MEDIAFORMAT` | `Album.mediaFormat`
+|===
+
+=== Rendering rules
+
+* *Unknown token.* A token not in the table above is a validation error. The template is
+  rejected before any path is computed.
+* *Blank token.* A supported token whose value is empty renders to an empty string. The planner
+  then drops the empty path artifacts so no stray empty segment (for example, a leading `/` or a
+  doubled separator) is produced.
+* *Sanitisation.* Filesystem-illegal characters in a token *value* (`/ \ : * ? " < > |` and
+  control characters) are replaced with `_`. Only the template's literal `/` characters act as
+  path separators. A value `AC/DC` becomes one segment `AC_DC`, not two directories.
+* *Traversal guard.* The resolved path is normalised and must stay inside the library root
+  (NFR-06). A traversal value such as `../etc` is neutralised; the planner never returns a path
+  outside the root.
+
+=== Rendering example
+
+Given an album with `albumArtist = "AC/DC"`, `title = "Back in Black"`, `date = "1980-07-25"`
+and the default template `${ALBUMARTIST}/${ALBUM} (${DATE})`:
+
+----
+AC_DC/Back in Black (1980-07-25)
+----
+
+The `/` in `AC/DC` is sanitised to `_` (one segment), while the literal `/` in the template
+separates the artist directory from the album directory.
+
+== ChangePlan Model
+
+A mutating operation is expressed as a `ChangePlan`, computed during a dry run and stored for a
+later apply call.
+
+[cols="1,3", options="header"]
+|===
+| Type | Description
+
+| `ChangeOperation`
+| `RELAYOUT`, `RETAG`, or `DISCOGS_SYNC`.
+
+| `ConflictType`
+| `TARGET_EXISTS` (the planned target directory already exists), `PATH_TRAVERSAL` (the resolved
+  path escaped the library root), `SOURCE_MISSING` (the source directory is gone), `LOCK_HELD`
+  (a `.kbeatz-write.lock` is present for the release).
+
+| `DirectoryMove(albumId, fromPath, toPath, mergedFromPaths)`
+| A planned relocation. `mergedFromPaths` lists the merged source directories to relocate into
+  the target.
+
+| `TagChange(targetPath, field, currentValue, proposedValue)`
+| A single planned Vorbis Comment field change.
+
+| `PlanConflict(type, albumId, path, message)`
+| A reason the release cannot be applied as-is.
+
+| `ReleaseChangeSet(albumId, directoryMove?, tagChanges, conflicts)`
+| All planned changes for one release. `directoryMove` is optional.
+
+| `ChangePlan(id, operation, releases, createdAt)`
+| The full plan. Exposes totals: `totalMoves`, `totalTagChanges`, `totalConflicts`, and
+  `hasConflicts`.
+|===
+
+Plans are built by `ChangePlanService.planRelayout(albumIds)` and `planTagChanges(...)` through
+`ChangePlanFacade`, then stored in the in-memory `ChangePlanStore` (process lifetime, keyed by
+plan id).
+
+== Change-Plan Lifecycle
+
+. *Create (dry run).* The caller posts an operation and a list of album ids. The service renders
+  targets, detects conflicts, computes tag diffs, and returns a `ChangePlan`. Nothing is written
+  to disk. Conflicts and missing albums appear as plan data, never as request errors.
+. *Store.* The plan is held in `ChangePlanStore`, keyed by its generated id, for the lifetime of
+  the process.
+. *Apply (confirm).* `ChangePlanApplyService` iterates the stored plan and records a per-release
+  outcome.
+. *Idempotency.* Re-applying the same plan is a no-op for releases already applied.
+
+=== SKIPPED vs FAILED vs APPLIED
+
+[cols="1,3", options="header"]
+|===
+| Outcome | Meaning
+
+| `APPLIED`
+| The release had no conflicts and its move and tag changes succeeded.
+
+| `SKIPPED`
+| The release had one or more conflicts at apply time (for example `TARGET_EXISTS` or
+  `LOCK_HELD`). It is deliberately not touched.
+
+| `FAILED`
+| The release had no blocking conflict but an error occurred while writing (for example an I/O
+  error during the move). The batch continues with the remaining releases.
+|===
+
+== Apply and Move Semantics
+
+`DirectoryMoveExecutor.execute(move)`:
+
+. Validates the move stays within the library root.
+. Writes the move journal and a `.kbeatz-write.lock` *before* touching any file.
+. Performs an atomic `Files.move(ATOMIC_MOVE)`, falling back to a journaled copy-verify-swap for
+  cross-filesystem moves. The source is never deleted before the target is verified.
+. Relocates each merged source directory into the target as a subdirectory keyed by its original
+  leaf name, and updates `Album.mergedDirectories`.
+. Updates `Album.directoryPath` in one transaction.
+
+Because `Track.path` is relative to the album root, a root rename keeps every track path valid
+with no per-track rewrite, and multi-disc subdirectories move with the root.
+
+=== Move journal phases
+
+The journal is a per-album `<albumId>.kbeatz-move.journal` file (key=value text, tab-separated
+path lists) in the catalog `dataDir`:
+
+[cols="1,3", options="header"]
+|===
+| Phase | Meaning at recovery
+
+| `PLANNED`
+| Written before any file is touched. On recovery the move is rolled back (nothing was moved).
+
+| `MOVED`
+| Written after the on-disk move completes. On recovery the move is rolled forward (finish
+  metadata updates).
+|===
+
+`DirectoryMoveRecovery.recoverInterruptedMoves()` runs at startup before the HTTP server accepts
+traffic, alongside `repairOnStartup()`. It rolls forward `MOVED` journals, rolls back `PLANNED`
+journals, is idempotent, and leaves no album half-applied.
+
+== Single FlacTagWriter Write Path
+
+`FlacTagWriter` is the only code path that mutates Vorbis Comment fields on disk. It performs
+PathGuard validation, writes a `.kbeatz-write.lock` manifest, writes to the primary and any
+merged directories, and uses an atomic per-file temp-and-rename
+(link:../../docs/adr/ADR-001-flac-implementation.adoc[ADR-001]). The callers
+`TagWriteService` (manual retag via `PATCH`), `DiscogsSyncService.sync`, and
+`FlacTagChangeApplier` (change-plan apply) all delegate to it. There is no second direct
+tag-write path.
+
+== HTTP Endpoints
+
+=== POST /change-plans
+
+Operation `createChangePlan`. Body `{ operation, albumIds }`. Returns `201` with a `ChangePlan`.
+This is a dry run: no disk writes occur. `RELAYOUT` and `DISCOGS_SYNC` are supported; a generic
+`RETAG` returns `422 OPERATION_NOT_AVAILABLE` (manual retag continues via
+`PATCH /albums/{id}/tags`).
+
+.Request
+[source,json]
+----
+{
+  "operation": "RELAYOUT",
+  "albumIds": ["a1b2c3", "d4e5f6"]
+}
+----
+
+.Response (201)
+[source,json]
+----
+{
+  "id": "plan-7f3a",
+  "operation": "RELAYOUT",
+  "createdAt": "2026-06-20T10:15:00Z",
+  "totalMoves": 2,
+  "totalTagChanges": 0,
+  "totalConflicts": 1,
+  "hasConflicts": true,
+  "releases": [
+    {
+      "albumId": "a1b2c3",
+      "directoryMove": {
+        "albumId": "a1b2c3",
+        "fromPath": "/music/ACDC/Back in Black",
+        "toPath": "/music/AC_DC/Back in Black (1980-07-25)",
+        "mergedFromPaths": []
+      },
+      "tagChanges": [],
+      "conflicts": []
+    },
+    {
+      "albumId": "d4e5f6",
+      "directoryMove": {
+        "albumId": "d4e5f6",
+        "fromPath": "/music/Queen/A Night at the Opera",
+        "toPath": "/music/Queen/A Night at the Opera (1975-11-21)",
+        "mergedFromPaths": []
+      },
+      "tagChanges": [],
+      "conflicts": [
+        {
+          "type": "TARGET_EXISTS",
+          "albumId": "d4e5f6",
+          "path": "/music/Queen/A Night at the Opera (1975-11-21)",
+          "message": "Target directory already exists"
+        }
+      ]
+    }
+  ]
+}
+----
+
+=== GET /change-plans/{planId}
+
+Operation `getChangePlan`. Returns `200` with the stored plan, or `404` if the id is unknown
+(for example after a restart).
+
+=== POST /change-plans/{planId}/apply
+
+Operation `applyChangePlan`. Confirms and applies the stored plan. Returns `200` with an
+`ApplyChangePlanResult`, or `404` for an unknown plan id. Nothing is written until this call.
+
+.Response (200)
+[source,json]
+----
+{
+  "planId": "plan-7f3a",
+  "appliedCount": 1,
+  "skippedCount": 1,
+  "failedCount": 0,
+  "releases": [
+    { "albumId": "a1b2c3", "outcome": "APPLIED" },
+    { "albumId": "d4e5f6", "outcome": "SKIPPED" }
+  ]
+}
+----
+
+=== GET /settings/layout
+
+Returns the active template and the supported tokens.
+
+[source,json]
+----
+{
+  "directoryTemplate": "${ALBUMARTIST}/${ALBUM} (${DATE})",
+  "supportedTokens": ["ALBUMARTIST", "ALBUM", "DATE", "YEAR", "GENRE", "LABEL",
+    "CATALOGNUMBER", "COMPOSER", "CONDUCTOR", "ENSEMBLE", "COUNTRY", "MEDIAFORMAT"]
+}
+----
+
+=== GET /settings/layout/preview/{albumId}
+
+Returns the current and planned directory for one album.
+
+[source,json]
+----
+{
+  "currentDirectory": "/music/ACDC/Back in Black",
+  "plannedDirectory": "/music/AC_DC/Back in Black (1980-07-25)",
+  "withinLibraryRoot": true,
+  "message": "Planned move stays within the library root"
+}
+----
+
+== See Also
+
+* link:../../docs/adr/ADR-014-directory-templating-and-change-plan-workflow.adoc[ADR-014:
+  Configurable release directory layout and the unified ChangePlan workflow]
+* link:../../docs/adr/ADR-001-flac-implementation.adoc[ADR-001: Atomic FLAC writes]
+* link:../../docs/adr/ADR-011-merged-directories-storage-design.adoc[ADR-011: merged_directories
+  storage design]
+* link:change-plan-user-guide.adoc[User and admin guide: reorganising releases and reviewing sync]
+* `kbeatz-catalog/src/main/resources/application.conf` - `catalog.layout.directoryTemplate` default
