@@ -463,7 +463,10 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequest"
         "422":
-          description: The requested operation is not available in this iteration (RETAG and DISCOGS_SYNC dry runs ship later)
+          description: >-
+            The requested operation is not available via this generic endpoint. RELAYOUT and
+            DISCOGS_SYNC are supported; RETAG carries no proposed field values here and is performed
+            through PATCH /albums/{albumId}/tags instead.
           content:
             application/json:
               schema:

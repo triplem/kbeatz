@@ -7,11 +7,11 @@ import org.javafreedom.kbeatz.catalog.application.service.ChangePlanApplyService
 import org.javafreedom.kbeatz.catalog.application.service.ChangePlanFacade
 import org.javafreedom.kbeatz.catalog.application.service.ChangePlanService
 import org.javafreedom.kbeatz.catalog.application.service.CoverArtService
+import org.javafreedom.kbeatz.catalog.application.service.FlacTagChangeApplier
 import org.javafreedom.kbeatz.catalog.application.service.InMemoryChangePlanStore
 import org.javafreedom.kbeatz.catalog.application.service.LibraryScanService
 import org.javafreedom.kbeatz.catalog.application.service.LibraryWalker
 import org.javafreedom.kbeatz.catalog.application.service.TagWriteService
-import org.javafreedom.kbeatz.catalog.application.service.UnavailableTagChangeApplier
 import org.javafreedom.kbeatz.catalog.domain.model.DirectoryTemplate
 import org.javafreedom.kbeatz.catalog.domain.port.SyncProvider
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
@@ -23,6 +23,7 @@ import org.javafreedom.kbeatz.catalog.infrastructure.move.DirectoryMoveExecutor
 import org.javafreedom.kbeatz.catalog.infrastructure.move.DirectoryMoveRecovery
 import org.javafreedom.kbeatz.catalog.infrastructure.persistence.ExposedTrackRepository
 import org.javafreedom.kbeatz.catalog.infrastructure.sync.buildDiscogsSyncProvider
+import org.javafreedom.kbeatz.catalog.infrastructure.tag.FlacTagWriter
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 
@@ -58,8 +59,14 @@ class DependencyContainer(config: AppConfig, libraryRootPath: Path, dataDirPath:
         repairTimeoutSeconds = config.repairTimeoutSeconds,
         scanDispatcher = Dispatchers.IO.limitedParallelism(config.scanParallelism),
     )
-    val syncService: SyncProvider = buildDiscogsSyncProvider(config, albumRepository, libraryRootPath, dataDirPath)
-    val tagWriteService = TagWriteService(albumRepository, trackRepository, libraryRootPath)
+    // The single, shared FLAC tag-write path (issue #817). Manual retag (TagWriteService), Discogs
+    // sync (DiscogsSyncService) and change-plan apply (FlacTagChangeApplier) all write FLAC tags
+    // through this one collaborator, so there is no second on-disk tag-write code path (AC-E10).
+    private val flacTagWriter = FlacTagWriter(libraryRootPath)
+
+    val syncService: SyncProvider =
+        buildDiscogsSyncProvider(config, albumRepository, libraryRootPath, dataDirPath, flacTagWriter)
+    val tagWriteService = TagWriteService(albumRepository, trackRepository, libraryRootPath, flacTagWriter)
 
     // Dry-run change-plan pipeline (issue #815). The plan service performs zero disk writes;
     // the store is a process-lifetime singleton shared with the apply step (issue #816).
@@ -74,21 +81,25 @@ class DependencyContainer(config: AppConfig, libraryRootPath: Path, dataDirPath:
     // so a plan computed by createPlan can be looked up by id and applied.
     private val changePlanStore = InMemoryChangePlanStore()
 
-    /** Computes, stores, and retrieves dry-run change plans (issue #815). */
-    val changePlanFacade = ChangePlanFacade(changePlanService, changePlanStore)
+    /**
+     * Computes, stores, and retrieves dry-run change plans (issue #815). DISCOGS_SYNC plans are
+     * sourced from the active [syncService] preview (issue #817).
+     */
+    val changePlanFacade = ChangePlanFacade(changePlanService, changePlanStore, syncService)
 
     /** Executes directory moves on disk with journalled crash safety (issue #814). */
     val directoryMoveExecutor = DirectoryMoveExecutor(albumRepository, libraryRootPath, dataDirPath)
 
     /**
      * Applies a stored change plan by id (issue #816): atomic per-release moves via
-     * [directoryMoveExecutor], idempotent re-apply, per-release outcome reporting.
-     * The tag-write path uses a placeholder applier until story #817 supplies the real one.
+     * [directoryMoveExecutor], idempotent re-apply, per-release outcome reporting. Tag changes are
+     * written through [FlacTagChangeApplier], which routes to the single shared FLAC tag-write path
+     * (issue #817).
      */
     val changePlanApplyService = ChangePlanApplyService(
         store = changePlanStore,
         directoryMoveExecutor = directoryMoveExecutor,
-        tagChangeApplier = UnavailableTagChangeApplier(),
+        tagChangeApplier = FlacTagChangeApplier(albumRepository, flacTagWriter),
     )
 
     /** Reconciles directory moves interrupted by a process kill; runs at startup before traffic. */

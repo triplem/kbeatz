@@ -1,24 +1,18 @@
 package org.javafreedom.kbeatz.catalog.application.service
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.io.files.Path as KtPath
 import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.model.Track
-import org.javafreedom.kbeatz.catalog.domain.model.WRITE_LOCK_FILENAME
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 import org.javafreedom.kbeatz.catalog.domain.repository.TrackRepository
-import org.javafreedom.kbeatz.catalog.util.PathGuard
-import org.javafreedom.kbeatz.catalog.util.sanitizeForLog
+import org.javafreedom.kbeatz.catalog.infrastructure.tag.FlacTagWriter
 import org.javafreedom.kbeatz.common.BusinessValidationException
-import org.javafreedom.kbeatz.common.ConflictException
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
-import org.javafreedom.kbeatz.tagger.codec.flac.FlacFile
 import org.javafreedom.kbeatz.tagger.codec.flac.MAX_TAG_VALUE_LENGTH
 
 private val log = KotlinLogging.logger {}
@@ -72,6 +66,7 @@ class TagWriteService(
     private val albumRepository: AlbumRepository,
     private val trackRepository: TrackRepository,
     private val libraryRoot: Path,
+    private val flacTagWriter: FlacTagWriter = FlacTagWriter(libraryRoot),
 ) {
     /**
      * Per-album in-memory mutexes that serialise concurrent HTTP PATCH requests.
@@ -135,81 +130,19 @@ class TagWriteService(
             val album = albumRepository.findById(albumId)
                 ?: throw ResourceNotFoundException("Album", albumId.toString())
 
-            val albumDir = Path.of(album.directoryPath)
-            validatePath(albumDir)
-
-            // Reject immediately if a write-lock file already exists; this means the
-            // CLI (kbeatz-cli) is currently writing to the same album directory.
-            // The client should retry after a short delay.
-            if (Files.exists(albumDir.resolve(WRITE_LOCK_FILENAME))) {
-                throw ConflictException(
-                    "Album write in progress, retry later (write lock found in $albumDir)"
-                )
-            }
-
-            // Collect FLAC files from the primary directory.
-            val primaryFlacFiles = findFlacFiles(albumDir)
-
-            // Collect FLAC files from merged directories (issue #666).
-            // validatePath is always called first (even for non-existent paths) so that paths
-            // with traversal sequences (e.g. ../../etc) are rejected regardless of whether
-            // the directory exists on disk (issue #724).
-            // Directories that no longer exist on disk are skipped with a WARN after validation.
-            // The map preserves insertion order for deterministic write sequencing.
-            val mergedDirToFlacFiles: Map<Path, List<Path>> = album.mergedDirectories
-                .mapNotNull { dirPath ->
-                    val mergedDir = Path.of(dirPath)
-                    validatePath(mergedDir)
-                    if (!Files.isDirectory(mergedDir)) {
-                        log.warn {
-                            "merged_dir_skip albumId=$albumId path=${dirPath.sanitizeForLog()} " +
-                                "reason=directory_not_found"
-                        }
-                        null
-                    } else {
-                        mergedDir to findFlacFiles(mergedDir)
-                    }
-                }
-                .toMap()
-
-            // The write-lock manifest is written only to the primary directory.
-            // It lists all FLAC files (primary + merged) so a crash-recovery scan
-            // can identify all affected files.
-            val allFlacFiles = primaryFlacFiles + mergedDirToFlacFiles.values.flatten()
-            writeLockFile(albumDir, allFlacFiles)
-
-            try {
-                writeTagToFiles(primaryFlacFiles, normalised, value, albumId)
-                var mergedDirsCompleted = 0
-                @Suppress("TooGenericExceptionCaught") // intentional: any write failure is logged then rethrown
-                mergedDirToFlacFiles.forEach { (mergedDir, mergedFiles) ->
-                    try {
-                        writeTagToFiles(mergedFiles, normalised, value, albumId)
-                        mergedDirsCompleted++
-                        log.info {
-                            "merged_dir_write_complete albumId=$albumId field=$normalised " +
-                                "dir=$mergedDir fileCount=${mergedFiles.size}"
-                        }
-                    } catch (e: Exception) {
-                        log.error(e) {
-                            "merged_dir_write_failed albumId=$albumId field=$normalised " +
-                                "dir=$mergedDir mergedDirsCompleted=$mergedDirsCompleted " +
-                                "mergedDirsTotal=${mergedDirToFlacFiles.size}"
-                        }
-                        throw e
-                    }
-                }
-            } finally {
-                deleteLockFile(albumDir)
-            }
+            // The single FLAC tag-write path (story #817): atomic per-file writes across the
+            // primary and any merged directories, under one .kbeatz-write.lock manifest. Path
+            // traversal and cross-writer lock conflicts are enforced inside the writer.
+            flacTagWriter.writeAlbumFields(
+                albumId = albumId,
+                primaryDir = Path.of(album.directoryPath),
+                mergedDirs = album.mergedDirectories,
+                fields = mapOf(normalised to value),
+            )
 
             val updatedAlbum = album.applyAlbumField(normalised, value)
             albumRepository.save(updatedAlbum)
-            log.info {
-                "album_tag_write_complete albumId=$albumId field=$normalised " +
-                    "primaryFiles=${primaryFlacFiles.size} " +
-                    "mergedDirCount=${mergedDirToFlacFiles.size}"
-            }
+            log.info { "album_tag_write_complete albumId=$albumId field=$normalised" }
             updatedAlbum
         }
     }
@@ -266,58 +199,15 @@ class TagWriteService(
             if (normalisedAlbumFields.isEmpty()) {
                 album
             } else {
-                val albumDir = Path.of(album.directoryPath)
-                validatePath(albumDir)
-
-                if (Files.exists(albumDir.resolve(WRITE_LOCK_FILENAME))) {
-                    throw ConflictException(
-                        "Album write in progress, retry later (write lock found in $albumDir)"
-                    )
-                }
-
-                val primaryFlacFiles = findFlacFiles(albumDir)
-
-                // validatePath is always called first (even for non-existent paths) so that paths
-                // with traversal sequences (e.g. ../../etc) are rejected regardless of whether
-                // the directory exists on disk (issue #765 / same invariant as #724).
-                val mergedDirToFlacFiles: Map<Path, List<Path>> = album.mergedDirectories
-                    .mapNotNull { dirPath ->
-                        val mergedDir = Path.of(dirPath)
-                        validatePath(mergedDir)
-                        if (!Files.isDirectory(mergedDir)) {
-                            log.warn {
-                                "merged_dir_skip albumId=$albumId path=${dirPath.sanitizeForLog()} " +
-                                    "reason=directory_not_found"
-                            }
-                            null
-                        } else {
-                            mergedDir to findFlacFiles(mergedDir)
-                        }
-                    }
-                    .toMap()
-
-                val allFlacFiles = primaryFlacFiles + mergedDirToFlacFiles.values.flatten()
-                writeLockFile(albumDir, allFlacFiles)
-
-                try {
-                    normalisedAlbumFields.forEach { (normalised, value) ->
-                        writeTagToFiles(primaryFlacFiles, normalised, value, albumId)
-                        mergedDirToFlacFiles.forEach { (mergedDir, mergedFiles) ->
-                            writeTagToFiles(mergedFiles, normalised, value, albumId)
-                            log.info {
-                                "merged_dir_write_complete albumId=$albumId field=$normalised " +
-                                    "dir=$mergedDir fileCount=${mergedFiles.size}"
-                            }
-                        }
-                        log.info {
-                            "album_tag_write_complete albumId=$albumId field=$normalised " +
-                                "primaryFiles=${primaryFlacFiles.size} " +
-                                "mergedDirCount=${mergedDirToFlacFiles.size}"
-                        }
-                    }
-                } finally {
-                    deleteLockFile(albumDir)
-                }
+                // All album-level fields are written in a single .kbeatz-write.lock lifecycle via
+                // the shared FLAC tag-write path (story #817). Later entries for the same field win,
+                // matching the previous sequential write semantics.
+                flacTagWriter.writeAlbumFields(
+                    albumId = albumId,
+                    primaryDir = Path.of(album.directoryPath),
+                    mergedDirs = album.mergedDirectories,
+                    fields = normalisedAlbumFields.toMap(),
+                )
 
                 var updatedAlbum = album
                 normalisedAlbumFields.forEach { (normalised, value) ->
@@ -372,13 +262,11 @@ class TagWriteService(
         val track = tracks.firstOrNull { it.id == trackId }
             ?: throw ResourceNotFoundException("Track", trackId.toString())
 
-        val albumDir = Path.of(album.directoryPath)
-        validatePath(albumDir)
+        val flacPath = Path.of(album.directoryPath).resolve(track.path)
+        // Track-level: a single atomic write via the shared FLAC tag-write path; no lock manifest
+        // is needed for one file (story #817).
+        flacTagWriter.writeSingleFile(flacPath, mapOf(normalised to value))
 
-        val flacPath = albumDir.resolve(track.path)
-        writeTagToSingleFile(flacPath, normalised, value, trackId)
-
-        // Track-level: no lock manifest needed for a single atomic write.
         val updatedTrack = track.applyTrackField(normalised, value)
         trackRepository.update(updatedTrack)
         log.info { "Track tag write complete albumId=$albumId trackId=$trackId field=$normalised" }
@@ -394,55 +282,6 @@ class TagWriteService(
         }
     }
 
-    private fun validatePath(albumDir: Path) {
-        PathGuard.assertWithinLibraryRoot(albumDir, libraryRoot)
-    }
-
-    private fun findFlacFiles(albumDir: Path): List<Path> =
-        if (Files.isDirectory(albumDir)) {
-            Files.list(albumDir).use { stream ->
-                stream
-                    .filter { it.fileName.toString().endsWith(".flac", ignoreCase = true) }
-                    .sorted()
-                    .toList()
-            }
-        } else {
-            emptyList()
-        }
-
-    private fun writeLockFile(albumDir: Path, flacFiles: List<Path>) {
-        if (flacFiles.isEmpty()) return
-        Files.createDirectories(albumDir)
-        val manifest = flacFiles.joinToString("\n") { it.toString() }
-        Files.writeString(albumDir.resolve(WRITE_LOCK_FILENAME), manifest)
-        log.debug { "Write-lock manifest created in $albumDir (${flacFiles.size} files)" }
-    }
-
-    private fun deleteLockFile(albumDir: Path) {
-        Files.deleteIfExists(albumDir.resolve(WRITE_LOCK_FILENAME))
-        log.debug { "Write-lock manifest removed from $albumDir" }
-    }
-
-    private fun writeTagToFiles(
-        files: List<Path>,
-        field: String,
-        value: String,
-        albumId: Uuid,
-    ) {
-        files.forEach { flacPath ->
-            FlacFile.read(KtPath(flacPath.toString()))
-                .updateVorbisComment { editor -> editor.set(field, value) }
-                .writeTo(KtPath(flacPath.toString()))
-            log.debug { "Tag written albumId=$albumId field=$field path=$flacPath" }
-        }
-    }
-
-    private fun writeTagToSingleFile(flacPath: Path, field: String, value: String, trackId: Uuid) {
-        FlacFile.read(KtPath(flacPath.toString()))
-            .updateVorbisComment { editor -> editor.set(field, value) }
-            .writeTo(KtPath(flacPath.toString()))
-        log.debug { "Tag written trackId=$trackId field=$field path=$flacPath" }
-    }
 }
 
 private fun Album.applyAlbumField(field: String, value: String): Album = when (field) {

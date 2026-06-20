@@ -30,10 +30,13 @@ import org.javafreedom.kbeatz.catalog.application.service.ChangePlanFacade
 import org.javafreedom.kbeatz.catalog.application.service.ChangePlanService
 import org.javafreedom.kbeatz.catalog.application.service.InMemoryChangePlanStore
 import org.javafreedom.kbeatz.catalog.application.service.PlanningFilesystem
-import org.javafreedom.kbeatz.catalog.application.service.UnavailableTagChangeApplier
+import org.javafreedom.kbeatz.catalog.application.service.TagChangeApplier
 import org.javafreedom.kbeatz.catalog.infrastructure.move.DirectoryMoveExecutor
 import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.model.DirectoryTemplate
+import org.javafreedom.kbeatz.catalog.domain.model.SyncPreview
+import org.javafreedom.kbeatz.catalog.domain.model.SyncResult
+import org.javafreedom.kbeatz.catalog.domain.port.SyncProvider
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumFilter
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 import org.javafreedom.kbeatz.catalog.domain.repository.TrackRepository
@@ -88,11 +91,22 @@ class ChangePlanHandlerTest {
         images = null,
     )
 
+    // A SyncProvider stub for the create-plan routing tests. preview() returns no proposed changes
+    // by default, which is sufficient for the routing assertions here; dedicated DISCOGS_SYNC
+    // planning behaviour is covered in ChangePlanFacadeTest.
+    private class StubSyncProvider : SyncProvider {
+        override val name: String = "stub"
+        override suspend fun preview(albumId: Uuid): SyncPreview = SyncPreview(albumId, emptyList())
+        override suspend fun sync(albumId: Uuid, downloadImages: Boolean): SyncResult =
+            error("not used in routing tests")
+    }
+
     private fun facade(
         albums: List<Album>,
         store: InMemoryChangePlanStore = InMemoryChangePlanStore(),
         pathExists: (String) -> Boolean = { true },
         lockHeld: (String) -> Boolean = { false },
+        syncProvider: SyncProvider = StubSyncProvider(),
     ): ChangePlanFacade {
         val service = ChangePlanService(
             albumRepository = FakeAlbumRepository(albums),
@@ -101,7 +115,7 @@ class ChangePlanHandlerTest {
             libraryRoot = libraryRoot,
             filesystem = StubFilesystem(pathExists, lockHeld),
         )
-        return ChangePlanFacade(service, store)
+        return ChangePlanFacade(service, store, syncProvider)
     }
 
     // These handler tests cover create/get/apply routing; create/get tests never invoke apply, so a
@@ -110,7 +124,7 @@ class ChangePlanHandlerTest {
         ChangePlanApplyService(
             store = store,
             directoryMoveExecutor = mockk<DirectoryMoveExecutor>(),
-            tagChangeApplier = UnavailableTagChangeApplier(),
+            tagChangeApplier = mockk<TagChangeApplier>(),
         )
 
     @Test

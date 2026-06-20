@@ -91,12 +91,19 @@ class ChangePlanService(
     /**
      * Assembles a tag-change plan for [operation] from supplied album-level tag maps.
      *
-     * This is the seam consumed by later wiring (story #817): it does not read FLAC files
-     * or call Discogs. It diffs the supplied current/proposed maps with [TagDiffCalculator].
+     * This is the seam consumed by story #817: it does not read FLAC files or call Discogs. It
+     * diffs the supplied current/proposed maps with [TagDiffCalculator] and carries any supplied
+     * per-album conflicts (e.g. no Discogs token, missing album, image quota) as plan data rather
+     * than failing the whole request.
+     *
+     * A release that has only a conflict (and no proposed tags) is still included so callers see
+     * every problem at once. The release set is the union of [proposedByAlbum] and
+     * [conflictsByAlbum] keys.
      *
      * @param operation Must be [ChangeOperation.RETAG] or [ChangeOperation.DISCOGS_SYNC].
      * @param proposedByAlbum Proposed tag values per release.
      * @param currentByAlbum Current tag values per release.
+     * @param conflictsByAlbum Conflicts detected while sourcing tags, per release.
      * @return A single consolidated plan with no directory moves.
      * @throws BusinessValidationException if [operation] is [ChangeOperation.RELAYOUT].
      */
@@ -104,20 +111,28 @@ class ChangePlanService(
         operation: ChangeOperation,
         proposedByAlbum: Map<Uuid, Map<String, String>>,
         currentByAlbum: Map<Uuid, Map<String, String>>,
+        conflictsByAlbum: Map<Uuid, List<PlanConflict>> = emptyMap(),
     ): ChangePlan {
         if (operation == ChangeOperation.RELAYOUT) {
             throw BusinessValidationException(
                 "planTagChanges supports only RETAG or DISCOGS_SYNC, not $operation"
             )
         }
-        val releases = proposedByAlbum.keys.map { albumId ->
+        val albumIds = proposedByAlbum.keys + conflictsByAlbum.keys
+        val releases = albumIds.map { albumId ->
+            val conflicts = conflictsByAlbum[albumId].orEmpty()
             val current = currentByAlbum[albumId].orEmpty()
             val proposed = proposedByAlbum[albumId].orEmpty()
             ReleaseChangeSet(
                 albumId = albumId,
                 directoryMove = null,
-                tagChanges = TagDiffCalculator.diff(current, proposed, albumId.toString()),
-                conflicts = emptyList(),
+                // A release with conflicts carries no tag changes: apply must SKIP it untouched.
+                tagChanges = if (conflicts.isEmpty()) {
+                    TagDiffCalculator.diff(current, proposed, albumId.toString())
+                } else {
+                    emptyList()
+                },
+                conflicts = conflicts,
             )
         }
         return buildPlan(operation, releases)

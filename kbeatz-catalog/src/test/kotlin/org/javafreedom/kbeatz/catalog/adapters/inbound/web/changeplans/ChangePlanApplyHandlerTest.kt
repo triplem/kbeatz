@@ -23,7 +23,7 @@ import org.javafreedom.kbeatz.catalog.api.models.ReleaseApplyOutcome as ApiRelea
 import org.javafreedom.kbeatz.catalog.application.service.ChangePlanApplyService
 import org.javafreedom.kbeatz.catalog.application.service.ChangePlanFacade
 import org.javafreedom.kbeatz.catalog.application.service.InMemoryChangePlanStore
-import org.javafreedom.kbeatz.catalog.application.service.UnavailableTagChangeApplier
+import org.javafreedom.kbeatz.catalog.application.service.TagChangeApplier
 import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.model.ChangeOperation
 import org.javafreedom.kbeatz.catalog.domain.model.ChangePlan
@@ -81,7 +81,7 @@ class ChangePlanApplyHandlerTest {
         store: InMemoryChangePlanStore,
     ): ChangePlanApplyService {
         val executor = DirectoryMoveExecutor(repo, root, root.resolve(".data"))
-        return ChangePlanApplyService(store, executor, UnavailableTagChangeApplier())
+        return ChangePlanApplyService(store, executor, mockk<TagChangeApplier>())
     }
 
     private fun facadeFor(applyService: ChangePlanApplyService): ChangePlanFacade = mockk(relaxed = true)
