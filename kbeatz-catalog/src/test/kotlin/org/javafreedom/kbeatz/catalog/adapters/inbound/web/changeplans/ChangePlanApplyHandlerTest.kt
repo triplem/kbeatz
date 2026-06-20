@@ -245,7 +245,38 @@ class ChangePlanApplyHandlerTest {
         val response = client.post("/change-plans/${Uuid.random()}/apply")
 
         assertEquals(HttpStatusCode.NotFound, response.status)
-        assertEquals("RESOURCE_NOT_FOUND", response.body<ErrorResponse>().code)
+        val error = response.body<ErrorResponse>()
+        assertEquals("RESOURCE_NOT_FOUND", error.code)
+        assertTrue(error.message.contains("not found or expired"), "404 must guide the caller to recover")
+        assertTrue(error.message.contains("POST /change-plans"), "404 must point at the dry-run endpoint")
+    }
+
+    @Test
+    fun `should return 404 with recovery guidance when the plan has expired`(@TempDir root: Path) = testApplication {
+        val albumId = Uuid.random()
+        val from = root.resolve("incoming/kob")
+        writeFlac(from, "01.flac")
+        val repo = MutableAlbumRepository(album(albumId, from.toString()))
+        // A clock fixed in the past: every entry is immediately older than the zero TTL, so the
+        // plan is expired by the time apply looks it up.
+        val store = InMemoryChangePlanStore(ttl = kotlin.time.Duration.ZERO)
+        val plan = relayoutPlan(
+            ReleaseChangeSet(albumId, DirectoryMove(albumId, from.toString(), root.resolve("x").toString()), emptyList(), emptyList()),
+        )
+        store.put(plan)
+        val applyService = wireRoutes(repo, root, store)
+
+        install(ContentNegotiation) { json(json) }
+        routing { changePlanRoutes(facadeFor(applyService), applyService) }
+        val client = createClient { install(ClientContentNegotiation) { json(json) } }
+
+        val response = client.post("/change-plans/${plan.id}/apply")
+
+        assertEquals(HttpStatusCode.NotFound, response.status)
+        val error = response.body<ErrorResponse>()
+        assertEquals("RESOURCE_NOT_FOUND", error.code)
+        assertTrue(error.message.contains(plan.id.toString()), "message must name the missing plan")
+        assertTrue(error.message.contains("Run a new dry run"), "message must guide recompute of the dry run")
     }
 
     @Test

@@ -27,6 +27,8 @@ class AppConfigTest {
         discogsRateLimitPerMinute = 60,
         discogsImageDailyQuota = 1000,
         layoutDirectoryTemplate = "\${ALBUMARTIST}/\${ALBUM} (\${DATE})",
+        changePlanTtlMinutes = 30L,
+        changePlanMaxRetained = 100,
     )
 
     // --- fromEnv() tests using injected env provider ---
@@ -227,6 +229,69 @@ class AppConfigTest {
         )
         val config = AppConfig.fromConf(hocon)
         assertEquals("GENRE-LAYOUT", config.layoutDirectoryTemplate)
+    }
+
+    @Test
+    fun `fromConf reads change plan ttl and max retained when set`() {
+        val hocon = ConfigFactory.parseString(
+            """
+            catalog {
+              jdbcUrl = "jdbc:h2:mem:test"
+              dbUser = "sa"
+              dbPassword = ""
+              libraryRoot = "${System.getProperty("java.io.tmpdir")}"
+              dataDir = "./data"
+              repair { timeoutSeconds = 60 }
+              scan { parallelism = 4 }
+              discogs { token = "", rateLimitPerMinute = 60, imageDailyQuota = 1000 }
+              changePlan { planTtlMinutes = 15, maxRetainedPlans = 50 }
+            }
+            """.trimIndent()
+        )
+        val config = AppConfig.fromConf(hocon)
+        assertEquals(15L, config.changePlanTtlMinutes)
+        assertEquals(50, config.changePlanMaxRetained)
+    }
+
+    @Test
+    fun `fromConf uses default change plan ttl and max retained when absent`() {
+        val hocon = ConfigFactory.parseString(
+            """
+            catalog {
+              jdbcUrl = "jdbc:h2:mem:test"
+              dbUser = "sa"
+              dbPassword = ""
+              libraryRoot = "${System.getProperty("java.io.tmpdir")}"
+              dataDir = "./data"
+              repair { timeoutSeconds = 60 }
+              scan { parallelism = 4 }
+              discogs { token = "", rateLimitPerMinute = 60, imageDailyQuota = 1000 }
+            }
+            """.trimIndent()
+        )
+        val config = AppConfig.fromConf(hocon)
+        assertEquals(30L, config.changePlanTtlMinutes)
+        assertEquals(100, config.changePlanMaxRetained)
+    }
+
+    @Test
+    fun `fromEnv reads change plan overrides when set`() {
+        val env = mapOf(
+            "CATALOG_LIBRARY_ROOT" to System.getProperty("java.io.tmpdir"),
+            "CATALOG_CHANGE_PLAN_TTL_MINUTES" to "5",
+            "CATALOG_CHANGE_PLAN_MAX_RETAINED" to "10",
+        )
+        val config = AppConfig.fromEnv { key -> env[key] }
+        assertEquals(5L, config.changePlanTtlMinutes)
+        assertEquals(10, config.changePlanMaxRetained)
+    }
+
+    @Test
+    fun `fromEnv uses default change plan retention when env vars absent`() {
+        val env = mapOf("CATALOG_LIBRARY_ROOT" to System.getProperty("java.io.tmpdir"))
+        val config = AppConfig.fromEnv { key -> env[key] }
+        assertEquals(30L, config.changePlanTtlMinutes)
+        assertEquals(100, config.changePlanMaxRetained)
     }
 
     @Test

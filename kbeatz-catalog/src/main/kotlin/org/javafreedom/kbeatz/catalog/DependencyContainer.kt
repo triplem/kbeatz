@@ -1,6 +1,7 @@
 package org.javafreedom.kbeatz.catalog
 
 import java.nio.file.Path
+import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.Dispatchers
 import org.javafreedom.kbeatz.catalog.application.service.AlbumService
 import org.javafreedom.kbeatz.catalog.application.service.ChangePlanApplyService
@@ -86,8 +87,13 @@ class DependencyContainer(config: AppConfig, libraryRootPath: Path, dataDirPath:
     )
 
     // Process-lifetime store shared between the planning step (#815) and the apply step (#816),
-    // so a plan computed by createPlan can be looked up by id and applied.
-    private val changePlanStore = InMemoryChangePlanStore()
+    // so a plan computed by createPlan can be looked up by id and applied. Bounded retention
+    // (issue #961): plans expire after a TTL and the store is capped, so the map cannot grow
+    // without limit across a long-running process.
+    private val changePlanStore = InMemoryChangePlanStore(
+        ttl = config.changePlanTtlMinutes.minutes,
+        maxRetainedPlans = config.changePlanMaxRetained,
+    )
 
     /**
      * Computes, stores, and retrieves dry-run change plans (issue #815). DISCOGS_SYNC plans are

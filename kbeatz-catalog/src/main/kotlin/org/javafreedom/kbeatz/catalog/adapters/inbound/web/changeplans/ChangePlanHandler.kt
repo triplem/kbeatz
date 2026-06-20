@@ -109,11 +109,18 @@ private suspend fun handleApply(
     try {
         val result = applyService.apply(planId)
         call.respond(HttpStatusCode.OK, result.toApiApplyResult())
-    } catch (ex: ResourceNotFoundException) {
+    } catch (_: ResourceNotFoundException) {
+        // The bounded store (issue #961) means a plan may be unknown OR expired by the time apply
+        // runs (TTL elapsed, or a restart between dry-run and apply). Guide the caller to recompute
+        // rather than surfacing an opaque 404.
         log.info { "change_plan_apply_not_found planId=$planId" }
         call.respond(
             HttpStatusCode.NotFound,
-            ErrorResponse(code = "RESOURCE_NOT_FOUND", message = ex.message ?: "Change plan not found"),
+            ErrorResponse(
+                code = "RESOURCE_NOT_FOUND",
+                message = "Change plan $planId not found or expired. " +
+                    "Run a new dry run (POST /change-plans) and apply the new plan.",
+            ),
         )
     }
 }

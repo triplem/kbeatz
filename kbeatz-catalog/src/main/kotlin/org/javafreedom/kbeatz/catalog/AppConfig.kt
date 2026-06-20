@@ -18,6 +18,8 @@ data class AppConfig(
     val discogsRateLimitPerMinute: Int,
     val discogsImageDailyQuota: Int,
     val layoutDirectoryTemplate: String,
+    val changePlanTtlMinutes: Long,
+    val changePlanMaxRetained: Int,
 ) {
     companion object {
         private const val DEFAULT_JDBC_URL =
@@ -32,6 +34,10 @@ data class AppConfig(
         private const val DEFAULT_RATE_LIMIT = 60
         @Suppress("MagicNumber") // default daily image-download quota
         private const val DEFAULT_IMAGE_QUOTA = 1000
+        @Suppress("MagicNumber") // default change-plan retention TTL in minutes per issue #961
+        private const val DEFAULT_CHANGE_PLAN_TTL_MINUTES = 30L
+        @Suppress("MagicNumber") // default cap on retained change plans per issue #961
+        private const val DEFAULT_CHANGE_PLAN_MAX_RETAINED = 100
 
         fun fromConf(config: Config = ConfigFactory.load()): AppConfig {
             val root = config.getString("catalog.libraryRoot")
@@ -57,6 +63,18 @@ data class AppConfig(
                 } else {
                     DEFAULT_LAYOUT_DIRECTORY_TEMPLATE
                 }
+            val changePlanTtlMinutes =
+                if (config.hasPath("catalog.changePlan.planTtlMinutes")) {
+                    config.getLong("catalog.changePlan.planTtlMinutes")
+                } else {
+                    DEFAULT_CHANGE_PLAN_TTL_MINUTES
+                }
+            val changePlanMaxRetained =
+                if (config.hasPath("catalog.changePlan.maxRetainedPlans")) {
+                    config.getInt("catalog.changePlan.maxRetainedPlans")
+                } else {
+                    DEFAULT_CHANGE_PLAN_MAX_RETAINED
+                }
             return AppConfig(
                 catalogLibraryRoot = root,
                 discogsToken = token,
@@ -69,6 +87,8 @@ data class AppConfig(
                 discogsRateLimitPerMinute = rateLimit,
                 discogsImageDailyQuota = imageQuota,
                 layoutDirectoryTemplate = layoutDirectoryTemplate,
+                changePlanTtlMinutes = changePlanTtlMinutes,
+                changePlanMaxRetained = changePlanMaxRetained,
             )
         }
 
@@ -96,6 +116,10 @@ data class AppConfig(
                 discogsImageDailyQuota = DEFAULT_IMAGE_QUOTA,
                 layoutDirectoryTemplate = env("CATALOG_LAYOUT_DIRECTORY_TEMPLATE")
                     ?: DEFAULT_LAYOUT_DIRECTORY_TEMPLATE,
+                changePlanTtlMinutes = env("CATALOG_CHANGE_PLAN_TTL_MINUTES")?.toLong()
+                    ?: DEFAULT_CHANGE_PLAN_TTL_MINUTES,
+                changePlanMaxRetained = env("CATALOG_CHANGE_PLAN_MAX_RETAINED")?.toInt()
+                    ?: DEFAULT_CHANGE_PLAN_MAX_RETAINED,
             )
         }
     }
