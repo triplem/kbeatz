@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, it, vi } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AppThemeProvider } from '../../theme'
-import { SettingsPage } from './settings-page'
 import { expectNoA11yViolationsInBothThemes } from '../../test/a11y'
 
 vi.mock('../../api/generated', () => ({
@@ -13,9 +12,17 @@ vi.mock('../../api/generated', () => ({
     getLayoutPreview: vi.fn(),
   },
   AlbumsService: {
-    listAlbums: vi.fn().mockResolvedValue({ content: [], page: 0, size: 100, totalElements: 0, totalPages: 0 }),
+    listAlbums: vi.fn().mockResolvedValue({
+      content: [{ id: 'a-1', albumArtist: 'Miles Davis', album: 'Kind of Blue', hasCoverArt: false, albumPath: '/m/1' }],
+      page: 0,
+      size: 100,
+      totalElements: 1,
+      totalPages: 1,
+    }),
   },
 }))
+
+import { DirectoryLayoutSettings } from './directory-layout-settings'
 
 function stubMatchMedia(): void {
   vi.stubGlobal(
@@ -33,7 +40,7 @@ function stubMatchMedia(): void {
   )
 }
 
-describe('SettingsPage accessibility', () => {
+describe('DirectoryLayoutSettings accessibility', () => {
   beforeEach(() => {
     window.localStorage.clear()
     stubMatchMedia()
@@ -47,7 +54,7 @@ describe('SettingsPage accessibility', () => {
     await expectNoA11yViolationsInBothThemes(() => (
       <AppThemeProvider>
         <QueryClientProvider client={client}>
-          <SettingsPage />
+          <DirectoryLayoutSettings />
         </QueryClientProvider>
       </AppThemeProvider>
     ))

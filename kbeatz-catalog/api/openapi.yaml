@@ -23,6 +23,8 @@ tags:
     description: Library scan operations
   - name: ChangePlans
     description: Dry-run change plans for bulk directory relayout and retagging
+  - name: Settings
+    description: Read-only operator configuration and live directory-layout previews
 
 paths:
   /healthz:
@@ -521,6 +523,53 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /settings/layout:
+    get:
+      operationId: getLayoutSettings
+      summary: Get the active directory-layout template and supported tokens
+      description: |
+        Returns the directory-structure template currently configured by the operator
+        (HOCON `catalog.layout.directoryTemplate` / `CATALOG_LAYOUT_DIRECTORY_TEMPLATE`)
+        and the full set of metadata tokens it may reference. The template is read-only
+        from the UI: it is operator configuration, not a stored value. Use this to show
+        the active layout and its supported tokens before previewing or running a relayout.
+      tags: [Settings]
+      security: []
+      responses:
+        "200":
+          description: The active layout template and the supported tokens
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayoutSettings"
+
+  /settings/layout/preview/{albumId}:
+    get:
+      operationId: getLayoutPreview
+      summary: Preview the planned target directory for one album
+      description: |
+        Computes the directory the album would be placed in under the active template,
+        without writing anything to disk. Returns the album's current directory and the
+        planned directory side by side. When the planner rejects the album because the
+        rendered path would escape the library root (traversal guard), plannedDirectory
+        is null, withinLibraryRoot is false, and message explains why. This endpoint is a
+        pure read-only preview and stores nothing (it is distinct from the change-plan store).
+      tags: [Settings]
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/AlbumId"
+      responses:
+        "200":
+          description: The current and planned directory for the album
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayoutPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
 components:
   parameters:
     AlbumId:
@@ -989,6 +1038,60 @@ components:
           type: array
           items:
             type: string
+
+    LayoutSettings:
+      type: object
+      required: [directoryTemplate, supportedTokens]
+      description: |
+        The active directory-structure template and the metadata tokens it may reference.
+        The template is operator configuration and is read-only from the UI.
+      properties:
+        directoryTemplate:
+          type: string
+          description: |
+            The active directory-structure template. Tokens use the ${TOKEN} syntax (for example
+            ALBUMARTIST/ALBUM (DATE) where each segment is a ${TOKEN}); the literal '/' is the
+            path-segment separator.
+          example: "by-artist/album-year"
+        supportedTokens:
+          type: array
+          description: "All metadata token names the template may reference (uppercase, without the ${} wrapper)."
+          items:
+            type: string
+            description: "A supported metadata token name."
+            example: "ALBUMARTIST"
+
+    LayoutPreview:
+      type: object
+      required: [albumId, currentDirectory, withinLibraryRoot]
+      description: |
+        A read-only preview of where one album would be placed under the active template.
+        plannedDirectory is null and message is set when the planner rejects the album
+        (its rendered path would escape the library root).
+      properties:
+        albumId:
+          type: string
+          format: uuid
+          description: "The album the preview was computed for."
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        currentDirectory:
+          type: string
+          description: "The album's current directory path, relative to the library root."
+          example: "incoming/kind-of-blue"
+        plannedDirectory:
+          type: string
+          nullable: true
+          description: "The planned directory path relative to the library root, or null when the planner rejects the album."
+          example: "Miles Davis/Kind of Blue (1959)"
+        withinLibraryRoot:
+          type: boolean
+          description: "True when the planned directory stays inside the library root; false when the traversal guard rejects it."
+          example: true
+        message:
+          type: string
+          nullable: true
+          description: "A human-readable explanation when the album is rejected; null on a successful preview."
+          example: "Planned directory would escape the library root"
 
     ChangePlanOperation:
       type: string

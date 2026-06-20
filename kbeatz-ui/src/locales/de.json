@@ -212,6 +212,23 @@
     "themeLabel": "Design",
     "themeDescription": "Zwischen hellem und dunklem Erscheinungsbild wechseln."
   },
+  "directoryLayout": {
+    "heading": "Verzeichnisstruktur",
+    "description": "Die Ordnerstruktur, die beim Neuanordnen von Alben verwendet wird. Vom Betreiber konfiguriert und hier schreibgeschuetzt.",
+    "templateLabel": "Aktive Vorlage",
+    "readOnlyNote": "Vom Betreiber per Konfiguration festgelegt; sie kann hier nicht geaendert werden.",
+    "tokensLabel": "Unterstuetzte Platzhalter",
+    "albumSelectLabel": "Album fuer Vorschau",
+    "noAlbumSelected": "Kein Album ausgewaehlt",
+    "selectPrompt": "Waehlen Sie ein Album aus, um zu sehen, wohin es einsortiert wuerde.",
+    "currentDirectory": "Aktuelles Verzeichnis",
+    "plannedDirectory": "Geplantes Verzeichnis",
+    "alreadyInPlace": "Dieses Album liegt bereits am richtigen Ort; kein Verschieben noetig.",
+    "conflict": "Dieses Album kann nicht neu angeordnet werden: Das geplante Verzeichnis wuerde das Bibliotheksverzeichnis verlassen.",
+    "settingsError": "Die Verzeichnisvorlage konnte nicht geladen werden.",
+    "albumsError": "Die Albumliste konnte nicht geladen werden.",
+    "previewError": "Die Vorschau fuer dieses Album konnte nicht geladen werden."
+  },
   "errorBoundary": {
     "message": "Etwas ist schiefgelaufen.",
     "reloadButton": "Erneut versuchen"

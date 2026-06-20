@@ -192,6 +192,104 @@ exports[`SettingsPage visual regression > matches the settings snapshot in dark 
           </svg>
         </button>
       </div>
+      <hr
+        class="MuiDivider-root MuiDivider-fullWidth MuiDivider-flexItem css-1170e2z-MuiDivider-root"
+      />
+      <div
+        class="MuiStack-root css-15auqrp-MuiStack-root"
+        data-testid="directory-layout-settings"
+      >
+        <div>
+          <h2
+            class="MuiTypography-root MuiTypography-subtitle1 css-he70kx-MuiTypography-root"
+          >
+            Directory layout
+          </h2>
+          <p
+            class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+          >
+            The folder structure used when albums are relaid out. Configured by the operator and read-only here.
+          </p>
+        </div>
+        <span
+          class="MuiSkeleton-root MuiSkeleton-rounded MuiSkeleton-pulse css-5osdie-MuiSkeleton-root"
+          data-testid="layout-settings-loading"
+          style="height: 48px;"
+        />
+        <div
+          class="MuiBox-root css-0"
+        >
+          <div
+            class="MuiFormControl-root MuiFormControl-fullWidth MuiTextField-root css-cmpglg-MuiFormControl-root-MuiTextField-root"
+          >
+            <div
+              class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeSmall MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeSmall MuiInputLabel-outlined css-1igkere-MuiFormLabel-root-MuiInputLabel-root"
+              data-shrink="false"
+              id="<reactid>-label"
+            >
+              Preview album
+            </div>
+            <div
+              class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary Mui-disabled MuiInputBase-fullWidth MuiInputBase-formControl MuiInputBase-sizeSmall MuiSelect-root css-19g9snl-MuiInputBase-root-MuiOutlinedInput-root"
+            >
+              <div
+                aria-disabled="true"
+                aria-expanded="false"
+                aria-haspopup="listbox"
+                aria-labelledby="<reactid>-label"
+                class="MuiSelect-select MuiSelect-outlined Mui-disabled MuiInputBase-input MuiOutlinedInput-input Mui-disabled css-eprak1-MuiNativeSelect-root-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
+                id="<reactid>"
+                role="combobox"
+              >
+                <span
+                  aria-hidden="true"
+                  class="notranslate"
+                >
+                  ​
+                </span>
+              </div>
+              <input
+                aria-hidden="true"
+                aria-invalid="false"
+                class="MuiSelect-nativeInput css-j0riat-MuiSelect-nativeInput"
+                disabled=""
+                id="<reactid>"
+                tabindex="-1"
+                value=""
+              />
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon Mui-disabled css-1778ep4-MuiSvgIcon-root-MuiNativeSelect-root-MuiSelect-icon"
+                data-testid="ArrowDropDownIcon"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M7 10l5 5 5-5z"
+                />
+              </svg>
+              <fieldset
+                aria-hidden="true"
+                class="MuiOutlinedInput-notchedOutline css-1ohs4y1-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
+              >
+                <legend
+                  class="css-1n64csd-MuiNotchedOutlined-root"
+                >
+                  <span>
+                    Preview album
+                  </span>
+                </legend>
+              </fieldset>
+            </div>
+          </div>
+        </div>
+        <p
+          class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+          data-testid="layout-preview-empty"
+        >
+          Select an album to preview where it would be placed.
+        </p>
+      </div>
     </div>
   </div>
 </div>
@@ -388,6 +486,104 @@ exports[`SettingsPage visual regression > matches the settings snapshot in light
             />
           </svg>
         </button>
+      </div>
+      <hr
+        class="MuiDivider-root MuiDivider-fullWidth MuiDivider-flexItem css-1170e2z-MuiDivider-root"
+      />
+      <div
+        class="MuiStack-root css-15auqrp-MuiStack-root"
+        data-testid="directory-layout-settings"
+      >
+        <div>
+          <h2
+            class="MuiTypography-root MuiTypography-subtitle1 css-he70kx-MuiTypography-root"
+          >
+            Directory layout
+          </h2>
+          <p
+            class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+          >
+            The folder structure used when albums are relaid out. Configured by the operator and read-only here.
+          </p>
+        </div>
+        <span
+          class="MuiSkeleton-root MuiSkeleton-rounded MuiSkeleton-pulse css-5osdie-MuiSkeleton-root"
+          data-testid="layout-settings-loading"
+          style="height: 48px;"
+        />
+        <div
+          class="MuiBox-root css-0"
+        >
+          <div
+            class="MuiFormControl-root MuiFormControl-fullWidth MuiTextField-root css-cmpglg-MuiFormControl-root-MuiTextField-root"
+          >
+            <div
+              class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeSmall MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeSmall MuiInputLabel-outlined css-1igkere-MuiFormLabel-root-MuiInputLabel-root"
+              data-shrink="false"
+              id="<reactid>-label"
+            >
+              Preview album
+            </div>
+            <div
+              class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary Mui-disabled MuiInputBase-fullWidth MuiInputBase-formControl MuiInputBase-sizeSmall MuiSelect-root css-19g9snl-MuiInputBase-root-MuiOutlinedInput-root"
+            >
+              <div
+                aria-disabled="true"
+                aria-expanded="false"
+                aria-haspopup="listbox"
+                aria-labelledby="<reactid>-label"
+                class="MuiSelect-select MuiSelect-outlined Mui-disabled MuiInputBase-input MuiOutlinedInput-input Mui-disabled css-eprak1-MuiNativeSelect-root-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
+                id="<reactid>"
+                role="combobox"
+              >
+                <span
+                  aria-hidden="true"
+                  class="notranslate"
+                >
+                  ​
+                </span>
+              </div>
+              <input
+                aria-hidden="true"
+                aria-invalid="false"
+                class="MuiSelect-nativeInput css-j0riat-MuiSelect-nativeInput"
+                disabled=""
+                id="<reactid>"
+                tabindex="-1"
+                value=""
+              />
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon Mui-disabled css-1778ep4-MuiSvgIcon-root-MuiNativeSelect-root-MuiSelect-icon"
+                data-testid="ArrowDropDownIcon"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M7 10l5 5 5-5z"
+                />
+              </svg>
+              <fieldset
+                aria-hidden="true"
+                class="MuiOutlinedInput-notchedOutline css-1ohs4y1-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
+              >
+                <legend
+                  class="css-1n64csd-MuiNotchedOutlined-root"
+                >
+                  <span>
+                    Preview album
+                  </span>
+                </legend>
+              </fieldset>
+            </div>
+          </div>
+        </div>
+        <p
+          class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+          data-testid="layout-preview-empty"
+        >
+          Select an album to preview where it would be placed.
+        </p>
       </div>
     </div>
   </div>

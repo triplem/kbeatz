@@ -73,6 +73,9 @@ fun Application.module() {
         deps.tagWriteService,
         deps.changePlanFacade,
         deps.changePlanApplyService,
+        deps.albums,
+        deps.directoryLayoutPlanner,
+        deps.layoutDirectoryTemplate,
         healthConfig,
     )
 

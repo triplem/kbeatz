@@ -68,12 +68,21 @@ class DependencyContainer(config: AppConfig, libraryRootPath: Path, dataDirPath:
         buildDiscogsSyncProvider(config, albumRepository, libraryRootPath, dataDirPath, flacTagWriter)
     val tagWriteService = TagWriteService(albumRepository, trackRepository, libraryRootPath, flacTagWriter)
 
+    // Active directory-structure template + planner, shared by the change-plan pipeline (#815)
+    // and the read-only layout settings/preview endpoints (#818). The template is operator
+    // configuration; both consumers reuse this single validated instance.
+    val layoutDirectoryTemplate: String = config.layoutDirectoryTemplate
+    val directoryLayoutPlanner = DirectoryLayoutPlanner(DirectoryTemplate(layoutDirectoryTemplate))
+
+    /** Exposes the album repository so read-only adapters (e.g. layout preview, #818) can load albums. */
+    val albums: AlbumRepository = albumRepository
+
     // Dry-run change-plan pipeline (issue #815). The plan service performs zero disk writes;
     // the store is a process-lifetime singleton shared with the apply step (issue #816).
     private val changePlanService = ChangePlanService(
         albumRepository = albumRepository,
         trackRepository = trackRepository,
-        directoryLayoutPlanner = DirectoryLayoutPlanner(DirectoryTemplate(config.layoutDirectoryTemplate)),
+        directoryLayoutPlanner = directoryLayoutPlanner,
         libraryRoot = config.catalogLibraryRoot,
     )
 

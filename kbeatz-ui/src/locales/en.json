@@ -212,6 +212,23 @@
     "themeLabel": "Theme",
     "themeDescription": "Switch between light and dark appearance."
   },
+  "directoryLayout": {
+    "heading": "Directory layout",
+    "description": "The folder structure used when albums are relaid out. Configured by the operator and read-only here.",
+    "templateLabel": "Active template",
+    "readOnlyNote": "Set by the operator via configuration; it cannot be changed from here.",
+    "tokensLabel": "Supported tokens",
+    "albumSelectLabel": "Preview album",
+    "noAlbumSelected": "No album selected",
+    "selectPrompt": "Select an album to preview where it would be placed.",
+    "currentDirectory": "Current directory",
+    "plannedDirectory": "Planned directory",
+    "alreadyInPlace": "This album is already in place; no move is needed.",
+    "conflict": "This album cannot be relaid out: the planned directory would escape the library root.",
+    "settingsError": "Could not load the directory-layout template.",
+    "albumsError": "Could not load the album list.",
+    "previewError": "Could not load the preview for this album."
+  },
   "errorBoundary": {
     "message": "Something went wrong.",
     "reloadButton": "Try again"

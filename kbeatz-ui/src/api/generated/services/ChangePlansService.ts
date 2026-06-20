@@ -32,7 +32,7 @@ export class ChangePlansService {
             mediaType: 'application/json',
             errors: {
                 400: `Validation error`,
-                422: `The requested operation is not available in this iteration (RETAG and DISCOGS_SYNC dry runs ship later)`,
+                422: `The requested operation is not available via this generic endpoint. RELAYOUT and DISCOGS_SYNC are supported; RETAG carries no proposed field values here and is performed through PATCH /albums/{albumId}/tags instead.`,
             },
         });
     }
