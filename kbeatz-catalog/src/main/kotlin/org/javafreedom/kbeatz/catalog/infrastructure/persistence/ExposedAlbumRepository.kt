@@ -18,6 +18,7 @@ import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greaterEq
+import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.intLiteral
 import org.jetbrains.exposed.v1.core.lessEq
 import org.jetbrains.exposed.v1.core.like
@@ -59,6 +60,17 @@ class ExposedAlbumRepository : AlbumRepository {
                 .singleOrNull()
                 ?.toAlbum()
         }
+
+    override suspend fun findByIds(ids: List<Uuid>): List<Album> {
+        // Empty input would produce an `id IN ()` clause; short-circuit to avoid a useless query.
+        if (ids.isEmpty()) return emptyList()
+        return suspendTransaction {
+            AlbumsTable
+                .selectAll()
+                .where { AlbumsTable.id inList ids.map { it.toJavaUuid() } }
+                .map { it.toAlbum() }
+        }
+    }
 
     override suspend fun findByDirectoryPath(directoryPath: String): Album? =
         suspendTransaction {

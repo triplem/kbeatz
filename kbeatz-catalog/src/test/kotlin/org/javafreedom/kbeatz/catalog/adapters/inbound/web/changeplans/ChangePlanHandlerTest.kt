@@ -52,6 +52,7 @@ class ChangePlanHandlerTest {
     private class FakeAlbumRepository(albums: List<Album>) : AlbumRepository {
         private val byId = albums.associateBy { it.id }
         override suspend fun findById(id: Uuid): Album? = byId[id]
+        override suspend fun findByIds(ids: List<Uuid>): List<Album> = ids.mapNotNull { byId[it] }
         override suspend fun findByDirectoryPath(directoryPath: String): Album? =
             byId.values.firstOrNull { it.directoryPath == directoryPath }
         override suspend fun findAllWithCount(page: Int, size: Int, filter: AlbumFilter) =

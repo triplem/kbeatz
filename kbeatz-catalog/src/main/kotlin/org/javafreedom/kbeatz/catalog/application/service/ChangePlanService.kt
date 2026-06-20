@@ -78,8 +78,12 @@ class ChangePlanService(
      * @return A single consolidated plan with operation [ChangeOperation.RELAYOUT].
      */
     suspend fun planRelayout(albumIds: List<Uuid>): ChangePlan {
+        // Batch-fetch every requested album in one query (no N+1) and index by id. The input
+        // order is preserved below by iterating albumIds, so the plan release ordering and the
+        // SOURCE_MISSING handling for missing ids are identical to the previous per-id loop.
+        val albumsById = albumRepository.findByIds(albumIds).associateBy { it.id }
         val releases = albumIds.map { albumId ->
-            val album = albumRepository.findById(albumId)
+            val album = albumsById[albumId]
             if (album == null) {
                 missingAlbumChangeSet(albumId)
             } else {

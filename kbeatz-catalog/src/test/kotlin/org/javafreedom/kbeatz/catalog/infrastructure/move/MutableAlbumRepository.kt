@@ -20,6 +20,8 @@ class MutableAlbumRepository(vararg seed: Album) : AlbumRepository {
 
     override suspend fun findById(id: Uuid): Album? = byId[id]
 
+    override suspend fun findByIds(ids: List<Uuid>): List<Album> = ids.mapNotNull { byId[it] }
+
     override suspend fun findByDirectoryPath(directoryPath: String): Album? =
         byId.values.firstOrNull { it.directoryPath == directoryPath }
 
