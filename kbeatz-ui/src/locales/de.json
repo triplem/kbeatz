@@ -183,7 +183,60 @@
     "syncTimeout": "Synchronisierung hat das Zeitlimit überschritten. Überprüfen Sie die Katalogprotokolle.",
     "overwriteTitle": "Lokale Tag-Bearbeitungen überschreiben?",
     "overwriteBody": "Die Synchronisierung von Discogs überschreibt Ihre lokalen Tag-Bearbeitungen. Fortfahren?",
-    "overwriteConfirm": "Synchronisierung fortsetzen"
+    "overwriteConfirm": "Synchronisierung fortsetzen",
+    "reviewLabel": "Discogs-Synchronisierungsänderungen prüfen",
+    "confirmSync": "Synchronisierung anwenden"
+  },
+  "changePlan": {
+    "planning": "Änderungsplan wird berechnet...",
+    "planError": "Der Änderungsplan konnte nicht berechnet werden. Stellen Sie sicher, dass kbeatz-catalog läuft.",
+    "applying": "Änderungen werden angewendet...",
+    "applyError": "Der Änderungsplan konnte nicht angewendet werden. Einige Releases wurden möglicherweise nicht geändert.",
+    "confirmApply": "Änderungen anwenden",
+    "noChangesNeeded": "Keine Änderungen erforderlich.",
+    "noTagChanges": "Keine Tag-Änderungen für dieses Release.",
+    "alreadyInPlace": "Verzeichnis liegt bereits am richtigen Ort; kein Verschieben noetig.",
+    "moveFrom": "Von",
+    "moveTo": "Nach",
+    "mergedFrom": "Wird ebenfalls zusammengeführt aus",
+    "field": "Feld",
+    "currentValue": "Aktueller Wert",
+    "proposedValue": "Vorgeschlagener Wert",
+    "empty": "(leer)",
+    "emptyAriaLabel": "kein Wert gesetzt",
+    "tagChangesLabel": "Tag-Änderungen",
+    "releasesLabel": "Releases in diesem Änderungsplan",
+    "releaseHeading": "Release {{albumId}}",
+    "willBeSkipped": "Wird übersprungen",
+    "conflictWarning": "Einige Releases haben Konflikte und werden beim Anwenden dieses Plans übersprungen.",
+    "totalMoves_one": "{{count}} Verzeichnisverschiebung",
+    "totalMoves_other": "{{count}} Verzeichnisverschiebungen",
+    "totalTagChanges_one": "{{count}} Tag-Änderung",
+    "totalTagChanges_other": "{{count}} Tag-Änderungen",
+    "totalConflicts_one": "{{count}} Konflikt",
+    "totalConflicts_other": "{{count}} Konflikte",
+    "applySummary": "{{applied}} angewendet, {{skipped}} übersprungen, {{failed}} fehlgeschlagen.",
+    "applyResultsLabel": "Ergebnisse pro Release",
+    "conflictType": {
+      "TARGET_EXISTS": "Ziel existiert",
+      "PATH_TRAVERSAL": "Pfaddurchquerung",
+      "SOURCE_MISSING": "Quelle fehlt",
+      "LOCK_HELD": "Sperre aktiv"
+    },
+    "outcome": {
+      "APPLIED": "Angewendet",
+      "SKIPPED": "Übersprungen",
+      "FAILED": "Fehlgeschlagen"
+    }
+  },
+  "albumSelection": {
+    "selectAlbum": "{{album}} auswählen",
+    "toolbarLabel": "Sammelaktionen für Alben",
+    "workflowLabel": "Ausgewählte Alben neu anordnen",
+    "selectedCount_one": "{{count}} Album ausgewählt",
+    "selectedCount_other": "{{count}} Alben ausgewählt",
+    "reorganize": "Verzeichnisse neu anordnen",
+    "clear": "Auswahl aufheben"
   },
   "app": {
     "title": "kbeatz",
@@ -211,6 +264,23 @@
     "languageDescription": "Sprache der Benutzeroberfläche.",
     "themeLabel": "Design",
     "themeDescription": "Zwischen hellem und dunklem Erscheinungsbild wechseln."
+  },
+  "directoryLayout": {
+    "heading": "Verzeichnisstruktur",
+    "description": "Die Ordnerstruktur, die beim Neuanordnen von Alben verwendet wird. Vom Betreiber konfiguriert und hier schreibgeschuetzt.",
+    "templateLabel": "Aktive Vorlage",
+    "readOnlyNote": "Vom Betreiber per Konfiguration festgelegt; sie kann hier nicht geaendert werden.",
+    "tokensLabel": "Unterstuetzte Platzhalter",
+    "albumSelectLabel": "Album fuer Vorschau",
+    "noAlbumSelected": "Kein Album ausgewaehlt",
+    "selectPrompt": "Waehlen Sie ein Album aus, um zu sehen, wohin es einsortiert wuerde.",
+    "currentDirectory": "Aktuelles Verzeichnis",
+    "plannedDirectory": "Geplantes Verzeichnis",
+    "alreadyInPlace": "Dieses Album liegt bereits am richtigen Ort; kein Verschieben noetig.",
+    "conflict": "Dieses Album kann nicht neu angeordnet werden: Das geplante Verzeichnis wuerde das Bibliotheksverzeichnis verlassen.",
+    "settingsError": "Die Verzeichnisvorlage konnte nicht geladen werden.",
+    "albumsError": "Die Albumliste konnte nicht geladen werden.",
+    "previewError": "Die Vorschau fuer dieses Album konnte nicht geladen werden."
   },
   "errorBoundary": {
     "message": "Etwas ist schiefgelaufen.",

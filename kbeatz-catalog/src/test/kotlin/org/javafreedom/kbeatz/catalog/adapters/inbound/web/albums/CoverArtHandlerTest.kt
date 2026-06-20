@@ -21,6 +21,7 @@ import kotlinx.serialization.json.Json
 import org.javafreedom.kbeatz.catalog.api.models.ErrorResponse
 import org.javafreedom.kbeatz.catalog.application.service.CoverArtResult
 import org.javafreedom.kbeatz.catalog.application.service.CoverArtService
+import org.javafreedom.kbeatz.common.PathTraversalException
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
 
 class CoverArtHandlerTest {
@@ -148,7 +149,7 @@ class CoverArtHandlerTest {
         install(ContentNegotiation) { json(json) }
         routing { coverArtRoutes(coverArtService) }
 
-        coEvery { coverArtService.getCoverArt(albumId) } throws SecurityException("outside library root")
+        coEvery { coverArtService.getCoverArt(albumId) } throws PathTraversalException("outside library root")
 
         val client2 = createClient { install(ClientContentNegotiation) { json(json) } }
         val response = client2.get("/albums/$albumId/cover")

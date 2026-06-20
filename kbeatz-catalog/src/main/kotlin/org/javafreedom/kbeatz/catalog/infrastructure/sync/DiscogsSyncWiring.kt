@@ -4,6 +4,7 @@ import java.nio.file.Path
 import org.javafreedom.kbeatz.catalog.AppConfig
 import org.javafreedom.kbeatz.catalog.domain.port.SyncProvider
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
+import org.javafreedom.kbeatz.catalog.infrastructure.tag.FlacTagWriter
 import org.javafreedom.kbeatz.sources.ImageResult
 import org.javafreedom.kbeatz.sources.MetadataSource
 import org.javafreedom.kbeatz.sources.Release
@@ -33,12 +34,14 @@ fun buildDiscogsSyncProvider(
     albumRepository: AlbumRepository,
     libraryRootPath: Path,
     dataDir: Path,
+    flacTagWriter: FlacTagWriter,
 ): SyncProvider {
     val token = config.discogsToken ?: return DiscogsSyncService(
         albumRepository = albumRepository,
         metadataSource = UnavailableMetadataSource,
         imageService = null,
         libraryRoot = libraryRootPath,
+        flacTagWriter = flacTagWriter,
     )
     val quotaFile = dataDir.resolve("discogs-image-quota.json")
     val imageQuota = DiscogsImageQuota(quotaFile = quotaFile)
@@ -56,5 +59,6 @@ fun buildDiscogsSyncProvider(
         metadataSource = metadataSource,
         imageService = imageService,
         libraryRoot = libraryRootPath,
+        flacTagWriter = flacTagWriter,
     )
 }

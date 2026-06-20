@@ -2,9 +2,23 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { type ReactNode } from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AppThemeProvider } from '../../theme'
 import { SettingsPage } from './settings-page'
 import { loadSortPreference } from '../albums/album-filters'
+
+vi.mock('../../api/generated', () => ({
+  SettingsService: {
+    getLayoutSettings: vi.fn().mockResolvedValue({
+      directoryTemplate: '${ALBUMARTIST}/${ALBUM} (${DATE})',
+      supportedTokens: ['ALBUM', 'ALBUMARTIST', 'DATE'],
+    }),
+    getLayoutPreview: vi.fn(),
+  },
+  AlbumsService: {
+    listAlbums: vi.fn().mockResolvedValue({ content: [], page: 0, size: 100, totalElements: 0, totalPages: 0 }),
+  },
+}))
 
 function stubMatchMedia(): void {
   vi.stubGlobal(
@@ -23,7 +37,12 @@ function stubMatchMedia(): void {
 }
 
 function wrapper({ children }: { children: ReactNode }) {
-  return <AppThemeProvider>{children}</AppThemeProvider>
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return (
+    <AppThemeProvider>
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    </AppThemeProvider>
+  )
 }
 
 describe('SettingsPage', () => {

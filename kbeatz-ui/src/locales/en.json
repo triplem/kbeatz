@@ -183,7 +183,60 @@
     "syncTimeout": "Sync timed out. Check the catalog logs for details.",
     "overwriteTitle": "Overwrite local tag edits?",
     "overwriteBody": "Syncing from Discogs will overwrite your local tag edits. Continue?",
-    "overwriteConfirm": "Continue sync"
+    "overwriteConfirm": "Continue sync",
+    "reviewLabel": "Review Discogs sync changes",
+    "confirmSync": "Apply sync"
+  },
+  "changePlan": {
+    "planning": "Computing the change plan...",
+    "planError": "Could not compute the change plan. Check that kbeatz-catalog is running.",
+    "applying": "Applying changes...",
+    "applyError": "Could not apply the change plan. Some releases may not have been changed.",
+    "confirmApply": "Apply changes",
+    "noChangesNeeded": "No changes needed.",
+    "noTagChanges": "No tag changes for this release.",
+    "alreadyInPlace": "Directory already in place; no move needed.",
+    "moveFrom": "From",
+    "moveTo": "To",
+    "mergedFrom": "Also merging from",
+    "field": "Field",
+    "currentValue": "Current value",
+    "proposedValue": "Proposed value",
+    "empty": "(empty)",
+    "emptyAriaLabel": "no value set",
+    "tagChangesLabel": "Tag changes",
+    "releasesLabel": "Releases in this change plan",
+    "releaseHeading": "Release {{albumId}}",
+    "willBeSkipped": "Will be skipped",
+    "conflictWarning": "Some releases have conflicts and will be skipped when you apply this plan.",
+    "totalMoves_one": "{{count}} directory move",
+    "totalMoves_other": "{{count}} directory moves",
+    "totalTagChanges_one": "{{count}} tag change",
+    "totalTagChanges_other": "{{count}} tag changes",
+    "totalConflicts_one": "{{count}} conflict",
+    "totalConflicts_other": "{{count}} conflicts",
+    "applySummary": "{{applied}} applied, {{skipped}} skipped, {{failed}} failed.",
+    "applyResultsLabel": "Per-release apply results",
+    "conflictType": {
+      "TARGET_EXISTS": "Target exists",
+      "PATH_TRAVERSAL": "Path traversal",
+      "SOURCE_MISSING": "Source missing",
+      "LOCK_HELD": "Lock held"
+    },
+    "outcome": {
+      "APPLIED": "Applied",
+      "SKIPPED": "Skipped",
+      "FAILED": "Failed"
+    }
+  },
+  "albumSelection": {
+    "selectAlbum": "Select {{album}}",
+    "toolbarLabel": "Bulk album actions",
+    "workflowLabel": "Reorganize selected albums",
+    "selectedCount_one": "{{count}} album selected",
+    "selectedCount_other": "{{count}} albums selected",
+    "reorganize": "Reorganize directories",
+    "clear": "Clear selection"
   },
   "app": {
     "title": "kbeatz",
@@ -211,6 +264,23 @@
     "languageDescription": "Interface language.",
     "themeLabel": "Theme",
     "themeDescription": "Switch between light and dark appearance."
+  },
+  "directoryLayout": {
+    "heading": "Directory layout",
+    "description": "The folder structure used when albums are relaid out. Configured by the operator and read-only here.",
+    "templateLabel": "Active template",
+    "readOnlyNote": "Set by the operator via configuration; it cannot be changed from here.",
+    "tokensLabel": "Supported tokens",
+    "albumSelectLabel": "Preview album",
+    "noAlbumSelected": "No album selected",
+    "selectPrompt": "Select an album to preview where it would be placed.",
+    "currentDirectory": "Current directory",
+    "plannedDirectory": "Planned directory",
+    "alreadyInPlace": "This album is already in place; no move is needed.",
+    "conflict": "This album cannot be relaid out: the planned directory would escape the library root.",
+    "settingsError": "Could not load the directory-layout template.",
+    "albumsError": "Could not load the album list.",
+    "previewError": "Could not load the preview for this album."
   },
   "errorBoundary": {
     "message": "Something went wrong.",

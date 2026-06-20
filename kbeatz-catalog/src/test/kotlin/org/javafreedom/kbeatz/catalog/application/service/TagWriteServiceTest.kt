@@ -24,6 +24,7 @@ import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 import org.javafreedom.kbeatz.catalog.domain.repository.TrackRepository
 import org.javafreedom.kbeatz.common.BusinessValidationException
 import org.javafreedom.kbeatz.common.ConflictException
+import org.javafreedom.kbeatz.common.PathTraversalException
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
 import org.javafreedom.kbeatz.tagger.codec.flac.MAX_TAG_VALUE_LENGTH
 
@@ -145,12 +146,12 @@ class TagWriteServiceTest {
     }
 
     @Test
-    fun `writeAlbumTags throws SecurityException when album dir is outside library root`() = runTest {
+    fun `writeAlbumTags throws PathTraversalException when album dir is outside library root`() = runTest {
         val outsideDir = Files.createTempDirectory("outside-library")
         val album = buildAlbum(dir = outsideDir)
         coEvery { albumRepository.findById(albumId) } returns album
 
-        assertFailsWith<SecurityException> {
+        assertFailsWith<PathTraversalException> {
             service.writeAlbumTags(albumId, "GENRE", "Rock")
         }
     }
@@ -550,7 +551,7 @@ class TagWriteServiceTest {
     }
 
     @Test
-    fun `writeAlbumTags throws SecurityException for merged directory path outside libraryRoot`() = runTest {
+    fun `writeAlbumTags throws PathTraversalException for merged directory path outside libraryRoot`() = runTest {
         // A traversal path stored in mergedDirectories (e.g. from a DB manipulation)
         // must be rejected by validatePath even when the directory does not exist on disk.
         val outsideDir = Files.createTempDirectory("outside-root-for-merged")
@@ -560,7 +561,7 @@ class TagWriteServiceTest {
 
             // validatePath is called before isDirectory so the traversal is caught regardless
             // of whether the path exists (issue #724).
-            assertFailsWith<SecurityException> {
+            assertFailsWith<PathTraversalException> {
                 service.writeAlbumTags(albumId, "GENRE", "Jazz")
             }
         } finally {
@@ -726,15 +727,15 @@ class TagWriteServiceTest {
     }
 
     @Test
-    fun `writeBulkTags throws SecurityException for merged directory path outside libraryRoot`() = runTest {
+    fun `writeBulkTags throws PathTraversalException for merged directory path outside libraryRoot`() = runTest {
         // validatePath must be called before Files.isDirectory so a traversal path that does
-        // not exist on disk is still rejected with SecurityException (issue #765 / #724).
+        // not exist on disk is still rejected with PathTraversalException (issue #765 / #724).
         val outsideDir = Files.createTempDirectory("outside-root-bulk")
         try {
             val album = buildAlbum().copy(mergedDirectories = listOf(outsideDir.toString()))
             coEvery { albumRepository.findById(albumId) } returns album
 
-            assertFailsWith<SecurityException> {
+            assertFailsWith<PathTraversalException> {
                 service.writeBulkTags(
                     albumId,
                     albumFields = listOf("GENRE" to "Jazz"),

@@ -47,7 +47,7 @@ class CoverArtService(
      * Returns the cover art for the album identified by [albumId], or null if none is found.
      *
      * @throws ResourceNotFoundException when no album with [albumId] exists.
-     * @throws SecurityException when the album's directory path escapes [libraryRoot].
+     * @throws PathTraversalException when the album's directory path escapes [libraryRoot].
      */
     suspend fun getCoverArt(albumId: Uuid): CoverArtResult? {
         val album = repository.findById(albumId)

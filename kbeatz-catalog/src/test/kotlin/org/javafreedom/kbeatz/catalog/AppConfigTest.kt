@@ -26,6 +26,7 @@ class AppConfigTest {
         scanParallelism = 4,
         discogsRateLimitPerMinute = 60,
         discogsImageDailyQuota = 1000,
+        layoutDirectoryTemplate = "\${ALBUMARTIST}/\${ALBUM} (\${DATE})",
     )
 
     // --- fromEnv() tests using injected env provider ---
@@ -205,6 +206,64 @@ class AppConfigTest {
         assertEquals(1, config.scanParallelism)
         assertEquals(30, config.discogsRateLimitPerMinute)
         assertEquals(500, config.discogsImageDailyQuota)
+    }
+
+    @Test
+    fun `fromConf reads layout directory template when set`() {
+        val hocon = ConfigFactory.parseString(
+            """
+            catalog {
+              jdbcUrl = "jdbc:h2:mem:test"
+              dbUser = "sa"
+              dbPassword = ""
+              libraryRoot = "${System.getProperty("java.io.tmpdir")}"
+              dataDir = "./data"
+              repair { timeoutSeconds = 60 }
+              scan { parallelism = 4 }
+              discogs { token = "", rateLimitPerMinute = 60, imageDailyQuota = 1000 }
+              layout { directoryTemplate = "GENRE-LAYOUT" }
+            }
+            """.trimIndent()
+        )
+        val config = AppConfig.fromConf(hocon)
+        assertEquals("GENRE-LAYOUT", config.layoutDirectoryTemplate)
+    }
+
+    @Test
+    fun `fromConf uses default layout directory template when absent`() {
+        val hocon = ConfigFactory.parseString(
+            """
+            catalog {
+              jdbcUrl = "jdbc:h2:mem:test"
+              dbUser = "sa"
+              dbPassword = ""
+              libraryRoot = "${System.getProperty("java.io.tmpdir")}"
+              dataDir = "./data"
+              repair { timeoutSeconds = 60 }
+              scan { parallelism = 4 }
+              discogs { token = "", rateLimitPerMinute = 60, imageDailyQuota = 1000 }
+            }
+            """.trimIndent()
+        )
+        val config = AppConfig.fromConf(hocon)
+        assertEquals("\${ALBUMARTIST}/\${ALBUM} (\${DATE})", config.layoutDirectoryTemplate)
+    }
+
+    @Test
+    fun `fromEnv reads CATALOG_LAYOUT_DIRECTORY_TEMPLATE when set`() {
+        val env = mapOf(
+            "CATALOG_LIBRARY_ROOT" to System.getProperty("java.io.tmpdir"),
+            "CATALOG_LAYOUT_DIRECTORY_TEMPLATE" to "\${LABEL}/\${ALBUM}",
+        )
+        val config = AppConfig.fromEnv { key -> env[key] }
+        assertEquals("\${LABEL}/\${ALBUM}", config.layoutDirectoryTemplate)
+    }
+
+    @Test
+    fun `fromEnv uses default layout directory template when env var absent`() {
+        val env = mapOf("CATALOG_LIBRARY_ROOT" to System.getProperty("java.io.tmpdir"))
+        val config = AppConfig.fromEnv { key -> env[key] }
+        assertEquals("\${ALBUMARTIST}/\${ALBUM} (\${DATE})", config.layoutDirectoryTemplate)
     }
 
     // --- AppConfig instance method tests ---

@@ -7,6 +7,18 @@ class BusinessValidationException(message: String) : DomainException(message)
 class ConflictException(message: String) : DomainException(message)
 
 /**
+ * Thrown when a path resolves outside its permitted root (a path-traversal rejection, NFR-06).
+ *
+ * This is a domain signal, not the JVM's [SecurityException]: catching the broad JDK type would
+ * mask unrelated security failures, and a directory-layout violation is a domain rule, not a JVM
+ * permission failure. Guards (the directory-layout planner and the on-disk path guard) raise this
+ * so callers can react to a traversal specifically without swallowing other exceptions.
+ *
+ * @param message Human-readable description of the rejected path (must not leak full disk paths to clients).
+ */
+class PathTraversalException(message: String) : DomainException(message)
+
+/**
  * Thrown when a Discogs image download is attempted but the daily quota (1 000/day) is exhausted.
  *
  * @param resetAt UTC timestamp (ISO 8601) of when the quota will reset (midnight UTC).

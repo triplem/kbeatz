@@ -5,6 +5,7 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
+import org.javafreedom.kbeatz.common.PathTraversalException
 import org.junit.jupiter.api.io.TempDir
 
 /**
@@ -31,23 +32,23 @@ class PathGuardTest {
     }
 
     @Test
-    fun `should throw SecurityException when existing path is outside library root`() {
+    fun `should throw PathTraversalException when existing path is outside library root`() {
         val outsideDir = Files.createTempDirectory(outside, "secret")
-        assertFailsWith<SecurityException> {
+        assertFailsWith<PathTraversalException> {
             PathGuard.assertWithinLibraryRoot(outsideDir, root)
         }
     }
 
     @Test
-    fun `should throw SecurityException for symlink inside root pointing outside`() {
+    fun `should throw PathTraversalException for symlink inside root pointing outside`() {
         val target = Files.createTempDirectory(outside, "real-dir")
         val link = root.resolve("symlink-dir")
         Files.createSymbolicLink(link, target)
 
-        val ex = assertFailsWith<SecurityException> {
+        val ex = assertFailsWith<PathTraversalException> {
             PathGuard.assertWithinLibraryRoot(link, root)
         }
-        assertIs<SecurityException>(ex)
+        assertIs<PathTraversalException>(ex)
     }
 
     @Test
@@ -58,9 +59,9 @@ class PathGuardTest {
     }
 
     @Test
-    fun `should throw SecurityException for non-existent path with traversal sequence`() {
+    fun `should throw PathTraversalException for non-existent path with traversal sequence`() {
         val traversal = root.resolve("../escape")
-        assertFailsWith<SecurityException> {
+        assertFailsWith<PathTraversalException> {
             PathGuard.assertWithinLibraryRoot(traversal, root)
         }
     }

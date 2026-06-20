@@ -1822,9 +1822,36 @@ exports[`AlbumListPage visual regression > matches the populated-list snapshot i
             data-testid="album-grid-section"
           >
             <div
-              class="MuiPaper-root MuiPaper-outlined MuiPaper-rounded MuiCard-root css-q4ltl1-MuiPaper-root-MuiCard-root"
+              class="MuiPaper-root MuiPaper-outlined MuiPaper-rounded MuiCard-root css-9e4xjg-MuiPaper-root-MuiCard-root"
               data-testid="album-card"
             >
+              <div
+                class="MuiBox-root css-kijiia"
+              >
+                <span
+                  class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-rm2pxo-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+                  data-testid="album-select-album-0003"
+                >
+                  <input
+                    aria-label="Select Sunday at the Village Vanguard"
+                    class="PrivateSwitchBase-input css-12xagqm-MuiSwitchBase-root"
+                    data-indeterminate="false"
+                    data-testid="album-select-checkbox-album-0003"
+                    type="checkbox"
+                  />
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
+                    data-testid="CheckBoxOutlineBlankIcon"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
+                    />
+                  </svg>
+                </span>
+              </div>
               <button
                 aria-label="View details for Sunday at the Village Vanguard by Bill Evans"
                 class="MuiButtonBase-root MuiCardActionArea-root css-1aziv3h-MuiButtonBase-root-MuiCardActionArea-root"
@@ -1886,9 +1913,36 @@ exports[`AlbumListPage visual regression > matches the populated-list snapshot i
               </button>
             </div>
             <div
-              class="MuiPaper-root MuiPaper-outlined MuiPaper-rounded MuiCard-root css-q4ltl1-MuiPaper-root-MuiCard-root"
+              class="MuiPaper-root MuiPaper-outlined MuiPaper-rounded MuiCard-root css-9e4xjg-MuiPaper-root-MuiCard-root"
               data-testid="album-card"
             >
+              <div
+                class="MuiBox-root css-kijiia"
+              >
+                <span
+                  class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-rm2pxo-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+                  data-testid="album-select-album-0002"
+                >
+                  <input
+                    aria-label="Select A Love Supreme"
+                    class="PrivateSwitchBase-input css-12xagqm-MuiSwitchBase-root"
+                    data-indeterminate="false"
+                    data-testid="album-select-checkbox-album-0002"
+                    type="checkbox"
+                  />
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
+                    data-testid="CheckBoxOutlineBlankIcon"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
+                    />
+                  </svg>
+                </span>
+              </div>
               <button
                 aria-label="View details for A Love Supreme by John Coltrane"
                 class="MuiButtonBase-root MuiCardActionArea-root css-1aziv3h-MuiButtonBase-root-MuiCardActionArea-root"
@@ -1950,9 +2004,36 @@ exports[`AlbumListPage visual regression > matches the populated-list snapshot i
               </button>
             </div>
             <div
-              class="MuiPaper-root MuiPaper-outlined MuiPaper-rounded MuiCard-root css-q4ltl1-MuiPaper-root-MuiCard-root"
+              class="MuiPaper-root MuiPaper-outlined MuiPaper-rounded MuiCard-root css-9e4xjg-MuiPaper-root-MuiCard-root"
               data-testid="album-card"
             >
+              <div
+                class="MuiBox-root css-kijiia"
+              >
+                <span
+                  class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-rm2pxo-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+                  data-testid="album-select-album-0001"
+                >
+                  <input
+                    aria-label="Select Kind of Blue"
+                    class="PrivateSwitchBase-input css-12xagqm-MuiSwitchBase-root"
+                    data-indeterminate="false"
+                    data-testid="album-select-checkbox-album-0001"
+                    type="checkbox"
+                  />
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
+                    data-testid="CheckBoxOutlineBlankIcon"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
+                    />
+                  </svg>
+                </span>
+              </div>
               <button
                 aria-label="View details for Kind of Blue by Miles Davis"
                 class="MuiButtonBase-root MuiCardActionArea-root css-1aziv3h-MuiButtonBase-root-MuiCardActionArea-root"
@@ -2407,9 +2488,36 @@ exports[`AlbumListPage visual regression > matches the populated-list snapshot i
             data-testid="album-grid-section"
           >
             <div
-              class="MuiPaper-root MuiPaper-outlined MuiPaper-rounded MuiCard-root css-q4ltl1-MuiPaper-root-MuiCard-root"
+              class="MuiPaper-root MuiPaper-outlined MuiPaper-rounded MuiCard-root css-9e4xjg-MuiPaper-root-MuiCard-root"
               data-testid="album-card"
             >
+              <div
+                class="MuiBox-root css-kijiia"
+              >
+                <span
+                  class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-rm2pxo-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+                  data-testid="album-select-album-0003"
+                >
+                  <input
+                    aria-label="Select Sunday at the Village Vanguard"
+                    class="PrivateSwitchBase-input css-12xagqm-MuiSwitchBase-root"
+                    data-indeterminate="false"
+                    data-testid="album-select-checkbox-album-0003"
+                    type="checkbox"
+                  />
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
+                    data-testid="CheckBoxOutlineBlankIcon"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
+                    />
+                  </svg>
+                </span>
+              </div>
               <button
                 aria-label="View details for Sunday at the Village Vanguard by Bill Evans"
                 class="MuiButtonBase-root MuiCardActionArea-root css-1aziv3h-MuiButtonBase-root-MuiCardActionArea-root"
@@ -2471,9 +2579,36 @@ exports[`AlbumListPage visual regression > matches the populated-list snapshot i
               </button>
             </div>
             <div
-              class="MuiPaper-root MuiPaper-outlined MuiPaper-rounded MuiCard-root css-q4ltl1-MuiPaper-root-MuiCard-root"
+              class="MuiPaper-root MuiPaper-outlined MuiPaper-rounded MuiCard-root css-9e4xjg-MuiPaper-root-MuiCard-root"
               data-testid="album-card"
             >
+              <div
+                class="MuiBox-root css-kijiia"
+              >
+                <span
+                  class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-rm2pxo-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+                  data-testid="album-select-album-0002"
+                >
+                  <input
+                    aria-label="Select A Love Supreme"
+                    class="PrivateSwitchBase-input css-12xagqm-MuiSwitchBase-root"
+                    data-indeterminate="false"
+                    data-testid="album-select-checkbox-album-0002"
+                    type="checkbox"
+                  />
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
+                    data-testid="CheckBoxOutlineBlankIcon"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
+                    />
+                  </svg>
+                </span>
+              </div>
               <button
                 aria-label="View details for A Love Supreme by John Coltrane"
                 class="MuiButtonBase-root MuiCardActionArea-root css-1aziv3h-MuiButtonBase-root-MuiCardActionArea-root"
@@ -2535,9 +2670,36 @@ exports[`AlbumListPage visual regression > matches the populated-list snapshot i
               </button>
             </div>
             <div
-              class="MuiPaper-root MuiPaper-outlined MuiPaper-rounded MuiCard-root css-q4ltl1-MuiPaper-root-MuiCard-root"
+              class="MuiPaper-root MuiPaper-outlined MuiPaper-rounded MuiCard-root css-9e4xjg-MuiPaper-root-MuiCard-root"
               data-testid="album-card"
             >
+              <div
+                class="MuiBox-root css-kijiia"
+              >
+                <span
+                  class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-rm2pxo-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+                  data-testid="album-select-album-0001"
+                >
+                  <input
+                    aria-label="Select Kind of Blue"
+                    class="PrivateSwitchBase-input css-12xagqm-MuiSwitchBase-root"
+                    data-indeterminate="false"
+                    data-testid="album-select-checkbox-album-0001"
+                    type="checkbox"
+                  />
+                  <svg
+                    aria-hidden="true"
+                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
+                    data-testid="CheckBoxOutlineBlankIcon"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
+                    />
+                  </svg>
+                </span>
+              </div>
               <button
                 aria-label="View details for Kind of Blue by Miles Davis"
                 class="MuiButtonBase-root MuiCardActionArea-root css-1aziv3h-MuiButtonBase-root-MuiCardActionArea-root"

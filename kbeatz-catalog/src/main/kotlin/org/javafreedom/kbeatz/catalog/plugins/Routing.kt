@@ -7,14 +7,20 @@ import org.javafreedom.kbeatz.catalog.adapters.inbound.web.albums.albumRoutes
 import org.javafreedom.kbeatz.catalog.adapters.inbound.web.albums.coverArtRoutes
 import org.javafreedom.kbeatz.catalog.adapters.inbound.web.albums.syncRoutes
 import org.javafreedom.kbeatz.catalog.adapters.inbound.web.albums.tagRoutes
+import org.javafreedom.kbeatz.catalog.adapters.inbound.web.changeplans.changePlanRoutes
 import org.javafreedom.kbeatz.catalog.adapters.inbound.web.health.HealthConfig
 import org.javafreedom.kbeatz.catalog.adapters.inbound.web.health.healthRoutes
 import org.javafreedom.kbeatz.catalog.adapters.inbound.web.library.libraryRoutes
+import org.javafreedom.kbeatz.catalog.adapters.inbound.web.settings.settingsRoutes
 import org.javafreedom.kbeatz.catalog.application.service.AlbumService
 import org.javafreedom.kbeatz.catalog.application.service.CoverArtService
 import org.javafreedom.kbeatz.catalog.application.service.LibraryScanService
+import org.javafreedom.kbeatz.catalog.application.service.ChangePlanApplyService
+import org.javafreedom.kbeatz.catalog.application.service.ChangePlanFacade
 import org.javafreedom.kbeatz.catalog.application.service.TagWriteService
 import org.javafreedom.kbeatz.catalog.domain.port.SyncProvider
+import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
+import org.javafreedom.kbeatz.catalog.domain.service.DirectoryLayoutPlanner
 
 @Suppress("LongParameterList") // wiring function - all parameters are service/config dependencies
 fun Application.configureRouting(
@@ -23,6 +29,11 @@ fun Application.configureRouting(
     coverArtService: CoverArtService,
     syncService: SyncProvider,
     tagWriteService: TagWriteService,
+    changePlanFacade: ChangePlanFacade,
+    changePlanApplyService: ChangePlanApplyService,
+    albumRepository: AlbumRepository,
+    directoryLayoutPlanner: DirectoryLayoutPlanner,
+    layoutDirectoryTemplate: String,
     healthConfig: HealthConfig,
 ) {
     routing {
@@ -35,6 +46,13 @@ fun Application.configureRouting(
             tagRoutes(albumService, tagWriteService, healthConfig.libraryRoot)
             coverArtRoutes(coverArtService)
             syncRoutes(syncService, healthConfig.libraryRoot)
+            changePlanRoutes(changePlanFacade, changePlanApplyService)
+            settingsRoutes(
+                albumRepository,
+                directoryLayoutPlanner,
+                layoutDirectoryTemplate,
+                healthConfig.libraryRoot,
+            )
         }
     }
 }

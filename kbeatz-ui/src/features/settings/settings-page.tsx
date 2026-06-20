@@ -15,6 +15,7 @@ import {
 } from '../albums/album-filters'
 import { LanguageToggle } from '../language/language-toggle'
 import { ThemeToggle } from '../../theme'
+import { DirectoryLayoutSettings } from './directory-layout-settings'
 
 // No props; declared for project consistency with react-patterns explicit typing.
 export type SettingsPageProps = Record<string, never>
@@ -101,6 +102,7 @@ export function SettingsPage(): ReactElement {
           description={t('settings.themeDescription')}
           control={<ThemeToggle />}
         />
+        <DirectoryLayoutSettings />
       </Stack>
     </Container>
   )

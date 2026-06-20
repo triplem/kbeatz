@@ -1,7 +1,21 @@
 import { afterEach, beforeEach, describe, it, vi } from 'vitest'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AppThemeProvider } from '../../theme'
 import { SettingsPage } from './settings-page'
 import { expectNoA11yViolationsInBothThemes } from '../../test/a11y'
+
+vi.mock('../../api/generated', () => ({
+  SettingsService: {
+    getLayoutSettings: vi.fn().mockResolvedValue({
+      directoryTemplate: '${ALBUMARTIST}/${ALBUM} (${DATE})',
+      supportedTokens: ['ALBUM', 'ALBUMARTIST', 'DATE'],
+    }),
+    getLayoutPreview: vi.fn(),
+  },
+  AlbumsService: {
+    listAlbums: vi.fn().mockResolvedValue({ content: [], page: 0, size: 100, totalElements: 0, totalPages: 0 }),
+  },
+}))
 
 function stubMatchMedia(): void {
   vi.stubGlobal(
@@ -29,9 +43,12 @@ describe('SettingsPage accessibility', () => {
   })
 
   it('has no WCAG 2.1 AA violations in light or dark theme', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     await expectNoA11yViolationsInBothThemes(() => (
       <AppThemeProvider>
-        <SettingsPage />
+        <QueryClientProvider client={client}>
+          <SettingsPage />
+        </QueryClientProvider>
       </AppThemeProvider>
     ))
   })

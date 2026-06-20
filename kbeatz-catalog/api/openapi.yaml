@@ -21,6 +21,10 @@ tags:
     description: Album browsing and tag management
   - name: Library
     description: Library scan operations
+  - name: ChangePlans
+    description: Dry-run change plans for bulk directory relayout and retagging
+  - name: Settings
+    description: Read-only operator configuration and live directory-layout previews
 
 paths:
   /healthz:
@@ -427,6 +431,145 @@ paths:
               schema:
                 $ref: "#/components/schemas/ScanStatus"
 
+  /change-plans:
+    post:
+      operationId: createChangePlan
+      summary: Compute a dry-run change plan for one or many releases
+      description: |
+        Computes a consolidated dry-run ChangePlan for the requested releases under a
+        single operation. No disk writes occur: only read-only filesystem checks are used
+        to detect conflicts. Conflicts (target exists, lock held, source missing, path
+        traversal) are returned as data inside the plan, not as request failures. The
+        returned plan is stored and can be retrieved by id for a later apply step.
+      tags: [ChangePlans]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateChangePlanRequest"
+      responses:
+        "201":
+          description: Plan computed and stored. The Location header points to the stored plan.
+          headers:
+            Location:
+              description: "Relative URL of the stored plan: /change-plans/{planId}"
+              schema:
+                type: string
+                example: "/change-plans/7c9e6679-7425-40de-944b-e07fc1f90ae7"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChangePlan"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "422":
+          description: >-
+            The requested operation is not available via this generic endpoint. RELAYOUT and
+            DISCOGS_SYNC are supported; RETAG carries no proposed field values here and is performed
+            through PATCH /albums/{albumId}/tags instead.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /change-plans/{planId}:
+    get:
+      operationId: getChangePlan
+      summary: Retrieve a previously computed change plan by id
+      description: Returns the stored dry-run ChangePlan identified by planId, for review or apply.
+      tags: [ChangePlans]
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/PlanId"
+      responses:
+        "200":
+          description: The stored change plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChangePlan"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /change-plans/{planId}/apply:
+    post:
+      operationId: applyChangePlan
+      summary: Apply a previously computed change plan by id
+      description: |
+        Applies the stored dry-run ChangePlan identified by planId. This call is the user's
+        confirmation: no directory is moved and no tag is written until this endpoint is invoked.
+        Each release is applied as an atomic, lock-protected, crash-recoverable unit; a single
+        release failure does not abort the batch. Releases that carry conflicts are skipped.
+        Re-applying the same plan is a safe idempotent no-op: an already-moved release reconciles
+        to APPLIED without error. Per-release problems are reported inside the 200 result body
+        (per release: APPLIED, SKIPPED or FAILED), never as an error status code.
+      tags: [ChangePlans]
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/PlanId"
+      responses:
+        "200":
+          description: The plan was processed. Per-release outcomes are in the body.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplyChangePlanResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /settings/layout:
+    get:
+      operationId: getLayoutSettings
+      summary: Get the active directory-layout template and supported tokens
+      description: |
+        Returns the directory-structure template currently configured by the operator
+        (HOCON `catalog.layout.directoryTemplate` / `CATALOG_LAYOUT_DIRECTORY_TEMPLATE`)
+        and the full set of metadata tokens it may reference. The template is read-only
+        from the UI: it is operator configuration, not a stored value. Use this to show
+        the active layout and its supported tokens before previewing or running a relayout.
+      tags: [Settings]
+      security: []
+      responses:
+        "200":
+          description: The active layout template and the supported tokens
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayoutSettings"
+
+  /settings/layout/preview/{albumId}:
+    get:
+      operationId: getLayoutPreview
+      summary: Preview the planned target directory for one album
+      description: |
+        Computes the directory the album would be placed in under the active template,
+        without writing anything to disk. Returns the album's current directory and the
+        planned directory side by side. When the planner rejects the album because the
+        rendered path would escape the library root (traversal guard), plannedDirectory
+        is null, withinLibraryRoot is false, and message explains why. This endpoint is a
+        pure read-only preview and stores nothing (it is distinct from the change-plan store).
+      tags: [Settings]
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/AlbumId"
+      responses:
+        "200":
+          description: The current and planned directory for the album
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayoutPreview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
 components:
   parameters:
     AlbumId:
@@ -434,6 +577,12 @@ components:
       in: path
       required: true
       description: "Album UUID"
+      schema: { type: string, format: uuid }
+    PlanId:
+      name: planId
+      in: path
+      required: true
+      description: "Change plan UUID"
       schema: { type: string, format: uuid }
 
   schemas:
@@ -889,6 +1038,296 @@ components:
           type: array
           items:
             type: string
+
+    LayoutSettings:
+      type: object
+      required: [directoryTemplate, supportedTokens]
+      description: |
+        The active directory-structure template and the metadata tokens it may reference.
+        The template is operator configuration and is read-only from the UI.
+      properties:
+        directoryTemplate:
+          type: string
+          description: |
+            The active directory-structure template. Tokens use the ${TOKEN} syntax (for example
+            ALBUMARTIST/ALBUM (DATE) where each segment is a ${TOKEN}); the literal '/' is the
+            path-segment separator.
+          example: "by-artist/album-year"
+        supportedTokens:
+          type: array
+          description: "All metadata token names the template may reference (uppercase, without the ${} wrapper)."
+          items:
+            type: string
+            description: "A supported metadata token name."
+            example: "ALBUMARTIST"
+
+    LayoutPreview:
+      type: object
+      required: [albumId, currentDirectory, withinLibraryRoot]
+      description: |
+        A read-only preview of where one album would be placed under the active template.
+        plannedDirectory is null and message is set when the planner rejects the album
+        (its rendered path would escape the library root).
+      properties:
+        albumId:
+          type: string
+          format: uuid
+          description: "The album the preview was computed for."
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        currentDirectory:
+          type: string
+          description: "The album's current directory path, relative to the library root."
+          example: "incoming/kind-of-blue"
+        plannedDirectory:
+          type: string
+          nullable: true
+          description: "The planned directory path relative to the library root, or null when the planner rejects the album."
+          example: "Miles Davis/Kind of Blue (1959)"
+        withinLibraryRoot:
+          type: boolean
+          description: "True when the planned directory stays inside the library root; false when the traversal guard rejects it."
+          example: true
+        message:
+          type: string
+          nullable: true
+          description: "A human-readable explanation when the album is rejected; null on a successful preview."
+          example: "Planned directory would escape the library root"
+
+    ChangePlanOperation:
+      type: string
+      description: |
+        The kind of bulk operation a change plan describes. RELAYOUT moves release
+        directories to match the configured template. RETAG applies manual tag values.
+        DISCOGS_SYNC applies tag values sourced from a Discogs release.
+      enum: [RELAYOUT, RETAG, DISCOGS_SYNC]
+      example: "RELAYOUT"
+
+    CreateChangePlanRequest:
+      type: object
+      required: [operation, albumIds]
+      description: "Request to compute a dry-run change plan for one or many releases."
+      properties:
+        operation:
+          $ref: "#/components/schemas/ChangePlanOperation"
+        albumIds:
+          type: array
+          description: "The releases to include in the plan. Must contain at least one album UUID."
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+            description: "Album UUID"
+            example: "550e8400-e29b-41d4-a716-446655440000"
+
+    PlanConflict:
+      type: object
+      required: [type, albumId, message]
+      description: "A condition that prevents or warns about applying part of a plan, surfaced as data."
+      properties:
+        type:
+          type: string
+          description: "The category of conflict."
+          enum: [TARGET_EXISTS, PATH_TRAVERSAL, SOURCE_MISSING, LOCK_HELD]
+          example: "TARGET_EXISTS"
+        albumId:
+          type: string
+          format: uuid
+          description: "The release the conflict relates to."
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        path:
+          type: string
+          nullable: true
+          description: "The on-disk path involved, when applicable."
+          example: "/music/Miles Davis/Kind of Blue (1959)"
+        message:
+          type: string
+          description: "A human-readable explanation without secrets or stack traces."
+          example: "Target directory already exists on disk"
+
+    DirectoryMove:
+      type: object
+      required: [albumId, fromPath, toPath, mergedFromPaths]
+      description: "A planned directory relocation for one release. No move is performed by this value."
+      properties:
+        albumId:
+          type: string
+          format: uuid
+          description: "The release being moved."
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        fromPath:
+          type: string
+          description: "The current absolute directory path."
+          example: "/music/incoming/kind-of-blue"
+        toPath:
+          type: string
+          description: "The planned absolute target directory path."
+          example: "/music/Miles Davis/Kind of Blue (1959)"
+        mergedFromPaths:
+          type: array
+          description: "Additional merged source directories that also relocate."
+          items:
+            type: string
+            description: "An absolute source directory path."
+            example: "/music/incoming/kind-of-blue-disc2"
+
+    TagChange:
+      type: object
+      required: [targetPath, field]
+      description: "A single proposed tag-field change for a target file or scope."
+      properties:
+        targetPath:
+          type: string
+          description: "Identifies the file or scope the change applies to."
+          example: "/music/Miles Davis/Kind of Blue (1959)/01.flac"
+        field:
+          type: string
+          description: "The Vorbis Comment field name."
+          example: "ALBUM"
+        currentValue:
+          type: string
+          nullable: true
+          description: "The current value, or null when the field is absent."
+          example: "Kind of Blue"
+        proposedValue:
+          type: string
+          nullable: true
+          description: "The proposed value, or null when the field is removed."
+          example: "Kind of Blue (Remastered)"
+
+    ReleaseChangeSet:
+      type: object
+      required: [albumId, tagChanges, conflicts, hasConflicts]
+      description: "The complete set of planned changes for a single release."
+      properties:
+        albumId:
+          type: string
+          format: uuid
+          description: "The release this change set describes."
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        directoryMove:
+          description: "The planned move, or null when the directory already matches the template."
+          oneOf:
+            - $ref: "#/components/schemas/DirectoryMove"
+          nullable: true
+        tagChanges:
+          type: array
+          description: "The per-field tag diffs. Empty for a pure relayout."
+          items:
+            $ref: "#/components/schemas/TagChange"
+        conflicts:
+          type: array
+          description: "Any conflicts detected for this release during planning."
+          items:
+            $ref: "#/components/schemas/PlanConflict"
+        hasConflicts:
+          type: boolean
+          description: "True when this release has at least one conflict."
+          example: false
+
+    ChangePlan:
+      type: object
+      required: [id, operation, releases, createdAt, totalMoves, totalTagChanges, totalConflicts, hasConflicts]
+      description: |
+        A consolidated dry-run plan describing every directory move and tag change for one
+        or many releases under a single operation. Producing a plan performs zero disk writes.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Unique identifier for this plan instance."
+          example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+        operation:
+          $ref: "#/components/schemas/ChangePlanOperation"
+        releases:
+          type: array
+          description: "The per-release change sets, one entry per requested release."
+          items:
+            $ref: "#/components/schemas/ReleaseChangeSet"
+        createdAt:
+          type: string
+          format: date-time
+          description: "When the plan was assembled."
+          example: "2026-06-20T14:00:00Z"
+        totalMoves:
+          type: integer
+          format: int32
+          description: "The total number of directory moves across all releases."
+          example: 2
+        totalTagChanges:
+          type: integer
+          format: int32
+          description: "The total number of tag changes across all releases."
+          example: 0
+        totalConflicts:
+          type: integer
+          format: int32
+          description: "The total number of conflicts across all releases."
+          example: 1
+        hasConflicts:
+          type: boolean
+          description: "True when any release in the plan has at least one conflict."
+          example: true
+
+    ReleaseApplyOutcome:
+      type: string
+      description: |
+        The outcome of applying a single release within a change plan. APPLIED: the change was
+        written to disk (or reconciled as an idempotent no-op). SKIPPED: the release had conflicts
+        and was left untouched. FAILED: applying the release raised an error; the atomic executor
+        guarantees the release is not left half-applied.
+      enum: [APPLIED, SKIPPED, FAILED]
+      example: APPLIED
+
+    ReleaseApplyResult:
+      type: object
+      required: [albumId, outcome]
+      description: "The result of applying one release within a change plan."
+      properties:
+        albumId:
+          type: string
+          format: uuid
+          description: "The release this result describes."
+          example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+        outcome:
+          $ref: "#/components/schemas/ReleaseApplyOutcome"
+        message:
+          type: string
+          nullable: true
+          description: "A human-readable explanation for a SKIPPED or FAILED outcome (no PII or secrets)."
+          example: "Skipped: target directory already exists"
+
+    ApplyChangePlanResult:
+      type: object
+      required: [planId, releases, appliedCount, skippedCount, failedCount]
+      description: |
+        The aggregate result of applying a change plan. Reports a per-release outcome and the
+        counts of applied, skipped, and failed releases.
+      properties:
+        planId:
+          type: string
+          format: uuid
+          description: "The id of the plan that was applied."
+          example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+        releases:
+          type: array
+          description: "The per-release apply results, one entry per release in the plan."
+          items:
+            $ref: "#/components/schemas/ReleaseApplyResult"
+        appliedCount:
+          type: integer
+          format: int32
+          description: "The number of releases applied successfully."
+          example: 2
+        skippedCount:
+          type: integer
+          format: int32
+          description: "The number of releases skipped because of conflicts."
+          example: 1
+        failedCount:
+          type: integer
+          format: int32
+          description: "The number of releases that failed to apply."
+          example: 0
 
   responses:
     BadRequest:

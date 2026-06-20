@@ -1,47 +1,31 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import Alert from '@mui/material/Alert'
+import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Checkbox from '@mui/material/Checkbox'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Snackbar from '@mui/material/Snackbar'
+import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import { Album, AlbumDetail, AlbumsService } from '../../api/generated'
-import type { SyncFieldChange } from '../../api/generated'
-import { CancelError } from '../../api/generated/core/CancelablePromise'
-import { PageSection, ConfirmDialog, LoadingState } from '../../components'
-import { SyncPreviewDialog } from '../albums/sync-preview-dialog'
-
-/** Client-side timeout for Discogs sync requests (30 seconds). */
-const SYNC_TIMEOUT_MS = 30_000
+import { PageSection, ConfirmDialog, LoadingState, ErrorState } from '../../components'
+import { ChangePlanReview } from '../change-plan/ChangePlanReview'
+import { useCreateChangePlan } from '../change-plan/useCreateChangePlan'
+import { useApplyChangePlan } from '../change-plan/useApplyChangePlan'
 
 /**
- * Tag fields that Discogs sync can update. Each entry is verified at compile time
- * to be a key present on both AlbumDetail and Album via the `satisfies` constraint.
+ * The sync panel runs a single-album DISCOGS_SYNC change plan. The flow is:
+ *  idle -> (optional overwrite confirm) -> review (dry run) -> applying -> success.
+ *
+ * `review` holds whether the dry-run plan request is still in flight so the
+ * dialog can show a loading state, and any plan-fetch error message.
  */
-const SYNC_TAG_FIELDS = [
-  'albumArtist',
-  'album',
-  'date',
-  'genre',
-  'label',
-  'catalogNumber',
-  'composer',
-  'conductor',
-  'ensemble',
-] as const satisfies ReadonlyArray<keyof AlbumDetail & keyof Album>
-
-/** Count how many tag fields differ between the album before and after sync. */
-function countChangedFields(before: AlbumDetail, after: Album): number {
-  return SYNC_TAG_FIELDS.filter((field) => before[field] !== after[field]).length
-}
-
 type SyncState =
   | { status: 'idle' }
   | { status: 'confirmOverwrite' }
-  | { status: 'preview'; loading: boolean; error: string | null; changes: SyncFieldChange[] }
-  | { status: 'loading' }
+  | { status: 'review' }
   | { status: 'success'; fieldsWritten: number }
   | { status: 'error'; message: string }
   | { status: 'quotaExhausted'; resetAt: string }
@@ -56,19 +40,22 @@ interface SyncPanelProps {
   readonly hasLocalEdits?: boolean
 }
 
+interface ApiErrorBody {
+  readonly body?: { readonly code?: string; readonly message?: string; readonly details?: string[] }
+}
+
 /**
  * SyncPanel - renders the "Sync from Discogs" control block for an album detail view.
  *
- * Rebuilt on MUI primitives (PageSection, Checkbox, Button, Snackbar, Alert) and
- * the shared ConfirmDialog so it is theme-aware in light and dark modes.
- *
- * Only rendered when the album has a `discogsId`.
- * Calls GET /api/v1/albums/{albumId}/sync/preview first, shows the SyncPreviewDialog
- * for user confirmation, then calls POST /api/v1/albums/{albumId}/sync on confirm.
- * Displays the number of tag fields updated after a successful sync.
+ * Only rendered when the album has a `discogsId`. Clicking "Sync from Discogs"
+ * runs a DISCOGS_SYNC dry-run change plan (POST /change-plans) and shows the
+ * consolidated ChangePlanReview for the single release. Confirming applies the
+ * plan (POST /change-plans/{id}/apply); nothing is written until then. After a
+ * successful apply the refreshed album is fetched and passed to onSyncComplete,
+ * and the number of tag fields written is announced.
  *
  * When `hasLocalEdits` is true, clicking "Sync from Discogs" first shows a
- * confirmation dialog warning the user that local tag edits will be overwritten.
+ * confirmation dialog warning that local tag edits will be overwritten.
  */
 export function SyncPanel({ album, onSyncComplete, hasLocalEdits = false }: SyncPanelProps) {
   const { t } = useTranslation()
@@ -76,122 +63,90 @@ export function SyncPanel({ album, onSyncComplete, hasLocalEdits = false }: Sync
   const [downloadImages, setDownloadImages] = useState(false)
   const [syncState, setSyncState] = useState<SyncState>({ status: 'idle' })
 
-  /**
-   * Tracks the in-flight CancelablePromise for the preview fetch so it can be
-   * cancelled if the component unmounts before the response arrives, preventing
-   * a React "state update on unmounted component" warning.
-   */
-  const previewRequestRef = useRef<{ cancel: () => void } | null>(null)
+  const {
+    createPlan,
+    plan,
+    isPending: isPlanning,
+    error: planError,
+    reset: resetPlan,
+  } = useCreateChangePlan()
+  const { apply, isPending: isApplying, reset: resetApply } = useApplyChangePlan()
 
-  // Cancel any in-flight preview request when the component unmounts
-  useEffect(() => {
-    return () => {
-      previewRequestRef.current?.cancel()
+  const mapApplyError = useCallback((err: unknown): SyncState => {
+    const apiError = err as ApiErrorBody
+    const code = apiError.body?.code ?? ''
+    const message = apiError.body?.message ?? t('common.unknown')
+    if (code === 'IMAGE_QUOTA_EXHAUSTED') {
+      const details = apiError.body?.details ?? []
+      const resetAtDetail = details.find((d) => d.startsWith('resetAt='))
+      const resetAt = resetAtDetail ? resetAtDetail.replace('resetAt=', '') : t('common.unknown')
+      return { status: 'quotaExhausted', resetAt }
     }
-  }, [])
+    return { status: 'error', message }
+  }, [t])
 
-  const syncMutation = useMutation({
-    mutationFn: () => {
-      const request = AlbumsService.syncAlbumFromDiscogs({
-        albumId: album.id,
-        requestBody: { downloadImages },
-      })
-      const timeoutId = setTimeout(() => { request.cancel() }, SYNC_TIMEOUT_MS)
-      return request.then((result) => {
-        clearTimeout(timeoutId)
-        return result
-      }).catch((err: unknown) => {
-        clearTimeout(timeoutId)
-        throw err
-      })
-    },
-    onSuccess: (updated) => {
-      const fieldsWritten = countChangedFields(album, updated)
-      onSyncComplete(updated)
-      queryClient.invalidateQueries({ queryKey: ['albums'] })
-      setSyncState({ status: 'success', fieldsWritten })
-    },
-    onError: (err: unknown) => {
-      if (err instanceof CancelError) {
-        setSyncState({ status: 'error', message: t('syncPanel.syncTimeout') })
-        return
-      }
-      const apiError = err as { body?: { code?: string; message?: string; details?: string[] } }
-      const code = apiError.body?.code ?? ''
-      const message = apiError.body?.message ?? t('common.unknown')
-
-      if (code === 'IMAGE_QUOTA_EXHAUSTED') {
-        const details = apiError.body?.details ?? []
-        const resetAtDetail = details.find((d) => d.startsWith('resetAt='))
-        const resetAt = resetAtDetail ? resetAtDetail.replace('resetAt=', '') : t('common.unknown')
-        setSyncState({ status: 'quotaExhausted', resetAt })
-      } else {
-        setSyncState({ status: 'error', message })
-      }
-    },
-  })
-
-  // fetchPreview must be declared before the early return to satisfy React hooks rules
-  const fetchPreview = useCallback(() => {
-    setSyncState({ status: 'preview', loading: true, error: null, changes: [] })
-    const request = AlbumsService.previewSyncFromDiscogs({ albumId: album.id })
-    previewRequestRef.current = request
-    request
-      .then((preview) => {
-        previewRequestRef.current = null
-        setSyncState({ status: 'preview', loading: false, error: null, changes: preview.proposedChanges })
-      })
-      .catch((err: unknown) => {
-        previewRequestRef.current = null
-        const apiError = err as { body?: { message?: string } }
-        const message = apiError.body?.message ?? t('common.error')
-        setSyncState({ status: 'preview', loading: false, error: message, changes: [] })
-      })
-  }, [album.id, t])
+  const openReview = useCallback(() => {
+    setSyncState({ status: 'review' })
+    void createPlan({ operation: 'DISCOGS_SYNC', albumIds: [album.id] }).catch(() => {
+      // Surfaced via planError inside the review dialog.
+    })
+  }, [createPlan, album.id])
 
   if (!album.discogsId) return null
 
-  const executeSync = () => {
-    setSyncState({ status: 'loading' })
-    syncMutation.mutate()
-  }
-
   const handleSyncClick = () => {
+    resetPlan()
+    resetApply()
     if (hasLocalEdits) {
       setSyncState({ status: 'confirmOverwrite' })
     } else {
-      fetchPreview()
+      openReview()
     }
   }
 
   const handleConfirmOverwrite = () => {
-    fetchPreview()
+    openReview()
   }
 
   const handleCancelOverwrite = () => {
     setSyncState({ status: 'idle' })
   }
 
-  const handlePreviewConfirm = () => {
-    executeSync()
+  const handleReviewCancel = () => {
+    // Cancel at review writes nothing.
+    resetPlan()
+    resetApply()
+    setSyncState({ status: 'idle' })
   }
 
-  const handlePreviewCancel = () => {
-    setSyncState({ status: 'idle' })
+  const handleReviewConfirm = () => {
+    if (!plan) return
+    apply(plan.id)
+      .then((result) => {
+        const release = result.releases.find((r) => r.albumId === album.id)
+        if (release && release.outcome === 'FAILED') {
+          setSyncState({ status: 'error', message: release.message ?? t('common.error') })
+          return
+        }
+        const fieldsWritten = plan.totalTagChanges
+        return AlbumsService.getAlbum({ albumId: album.id }).then((updated) => {
+          onSyncComplete(updated)
+          void queryClient.invalidateQueries({ queryKey: ['albums'] })
+          void queryClient.invalidateQueries({ queryKey: ['album', album.id] })
+          setSyncState({ status: 'success', fieldsWritten })
+        })
+      })
+      .catch((err: unknown) => {
+        setSyncState(mapApplyError(err))
+      })
   }
 
   const handleDismissSuccess = () => {
     setSyncState({ status: 'idle' })
   }
 
-  // The sync button is busy whenever the sync itself is running OR while the preview
-  // is being fetched. Guarding the preview-loading state prevents duplicate Discogs
-  // API calls if the user clicks the button more than once while the fetch is in flight.
-  const isPreviewLoading = syncState.status === 'preview' && syncState.loading
-  const isSyncLoading = syncState.status === 'loading'
-  const isBusy = isSyncLoading || isPreviewLoading
-
-  const previewOpen = syncState.status === 'preview'
+  const isReview = syncState.status === 'review'
+  const isBusy = isReview || isApplying
 
   return (
     <PageSection
@@ -200,15 +155,6 @@ export function SyncPanel({ album, onSyncComplete, hasLocalEdits = false }: Sync
       headingLevel="h3"
       testId="sync-panel"
     >
-      <SyncPreviewDialog
-        open={previewOpen}
-        loading={previewOpen && syncState.loading}
-        error={previewOpen ? syncState.error : null}
-        changes={previewOpen ? syncState.changes : []}
-        onConfirm={handlePreviewConfirm}
-        onCancel={handlePreviewCancel}
-      />
-
       <Typography
         variant="body2"
         color="text.secondary"
@@ -226,9 +172,6 @@ export function SyncPanel({ album, onSyncComplete, hasLocalEdits = false }: Sync
             onChange={(e) => { setDownloadImages(e.target.checked) }}
             disabled={isBusy}
             slotProps={{
-              // data-testid on the underlying input so toBeChecked()/click target the
-              // checkbox element rather than the MUI root span. The slot input props
-              // type does not enumerate data-* attributes, so it is widened here.
               input: {
                 'aria-label': t('syncPanel.downloadImagesAriaLabel'),
                 'data-testid': 'download-images-checkbox',
@@ -246,13 +189,13 @@ export function SyncPanel({ album, onSyncComplete, hasLocalEdits = false }: Sync
         onClick={handleSyncClick}
         disabled={isBusy}
         aria-disabled={isBusy}
-        aria-label={isSyncLoading
+        aria-label={isApplying
           ? t('syncPanel.syncButtonLoading')
           : t('syncPanel.syncButton')}
         data-testid="sync-button"
         sx={{ alignSelf: 'flex-start', minHeight: 44 }}
       >
-        {isSyncLoading ? t('syncPanel.syncButtonLoading') : t('syncPanel.syncButton')}
+        {isApplying ? t('syncPanel.syncButtonLoading') : t('syncPanel.syncButton')}
       </Button>
 
       <ConfirmDialog
@@ -266,8 +209,67 @@ export function SyncPanel({ album, onSyncComplete, hasLocalEdits = false }: Sync
         testId="sync-overwrite-dialog"
       />
 
-      {syncState.status === 'loading' && (
-        <LoadingState message={t('syncPanel.loadingMessage')} testId="sync-loading" />
+      {isReview && (
+        <Box
+          role="region"
+          aria-label={t('syncPanel.reviewLabel')}
+          data-testid="sync-review"
+          sx={{
+            mt: 1,
+            p: 2,
+            border: 1,
+            borderColor: 'divider',
+            borderRadius: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
+          }}
+        >
+          {isPlanning && (
+            <LoadingState message={t('changePlan.planning')} testId="sync-review-loading" />
+          )}
+
+          {!isPlanning && planError !== null && (
+            <ErrorState
+              message={t('changePlan.planError')}
+              onRetry={openReview}
+              retryLabel={t('common.retry')}
+              testId="sync-review-error"
+            />
+          )}
+
+          {!isPlanning && planError === null && plan !== undefined && (
+            <ChangePlanReview plan={plan} />
+          )}
+
+          {isApplying && (
+            <LoadingState message={t('syncPanel.loadingMessage')} testId="sync-loading" />
+          )}
+
+          <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end' }}>
+            <Button
+              type="button"
+              variant="outlined"
+              color="inherit"
+              onClick={handleReviewCancel}
+              disabled={isApplying}
+              data-testid="sync-review-cancel"
+              sx={{ minHeight: 44 }}
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button
+              type="button"
+              variant="contained"
+              onClick={handleReviewConfirm}
+              disabled={isPlanning || isApplying || planError !== null || plan === undefined}
+              data-testid="sync-review-confirm"
+              sx={{ minHeight: 44 }}
+            >
+              {t('syncPanel.confirmSync')}
+            </Button>
+          </Stack>
+        </Box>
       )}
 
       <Snackbar

@@ -10,6 +10,7 @@ import kotlin.uuid.Uuid
 import org.javafreedom.kbeatz.catalog.api.models.ErrorResponse
 import org.javafreedom.kbeatz.catalog.application.service.CoverArtResult
 import org.javafreedom.kbeatz.catalog.application.service.CoverArtService
+import org.javafreedom.kbeatz.common.PathTraversalException
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
 
 /**
@@ -20,7 +21,7 @@ import org.javafreedom.kbeatz.common.ResourceNotFoundException
  * 2. `folder.jpg` in the album directory.
  * 3. HTTP 404.
  *
- * A [SecurityException] from the service (path traversal) maps to HTTP 400.
+ * A [PathTraversalException] from the service (path traversal) maps to HTTP 400.
  */
 fun Route.coverArtRoutes(coverArtService: CoverArtService) {
     get("/albums/{albumId}/cover") {
@@ -97,7 +98,7 @@ private suspend fun resolveCoverArt(
         } else {
             CoverArtOutcome.NotFound("No cover art found for album '$albumIdRaw'")
         }
-    } catch (_: SecurityException) {
+    } catch (_: PathTraversalException) {
         CoverArtOutcome.BadRequest("Album directory is outside the library root")
     } catch (_: ResourceNotFoundException) {
         CoverArtOutcome.NotFound("Album '$albumIdRaw' not found")

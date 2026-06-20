@@ -1,24 +1,20 @@
 package org.javafreedom.kbeatz.catalog.infrastructure.sync
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.uuid.Uuid
-import kotlinx.io.files.Path as KtPath
 import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.model.SyncFieldChange
 import org.javafreedom.kbeatz.catalog.domain.model.SyncPreview
 import org.javafreedom.kbeatz.catalog.domain.model.SyncResult
-import org.javafreedom.kbeatz.catalog.domain.model.WRITE_LOCK_FILENAME
 import org.javafreedom.kbeatz.catalog.domain.port.SyncProvider
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
-import org.javafreedom.kbeatz.catalog.util.PathGuard
+import org.javafreedom.kbeatz.catalog.infrastructure.tag.FlacTagWriter
 import org.javafreedom.kbeatz.common.BusinessValidationException
 import org.javafreedom.kbeatz.common.ImageQuotaExhaustedException
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
 import org.javafreedom.kbeatz.sources.MetadataSource
 import org.javafreedom.kbeatz.sources.Release
-import org.javafreedom.kbeatz.tagger.codec.flac.FlacFile
 import org.javafreedom.kbeatz.tagger.codec.flac.VorbisCommentFields
 
 private val log = KotlinLogging.logger {}
@@ -56,6 +52,7 @@ class DiscogsSyncService(
     private val metadataSource: MetadataSource,
     private val imageService: DiscogsImageService?,
     private val libraryRoot: Path,
+    private val flacTagWriter: FlacTagWriter = FlacTagWriter(libraryRoot),
 ) : SyncProvider {
 
     override val name: String = "discogs"
@@ -129,18 +126,21 @@ class DiscogsSyncService(
         }
 
         val albumDir = Path.of(album.directoryPath)
-        validatePath(albumDir)
-
         val tags = release.toVorbisTagMap()
-        val flacFiles = findFlacFiles(albumDir)
 
-        writeLockFile(albumDir)
-        writeTagsToFlacFiles(flacFiles, tags)
+        // The single, shared FLAC tag-write path (story #817): atomic per-file writes under the
+        // .kbeatz-write.lock manifest. removeLockOnFailure=false preserves the Discogs contract of
+        // retaining the manifest on a failed write so startup repair can detect the partial write.
+        flacTagWriter.writeAlbumFields(
+            albumId = albumId,
+            primaryDir = albumDir,
+            mergedDirs = album.mergedDirectories,
+            fields = tags,
+            removeLockOnFailure = false,
+        )
 
         val warnings = mutableListOf<String>()
         downloadCoverArtIfRequested(albumId, discogsId, albumDir, downloadImages, warnings)
-
-        deleteLockFile(albumDir)
 
         val updatedAlbum = buildUpdatedAlbum(album, tags, discogsId)
         albumRepository.save(updatedAlbum)
@@ -166,42 +166,6 @@ class DiscogsSyncService(
         } catch (ex: ImageQuotaExhaustedException) {
             log.warn { "discogs_image_quota_exhausted albumId=$albumId discogsId=$discogsId" }
             warnings += "Image quota exhausted. Resets at ${ex.resetAt}"
-        }
-    }
-
-    private fun validatePath(albumDir: Path) {
-        PathGuard.assertWithinLibraryRoot(albumDir, libraryRoot)
-    }
-
-    private fun findFlacFiles(albumDir: Path): List<Path> =
-        if (Files.isDirectory(albumDir)) {
-            Files.list(albumDir).use { stream ->
-                stream
-                    .filter { it.fileName.toString().endsWith(".flac", ignoreCase = true) }
-                    .sorted()
-                    .toList()
-            }
-        } else {
-            emptyList()
-        }
-
-    private fun writeLockFile(albumDir: Path) {
-        Files.createDirectories(albumDir)
-        Files.writeString(albumDir.resolve(WRITE_LOCK_FILENAME), "")
-        log.debug { "Lock file created in $albumDir" }
-    }
-
-    private fun deleteLockFile(albumDir: Path) {
-        Files.deleteIfExists(albumDir.resolve(WRITE_LOCK_FILENAME))
-        log.debug { "Lock file removed from $albumDir" }
-    }
-
-    private fun writeTagsToFlacFiles(files: List<Path>, tags: Map<String, String>) {
-        files.forEach { flacPath ->
-            FlacFile.read(KtPath(flacPath.toString()))
-                .updateVorbisComment { editor -> tags.forEach { (k, v) -> editor.set(k, v) }; editor }
-                .writeTo(KtPath(flacPath.toString()))
-            log.debug { "Tags written to $flacPath" }
         }
     }
 
