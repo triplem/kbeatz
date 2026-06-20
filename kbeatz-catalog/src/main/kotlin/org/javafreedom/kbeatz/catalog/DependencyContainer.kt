@@ -81,7 +81,6 @@ class DependencyContainer(config: AppConfig, libraryRootPath: Path, dataDirPath:
     // the store is a process-lifetime singleton shared with the apply step (issue #816).
     private val changePlanService = ChangePlanService(
         albumRepository = albumRepository,
-        trackRepository = trackRepository,
         directoryLayoutPlanner = directoryLayoutPlanner,
         libraryRoot = config.catalogLibraryRoot,
     )

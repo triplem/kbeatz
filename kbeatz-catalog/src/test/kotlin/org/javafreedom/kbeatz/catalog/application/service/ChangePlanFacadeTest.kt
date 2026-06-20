@@ -20,7 +20,6 @@ import org.javafreedom.kbeatz.catalog.domain.model.SyncPreview
 import org.javafreedom.kbeatz.catalog.domain.model.SyncResult
 import org.javafreedom.kbeatz.catalog.domain.port.SyncProvider
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
-import org.javafreedom.kbeatz.catalog.domain.repository.TrackRepository
 import org.javafreedom.kbeatz.catalog.domain.service.DirectoryLayoutPlanner
 import org.javafreedom.kbeatz.catalog.infrastructure.move.DirectoryMoveExecutor
 import org.javafreedom.kbeatz.catalog.infrastructure.tag.FlacTagWriter
@@ -57,7 +56,6 @@ class ChangePlanFacadeTest {
 
     private fun planService(albumRepository: AlbumRepository) = ChangePlanService(
         albumRepository = albumRepository,
-        trackRepository = mockk<TrackRepository>(),
         directoryLayoutPlanner = DirectoryLayoutPlanner(DirectoryTemplate(template)),
         libraryRoot = libraryRoot.toString(),
     )

@@ -16,7 +16,6 @@ import org.javafreedom.kbeatz.catalog.domain.model.ChangeOperation
 import org.javafreedom.kbeatz.catalog.domain.model.ConflictType
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumFilter
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
-import org.javafreedom.kbeatz.catalog.domain.repository.TrackRepository
 import org.javafreedom.kbeatz.catalog.domain.service.DirectoryLayoutPlanner
 import org.javafreedom.kbeatz.catalog.domain.model.DirectoryTemplate
 import org.javafreedom.kbeatz.common.BusinessValidationException
@@ -26,7 +25,6 @@ class ChangePlanServiceTest {
 
     private val libraryRoot = "/srv/music"
     private val template = "\${ALBUMARTIST}/\${ALBUM} (\${DATE})"
-    private val trackRepository: TrackRepository = mockk()
 
     /**
      * In-memory album repository. Counts [findById] and [findByIds] invocations so tests can
@@ -94,7 +92,6 @@ class ChangePlanServiceTest {
         lockHeld: (String) -> Boolean = { false },
     ) = ChangePlanService(
         albumRepository = FakeAlbumRepository(albums),
-        trackRepository = trackRepository,
         directoryLayoutPlanner = DirectoryLayoutPlanner(DirectoryTemplate(template)),
         libraryRoot = libraryRoot,
         filesystem = StubFilesystem(pathExists, lockHeld),
@@ -208,7 +205,6 @@ class ChangePlanServiceTest {
             PathTraversalException("Planned directory escapes the library root")
         val svc = ChangePlanService(
             albumRepository = FakeAlbumRepository(listOf(release)),
-            trackRepository = trackRepository,
             directoryLayoutPlanner = throwingPlanner,
             libraryRoot = libraryRoot,
         )
@@ -284,7 +280,6 @@ class ChangePlanServiceTest {
         val repo = FakeAlbumRepository(listOf(matching, moving))
         val svc = ChangePlanService(
             albumRepository = repo,
-            trackRepository = trackRepository,
             directoryLayoutPlanner = DirectoryLayoutPlanner(DirectoryTemplate(template)),
             libraryRoot = libraryRoot,
             filesystem = StubFilesystem(

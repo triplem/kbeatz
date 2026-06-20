@@ -39,14 +39,12 @@ import org.javafreedom.kbeatz.catalog.domain.model.SyncResult
 import org.javafreedom.kbeatz.catalog.domain.port.SyncProvider
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumFilter
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
-import org.javafreedom.kbeatz.catalog.domain.repository.TrackRepository
 import org.javafreedom.kbeatz.catalog.domain.service.DirectoryLayoutPlanner
 
 class ChangePlanHandlerTest {
 
     private val libraryRoot = "/srv/music"
     private val template = "\${ALBUMARTIST}/\${ALBUM} (\${DATE})"
-    private val trackRepository: TrackRepository = mockk()
     private val json = Json { ignoreUnknownKeys = true }
 
     private class FakeAlbumRepository(albums: List<Album>) : AlbumRepository {
@@ -111,7 +109,6 @@ class ChangePlanHandlerTest {
     ): ChangePlanFacade {
         val service = ChangePlanService(
             albumRepository = FakeAlbumRepository(albums),
-            trackRepository = trackRepository,
             directoryLayoutPlanner = DirectoryLayoutPlanner(DirectoryTemplate(template)),
             libraryRoot = libraryRoot,
             filesystem = StubFilesystem(pathExists, lockHeld),
