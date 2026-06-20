@@ -17,11 +17,13 @@ data class AppConfig(
     val scanParallelism: Int,
     val discogsRateLimitPerMinute: Int,
     val discogsImageDailyQuota: Int,
+    val layoutDirectoryTemplate: String,
 ) {
     companion object {
         private const val DEFAULT_JDBC_URL =
             "jdbc:h2:file:./data/kbeatz;DB_CLOSE_DELAY=-1;MODE=PostgreSQL"
         private const val DEFAULT_DATA_DIR = "./data"
+        private const val DEFAULT_LAYOUT_DIRECTORY_TEMPLATE = "\${ALBUMARTIST}/\${ALBUM} (\${DATE})"
         @Suppress("MagicNumber") // default repair scan timeout in seconds per issue #372 ops spec
         private const val DEFAULT_REPAIR_TIMEOUT_SECONDS = 60L
         @Suppress("MagicNumber") // default scan parallelism: 4 for spinning-disk libraries per issue #374
@@ -49,6 +51,12 @@ data class AppConfig(
             val scanParallelism = config.getInt("catalog.scan.parallelism")
             val rateLimit = config.getInt("catalog.discogs.rateLimitPerMinute")
             val imageQuota = config.getInt("catalog.discogs.imageDailyQuota")
+            val layoutDirectoryTemplate =
+                if (config.hasPath("catalog.layout.directoryTemplate")) {
+                    config.getString("catalog.layout.directoryTemplate").ifBlank { DEFAULT_LAYOUT_DIRECTORY_TEMPLATE }
+                } else {
+                    DEFAULT_LAYOUT_DIRECTORY_TEMPLATE
+                }
             return AppConfig(
                 catalogLibraryRoot = root,
                 discogsToken = token,
@@ -60,6 +68,7 @@ data class AppConfig(
                 scanParallelism = scanParallelism,
                 discogsRateLimitPerMinute = rateLimit,
                 discogsImageDailyQuota = imageQuota,
+                layoutDirectoryTemplate = layoutDirectoryTemplate,
             )
         }
 
@@ -85,6 +94,8 @@ data class AppConfig(
                 scanParallelism = DEFAULT_SCAN_PARALLELISM,
                 discogsRateLimitPerMinute = DEFAULT_RATE_LIMIT,
                 discogsImageDailyQuota = DEFAULT_IMAGE_QUOTA,
+                layoutDirectoryTemplate = env("CATALOG_LAYOUT_DIRECTORY_TEMPLATE")
+                    ?: DEFAULT_LAYOUT_DIRECTORY_TEMPLATE,
             )
         }
     }
