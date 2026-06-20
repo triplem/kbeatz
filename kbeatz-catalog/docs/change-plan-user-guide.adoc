@@ -1,0 +1,179 @@
+= User and Admin Guide: Reorganising Releases and Reviewing Sync Changes
+:toc: left
+:icons: font
+
+This guide explains how to configure the directory layout for your music library, how to
+preview where a release will be moved, and how to run the dry-run / review / confirm workflow
+that reorganises directories or applies Discogs sync changes. Nothing is written to disk until
+you confirm.
+
+== Overview
+
+kbeatz can place each release into a directory whose path is built from the album's tags (artist,
+album, date, and more). You choose the layout with a template. Before any files move, kbeatz
+shows you exactly what it will do: which directories move, which tags change, and any problems
+that would block a release. You then confirm to apply the changes.
+
+The same review-then-confirm flow is used in two places:
+
+* The album grid, when you reorganise one or many releases.
+* The Discogs sync panel, when you apply metadata changes fetched from Discogs.
+
+== Configuring the Directory Template (admin)
+
+The layout is set with one configuration value.
+
+[cols="1,3", options="header"]
+|===
+| Setting | Value
+
+| HOCON key | `catalog.layout.directoryTemplate`
+| Environment variable | `CATALOG_LAYOUT_DIRECTORY_TEMPLATE`
+| Default | `${ALBUMARTIST}/${ALBUM} (${DATE})`
+|===
+
+Set it in `application.conf` or override it with the environment variable.
+
+=== Available tokens
+
+A template is plain text with tokens wrapped in `${...}`. The literal `/` characters in the
+template are the directory separators.
+
+[cols="1,2", options="header"]
+|===
+| Token | Filled with
+
+| `${ALBUMARTIST}` | The album artist
+| `${ALBUM}` | The album title
+| `${DATE}` | The full release date
+| `${YEAR}` | The first four characters of the date (the year)
+| `${GENRE}` | The genre
+| `${LABEL}` | The record label
+| `${CATALOGNUMBER}` | The catalog number
+| `${COMPOSER}` | The composer
+| `${CONDUCTOR}` | The conductor
+| `${ENSEMBLE}` | The ensemble
+| `${COUNTRY}` | The country
+| `${MEDIAFORMAT}` | The media format
+|===
+
+An unknown token (a name not in this list) is rejected: the template will not be accepted. If a
+token is valid but the album has no value for it, that part of the path is simply left out, so
+you never get an empty or doubled folder name.
+
+Any character that is illegal in a filename inside a tag *value* (`/ \ : * ? " < > |` and control
+characters) is replaced with `_`. For example, an artist named `AC/DC` becomes the single folder
+`AC_DC`, not two folders.
+
+=== Example templates
+
+[cols="2,3", options="header"]
+|===
+| Template | Resulting path (for "Back in Black" by AC/DC, 1980-07-25)
+
+| `${ALBUMARTIST}/${ALBUM} (${DATE})`
+| `AC_DC/Back in Black (1980-07-25)`
+
+| `${ALBUMARTIST}/${YEAR} - ${ALBUM}`
+| `AC_DC/1980 - Back in Black`
+
+| `${GENRE}/${ALBUMARTIST}/${ALBUM}`
+| `Rock/AC_DC/Back in Black`
+|===
+
+== Viewing the Active Template and a Preview (Settings)
+
+The Settings page shows the template that is currently in effect and the list of tokens it
+supports. For any album you can see a side-by-side preview of its *current* directory and its
+*planned* directory under the active template, along with a note confirming the planned path
+stays inside the library root. Use the preview to sanity-check a template before reorganising
+anything.
+
+== Running a Dry Run
+
+A dry run computes the changes and shows them to you. It does not move or rewrite anything.
+
+=== From the album grid (one or many releases)
+
+. Open the *Albums* page.
+. Select one release, or multi-select several.
+. Choose *Reorganize directories*.
+. kbeatz computes a plan and opens the review screen.
+
+=== From the Discogs sync panel
+
+When you run a Discogs sync, the panel now shows a plan-based review of the tag changes that the
+sync would make, instead of writing them straight away. You review and confirm exactly as you do
+for a directory reorganise.
+
+== Reading the Review
+
+The review screen summarises the plan:
+
+* *Moves* - for each release, the current directory and the planned target directory. Merged
+  directories (the same album held in more than one folder) are listed and will be relocated into
+  the target.
+* *Tag changes* - for each affected file, the field, its current value, and the proposed value.
+* *Conflicts and skips* - any release that cannot be applied as-is, with the reason.
+
+A release with a conflict is shown so you can decide what to do. The plan also shows totals: how
+many moves, how many tag changes, and how many conflicts.
+
+== Confirming and Reading the Result
+
+When the plan looks right, confirm it to apply. kbeatz processes each release and reports a
+per-release outcome.
+
+[cols="1,3", options="header"]
+|===
+| Outcome | Meaning
+
+| *Applied* | The release was moved and / or retagged successfully.
+| *Skipped* | The release had a conflict and was left untouched on purpose.
+| *Failed* | An error occurred while writing this release. Other releases in the batch still run.
+|===
+
+The result also gives totals: applied count, skipped count, and failed count. One release failing
+does not stop the rest of the batch.
+
+== Safety Guarantees
+
+* *Nothing is written before you confirm.* Creating a plan and reviewing it never touches your
+  files. Disk changes happen only on the confirm step.
+* *Atomic and lock-protected.* Each directory move is atomic, and a write lock is taken before any
+  file is touched. For a move across filesystems, the source is never deleted until the target is
+  verified.
+* *Recovery from an interrupted apply.* If kbeatz is stopped or crashes mid-apply, the next
+  startup finishes or rolls back any interrupted move automatically, before the service starts
+  accepting requests. No album is left half-moved.
+
+== What to Do if a Release Is Skipped
+
+A skipped release had a conflict. Resolve the underlying cause, then re-run the plan (or create a
+new one).
+
+[cols="1,3", options="header"]
+|===
+| Conflict | What it means and how to resolve it
+
+| *Target exists*
+| A directory already exists at the planned path. Move or remove the existing directory, or adjust
+  the template so the target differs, then run the reorganise again.
+
+| *Lock held*
+| Another write is in progress for this release (a `.kbeatz-write.lock` is present). Wait for it to
+  finish, then re-run. If a previous run was interrupted, restart kbeatz so recovery clears the
+  lock.
+
+| *Source missing*
+| The release's source directory is gone (for example it was moved outside kbeatz). Rescan the
+  library so the catalog reflects the real on-disk state, then plan again.
+|===
+
+== See Also
+
+* link:change-plan-reference.adoc[Developer reference: directory templating and the ChangePlan
+  workflow]
+* link:user-guide-tag-editing.adoc[User guide: tag editing in the album detail view]
+* link:../../docs/adr/ADR-014-directory-templating-and-change-plan-workflow.adoc[ADR-014:
+  Configurable release directory layout and the unified ChangePlan workflow]
