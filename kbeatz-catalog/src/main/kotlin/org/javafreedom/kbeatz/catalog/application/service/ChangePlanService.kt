@@ -19,6 +19,7 @@ import org.javafreedom.kbeatz.catalog.domain.repository.TrackRepository
 import org.javafreedom.kbeatz.catalog.domain.service.DirectoryLayoutPlanner
 import org.javafreedom.kbeatz.catalog.domain.service.TagDiffCalculator
 import org.javafreedom.kbeatz.common.BusinessValidationException
+import org.javafreedom.kbeatz.common.PathTraversalException
 
 private val logger = KotlinLogging.logger {}
 
@@ -141,7 +142,7 @@ class ChangePlanService(
     private fun planRelayoutForAlbum(album: Album): ReleaseChangeSet {
         val target = try {
             directoryLayoutPlanner.planTargetDirectory(album, libraryRoot)
-        } catch (e: SecurityException) {
+        } catch (e: PathTraversalException) {
             logger.warn { "planRelayout_traversal_conflict albumId=${album.id}" }
             return traversalChangeSet(album, e)
         }
@@ -220,7 +221,7 @@ class ChangePlanService(
             ),
         )
 
-    private fun traversalChangeSet(album: Album, e: SecurityException): ReleaseChangeSet =
+    private fun traversalChangeSet(album: Album, e: PathTraversalException): ReleaseChangeSet =
         ReleaseChangeSet(
             albumId = album.id,
             directoryMove = null,

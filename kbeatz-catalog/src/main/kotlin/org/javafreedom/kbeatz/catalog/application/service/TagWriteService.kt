@@ -116,7 +116,7 @@ class TagWriteService(
      * @return Updated [Album] reflecting the change.
      * @throws ResourceNotFoundException if the album is not found.
      * @throws IllegalArgumentException if [field] is not in [ALBUM_LEVEL_FIELDS].
-     * @throws SecurityException if the album directory is outside [libraryRoot].
+     * @throws PathTraversalException if the album directory is outside [libraryRoot].
      */
     suspend fun writeAlbumTags(albumId: Uuid, field: String, value: String): Album {
         requireTagValueLength(field, value)
@@ -166,7 +166,7 @@ class TagWriteService(
      * @return Updated [Album] reflecting all album-level changes (track changes do not affect the Album model).
      * @throws ResourceNotFoundException if the album or any referenced track is not found.
      * @throws IllegalArgumentException if any field is not in the allowed set.
-     * @throws SecurityException if the album directory is outside [libraryRoot].
+     * @throws PathTraversalException if the album directory is outside [libraryRoot].
      */
     suspend fun writeBulkTags(
         albumId: Uuid,
@@ -246,7 +246,7 @@ class TagWriteService(
      * @return Updated [Track] reflecting the change.
      * @throws ResourceNotFoundException if the album or track is not found.
      * @throws IllegalArgumentException if [field] is not in [TRACK_LEVEL_FIELDS].
-     * @throws SecurityException if the album directory is outside [libraryRoot].
+     * @throws PathTraversalException if the album directory is outside [libraryRoot].
      */
     suspend fun writeTrackTags(albumId: Uuid, trackId: Uuid, field: String, value: String): Track {
         requireTagValueLength(field, value)

@@ -13,6 +13,7 @@ import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.model.DirectoryMove
 import org.javafreedom.kbeatz.catalog.domain.model.WRITE_LOCK_FILENAME
 import org.javafreedom.kbeatz.common.ConflictException
+import org.javafreedom.kbeatz.common.PathTraversalException
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
 import org.junit.jupiter.api.io.TempDir
 
@@ -192,7 +193,7 @@ class DirectoryMoveExecutorTest {
         val outside = root.resolve("..").resolve("escape").normalize()
         val repo = MutableAlbumRepository(album(from.toString()))
 
-        assertFailsWith<SecurityException> {
+        assertFailsWith<PathTraversalException> {
             executor(repo, root, root.resolve(".data")).execute(
                 DirectoryMove(albumId, from.toString(), outside.toString()),
             )

@@ -171,6 +171,89 @@ class DirectoryMoveRecoveryTest {
     }
 
     @Test
+    fun `recovery finishes a partially-applied move where one merged dir is still at source`(
+        @TempDir root: Path,
+    ) = runTest {
+        // Primary moved + first merged dir moved, but the second merged dir is still at its source
+        // and the journal is still at phase PLANNED (the executor flips to MOVED only after ALL
+        // merged moves complete). Recovery must finish the move forward to a consistent end state.
+        val from = root.resolve("incoming/kob")
+        val to = root.resolve("sorted/kob")
+        val mergedFromA = root.resolve("incoming/kob-cd1")
+        val mergedFromB = root.resolve("incoming/kob-cd2")
+        val mergedToA = to.resolve("kob-cd1")
+        val mergedToB = to.resolve("kob-cd2")
+
+        writeFile(to, "01.flac") // primary already at target
+        writeFile(mergedToA, "cd1.flac") // first merged dir already moved
+        writeFile(mergedFromB, "cd2.flac") // second merged dir still at its source
+
+        val dataDir = root.resolve(".data")
+        val repo = MutableAlbumRepository(
+            album(from.toString(), listOf(mergedFromA.toString(), mergedFromB.toString())),
+        )
+        val journalFile = writeJournal(
+            dataDir,
+            MoveJournal(
+                albumId,
+                from.toString(),
+                to.toString(),
+                listOf(mergedFromA.toString(), mergedFromB.toString()),
+                listOf(mergedToA.toString(), mergedToB.toString()),
+                MovePhase.PLANNED,
+            ),
+        )
+
+        DirectoryMoveRecovery(repo, dataDir).recoverInterruptedMoves()
+
+        assertTrue(Files.isRegularFile(mergedToA.resolve("cd1.flac")), "first merged dir stays at target")
+        assertTrue(Files.isRegularFile(mergedToB.resolve("cd2.flac")), "second merged dir moved to target")
+        assertFalse(Files.exists(mergedFromB), "second merged source must be gone after finish-forward")
+        val saved = repo.find(albumId)
+        assertEquals(to.toString(), saved?.directoryPath, "DB primary path points at the target")
+        assertEquals(
+            listOf(mergedToA.toString(), mergedToB.toString()),
+            saved?.mergedDirectories,
+            "DB merged paths point at existing targets, never at a non-existent dir",
+        )
+        saved?.mergedDirectories?.forEach { assertTrue(Files.exists(Path.of(it)), "merged target $it exists") }
+        assertFalse(Files.exists(journalFile), "journal removed once fully consistent")
+    }
+
+    @Test
+    fun `recovery finish-forward is idempotent on re-run`(@TempDir root: Path) = runTest {
+        val from = root.resolve("incoming/kob")
+        val to = root.resolve("sorted/kob")
+        val mergedFromB = root.resolve("incoming/kob-cd2")
+        val mergedToB = to.resolve("kob-cd2")
+        writeFile(to, "01.flac")
+        writeFile(mergedFromB, "cd2.flac")
+
+        val dataDir = root.resolve(".data")
+        val repo = MutableAlbumRepository(album(from.toString(), listOf(mergedFromB.toString())))
+        writeJournal(
+            dataDir,
+            MoveJournal(
+                albumId,
+                from.toString(),
+                to.toString(),
+                listOf(mergedFromB.toString()),
+                listOf(mergedToB.toString()),
+                MovePhase.PLANNED,
+            ),
+        )
+        val recovery = DirectoryMoveRecovery(repo, dataDir)
+
+        recovery.recoverInterruptedMoves()
+        recovery.recoverInterruptedMoves()
+
+        assertEquals(to.toString(), repo.find(albumId)?.directoryPath)
+        assertEquals(listOf(mergedToB.toString()), repo.find(albumId)?.mergedDirectories)
+        assertTrue(Files.isRegularFile(mergedToB.resolve("cd2.flac")))
+        assertEquals(1, repo.saveCount, "second run must not save again")
+    }
+
+    @Test
     fun `recovery deletes a corrupt journal without throwing`(@TempDir root: Path) = runTest {
         val dataDir = root.resolve(".data")
         Files.createDirectories(dataDir)

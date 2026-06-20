@@ -20,6 +20,7 @@ import org.javafreedom.kbeatz.catalog.domain.repository.TrackRepository
 import org.javafreedom.kbeatz.catalog.domain.service.DirectoryLayoutPlanner
 import org.javafreedom.kbeatz.catalog.domain.model.DirectoryTemplate
 import org.javafreedom.kbeatz.common.BusinessValidationException
+import org.javafreedom.kbeatz.common.PathTraversalException
 
 class ChangePlanServiceTest {
 
@@ -189,7 +190,7 @@ class ChangePlanServiceTest {
         // own sanitisation normally prevents this, so we stub it directly.
         val throwingPlanner: DirectoryLayoutPlanner = mockk()
         every { throwingPlanner.planTargetDirectory(release, libraryRoot) } throws
-            SecurityException("Planned directory escapes the library root")
+            PathTraversalException("Planned directory escapes the library root")
         val svc = ChangePlanService(
             albumRepository = FakeAlbumRepository(listOf(release)),
             trackRepository = trackRepository,

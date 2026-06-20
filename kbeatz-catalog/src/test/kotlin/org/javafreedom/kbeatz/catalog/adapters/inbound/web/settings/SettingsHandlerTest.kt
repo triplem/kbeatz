@@ -25,6 +25,7 @@ import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.model.DirectoryTemplate
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 import org.javafreedom.kbeatz.catalog.domain.service.DirectoryLayoutPlanner
+import org.javafreedom.kbeatz.common.PathTraversalException
 
 class SettingsHandlerTest {
 
@@ -119,7 +120,7 @@ class SettingsHandlerTest {
         val rejectingPlanner: DirectoryLayoutPlanner = mockk()
         val id = Uuid.random()
         io.mockk.every { rejectingPlanner.planTargetDirectory(any(), any()) } throws
-            SecurityException("escapes the library root")
+            PathTraversalException("escapes the library root")
         routing { settingsRoutes(albumRepository, rejectingPlanner, template, libraryRoot) }
         val client = createClient { install(ClientContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }
 

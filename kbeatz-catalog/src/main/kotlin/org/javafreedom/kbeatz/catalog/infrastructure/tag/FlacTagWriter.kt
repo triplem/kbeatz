@@ -59,7 +59,7 @@ class FlacTagWriter(private val libraryRoot: Path) {
      * @param removeLockOnFailure When true (the manual-retag / change-plan-apply contract) the
      *   manifest is always removed, even when a write fails. When false (the Discogs-sync contract)
      *   a failed write retains the manifest so startup repair can detect the partial write.
-     * @throws SecurityException when any directory escapes [libraryRoot].
+     * @throws PathTraversalException when any directory escapes [libraryRoot].
      * @throws ConflictException when a write-lock is already held in [primaryDir].
      */
     fun writeAlbumFields(
@@ -144,7 +144,7 @@ class FlacTagWriter(private val libraryRoot: Path) {
      *
      * @param flacPath The FLAC file to update; its parent directory must be within [libraryRoot].
      * @param fields Vorbis Comment fields to set. Field names must already be normalised.
-     * @throws SecurityException when [flacPath] escapes [libraryRoot].
+     * @throws PathTraversalException when [flacPath] escapes [libraryRoot].
      */
     fun writeSingleFile(flacPath: Path, fields: Map<String, String>) {
         validatePath(flacPath)

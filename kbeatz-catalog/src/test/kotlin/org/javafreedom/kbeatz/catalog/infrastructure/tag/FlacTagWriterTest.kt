@@ -12,6 +12,7 @@ import kotlin.uuid.Uuid
 import kotlinx.io.files.Path as KtPath
 import org.javafreedom.kbeatz.catalog.domain.model.WRITE_LOCK_FILENAME
 import org.javafreedom.kbeatz.common.ConflictException
+import org.javafreedom.kbeatz.common.PathTraversalException
 import org.javafreedom.kbeatz.tagger.codec.flac.FlacFile
 
 /**
@@ -82,10 +83,10 @@ class FlacTagWriterTest {
     }
 
     @Test
-    fun `writeAlbumFields throws SecurityException for a directory outside the library root`() {
+    fun `writeAlbumFields throws PathTraversalException for a directory outside the library root`() {
         val outside = Files.createTempDirectory("outside-root")
         try {
-            assertFailsWith<SecurityException> {
+            assertFailsWith<PathTraversalException> {
                 writer.writeAlbumFields(albumId, outside, emptyList(), mapOf("GENRE" to "Jazz"))
             }
         } finally {
@@ -137,12 +138,12 @@ class FlacTagWriterTest {
     }
 
     @Test
-    fun `writeSingleFile throws SecurityException for a file outside the library root`() {
+    fun `writeSingleFile throws PathTraversalException for a file outside the library root`() {
         val outside = Files.createTempDirectory("outside-root")
         val flac = outside.resolve("01.flac")
         copyFixtureOutside(flac)
         try {
-            assertFailsWith<SecurityException> {
+            assertFailsWith<PathTraversalException> {
                 writer.writeSingleFile(flac, mapOf("TITLE" to "x"))
             }
         } finally {

@@ -72,7 +72,7 @@ class DirectoryMoveExecutor(
      *
      * @throws ResourceNotFoundException when the album or its source directory is missing.
      * @throws ConflictException when the target already exists or a write-lock is held in the source.
-     * @throws SecurityException when source or target escapes [libraryRoot].
+     * @throws PathTraversalException when source or target escapes [libraryRoot].
      */
     suspend fun execute(move: DirectoryMove) {
         val from = Path.of(move.fromPath)

@@ -4,6 +4,7 @@ import java.nio.file.Paths
 import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.model.DirectoryLayoutResult
 import org.javafreedom.kbeatz.catalog.domain.model.DirectoryTemplate
+import org.javafreedom.kbeatz.common.PathTraversalException
 
 /**
  * Pure domain service that plans the target on-disk directory for an [Album] from a
@@ -23,7 +24,7 @@ class DirectoryLayoutPlanner(private val template: DirectoryTemplate) {
      * @param album The album whose metadata drives token substitution.
      * @param libraryRoot Absolute path to the music library root directory.
      * @return The planned [DirectoryLayoutResult] with sanitised relative and absolute paths.
-     * @throws SecurityException if the normalised target escapes [libraryRoot].
+     * @throws PathTraversalException if the normalised target escapes [libraryRoot].
      */
     fun planTargetDirectory(album: Album, libraryRoot: String): DirectoryLayoutResult {
         // Neutralise illegal characters (including '/') in token VALUES before rendering, so the
@@ -35,7 +36,7 @@ class DirectoryLayoutPlanner(private val template: DirectoryTemplate) {
         val rootPath = Paths.get(libraryRoot).normalize()
         val resolved = rootPath.resolve(relativePath).normalize()
         if (!resolved.startsWith(rootPath)) {
-            throw SecurityException(
+            throw PathTraversalException(
                 "Planned directory escapes the library root: relativePath=$relativePath"
             )
         }

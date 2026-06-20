@@ -28,6 +28,7 @@ import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.model.Track
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 import org.javafreedom.kbeatz.catalog.domain.repository.TrackRepository
+import org.javafreedom.kbeatz.common.PathTraversalException
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
 
 class TagHandlerTest {
@@ -154,7 +155,7 @@ class TagHandlerTest {
     fun `PATCH albums albumId returns 400 INVALID_PATH when album directory is outside library root`() = testApp {
         coEvery {
             tagWriteService.writeAlbumTags(albumId, "GENRE", "Rock")
-        } throws SecurityException("Album directory is outside the library root: /etc/secret")
+        } throws PathTraversalException("Album directory is outside the library root: /etc/secret")
 
         val response = patch("/albums/$albumId") {
             contentType(ContentType.Application.Json)
@@ -236,7 +237,7 @@ class TagHandlerTest {
     fun `PATCH albums albumId tracks trackId returns 400 INVALID_PATH when directory is outside library root`() = testApp {
         coEvery {
             tagWriteService.writeTrackTags(albumId, trackId, "TITLE", "New Title")
-        } throws SecurityException("Album directory is outside the library root: /etc/secret")
+        } throws PathTraversalException("Album directory is outside the library root: /etc/secret")
 
         val response = patch("/albums/$albumId/tracks/$trackId") {
             contentType(ContentType.Application.Json)

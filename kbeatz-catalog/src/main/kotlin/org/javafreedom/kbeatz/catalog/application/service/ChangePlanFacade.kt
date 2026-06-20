@@ -126,5 +126,5 @@ class ChangePlanFacade(
  * case carries a distinct error code, so the handler catches it explicitly.
  */
 class OperationNotAvailableException(operation: ChangeOperation) : RuntimeException(
-    "Dry-run planning for $operation is enabled in a later iteration (story #817)"
+    "Manual retagging ($operation) is performed via PATCH /albums/{albumId}/tags, not via change plans."
 )

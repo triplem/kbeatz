@@ -23,6 +23,7 @@ import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 import org.javafreedom.kbeatz.catalog.domain.model.WRITE_LOCK_FILENAME
 import org.javafreedom.kbeatz.common.BusinessValidationException
 import org.javafreedom.kbeatz.common.ImageQuotaExhaustedException
+import org.javafreedom.kbeatz.common.PathTraversalException
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
 import org.javafreedom.kbeatz.sources.MetadataSource
 import org.javafreedom.kbeatz.sources.Release
@@ -214,7 +215,7 @@ class DiscogsSyncServiceTest {
     // ---- path traversal validation ----
 
     @Test
-    fun `should throw SecurityException when album directory is outside library root`() = runBlocking {
+    fun `should throw PathTraversalException when album directory is outside library root`() = runBlocking {
         val outsideDir = Files.createTempDirectory("outside-library")
         try {
             val album = buildAlbum().copy(directoryPath = outsideDir.toString())
@@ -228,7 +229,7 @@ class DiscogsSyncServiceTest {
                 libraryRoot = libraryRoot,
             )
 
-            assertFailsWith<SecurityException> {
+            assertFailsWith<PathTraversalException> {
                 service.sync(album.id, downloadImages = false)
             }
         } finally {

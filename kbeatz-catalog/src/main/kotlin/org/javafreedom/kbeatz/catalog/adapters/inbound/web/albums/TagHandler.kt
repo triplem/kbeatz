@@ -17,6 +17,7 @@ import org.javafreedom.kbeatz.catalog.application.service.TagWriteService
 import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.model.Track
 import org.javafreedom.kbeatz.common.ConflictException
+import org.javafreedom.kbeatz.common.PathTraversalException
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
 
 /**
@@ -117,7 +118,7 @@ private suspend fun handlePatchAlbum(
             HttpStatusCode.BadRequest,
             ErrorResponse(code = "INVALID_FIELD", message = ex.message ?: "Invalid field"),
         )
-    } catch (_: SecurityException) {
+    } catch (_: PathTraversalException) {
         call.respond(
             HttpStatusCode.BadRequest,
             ErrorResponse(code = "INVALID_PATH", message = "Album path is outside the library root"),
@@ -149,7 +150,7 @@ private suspend fun handlePatchTrack(
             HttpStatusCode.BadRequest,
             ErrorResponse(code = "INVALID_FIELD", message = ex.message ?: "Invalid field"),
         )
-    } catch (_: SecurityException) {
+    } catch (_: PathTraversalException) {
         call.respond(
             HttpStatusCode.BadRequest,
             ErrorResponse(code = "INVALID_PATH", message = "Album path is outside the library root"),
@@ -195,7 +196,7 @@ private suspend fun handleBulkPatch(
             HttpStatusCode.Conflict,
             ErrorResponse(code = "WRITE_CONFLICT", message = ex.message ?: "Write conflict"),
         )
-    } catch (_: SecurityException) {
+    } catch (_: PathTraversalException) {
         call.respond(
             HttpStatusCode.BadRequest,
             ErrorResponse(code = "INVALID_PATH", message = "Album path is outside the library root"),

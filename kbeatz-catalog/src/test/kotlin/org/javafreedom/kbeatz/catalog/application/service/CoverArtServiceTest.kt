@@ -15,6 +15,7 @@ import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.model.ImageDescriptor
 import org.javafreedom.kbeatz.catalog.domain.model.ImageSource
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
+import org.javafreedom.kbeatz.common.PathTraversalException
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
 import org.javafreedom.kbeatz.tagger.codec.flac.FlacMetadataBlock
 
@@ -114,12 +115,12 @@ class CoverArtServiceTest {
     }
 
     @Test
-    fun `getCoverArt throws SecurityException when album directory is outside library root`() = runTest {
+    fun `getCoverArt throws PathTraversalException when album directory is outside library root`() = runTest {
         val id = Uuid.random()
         val outsideDir = "/tmp/../../etc/passwd"
         coEvery { repository.findById(id) } returns album(id = id, directoryPath = outsideDir)
 
-        assertFailsWith<SecurityException> {
+        assertFailsWith<PathTraversalException> {
             service.getCoverArt(id)
         }
     }

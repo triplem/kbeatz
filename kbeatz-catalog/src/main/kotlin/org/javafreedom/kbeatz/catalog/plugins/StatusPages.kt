@@ -9,6 +9,7 @@ import io.ktor.server.response.*
 import org.javafreedom.kbeatz.catalog.api.models.ErrorResponse
 import org.javafreedom.kbeatz.common.BusinessValidationException
 import org.javafreedom.kbeatz.common.ConflictException
+import org.javafreedom.kbeatz.common.PathTraversalException
 import org.javafreedom.kbeatz.common.ResourceNotFoundException
 
 private val logger = KotlinLogging.logger {}
@@ -29,6 +30,14 @@ fun Application.configureStatusPages() {
             call.respond(
                 HttpStatusCode.UnprocessableEntity,
                 ErrorResponse(code = "VALIDATION_ERROR", message = ex.message ?: "Validation error")
+            )
+        }
+        exception<PathTraversalException> { call, ex ->
+            val traceId = call.callId
+            logger.warn { "Path traversal rejected traceId=$traceId message=${ex.message}" }
+            call.respond(
+                HttpStatusCode.BadRequest,
+                ErrorResponse(code = "INVALID_PATH", message = "Path is outside the library root")
             )
         }
         exception<ConflictException> { call, ex ->

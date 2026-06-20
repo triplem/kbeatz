@@ -14,6 +14,7 @@ import org.javafreedom.kbeatz.catalog.domain.model.Album
 import org.javafreedom.kbeatz.catalog.domain.model.DirectoryTemplate
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
 import org.javafreedom.kbeatz.catalog.domain.service.DirectoryLayoutPlanner
+import org.javafreedom.kbeatz.common.PathTraversalException
 
 private val log = KotlinLogging.logger {}
 
@@ -87,7 +88,7 @@ private suspend fun respondPreview(
 
 /**
  * Renders the layout preview for [this] album. The traversal guard is reported as data: a
- * [SecurityException] from the planner becomes withinLibraryRoot=false with plannedDirectory=null,
+ * [PathTraversalException] from the planner becomes withinLibraryRoot=false with plannedDirectory=null,
  * not an error status. No PII or stack traces leak into the message.
  */
 private fun Album.toLayoutPreview(planner: DirectoryLayoutPlanner, libraryRoot: Path): ApiLayoutPreview {
@@ -101,7 +102,7 @@ private fun Album.toLayoutPreview(planner: DirectoryLayoutPlanner, libraryRoot: 
             withinLibraryRoot = true,
             message = null,
         )
-    } catch (ex: SecurityException) {
+    } catch (ex: PathTraversalException) {
         log.info { "layout_preview_rejected albumId=$id reason=${ex.message}" }
         ApiLayoutPreview(
             albumId = id.toString(),
