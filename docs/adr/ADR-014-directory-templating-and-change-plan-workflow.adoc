@@ -1,0 +1,173 @@
+= ADR-014: Configurable Release Directory Layout and the Unified ChangePlan Workflow
+:toc: left
+:icons: font
+:revdate: 2026-06-20
+:status: Accepted
+
+== Status
+
+Accepted (2026-06-20)
+
+== Context
+
+`kbeatz-catalog` writes FLAC tags to disk and, as of this work, also relocates album
+directories on disk. Two long-standing gaps motivated this decision.
+
+. *No preview before a destructive write.* FR-10 originally specified that Discogs sync
+  wrote tag values straight to the FLAC files with no diff and no confirmation. The
+  requirements deferred a "preview/diff before sync" capability (section 4 and section 11
+  of the requirements document) but never gave it a concrete model. An operator could not
+  see what a sync would change until after it had already changed it.
+
+. *No configurable on-disk layout and no safe way to reorganise many releases.* The
+  directory layout was implicit. There was no supported way to reorganise a release into a
+  templated path, and no way to do this safely across many releases at once with conflict
+  detection, atomic moves, and crash recovery.
+
+Both gaps share the same root requirement: the catalog needs a way to *compute* what a
+mutating operation would do, *show* it to the operator, and only then *apply* it, with the
+same safety guarantees (atomic writes, write locks, crash recovery) regardless of which
+operation produced the change.
+
+== Decision
+
+Introduce a configurable directory-layout template engine and a single, operation-agnostic
+dry-run / confirm / apply workflow built around a `ChangePlan` model. All on-disk mutation
+flows through one tag-write path and one directory-move executor.
+
+=== Directory template engine
+
+A `directoryTemplate` is configured via the HOCON key `catalog.layout.directoryTemplate`
+(env override `CATALOG_LAYOUT_DIRECTORY_TEMPLATE`), defaulting to
+`${ALBUMARTIST}/${ALBUM} (${DATE})`. The `DirectoryTemplate` value object renders and
+validates templates; `DirectoryLayoutPlanner.planTargetDirectory(album, libraryRoot)`
+produces a `DirectoryLayoutResult(relativePath, absolutePath)`.
+
+Supported tokens are `ALBUMARTIST`, `ALBUM`, `DATE`, `YEAR` (the first four characters of
+`DATE`), `GENRE`, `LABEL`, `CATALOGNUMBER`, `COMPOSER`, `CONDUCTOR`, `ENSEMBLE`, `COUNTRY`,
+and `MEDIAFORMAT`. An unknown token is a validation error. A supported but blank token
+renders empty and the planner drops the resulting empty path artifacts (no stray empty
+directory segments). Filesystem-illegal characters (`/ \ : * ? " < > |` and control
+characters) inside a token *value* are replaced with `_`, so only the template's literal
+`/` act as path separators. A value such as `AC/DC` becomes a single segment `AC_DC`
+rather than two directories. The resolved path is normalised and must stay inside the
+library root (NFR-06); a traversal value such as `../etc` is neutralised.
+
+=== ChangePlan model
+
+Mutating operations are expressed as a `ChangePlan(id, operation, releases, createdAt)`.
+`ChangeOperation` is one of `RELAYOUT`, `RETAG`, or `DISCOGS_SYNC`. Each plan carries a list
+of `ReleaseChangeSet(albumId, directoryMove?, tagChanges, conflicts)`. A release may contain
+a `DirectoryMove(albumId, fromPath, toPath, mergedFromPaths)`, a list of
+`TagChange(targetPath, field, currentValue, proposedValue)`, and a list of
+`PlanConflict(type, albumId, path, message)`. `ConflictType` is one of `TARGET_EXISTS`,
+`PATH_TRAVERSAL`, `SOURCE_MISSING`, or `LOCK_HELD`. The plan exposes aggregate totals
+(`totalMoves`, `totalTagChanges`, `totalConflicts`, `hasConflicts`).
+
+A plan is built by `ChangePlanService.planRelayout(albumIds)` or `planTagChanges(...)` via
+`ChangePlanFacade`, stored in an in-memory `ChangePlanStore` keyed by plan id, and returned to
+the caller as data. Conflicts and missing albums appear as plan data, not as request errors.
+Producing a plan never writes to disk.
+
+=== Single apply pipeline
+
+`ChangePlanApplyService` is the only confirm step. It iterates the stored plan's releases and
+records a per-release outcome: `APPLIED`, `SKIPPED` (the release has conflicts), or `FAILED`.
+A single release failure does not abort the batch; the remaining releases still run.
+Re-applying a plan is an idempotent no-op for releases that are already applied.
+
+=== Single FlacTagWriter write path
+
+`FlacTagWriter` is the only code path that mutates Vorbis Comment fields on disk. It performs
+PathGuard validation, writes a `.kbeatz-write.lock` manifest, writes to the primary and any
+merged directories, and uses an atomic per-file temp-and-rename (ADR-001). Manual retag
+(`TagWriteService`), Discogs sync (`DiscogsSyncService.sync`), and change-plan apply
+(`FlacTagChangeApplier`) all delegate to it. There is no second direct tag-write path.
+
+=== Journaled move and crash recovery
+
+`DirectoryMoveExecutor.execute(move)` validates the move stays within the library root, writes
+a move journal and a `.kbeatz-write.lock` before touching any file, and performs an atomic
+`Files.move(ATOMIC_MOVE)` with a journaled copy-verify-swap fallback for cross-filesystem
+moves (the source is never deleted before the target is verified). It relocates merged
+directories into the target (each as a subdirectory keyed by its original leaf name), updates
+`Album.mergedDirectories`, and updates `Album.directoryPath` in one transaction. Because
+`Track.path` is relative to the album root, a root rename keeps every track valid with no
+per-track rewrite, and multi-disc subdirectories move with the root.
+
+The journal is a per-album `<albumId>.kbeatz-move.journal` file (key=value text, tab-separated
+path lists) in the catalog `dataDir`, with a phase marker: `PLANNED` is written before any
+file is touched (roll back on recovery), and `MOVED` after the on-disk move completes (roll
+forward on recovery). `DirectoryMoveRecovery.recoverInterruptedMoves()` runs at startup before
+the HTTP server accepts traffic, alongside `repairOnStartup()`. It rolls forward completed
+moves, rolls back unstarted ones, is idempotent, and leaves no album half-applied.
+
+== Consequences
+
+* *Supersedes FR-10 direct-write behaviour.* Discogs sync no longer writes tags straight to
+  disk. It now produces a `DISCOGS_SYNC` plan that the operator reviews before applying. The
+  preview/diff gap noted in requirements section 4 and section 11 is closed.
+
+* *The plan store is process-lifetime.* `ChangePlanStore` is in memory and keyed by plan id.
+  A plan must be created and applied in the same running process. A restart discards all
+  stored plans, and an apply call for an unknown plan id returns 404. This is acceptable for a
+  single-operator, trusted-LAN deployment and avoids introducing a persistence schema for
+  transient review state.
+
+* *Merged-directory relocation semantics.* On a move, each merged source directory is
+  relocated into the target as a subdirectory keyed by its original leaf name, and
+  `Album.mergedDirectories` is updated. The directories are preserved, not merged into a
+  single flat directory (see "What is not covered").
+
+* *One write path to audit.* Because every tag mutation goes through `FlacTagWriter` and every
+  move goes through `DirectoryMoveExecutor`, the atomic-write and lock guarantees of ADR-001
+  and the crash-recovery guarantees of FR-20 / NFR-08 / NFR-13 apply uniformly to all three
+  operations.
+
+=== What is not covered
+
+* *Physical consolidation of merged directories.* Merged sources are relocated as subdirectories,
+  not physically consolidated into one directory of files. That remains future work.
+
+* *Generic RETAG via change plan.* A standalone `RETAG` plan is not offered over HTTP; the API
+  returns 422 `OPERATION_NOT_AVAILABLE`. Manual retag continues through `PATCH /albums/{id}/tags`,
+  which uses the same shared `FlacTagWriter` path.
+
+== Alternatives Considered
+
+=== Client-side preview only (rejected)
+
+Compute the diff in the React UI and let the server keep writing directly. Rejected because
+the server is the only component that can authoritatively resolve paths, detect conflicts
+(target exists, lock held, source missing), and guarantee that the path the user reviewed is
+the path that is written. A client-side diff could drift from server behaviour and would not
+protect non-UI callers.
+
+=== Per-operation bespoke write paths (rejected)
+
+Keep separate write code for Discogs sync, manual retag, and relayout. Rejected because it
+duplicates the atomic-write, lock-manifest, and crash-recovery logic three times and makes it
+likely that one path diverges from the ADR-001 guarantees. A single `FlacTagWriter` and a
+single `DirectoryMoveExecutor` keep the safety logic in one place.
+
+=== Persistent plan store (rejected for v1)
+
+Persist `ChangePlan` rows so a plan survives a restart. Rejected for v1 because review state is
+transient by nature, the deployment is a single operator on a trusted LAN, and a persistent
+store would add a schema, a retention policy, and stale-plan handling for little benefit. The
+process-lifetime in-memory store is sufficient and is revisited if multi-session review becomes
+a requirement.
+
+== See Also
+
+* link:ADR-001-flac-implementation.adoc[ADR-001: Atomic FLAC writes] - the per-file
+  temp-and-rename guarantee that `FlacTagWriter` relies on
+* link:ADR-007-kbeatz-metadata-pipeline.adoc[ADR-007: Discogs sync metadata pipeline] - the
+  sync path now fronted by a `DISCOGS_SYNC` plan
+* link:ADR-011-merged-directories-storage-design.adoc[ADR-011: merged_directories storage
+  design] - how merged directory paths are stored and relocated
+* FR-10 - the direct-write Discogs behaviour superseded by this decision
+* FR-20, NFR-08, NFR-13 - write-lock crash recovery requirements honoured by the move journal
+* NFR-06 - path-traversal containment within the library root
+* `kbeatz-catalog/docs/change-plan-reference.adoc` - developer reference for the model and API
+* `kbeatz-catalog/docs/change-plan-user-guide.adoc` - operator guide for the workflow
