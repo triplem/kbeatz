@@ -15,7 +15,6 @@ import org.javafreedom.kbeatz.catalog.domain.model.PlanConflict
 import org.javafreedom.kbeatz.catalog.domain.model.ReleaseChangeSet
 import org.javafreedom.kbeatz.catalog.domain.model.WRITE_LOCK_FILENAME
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
-import org.javafreedom.kbeatz.catalog.domain.repository.TrackRepository
 import org.javafreedom.kbeatz.catalog.domain.service.DirectoryLayoutPlanner
 import org.javafreedom.kbeatz.catalog.domain.service.TagDiffCalculator
 import org.javafreedom.kbeatz.common.BusinessValidationException
@@ -49,7 +48,6 @@ object NioPlanningFilesystem : PlanningFilesystem {
  * (existence and write-lock presence) are used for conflict detection.
  *
  * @property albumRepository Source of release metadata.
- * @property trackRepository Source of track metadata (reserved for future per-track plans).
  * @property directoryLayoutPlanner Computes target directories from the configured template.
  * @property libraryRoot Absolute path to the music library root.
  * @property filesystem Read-only filesystem probes for conflict detection.
@@ -57,9 +55,6 @@ object NioPlanningFilesystem : PlanningFilesystem {
  */
 class ChangePlanService(
     private val albumRepository: AlbumRepository,
-    // Reserved for per-track tag planning in story #817; kept on the constructor so the
-    // dependency wiring is stable across stories.
-    @Suppress("UnusedPrivateProperty") private val trackRepository: TrackRepository,
     private val directoryLayoutPlanner: DirectoryLayoutPlanner,
     private val libraryRoot: String,
     private val filesystem: PlanningFilesystem = NioPlanningFilesystem,
@@ -78,8 +73,12 @@ class ChangePlanService(
      * @return A single consolidated plan with operation [ChangeOperation.RELAYOUT].
      */
     suspend fun planRelayout(albumIds: List<Uuid>): ChangePlan {
+        // Batch-fetch every requested album in one query (no N+1) and index by id. The input
+        // order is preserved below by iterating albumIds, so the plan release ordering and the
+        // SOURCE_MISSING handling for missing ids are identical to the previous per-id loop.
+        val albumsById = albumRepository.findByIds(albumIds).associateBy { it.id }
         val releases = albumIds.map { albumId ->
-            val album = albumRepository.findById(albumId)
+            val album = albumsById[albumId]
             if (album == null) {
                 missingAlbumChangeSet(albumId)
             } else {

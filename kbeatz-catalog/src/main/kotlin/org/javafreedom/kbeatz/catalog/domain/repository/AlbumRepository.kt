@@ -27,6 +27,14 @@ data class AlbumFilter(
 interface AlbumRepository {
     suspend fun findById(id: Uuid): Album?
     /**
+     * Returns the albums whose ids are in [ids] in a single batch query, avoiding the N+1
+     * pattern of calling [findById] once per id. Only existing albums are returned; ids with
+     * no matching row are silently omitted. Neither the result order nor the presence of any
+     * particular id is guaranteed - callers that need a specific order or missing-id handling
+     * must build their own lookup from the result. An empty [ids] returns an empty list.
+     */
+    suspend fun findByIds(ids: List<Uuid>): List<Album>
+    /**
      * Returns the album whose [Album.directoryPath] matches [directoryPath], or null if not found.
      * Directory paths are unique in practice (one album per directory) even though the DB unique
      * constraint spans four columns.

@@ -39,19 +39,18 @@ import org.javafreedom.kbeatz.catalog.domain.model.SyncResult
 import org.javafreedom.kbeatz.catalog.domain.port.SyncProvider
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumFilter
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
-import org.javafreedom.kbeatz.catalog.domain.repository.TrackRepository
 import org.javafreedom.kbeatz.catalog.domain.service.DirectoryLayoutPlanner
 
 class ChangePlanHandlerTest {
 
     private val libraryRoot = "/srv/music"
     private val template = "\${ALBUMARTIST}/\${ALBUM} (\${DATE})"
-    private val trackRepository: TrackRepository = mockk()
     private val json = Json { ignoreUnknownKeys = true }
 
     private class FakeAlbumRepository(albums: List<Album>) : AlbumRepository {
         private val byId = albums.associateBy { it.id }
         override suspend fun findById(id: Uuid): Album? = byId[id]
+        override suspend fun findByIds(ids: List<Uuid>): List<Album> = ids.mapNotNull { byId[it] }
         override suspend fun findByDirectoryPath(directoryPath: String): Album? =
             byId.values.firstOrNull { it.directoryPath == directoryPath }
         override suspend fun findAllWithCount(page: Int, size: Int, filter: AlbumFilter) =
@@ -110,7 +109,6 @@ class ChangePlanHandlerTest {
     ): ChangePlanFacade {
         val service = ChangePlanService(
             albumRepository = FakeAlbumRepository(albums),
-            trackRepository = trackRepository,
             directoryLayoutPlanner = DirectoryLayoutPlanner(DirectoryTemplate(template)),
             libraryRoot = libraryRoot,
             filesystem = StubFilesystem(pathExists, lockHeld),

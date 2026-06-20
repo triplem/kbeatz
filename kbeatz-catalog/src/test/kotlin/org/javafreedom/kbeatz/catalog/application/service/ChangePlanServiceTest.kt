@@ -16,7 +16,6 @@ import org.javafreedom.kbeatz.catalog.domain.model.ChangeOperation
 import org.javafreedom.kbeatz.catalog.domain.model.ConflictType
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumFilter
 import org.javafreedom.kbeatz.catalog.domain.repository.AlbumRepository
-import org.javafreedom.kbeatz.catalog.domain.repository.TrackRepository
 import org.javafreedom.kbeatz.catalog.domain.service.DirectoryLayoutPlanner
 import org.javafreedom.kbeatz.catalog.domain.model.DirectoryTemplate
 import org.javafreedom.kbeatz.common.BusinessValidationException
@@ -26,12 +25,26 @@ class ChangePlanServiceTest {
 
     private val libraryRoot = "/srv/music"
     private val template = "\${ALBUMARTIST}/\${ALBUM} (\${DATE})"
-    private val trackRepository: TrackRepository = mockk()
 
-    /** In-memory album repository; only findById is exercised by the service. */
+    /**
+     * In-memory album repository. Counts [findById] and [findByIds] invocations so tests can
+     * assert that relayout planning uses the single batch query and not the per-album N+1 loop.
+     */
     private class FakeAlbumRepository(albums: List<Album>) : AlbumRepository {
         private val byId = albums.associateBy { it.id }
-        override suspend fun findById(id: Uuid): Album? = byId[id]
+        var findByIdCalls: Int = 0
+            private set
+        var findByIdsCalls: Int = 0
+            private set
+
+        override suspend fun findById(id: Uuid): Album? {
+            findByIdCalls++
+            return byId[id]
+        }
+        override suspend fun findByIds(ids: List<Uuid>): List<Album> {
+            findByIdsCalls++
+            return ids.mapNotNull { byId[it] }
+        }
         override suspend fun findByDirectoryPath(directoryPath: String): Album? =
             byId.values.firstOrNull { it.directoryPath == directoryPath }
         override suspend fun findAllWithCount(page: Int, size: Int, filter: AlbumFilter) =
@@ -79,7 +92,6 @@ class ChangePlanServiceTest {
         lockHeld: (String) -> Boolean = { false },
     ) = ChangePlanService(
         albumRepository = FakeAlbumRepository(albums),
-        trackRepository = trackRepository,
         directoryLayoutPlanner = DirectoryLayoutPlanner(DirectoryTemplate(template)),
         libraryRoot = libraryRoot,
         filesystem = StubFilesystem(pathExists, lockHeld),
@@ -193,7 +205,6 @@ class ChangePlanServiceTest {
             PathTraversalException("Planned directory escapes the library root")
         val svc = ChangePlanService(
             albumRepository = FakeAlbumRepository(listOf(release)),
-            trackRepository = trackRepository,
             directoryLayoutPlanner = throwingPlanner,
             libraryRoot = libraryRoot,
         )
@@ -225,6 +236,61 @@ class ChangePlanServiceTest {
         assertEquals(2, plan.releases.size)
         assertNull(plan.releases.first { it.albumId == matching.id }.directoryMove)
         assertNotNull(plan.releases.first { it.albumId == moving.id }.directoryMove)
+    }
+
+    @Test
+    fun `planRelayout plans existing albums and reports SOURCE_MISSING for absent ids in input order`() = runTest {
+        val matching = album(directoryPath = targetPath)
+        val moving = album(
+            id = Uuid.random(),
+            directoryPath = "/srv/music/incoming/two",
+            albumArtist = "John Coltrane",
+            album = "Blue Train",
+            date = "1957",
+        )
+        val missingId = Uuid.random()
+        // Interleave a missing id between two present albums to prove ordering is preserved.
+        val requested = listOf(matching.id, missingId, moving.id)
+
+        val plan = service(
+            listOf(matching, moving),
+            pathExists = { it == targetPath || it == "/srv/music/incoming/two" },
+        ).planRelayout(requested)
+
+        assertEquals(requested, plan.releases.map { it.albumId })
+        assertEquals(1, plan.totalMoves)
+        assertNull(plan.releases.first { it.albumId == matching.id }.directoryMove)
+        assertNotNull(plan.releases.first { it.albumId == moving.id }.directoryMove)
+
+        val missingConflicts = plan.releases.first { it.albumId == missingId }.conflicts
+        assertEquals(ConflictType.SOURCE_MISSING, missingConflicts.single().type)
+        assertEquals("Album not found", missingConflicts.single().message)
+    }
+
+    @Test
+    fun `planRelayout uses a single batch fetch and never calls findById per album`() = runTest {
+        val matching = album(directoryPath = targetPath)
+        val moving = album(
+            id = Uuid.random(),
+            directoryPath = "/srv/music/incoming/two",
+            albumArtist = "John Coltrane",
+            album = "Blue Train",
+            date = "1957",
+        )
+        val repo = FakeAlbumRepository(listOf(matching, moving))
+        val svc = ChangePlanService(
+            albumRepository = repo,
+            directoryLayoutPlanner = DirectoryLayoutPlanner(DirectoryTemplate(template)),
+            libraryRoot = libraryRoot,
+            filesystem = StubFilesystem(
+                pathExists = { it == targetPath || it == "/srv/music/incoming/two" },
+            ),
+        )
+
+        svc.planRelayout(listOf(matching.id, Uuid.random(), moving.id))
+
+        assertEquals(1, repo.findByIdsCalls)
+        assertEquals(0, repo.findByIdCalls)
     }
 
     @Test
