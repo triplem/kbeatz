@@ -13,7 +13,7 @@ RUN npm run build
 # Pinned 2026-06-07. Update digest with:
 #   docker pull nginx:alpine
 #   docker inspect nginx:alpine --format='{{index .RepoDigests 0}}'
-FROM nginx:alpine@sha256:8b1e78743a03dbb2c95171cc58639fef29abc8816598e27fb910ed2e621e589a
+FROM nginx:alpine@sha256:20316569d8f81a160065d7d2a5eeffc7ca97d79022462ee255fd23fa103a6b5c
 # Run as the built-in nginx user (uid 101).
 # nginx:alpine starts the master as root so it can bind privileged ports; we
 # avoid that by listening on 8080 (unprivileged) so the entire process tree
