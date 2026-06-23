@@ -445,6 +445,22 @@ export function AlbumDetailEdit({
           >
             {t('albumDetail.cancelButton')}
           </Button>
+
+          <Button
+            type="button"
+            variant="contained"
+            onClick={handleSaveButtonClick}
+            disabled={!hasAnyDirty || isSaving}
+            data-testid="save-button-top"
+            aria-label={
+              dirtyCount > 0
+                ? t('albumDetail.saveButtonLabel', { count: dirtyCount })
+                : t('albumDetail.saveButtonLabelClean')
+            }
+            sx={{ alignSelf: 'flex-start', minHeight: 44 }}
+          >
+            {isSaving ? t('albumDetail.saving') : t('albumDetail.saveButton')}
+          </Button>
         </Box>
 
         <AlbumHeroHeader album={album} />
