@@ -320,7 +320,7 @@ export function EditableField({
         columnGap: 2,
         rowGap: 0.5,
         px: 2,
-        py: 1,
+        py: 0.5,
         borderBottom: '1px solid',
         borderColor: 'divider',
         '&:last-of-type': { borderBottom: 'none' },
