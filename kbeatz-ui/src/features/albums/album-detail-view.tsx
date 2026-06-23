@@ -82,30 +82,32 @@ export function AlbumDetailView({ album, onEnterEditMode, editButtonRef, onSyncC
         {album.album}
       </Typography>
 
-      <Button
-        type="button"
-        variant="outlined"
-        startIcon={<ArrowBackIcon />}
-        onClick={() => { navigate(-1) }}
-        data-testid="back-button"
-        sx={{ alignSelf: 'flex-start', minHeight: 44 }}
-      >
-        {t('common.back')}
-      </Button>
+      <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+        <Button
+          type="button"
+          variant="outlined"
+          startIcon={<ArrowBackIcon />}
+          onClick={() => { navigate(-1) }}
+          data-testid="back-button"
+          sx={{ minHeight: 44 }}
+        >
+          {t('common.back')}
+        </Button>
+
+        <Button
+          ref={editButtonRef}
+          type="button"
+          variant="contained"
+          startIcon={<EditIcon />}
+          onClick={onEnterEditMode}
+          data-testid="edit-button"
+          sx={{ minHeight: 44 }}
+        >
+          {t('albumDetail.editButton')}
+        </Button>
+      </Box>
 
       <AlbumHeroHeader album={album} />
-
-      <Button
-        ref={editButtonRef}
-        type="button"
-        variant="contained"
-        startIcon={<EditIcon />}
-        onClick={onEnterEditMode}
-        data-testid="edit-button"
-        sx={{ alignSelf: 'flex-start', minHeight: 44 }}
-      >
-        {t('albumDetail.editButton')}
-      </Button>
 
       <Box
         component="section"
