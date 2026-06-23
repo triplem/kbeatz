@@ -11,29 +11,56 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in d
     >
       Kind of Blue
     </h1>
-    <button
-      class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-sizeMedium MuiButton-colorPrimary css-13hn3zu-MuiButtonBase-root-MuiButton-root"
-      data-testid="back-button"
-      tabindex="0"
-      type="button"
+    <div
+      class="MuiBox-root css-1okncr3"
     >
-      <span
-        class="MuiButton-icon MuiButton-startIcon css-1lxyhll-MuiButton-startIcon"
+      <button
+        class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-sizeMedium MuiButton-colorPrimary css-7bb1ca-MuiButtonBase-root-MuiButton-root"
+        data-testid="back-button"
+        tabindex="0"
+        type="button"
       >
-        <svg
-          aria-hidden="true"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
-          data-testid="ArrowBackIcon"
-          focusable="false"
-          viewBox="0 0 24 24"
+        <span
+          class="MuiButton-icon MuiButton-startIcon css-1lxyhll-MuiButton-startIcon"
         >
-          <path
-            d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"
-          />
-        </svg>
-      </span>
-      Back
-    </button>
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
+            data-testid="ArrowBackIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"
+            />
+          </svg>
+        </span>
+        Back
+      </button>
+      <button
+        class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-sizeMedium MuiButton-colorPrimary css-1nxy3ah-MuiButtonBase-root-MuiButton-root"
+        data-testid="edit-button"
+        tabindex="0"
+        type="button"
+      >
+        <span
+          class="MuiButton-icon MuiButton-startIcon css-1lxyhll-MuiButton-startIcon"
+        >
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
+            data-testid="EditIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z"
+            />
+          </svg>
+        </span>
+        Edit
+      </button>
+    </div>
     <section
       aria-labelledby="hero-album-title"
       class="MuiBox-root css-7uzzu1"
@@ -90,29 +117,6 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in d
         </ul>
       </div>
     </section>
-    <button
-      class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-sizeMedium MuiButton-colorPrimary css-1psfeg2-MuiButtonBase-root-MuiButton-root"
-      data-testid="edit-button"
-      tabindex="0"
-      type="button"
-    >
-      <span
-        class="MuiButton-icon MuiButton-startIcon css-1lxyhll-MuiButton-startIcon"
-      >
-        <svg
-          aria-hidden="true"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
-          data-testid="EditIcon"
-          focusable="false"
-          viewBox="0 0 24 24"
-        >
-          <path
-            d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z"
-          />
-        </svg>
-      </span>
-      Edit
-    </button>
     <section
       aria-label="Tracks"
       class="MuiBox-root css-1fwzste"
@@ -352,29 +356,56 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in l
     >
       Kind of Blue
     </h1>
-    <button
-      class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-sizeMedium MuiButton-colorPrimary css-13hn3zu-MuiButtonBase-root-MuiButton-root"
-      data-testid="back-button"
-      tabindex="0"
-      type="button"
+    <div
+      class="MuiBox-root css-1okncr3"
     >
-      <span
-        class="MuiButton-icon MuiButton-startIcon css-1lxyhll-MuiButton-startIcon"
+      <button
+        class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-sizeMedium MuiButton-colorPrimary css-7bb1ca-MuiButtonBase-root-MuiButton-root"
+        data-testid="back-button"
+        tabindex="0"
+        type="button"
       >
-        <svg
-          aria-hidden="true"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
-          data-testid="ArrowBackIcon"
-          focusable="false"
-          viewBox="0 0 24 24"
+        <span
+          class="MuiButton-icon MuiButton-startIcon css-1lxyhll-MuiButton-startIcon"
         >
-          <path
-            d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"
-          />
-        </svg>
-      </span>
-      Back
-    </button>
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
+            data-testid="ArrowBackIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"
+            />
+          </svg>
+        </span>
+        Back
+      </button>
+      <button
+        class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-sizeMedium MuiButton-colorPrimary css-1nxy3ah-MuiButtonBase-root-MuiButton-root"
+        data-testid="edit-button"
+        tabindex="0"
+        type="button"
+      >
+        <span
+          class="MuiButton-icon MuiButton-startIcon css-1lxyhll-MuiButton-startIcon"
+        >
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
+            data-testid="EditIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z"
+            />
+          </svg>
+        </span>
+        Edit
+      </button>
+    </div>
     <section
       aria-labelledby="hero-album-title"
       class="MuiBox-root css-7uzzu1"
@@ -431,29 +462,6 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in l
         </ul>
       </div>
     </section>
-    <button
-      class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-sizeMedium MuiButton-colorPrimary css-1psfeg2-MuiButtonBase-root-MuiButton-root"
-      data-testid="edit-button"
-      tabindex="0"
-      type="button"
-    >
-      <span
-        class="MuiButton-icon MuiButton-startIcon css-1lxyhll-MuiButton-startIcon"
-      >
-        <svg
-          aria-hidden="true"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
-          data-testid="EditIcon"
-          focusable="false"
-          viewBox="0 0 24 24"
-        >
-          <path
-            d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z"
-          />
-        </svg>
-      </span>
-      Edit
-    </button>
     <section
       aria-label="Tracks"
       class="MuiBox-root css-1fwzste"
