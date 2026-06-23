@@ -329,7 +329,7 @@ export function EditableField({
     >
       <Typography
         component={variant === 'dl' ? 'dt' : 'div'}
-        variant="body2"
+        variant="body1"
         sx={variant === 'dl'
           ? { color: 'text.secondary', fontWeight: 500 }
           : { ...visuallyHidden }}
@@ -369,7 +369,7 @@ export function EditableField({
                 borderColor: 'primary.main',
                 borderRadius: 1,
                 bgcolor: 'background.paper',
-                fontSize: '0.875rem',
+                fontSize: '1rem',
               }}
             />
           </>
@@ -399,7 +399,7 @@ export function EditableField({
               textAlign: 'left',
               justifyContent: 'flex-start',
               color: 'text.primary',
-              fontSize: '0.875rem',
+              fontSize: '1rem',
               '&:hover': { bgcolor: disabled ? 'transparent' : 'action.hover' },
               '&.Mui-disabled': { opacity: 0.6 },
             }}
