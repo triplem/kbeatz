@@ -9,7 +9,6 @@ import { visuallyHidden } from '@mui/utils'
 import { AlbumGrid } from './features/albums/album-grid'
 import { AlbumPagination } from './features/albums/album-pagination'
 import { BulkActionToolbar } from './features/albums/bulk-action-toolbar'
-import { FilterPanel } from './features/albums/filter-panel'
 import { PageSizeSelect } from './features/albums/page-size-select'
 import { SearchBox } from './features/albums/search-box'
 import { SortPreference } from './features/albums/sort-preference'
@@ -82,7 +81,7 @@ export function AlbumListPage() {
   // state - the URL stays the source of truth for the page.
   const { page, pageSize } = usePageParams()
 
-  const { mode, isPending, isError, refetch, albums, totalCount, filterOptions } = useAlbumList({
+  const { mode, isPending, isError, refetch, albums, totalCount } = useAlbumList({
     page,
     pageSize,
     filters,
@@ -118,9 +117,6 @@ export function AlbumListPage() {
   // Server mode has no sort param; the control is hidden so the user is not
   // offered a sort that only reorders the current page (documented limitation).
   const showSort = mode === 'client'
-  // The filter panel enumerates values from the full set, which only exists in
-  // client mode; in server mode users filter via the search box and typed terms.
-  const showFilterPanel = mode === 'client' && !isPending && !isError
 
   return (
     <Box>
@@ -157,21 +153,13 @@ export function AlbumListPage() {
 
       <Box
         sx={{
-          display: 'flex',
-          flexDirection: { xs: 'column', md: 'row' },
-          alignItems: 'flex-start',
-          gap: 2,
           p: 2,
           maxWidth: 1600,
           mx: 'auto',
           width: '100%',
         }}
       >
-        {showFilterPanel && (
-          <FilterPanel options={filterOptions} filters={filters} onFiltersChange={setFilters} />
-        )}
-
-        <Box sx={{ flexGrow: 1, minWidth: 0, width: '100%' }}>
+        <Box sx={{ minWidth: 0, width: '100%' }}>
           {isPending && (
             <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
               <CircularProgress aria-label={t('albumGrid.loading')} />

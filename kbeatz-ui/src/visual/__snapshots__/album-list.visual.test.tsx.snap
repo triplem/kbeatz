@@ -212,10 +212,10 @@ exports[`AlbumListPage visual regression > matches the empty snapshot in dark th
       </div>
     </div>
     <div
-      class="MuiBox-root css-1ja8goq"
+      class="MuiBox-root css-lj9x48"
     >
       <div
-        class="MuiBox-root css-1wcywry"
+        class="MuiBox-root css-1kja2d9"
       >
         <p
           class="MuiTypography-root MuiTypography-body1 css-59d1qu-MuiTypography-root"
@@ -441,10 +441,10 @@ exports[`AlbumListPage visual regression > matches the empty snapshot in light t
       </div>
     </div>
     <div
-      class="MuiBox-root css-1ja8goq"
+      class="MuiBox-root css-lj9x48"
     >
       <div
-        class="MuiBox-root css-1wcywry"
+        class="MuiBox-root css-1kja2d9"
       >
         <p
           class="MuiTypography-root MuiTypography-body1 css-59d1qu-MuiTypography-root"
@@ -670,10 +670,10 @@ exports[`AlbumListPage visual regression > matches the error snapshot in dark th
       </div>
     </div>
     <div
-      class="MuiBox-root css-1ja8goq"
+      class="MuiBox-root css-lj9x48"
     >
       <div
-        class="MuiBox-root css-1wcywry"
+        class="MuiBox-root css-1kja2d9"
       >
         <div
           class="MuiBox-root css-19eijrb"
@@ -912,10 +912,10 @@ exports[`AlbumListPage visual regression > matches the error snapshot in light t
       </div>
     </div>
     <div
-      class="MuiBox-root css-1ja8goq"
+      class="MuiBox-root css-lj9x48"
     >
       <div
-        class="MuiBox-root css-1wcywry"
+        class="MuiBox-root css-1kja2d9"
       >
         <div
           class="MuiBox-root css-19eijrb"
@@ -1154,10 +1154,10 @@ exports[`AlbumListPage visual regression > matches the loading snapshot in dark 
       </div>
     </div>
     <div
-      class="MuiBox-root css-1ja8goq"
+      class="MuiBox-root css-lj9x48"
     >
       <div
-        class="MuiBox-root css-1wcywry"
+        class="MuiBox-root css-1kja2d9"
       >
         <div
           class="MuiBox-root css-1h58bq6"
@@ -1401,10 +1401,10 @@ exports[`AlbumListPage visual regression > matches the loading snapshot in light
       </div>
     </div>
     <div
-      class="MuiBox-root css-1ja8goq"
+      class="MuiBox-root css-lj9x48"
     >
       <div
-        class="MuiBox-root css-1wcywry"
+        class="MuiBox-root css-1kja2d9"
       >
         <div
           class="MuiBox-root css-1h58bq6"
@@ -1648,161 +1648,10 @@ exports[`AlbumListPage visual regression > matches the populated-list snapshot i
       </div>
     </div>
     <div
-      class="MuiBox-root css-1ja8goq"
+      class="MuiBox-root css-lj9x48"
     >
-      <aside
-        aria-label="Filter albums"
-        class="MuiBox-root css-gqssyb"
-      >
-        <section
-          class="MuiBox-root css-1enmsz8"
-        >
-          <legend
-            class="MuiFormLabel-root MuiFormLabel-colorPrimary css-1uu5iwx-MuiFormLabel-root"
-            id="filter-genre-heading"
-          >
-            Genre
-          </legend>
-          <div
-            aria-labelledby="filter-genre-heading"
-            class="MuiFormGroup-root css-1mac7pt-MuiFormGroup-root"
-          >
-            <label
-              class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-1t6f2pw-MuiFormControlLabel-root"
-            >
-              <span
-                class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeSmall PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeSmall MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeSmall css-rm2pxo-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
-              >
-                <input
-                  class="PrivateSwitchBase-input css-12xagqm-MuiSwitchBase-root"
-                  data-indeterminate="false"
-                  type="checkbox"
-                />
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-1ud1u39-MuiSvgIcon-root"
-                  data-testid="CheckBoxOutlineBlankIcon"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                  />
-                </svg>
-              </span>
-              <span
-                class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-1fz3vqa-MuiTypography-root"
-              >
-                Jazz
-              </span>
-            </label>
-          </div>
-        </section>
-        <section
-          class="MuiBox-root css-1enmsz8"
-        >
-          <legend
-            class="MuiFormLabel-root MuiFormLabel-colorPrimary css-1uu5iwx-MuiFormLabel-root"
-            id="filter-artist-heading"
-          >
-            Artist
-          </legend>
-          <div
-            aria-labelledby="filter-artist-heading"
-            class="MuiFormGroup-root css-1mac7pt-MuiFormGroup-root"
-          >
-            <label
-              class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-1t6f2pw-MuiFormControlLabel-root"
-            >
-              <span
-                class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeSmall PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeSmall MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeSmall css-rm2pxo-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
-              >
-                <input
-                  class="PrivateSwitchBase-input css-12xagqm-MuiSwitchBase-root"
-                  data-indeterminate="false"
-                  type="checkbox"
-                />
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-1ud1u39-MuiSvgIcon-root"
-                  data-testid="CheckBoxOutlineBlankIcon"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                  />
-                </svg>
-              </span>
-              <span
-                class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-1fz3vqa-MuiTypography-root"
-              >
-                Bill Evans
-              </span>
-            </label>
-            <label
-              class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-1t6f2pw-MuiFormControlLabel-root"
-            >
-              <span
-                class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeSmall PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeSmall MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeSmall css-rm2pxo-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
-              >
-                <input
-                  class="PrivateSwitchBase-input css-12xagqm-MuiSwitchBase-root"
-                  data-indeterminate="false"
-                  type="checkbox"
-                />
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-1ud1u39-MuiSvgIcon-root"
-                  data-testid="CheckBoxOutlineBlankIcon"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                  />
-                </svg>
-              </span>
-              <span
-                class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-1fz3vqa-MuiTypography-root"
-              >
-                John Coltrane
-              </span>
-            </label>
-            <label
-              class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-1t6f2pw-MuiFormControlLabel-root"
-            >
-              <span
-                class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeSmall PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeSmall MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeSmall css-rm2pxo-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
-              >
-                <input
-                  class="PrivateSwitchBase-input css-12xagqm-MuiSwitchBase-root"
-                  data-indeterminate="false"
-                  type="checkbox"
-                />
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-1ud1u39-MuiSvgIcon-root"
-                  data-testid="CheckBoxOutlineBlankIcon"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                  />
-                </svg>
-              </span>
-              <span
-                class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-1fz3vqa-MuiTypography-root"
-              >
-                Miles Davis
-              </span>
-            </label>
-          </div>
-        </section>
-      </aside>
       <div
-        class="MuiBox-root css-1wcywry"
+        class="MuiBox-root css-1kja2d9"
       >
         <div
           class="MuiBox-root css-0"
@@ -2314,161 +2163,10 @@ exports[`AlbumListPage visual regression > matches the populated-list snapshot i
       </div>
     </div>
     <div
-      class="MuiBox-root css-1ja8goq"
+      class="MuiBox-root css-lj9x48"
     >
-      <aside
-        aria-label="Filter albums"
-        class="MuiBox-root css-gqssyb"
-      >
-        <section
-          class="MuiBox-root css-1enmsz8"
-        >
-          <legend
-            class="MuiFormLabel-root MuiFormLabel-colorPrimary css-1uu5iwx-MuiFormLabel-root"
-            id="filter-genre-heading"
-          >
-            Genre
-          </legend>
-          <div
-            aria-labelledby="filter-genre-heading"
-            class="MuiFormGroup-root css-1mac7pt-MuiFormGroup-root"
-          >
-            <label
-              class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-1t6f2pw-MuiFormControlLabel-root"
-            >
-              <span
-                class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeSmall PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeSmall MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeSmall css-rm2pxo-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
-              >
-                <input
-                  class="PrivateSwitchBase-input css-12xagqm-MuiSwitchBase-root"
-                  data-indeterminate="false"
-                  type="checkbox"
-                />
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-1ud1u39-MuiSvgIcon-root"
-                  data-testid="CheckBoxOutlineBlankIcon"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                  />
-                </svg>
-              </span>
-              <span
-                class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-1fz3vqa-MuiTypography-root"
-              >
-                Jazz
-              </span>
-            </label>
-          </div>
-        </section>
-        <section
-          class="MuiBox-root css-1enmsz8"
-        >
-          <legend
-            class="MuiFormLabel-root MuiFormLabel-colorPrimary css-1uu5iwx-MuiFormLabel-root"
-            id="filter-artist-heading"
-          >
-            Artist
-          </legend>
-          <div
-            aria-labelledby="filter-artist-heading"
-            class="MuiFormGroup-root css-1mac7pt-MuiFormGroup-root"
-          >
-            <label
-              class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-1t6f2pw-MuiFormControlLabel-root"
-            >
-              <span
-                class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeSmall PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeSmall MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeSmall css-rm2pxo-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
-              >
-                <input
-                  class="PrivateSwitchBase-input css-12xagqm-MuiSwitchBase-root"
-                  data-indeterminate="false"
-                  type="checkbox"
-                />
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-1ud1u39-MuiSvgIcon-root"
-                  data-testid="CheckBoxOutlineBlankIcon"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                  />
-                </svg>
-              </span>
-              <span
-                class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-1fz3vqa-MuiTypography-root"
-              >
-                Bill Evans
-              </span>
-            </label>
-            <label
-              class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-1t6f2pw-MuiFormControlLabel-root"
-            >
-              <span
-                class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeSmall PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeSmall MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeSmall css-rm2pxo-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
-              >
-                <input
-                  class="PrivateSwitchBase-input css-12xagqm-MuiSwitchBase-root"
-                  data-indeterminate="false"
-                  type="checkbox"
-                />
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-1ud1u39-MuiSvgIcon-root"
-                  data-testid="CheckBoxOutlineBlankIcon"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                  />
-                </svg>
-              </span>
-              <span
-                class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-1fz3vqa-MuiTypography-root"
-              >
-                John Coltrane
-              </span>
-            </label>
-            <label
-              class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-1t6f2pw-MuiFormControlLabel-root"
-            >
-              <span
-                class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeSmall PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeSmall MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeSmall css-rm2pxo-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
-              >
-                <input
-                  class="PrivateSwitchBase-input css-12xagqm-MuiSwitchBase-root"
-                  data-indeterminate="false"
-                  type="checkbox"
-                />
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-1ud1u39-MuiSvgIcon-root"
-                  data-testid="CheckBoxOutlineBlankIcon"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                  />
-                </svg>
-              </span>
-              <span
-                class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-1fz3vqa-MuiTypography-root"
-              >
-                Miles Davis
-              </span>
-            </label>
-          </div>
-        </section>
-      </aside>
       <div
-        class="MuiBox-root css-1wcywry"
+        class="MuiBox-root css-1kja2d9"
       >
         <div
           class="MuiBox-root css-0"
