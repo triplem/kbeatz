@@ -13,8 +13,8 @@
       The script is allowed by its SHA-256 hash (script-src), NOT by
       'unsafe-inline'. The hash placeholder is replaced at build time by the
       csp-theme-script-hash Vite plugin so it always matches the final bytes.
-      'unsafe-inline' on style-src is required by MUI/emotion's runtime <style>
-      injection.
+      'unsafe-inline' on style-src is required by the Astryx theme's runtime
+      <style> injection.
     -->
     <meta
       http-equiv="Content-Security-Policy"
@@ -25,8 +25,10 @@
       scheme is applied before any theme-dependent UI renders. Mirrors
       src/theme/theme-storage.ts: read 'kbeatz-theme', accept only
       'light'|'dark', otherwise follow prefers-color-scheme. A corrupt/unknown
-      stored value is removed here so MUI's runtime reader also falls back to
-      the OS preference (matches sanitizePersistedColorScheme in main.tsx).
+      stored value is removed here so the React runtime reader also falls back
+      to the OS preference (matches sanitizePersistedColorScheme in main.tsx).
+      Sets both the data attribute (selects the kbeatz brand-token scheme) and
+      the color-scheme property (native controls + Astryx) before first paint.
     -->
     <script>
       (function () {
@@ -42,9 +44,11 @@
                 window.matchMedia('(prefers-color-scheme: dark)').matches
               ? 'dark'
               : 'light';
-          document.documentElement.setAttribute('data-mui-color-scheme', scheme);
+          document.documentElement.setAttribute('data-kbeatz-color-scheme', scheme);
+          document.documentElement.style.colorScheme = scheme;
         } catch (e) {
-          document.documentElement.setAttribute('data-mui-color-scheme', 'light');
+          document.documentElement.setAttribute('data-kbeatz-color-scheme', 'light');
+          document.documentElement.style.colorScheme = 'light';
         }
       })();
     </script>

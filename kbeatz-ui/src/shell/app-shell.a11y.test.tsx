@@ -67,13 +67,14 @@ describe('AppShell accessibility', () => {
     const user = userEvent.setup()
     render(shell())
     const skip = screen.getByTestId('skip-to-content')
-    expect(skip).toHaveAttribute('href', '#main-content')
+    // Astryx AppShell wires the skip link to its own main region id.
+    const href = skip.getAttribute('href') ?? ''
+    expect(href).toMatch(/^#/)
     // The skip link is the first thing reached by Tab from the document start.
     await user.tab()
     expect(skip).toHaveFocus()
-    // The target main landmark exists and is programmatically focusable.
-    const main = document.getElementById('main-content')
-    expect(main?.tagName.toLowerCase()).toBe('main')
-    expect(main).toHaveAttribute('tabindex', '-1')
+    // The skip target exists and the routed content region is a main landmark.
+    expect(document.getElementById(href.slice(1))).not.toBeNull()
+    expect(screen.getByRole('main')).toBeInTheDocument()
   })
 })

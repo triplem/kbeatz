@@ -40,12 +40,11 @@ export function resolveInitialColorScheme(): ColorScheme {
 
 /**
  * Remove a corrupt/unknown persisted `kbeatz-theme` value so the React runtime
- * (MUI `useColorScheme`) never reads an invalid mode. Unlike the no-flash
- * bootstrap and `isColorScheme()` guard, MUI does NOT sanitise the stored mode:
- * it would otherwise read a corrupt value verbatim and diverge from the
- * pre-paint bootstrap (theme mismatch/flash). Call this once at startup before
- * rendering the theme provider so MUI falls back to `system` (OS preference),
- * matching the bootstrap.
+ * never reads an invalid mode. Unlike the no-flash bootstrap and
+ * `isColorScheme()` guard, `resolveInitialColorScheme()` would otherwise read a
+ * corrupt value verbatim and diverge from the pre-paint bootstrap (theme
+ * mismatch/flash). Call this once at startup before rendering the theme
+ * provider so it falls back to the OS preference, matching the bootstrap.
  *
  * A valid value is left untouched. localStorage access is guarded so a
  * disabled/unavailable store degrades gracefully rather than throwing.

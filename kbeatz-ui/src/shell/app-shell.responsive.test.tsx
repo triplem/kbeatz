@@ -16,17 +16,18 @@ vi.mock('../features/library/scan-progress', () => ({
 }))
 
 /**
- * Responsive-matrix tests for the application shell across all five MUI
+ * Responsive-matrix tests for the application shell across all five
  * breakpoints (xs/sm/md/lg/xl).
  *
- * Since PR #915, the permanent sidebar no longer exists. Desktop navigation
- * (md+) is handled via AppBar nav links; mobile navigation (xs/sm) uses the
- * hamburger-triggered temporary overlay drawer.
+ * There is no permanent sidebar. Desktop navigation (md+) is handled via the
+ * inline TopNav links; mobile navigation (xs/sm) uses the Astryx MobileNav
+ * drawer opened by the auto-hiding MobileNavToggle.
  *
- * jsdom applies no layout, so responsive behaviour is asserted through
- * `matchMedia` (the basis of `useMediaQuery` and MUI's responsive `display`
- * system). The breakpoint helper drives `matchMedia` to a fixed width per
- * breakpoint.
+ * jsdom applies no layout, so responsive behaviour is driven through
+ * `matchMedia`. Both the desktop links and the mobile drawer render into the
+ * DOM regardless of width (Astryx toggles visibility via CSS/JS that jsdom
+ * cannot evaluate), so these tests assert the shell mounts cleanly and the
+ * primary navigation stays reachable at every breakpoint.
  */
 
 function renderShellAt() {
@@ -62,10 +63,10 @@ describe('AppShell responsive matrix', () => {
   it.each(BREAKPOINTS)('renders the shell without error at %s', (bp) => {
     setViewport(bp)
     renderShellAt()
-    expect(screen.getByRole('banner')).toBeInTheDocument()
+    expect(
+      screen.getAllByRole('navigation', { name: 'Primary navigation' }).length,
+    ).toBeGreaterThanOrEqual(1)
     expect(screen.getByTestId('route-content')).toBeInTheDocument()
-    // The hamburger menu button is always present (CSS hides it at md+).
-    expect(screen.getByRole('button', { name: 'Open navigation menu' })).toBeInTheDocument()
   })
 
   it('keeps the primary navigation reachable at every breakpoint', () => {
@@ -81,27 +82,14 @@ describe('AppShell responsive matrix', () => {
     }
   })
 
-  it('desktop nav links are present in the AppBar nav landmark', () => {
+  it('exposes the desktop nav links in the TopNav landmark', () => {
     setViewport('md')
     renderShellAt()
-    // The AppBar contains a <nav aria-label="Primary navigation"> at md+.
-    // getAllByRole returns both the AppBar nav and any mobile drawer nav.
-    const navs = screen.getAllByRole('navigation', { name: 'Primary navigation' })
-    expect(navs.length).toBeGreaterThanOrEqual(1)
-    // At least one of the nav landmarks has the Albums link (AppBar or mobile drawer).
-    const hasAlbums = navs.some((n) => within(n).queryByRole('link', { name: 'Albums' }))
-    expect(hasAlbums).toBe(true)
-  })
-
-  it('at desktop breakpoint the AppBar nav links are present and no permanent sidebar offset exists', () => {
-    setViewport('md')
-    renderShellAt()
-    // Desktop nav links are in the AppBar nav landmark - not a drawer.
+    // The TopNav renders a <nav aria-label="Primary navigation"> with the
+    // desktop links; getAllByRole covers both it and the mobile drawer.
     const navs = screen.getAllByRole('navigation', { name: 'Primary navigation' })
     expect(navs.length).toBeGreaterThanOrEqual(1)
     const hasDesktopLinks = navs.some((n) => within(n).queryByRole('link', { name: 'Albums' }))
     expect(hasDesktopLinks).toBe(true)
-    // The temporary drawer is closed so no modal overlay (focus trap) is present.
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })

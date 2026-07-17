@@ -17,3 +17,15 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { to: '/library', labelKey: 'nav.library', icon: 'library', end: false },
   { to: '/settings', labelKey: 'nav.settings', icon: 'settings', end: false },
 ]
+
+/**
+ * Whether a nav item matches the current pathname. `end` items (the index
+ * route) must match exactly; others also match nested descendant paths,
+ * mirroring react-router's NavLink `end` semantics.
+ */
+export function isPathActive(pathname: string, to: string, end: boolean): boolean {
+  if (end) {
+    return pathname === to
+  }
+  return pathname === to || pathname.startsWith(`${to}/`)
+}

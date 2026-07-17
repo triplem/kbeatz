@@ -2,690 +2,702 @@
 
 exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in dark theme 1`] = `
 <div>
-  <article
-    aria-label="Album tags"
-    class="MuiBox-root css-1lmvkmd"
+  <div
+    class="xjp7ctv x1tgivj0 x9ynric xntwwlm"
+    data-astryx-theme="neutral"
+    data-theme="dark"
   >
-    <h1
-      class="MuiTypography-root MuiTypography-h1 css-ua3tq8-MuiTypography-root"
+    <article
+      aria-label="Album tags"
+      class="MuiBox-root css-1m4zf5v"
     >
-      Kind of Blue
-    </h1>
-    <div
-      class="MuiBox-root css-1okncr3"
-    >
-      <button
-        class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-sizeMedium MuiButton-colorPrimary css-7bb1ca-MuiButtonBase-root-MuiButton-root"
-        data-testid="back-button"
-        tabindex="0"
-        type="button"
+      <h1
+        class="MuiTypography-root MuiTypography-h1 css-ks4jfn-MuiTypography-root"
       >
-        <span
-          class="MuiButton-icon MuiButton-startIcon css-1lxyhll-MuiButton-startIcon"
-        >
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
-            data-testid="ArrowBackIcon"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"
-            />
-          </svg>
-        </span>
-        Back
-      </button>
-      <button
-        class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-sizeMedium MuiButton-colorPrimary css-1nxy3ah-MuiButtonBase-root-MuiButton-root"
-        data-testid="edit-button"
-        tabindex="0"
-        type="button"
-      >
-        <span
-          class="MuiButton-icon MuiButton-startIcon css-1lxyhll-MuiButton-startIcon"
-        >
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
-            data-testid="EditIcon"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z"
-            />
-          </svg>
-        </span>
-        Edit
-      </button>
-    </div>
-    <section
-      aria-labelledby="hero-album-title"
-      class="MuiBox-root css-7uzzu1"
-      data-testid="album-hero-header"
-    >
+        Kind of Blue
+      </h1>
       <div
-        class="MuiBox-root css-bly4bm"
-        data-testid="hero-metadata"
+        class="MuiBox-root css-mjha5m"
       >
-        <p
-          class="MuiTypography-root MuiTypography-h5 css-n9kgla-MuiTypography-root"
-          data-testid="hero-artist"
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-sizeMedium MuiButton-colorPrimary css-1mq8whv-MuiButtonBase-root-MuiButton-root"
+          data-testid="back-button"
+          tabindex="0"
+          type="button"
         >
-          Miles Davis
-        </p>
-        <h2
-          class="MuiTypography-root MuiTypography-h4 css-1xy6faa-MuiTypography-root"
-          data-testid="hero-album-title"
-          id="hero-album-title"
-        >
-          Kind of Blue
-        </h2>
-        <p
-          class="MuiTypography-root MuiTypography-body1 css-1fz3vqa-MuiTypography-root"
-          data-testid="hero-label-catalog"
-        >
-          Columbia - CL 1355
-        </p>
-        <p
-          class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
-          data-testid="hero-release-date"
-        >
-          1959
-        </p>
-        <ul
-          aria-label="Genre tags"
-          class="MuiBox-root css-toc6l2"
-          data-testid="hero-genre-chips"
-          role="list"
-        >
-          <li
-            role="listitem"
+          <span
+            class="MuiButton-icon MuiButton-startIcon css-1lxyhll-MuiButton-startIcon"
           >
-            <div
-              class="MuiChip-root MuiChip-outlined MuiChip-sizeSmall MuiChip-colorDefault css-t4kuez-MuiChip-root"
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
+              data-testid="ArrowBackIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <span
-                class="MuiChip-label css-19m61dl-MuiChip-label"
-              >
-                Jazz
-              </span>
-            </div>
-          </li>
-        </ul>
+              <path
+                d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"
+              />
+            </svg>
+          </span>
+          Back
+        </button>
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-sizeMedium MuiButton-colorPrimary css-1bmmi1a-MuiButtonBase-root-MuiButton-root"
+          data-testid="edit-button"
+          tabindex="0"
+          type="button"
+        >
+          <span
+            class="MuiButton-icon MuiButton-startIcon css-1lxyhll-MuiButton-startIcon"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
+              data-testid="EditIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z"
+              />
+            </svg>
+          </span>
+          Edit
+        </button>
       </div>
-    </section>
-    <section
-      aria-label="Tracks"
-      class="MuiBox-root css-1fwzste"
-      data-testid="tracklist-section"
-    >
-      <div
-        class="MuiBox-root css-1wnenka"
-      >
-        <h2
-          class="MuiTypography-root MuiTypography-h6 css-14qenqz-MuiTypography-root"
-        >
-          Tracks
-        </h2>
-      </div>
-      <div
-        class="MuiTableContainer-root css-70zvr5-MuiTableContainer-root"
-        data-testid="tracklist-view"
-        id="composer-credits-region"
-      >
-        <table
-          aria-label="Tracks"
-          class="MuiTable-root css-14v49c2-MuiTable-root"
-        >
-          <thead
-            class="MuiTableHead-root css-1a7iywq-MuiTableHead-root"
-          >
-            <tr
-              class="MuiTableRow-root MuiTableRow-head css-92sqde-MuiTableRow-root"
-            >
-              <th
-                class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-1i831q5-MuiTableCell-root"
-                scope="col"
-              >
-                Position
-              </th>
-              <th
-                class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-6372fc-MuiTableCell-root"
-                scope="col"
-              >
-                Title
-              </th>
-              <th
-                class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-1erfwdf-MuiTableCell-root"
-                scope="col"
-              >
-                Duration
-              </th>
-            </tr>
-          </thead>
-          <tbody
-            class="MuiTableBody-root css-gmh7jj-MuiTableBody-root"
-          >
-            <tr
-              class="MuiTableRow-root css-92sqde-MuiTableRow-root"
-              data-testid="track-view-row-track-0001"
-            >
-              <td
-                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-xndwfg-MuiTableCell-root"
-              >
-                <p
-                  class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
-                >
-                  1
-                </p>
-              </td>
-              <td
-                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-18ejcq6-MuiTableCell-root"
-              >
-                <div
-                  class="MuiBox-root css-0"
-                >
-                  <p
-                    class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
-                    data-testid="track-view-title-track-0001"
-                  >
-                    So What
-                  </p>
-                </div>
-              </td>
-              <td
-                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-sz8vye-MuiTableCell-root"
-              >
-                <p
-                  class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
-                >
-                  9:25
-                </p>
-              </td>
-            </tr>
-            <tr
-              class="MuiTableRow-root css-92sqde-MuiTableRow-root"
-              data-testid="track-view-row-track-0002"
-            >
-              <td
-                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-xndwfg-MuiTableCell-root"
-              >
-                <p
-                  class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
-                >
-                  2
-                </p>
-              </td>
-              <td
-                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-18ejcq6-MuiTableCell-root"
-              >
-                <div
-                  class="MuiBox-root css-0"
-                >
-                  <p
-                    class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
-                    data-testid="track-view-title-track-0002"
-                  >
-                    Freddie Freeloader
-                  </p>
-                </div>
-              </td>
-              <td
-                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-sz8vye-MuiTableCell-root"
-              >
-                <p
-                  class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
-                >
-                  9:46
-                </p>
-              </td>
-            </tr>
-            <tr
-              class="MuiTableRow-root css-92sqde-MuiTableRow-root"
-              data-testid="track-view-row-track-0003"
-            >
-              <td
-                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-xndwfg-MuiTableCell-root"
-              >
-                <p
-                  class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
-                >
-                  3
-                </p>
-              </td>
-              <td
-                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-18ejcq6-MuiTableCell-root"
-              >
-                <div
-                  class="MuiBox-root css-0"
-                >
-                  <p
-                    class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
-                    data-testid="track-view-title-track-0003"
-                  >
-                    Blue in Green
-                  </p>
-                </div>
-              </td>
-              <td
-                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-sz8vye-MuiTableCell-root"
-              >
-                <p
-                  class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
-                >
-                  5:37
-                </p>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-    <section
-      aria-label="Album credits"
-      aria-labelledby="album-credits-heading"
-      class="MuiBox-root css-0"
-      data-testid="album-credits-section"
-    >
-      <h2
-        class="MuiTypography-root MuiTypography-h6 css-1k7tr3w-MuiTypography-root"
-        id="album-credits-heading"
-      >
-        Credits
-      </h2>
-      <div
-        class="MuiBox-root css-1xfd6nh"
+      <section
+        aria-labelledby="hero-album-title"
+        class="MuiBox-root css-10fm5n1"
+        data-testid="album-hero-header"
       >
         <div
-          class="MuiBox-root css-103391m"
-          data-testid="credit-row-composer"
+          class="MuiBox-root css-1821gv5"
+          data-testid="hero-metadata"
         >
           <p
-            class="MuiTypography-root MuiTypography-body2 css-uyhbma-MuiTypography-root"
-          >
-            Composer
-            :
-          </p>
-          <p
-            class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+            class="MuiTypography-root MuiTypography-h5 css-nto7bj-MuiTypography-root"
+            data-testid="hero-artist"
           >
             Miles Davis
           </p>
+          <h2
+            class="MuiTypography-root MuiTypography-h4 css-r2u5ou-MuiTypography-root"
+            data-testid="hero-album-title"
+            id="hero-album-title"
+          >
+            Kind of Blue
+          </h2>
+          <p
+            class="MuiTypography-root MuiTypography-body1 css-rizt0-MuiTypography-root"
+            data-testid="hero-label-catalog"
+          >
+            Columbia - CL 1355
+          </p>
+          <p
+            class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+            data-testid="hero-release-date"
+          >
+            1959
+          </p>
+          <ul
+            aria-label="Genre tags"
+            class="MuiBox-root css-1bkyin3"
+            data-testid="hero-genre-chips"
+            role="list"
+          >
+            <li
+              role="listitem"
+            >
+              <div
+                class="MuiChip-root MuiChip-outlined MuiChip-sizeSmall MuiChip-colorDefault css-9bqyez-MuiChip-root"
+              >
+                <span
+                  class="MuiChip-label css-19m61dl-MuiChip-label"
+                >
+                  Jazz
+                </span>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </section>
+      <section
+        aria-label="Tracks"
+        class="MuiBox-root css-1sf3xto"
+        data-testid="tracklist-section"
+      >
+        <div
+          class="MuiBox-root css-v78izt"
+        >
+          <h2
+            class="MuiTypography-root MuiTypography-h6 css-1miy0lu-MuiTypography-root"
+          >
+            Tracks
+          </h2>
         </div>
         <div
-          class="MuiBox-root css-103391m"
-          data-testid="credit-row-ensemble"
+          class="MuiTableContainer-root css-70zvr5-MuiTableContainer-root"
+          data-testid="tracklist-view"
+          id="composer-credits-region"
         >
-          <p
-            class="MuiTypography-root MuiTypography-body2 css-uyhbma-MuiTypography-root"
+          <table
+            aria-label="Tracks"
+            class="MuiTable-root css-1xwxv7r-MuiTable-root"
           >
-            Ensemble
-            :
-          </p>
-          <p
-            class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
-          >
-            Miles Davis Sextet
-          </p>
+            <thead
+              class="MuiTableHead-root css-1a7iywq-MuiTableHead-root"
+            >
+              <tr
+                class="MuiTableRow-root MuiTableRow-head css-1xtozoh-MuiTableRow-root"
+              >
+                <th
+                  class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-19jtl2s-MuiTableCell-root"
+                  scope="col"
+                >
+                  Position
+                </th>
+                <th
+                  class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-g6bqb5-MuiTableCell-root"
+                  scope="col"
+                >
+                  Title
+                </th>
+                <th
+                  class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-foy9ar-MuiTableCell-root"
+                  scope="col"
+                >
+                  Duration
+                </th>
+              </tr>
+            </thead>
+            <tbody
+              class="MuiTableBody-root css-gmh7jj-MuiTableBody-root"
+            >
+              <tr
+                class="MuiTableRow-root css-1xtozoh-MuiTableRow-root"
+                data-testid="track-view-row-track-0001"
+              >
+                <td
+                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-16u93bd-MuiTableCell-root"
+                >
+                  <p
+                    class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  >
+                    1
+                  </p>
+                </td>
+                <td
+                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-1cbhj8b-MuiTableCell-root"
+                >
+                  <div
+                    class="MuiBox-root css-0"
+                  >
+                    <p
+                      class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                      data-testid="track-view-title-track-0001"
+                    >
+                      So What
+                    </p>
+                  </div>
+                </td>
+                <td
+                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-n27wgn-MuiTableCell-root"
+                >
+                  <p
+                    class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  >
+                    9:25
+                  </p>
+                </td>
+              </tr>
+              <tr
+                class="MuiTableRow-root css-1xtozoh-MuiTableRow-root"
+                data-testid="track-view-row-track-0002"
+              >
+                <td
+                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-16u93bd-MuiTableCell-root"
+                >
+                  <p
+                    class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  >
+                    2
+                  </p>
+                </td>
+                <td
+                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-1cbhj8b-MuiTableCell-root"
+                >
+                  <div
+                    class="MuiBox-root css-0"
+                  >
+                    <p
+                      class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                      data-testid="track-view-title-track-0002"
+                    >
+                      Freddie Freeloader
+                    </p>
+                  </div>
+                </td>
+                <td
+                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-n27wgn-MuiTableCell-root"
+                >
+                  <p
+                    class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  >
+                    9:46
+                  </p>
+                </td>
+              </tr>
+              <tr
+                class="MuiTableRow-root css-1xtozoh-MuiTableRow-root"
+                data-testid="track-view-row-track-0003"
+              >
+                <td
+                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-16u93bd-MuiTableCell-root"
+                >
+                  <p
+                    class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  >
+                    3
+                  </p>
+                </td>
+                <td
+                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-1cbhj8b-MuiTableCell-root"
+                >
+                  <div
+                    class="MuiBox-root css-0"
+                  >
+                    <p
+                      class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                      data-testid="track-view-title-track-0003"
+                    >
+                      Blue in Green
+                    </p>
+                  </div>
+                </td>
+                <td
+                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-n27wgn-MuiTableCell-root"
+                >
+                  <p
+                    class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  >
+                    5:37
+                  </p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-      </div>
-    </section>
-    <section
-      aria-label="Discogs sync"
-      class="MuiBox-root css-0"
-    >
-      <div
-        data-testid="sync-panel"
-      />
-    </section>
-  </article>
+      </section>
+      <section
+        aria-label="Album credits"
+        aria-labelledby="album-credits-heading"
+        class="MuiBox-root css-0"
+        data-testid="album-credits-section"
+      >
+        <h2
+          class="MuiTypography-root MuiTypography-h6 css-18xxwmt-MuiTypography-root"
+          id="album-credits-heading"
+        >
+          Credits
+        </h2>
+        <div
+          class="MuiBox-root css-1kkt86i"
+        >
+          <div
+            class="MuiBox-root css-wwjdvd"
+            data-testid="credit-row-composer"
+          >
+            <p
+              class="MuiTypography-root MuiTypography-body2 css-1gi1fdj-MuiTypography-root"
+            >
+              Composer
+              :
+            </p>
+            <p
+              class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+            >
+              Miles Davis
+            </p>
+          </div>
+          <div
+            class="MuiBox-root css-wwjdvd"
+            data-testid="credit-row-ensemble"
+          >
+            <p
+              class="MuiTypography-root MuiTypography-body2 css-1gi1fdj-MuiTypography-root"
+            >
+              Ensemble
+              :
+            </p>
+            <p
+              class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+            >
+              Miles Davis Sextet
+            </p>
+          </div>
+        </div>
+      </section>
+      <section
+        aria-label="Discogs sync"
+        class="MuiBox-root css-0"
+      >
+        <div
+          data-testid="sync-panel"
+        />
+      </section>
+    </article>
+  </div>
 </div>
 `;
 
 exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in light theme 1`] = `
 <div>
-  <article
-    aria-label="Album tags"
-    class="MuiBox-root css-1lmvkmd"
+  <div
+    class="xjp7ctv x1tgivj0 x9ynric x19aimcq"
+    data-astryx-theme="neutral"
+    data-theme="light"
   >
-    <h1
-      class="MuiTypography-root MuiTypography-h1 css-ua3tq8-MuiTypography-root"
+    <article
+      aria-label="Album tags"
+      class="MuiBox-root css-1m4zf5v"
     >
-      Kind of Blue
-    </h1>
-    <div
-      class="MuiBox-root css-1okncr3"
-    >
-      <button
-        class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-sizeMedium MuiButton-colorPrimary css-7bb1ca-MuiButtonBase-root-MuiButton-root"
-        data-testid="back-button"
-        tabindex="0"
-        type="button"
+      <h1
+        class="MuiTypography-root MuiTypography-h1 css-ks4jfn-MuiTypography-root"
       >
-        <span
-          class="MuiButton-icon MuiButton-startIcon css-1lxyhll-MuiButton-startIcon"
-        >
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
-            data-testid="ArrowBackIcon"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"
-            />
-          </svg>
-        </span>
-        Back
-      </button>
-      <button
-        class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-sizeMedium MuiButton-colorPrimary css-1nxy3ah-MuiButtonBase-root-MuiButton-root"
-        data-testid="edit-button"
-        tabindex="0"
-        type="button"
-      >
-        <span
-          class="MuiButton-icon MuiButton-startIcon css-1lxyhll-MuiButton-startIcon"
-        >
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-4uxqju-MuiSvgIcon-root"
-            data-testid="EditIcon"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z"
-            />
-          </svg>
-        </span>
-        Edit
-      </button>
-    </div>
-    <section
-      aria-labelledby="hero-album-title"
-      class="MuiBox-root css-7uzzu1"
-      data-testid="album-hero-header"
-    >
+        Kind of Blue
+      </h1>
       <div
-        class="MuiBox-root css-bly4bm"
-        data-testid="hero-metadata"
+        class="MuiBox-root css-mjha5m"
       >
-        <p
-          class="MuiTypography-root MuiTypography-h5 css-n9kgla-MuiTypography-root"
-          data-testid="hero-artist"
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-sizeMedium MuiButton-colorPrimary css-1mq8whv-MuiButtonBase-root-MuiButton-root"
+          data-testid="back-button"
+          tabindex="0"
+          type="button"
         >
-          Miles Davis
-        </p>
-        <h2
-          class="MuiTypography-root MuiTypography-h4 css-1xy6faa-MuiTypography-root"
-          data-testid="hero-album-title"
-          id="hero-album-title"
-        >
-          Kind of Blue
-        </h2>
-        <p
-          class="MuiTypography-root MuiTypography-body1 css-1fz3vqa-MuiTypography-root"
-          data-testid="hero-label-catalog"
-        >
-          Columbia - CL 1355
-        </p>
-        <p
-          class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
-          data-testid="hero-release-date"
-        >
-          1959
-        </p>
-        <ul
-          aria-label="Genre tags"
-          class="MuiBox-root css-toc6l2"
-          data-testid="hero-genre-chips"
-          role="list"
-        >
-          <li
-            role="listitem"
+          <span
+            class="MuiButton-icon MuiButton-startIcon css-1lxyhll-MuiButton-startIcon"
           >
-            <div
-              class="MuiChip-root MuiChip-outlined MuiChip-sizeSmall MuiChip-colorDefault css-t4kuez-MuiChip-root"
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
+              data-testid="ArrowBackIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
             >
-              <span
-                class="MuiChip-label css-19m61dl-MuiChip-label"
-              >
-                Jazz
-              </span>
-            </div>
-          </li>
-        </ul>
+              <path
+                d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"
+              />
+            </svg>
+          </span>
+          Back
+        </button>
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-sizeMedium MuiButton-colorPrimary css-1bmmi1a-MuiButtonBase-root-MuiButton-root"
+          data-testid="edit-button"
+          tabindex="0"
+          type="button"
+        >
+          <span
+            class="MuiButton-icon MuiButton-startIcon css-1lxyhll-MuiButton-startIcon"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
+              data-testid="EditIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z"
+              />
+            </svg>
+          </span>
+          Edit
+        </button>
       </div>
-    </section>
-    <section
-      aria-label="Tracks"
-      class="MuiBox-root css-1fwzste"
-      data-testid="tracklist-section"
-    >
-      <div
-        class="MuiBox-root css-1wnenka"
-      >
-        <h2
-          class="MuiTypography-root MuiTypography-h6 css-14qenqz-MuiTypography-root"
-        >
-          Tracks
-        </h2>
-      </div>
-      <div
-        class="MuiTableContainer-root css-70zvr5-MuiTableContainer-root"
-        data-testid="tracklist-view"
-        id="composer-credits-region"
-      >
-        <table
-          aria-label="Tracks"
-          class="MuiTable-root css-14v49c2-MuiTable-root"
-        >
-          <thead
-            class="MuiTableHead-root css-1a7iywq-MuiTableHead-root"
-          >
-            <tr
-              class="MuiTableRow-root MuiTableRow-head css-92sqde-MuiTableRow-root"
-            >
-              <th
-                class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-1i831q5-MuiTableCell-root"
-                scope="col"
-              >
-                Position
-              </th>
-              <th
-                class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-6372fc-MuiTableCell-root"
-                scope="col"
-              >
-                Title
-              </th>
-              <th
-                class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-1erfwdf-MuiTableCell-root"
-                scope="col"
-              >
-                Duration
-              </th>
-            </tr>
-          </thead>
-          <tbody
-            class="MuiTableBody-root css-gmh7jj-MuiTableBody-root"
-          >
-            <tr
-              class="MuiTableRow-root css-92sqde-MuiTableRow-root"
-              data-testid="track-view-row-track-0001"
-            >
-              <td
-                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-xndwfg-MuiTableCell-root"
-              >
-                <p
-                  class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
-                >
-                  1
-                </p>
-              </td>
-              <td
-                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-18ejcq6-MuiTableCell-root"
-              >
-                <div
-                  class="MuiBox-root css-0"
-                >
-                  <p
-                    class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
-                    data-testid="track-view-title-track-0001"
-                  >
-                    So What
-                  </p>
-                </div>
-              </td>
-              <td
-                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-sz8vye-MuiTableCell-root"
-              >
-                <p
-                  class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
-                >
-                  9:25
-                </p>
-              </td>
-            </tr>
-            <tr
-              class="MuiTableRow-root css-92sqde-MuiTableRow-root"
-              data-testid="track-view-row-track-0002"
-            >
-              <td
-                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-xndwfg-MuiTableCell-root"
-              >
-                <p
-                  class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
-                >
-                  2
-                </p>
-              </td>
-              <td
-                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-18ejcq6-MuiTableCell-root"
-              >
-                <div
-                  class="MuiBox-root css-0"
-                >
-                  <p
-                    class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
-                    data-testid="track-view-title-track-0002"
-                  >
-                    Freddie Freeloader
-                  </p>
-                </div>
-              </td>
-              <td
-                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-sz8vye-MuiTableCell-root"
-              >
-                <p
-                  class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
-                >
-                  9:46
-                </p>
-              </td>
-            </tr>
-            <tr
-              class="MuiTableRow-root css-92sqde-MuiTableRow-root"
-              data-testid="track-view-row-track-0003"
-            >
-              <td
-                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-xndwfg-MuiTableCell-root"
-              >
-                <p
-                  class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
-                >
-                  3
-                </p>
-              </td>
-              <td
-                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-18ejcq6-MuiTableCell-root"
-              >
-                <div
-                  class="MuiBox-root css-0"
-                >
-                  <p
-                    class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
-                    data-testid="track-view-title-track-0003"
-                  >
-                    Blue in Green
-                  </p>
-                </div>
-              </td>
-              <td
-                class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-sz8vye-MuiTableCell-root"
-              >
-                <p
-                  class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
-                >
-                  5:37
-                </p>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-    <section
-      aria-label="Album credits"
-      aria-labelledby="album-credits-heading"
-      class="MuiBox-root css-0"
-      data-testid="album-credits-section"
-    >
-      <h2
-        class="MuiTypography-root MuiTypography-h6 css-1k7tr3w-MuiTypography-root"
-        id="album-credits-heading"
-      >
-        Credits
-      </h2>
-      <div
-        class="MuiBox-root css-1xfd6nh"
+      <section
+        aria-labelledby="hero-album-title"
+        class="MuiBox-root css-10fm5n1"
+        data-testid="album-hero-header"
       >
         <div
-          class="MuiBox-root css-103391m"
-          data-testid="credit-row-composer"
+          class="MuiBox-root css-1821gv5"
+          data-testid="hero-metadata"
         >
           <p
-            class="MuiTypography-root MuiTypography-body2 css-uyhbma-MuiTypography-root"
-          >
-            Composer
-            :
-          </p>
-          <p
-            class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
+            class="MuiTypography-root MuiTypography-h5 css-nto7bj-MuiTypography-root"
+            data-testid="hero-artist"
           >
             Miles Davis
           </p>
+          <h2
+            class="MuiTypography-root MuiTypography-h4 css-r2u5ou-MuiTypography-root"
+            data-testid="hero-album-title"
+            id="hero-album-title"
+          >
+            Kind of Blue
+          </h2>
+          <p
+            class="MuiTypography-root MuiTypography-body1 css-rizt0-MuiTypography-root"
+            data-testid="hero-label-catalog"
+          >
+            Columbia - CL 1355
+          </p>
+          <p
+            class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+            data-testid="hero-release-date"
+          >
+            1959
+          </p>
+          <ul
+            aria-label="Genre tags"
+            class="MuiBox-root css-1bkyin3"
+            data-testid="hero-genre-chips"
+            role="list"
+          >
+            <li
+              role="listitem"
+            >
+              <div
+                class="MuiChip-root MuiChip-outlined MuiChip-sizeSmall MuiChip-colorDefault css-9bqyez-MuiChip-root"
+              >
+                <span
+                  class="MuiChip-label css-19m61dl-MuiChip-label"
+                >
+                  Jazz
+                </span>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </section>
+      <section
+        aria-label="Tracks"
+        class="MuiBox-root css-1sf3xto"
+        data-testid="tracklist-section"
+      >
+        <div
+          class="MuiBox-root css-v78izt"
+        >
+          <h2
+            class="MuiTypography-root MuiTypography-h6 css-1miy0lu-MuiTypography-root"
+          >
+            Tracks
+          </h2>
         </div>
         <div
-          class="MuiBox-root css-103391m"
-          data-testid="credit-row-ensemble"
+          class="MuiTableContainer-root css-70zvr5-MuiTableContainer-root"
+          data-testid="tracklist-view"
+          id="composer-credits-region"
         >
-          <p
-            class="MuiTypography-root MuiTypography-body2 css-uyhbma-MuiTypography-root"
+          <table
+            aria-label="Tracks"
+            class="MuiTable-root css-1xwxv7r-MuiTable-root"
           >
-            Ensemble
-            :
-          </p>
-          <p
-            class="MuiTypography-root MuiTypography-body2 css-19cl65r-MuiTypography-root"
-          >
-            Miles Davis Sextet
-          </p>
+            <thead
+              class="MuiTableHead-root css-1a7iywq-MuiTableHead-root"
+            >
+              <tr
+                class="MuiTableRow-root MuiTableRow-head css-1xtozoh-MuiTableRow-root"
+              >
+                <th
+                  class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-19jtl2s-MuiTableCell-root"
+                  scope="col"
+                >
+                  Position
+                </th>
+                <th
+                  class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-g6bqb5-MuiTableCell-root"
+                  scope="col"
+                >
+                  Title
+                </th>
+                <th
+                  class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-foy9ar-MuiTableCell-root"
+                  scope="col"
+                >
+                  Duration
+                </th>
+              </tr>
+            </thead>
+            <tbody
+              class="MuiTableBody-root css-gmh7jj-MuiTableBody-root"
+            >
+              <tr
+                class="MuiTableRow-root css-1xtozoh-MuiTableRow-root"
+                data-testid="track-view-row-track-0001"
+              >
+                <td
+                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-16u93bd-MuiTableCell-root"
+                >
+                  <p
+                    class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  >
+                    1
+                  </p>
+                </td>
+                <td
+                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-1cbhj8b-MuiTableCell-root"
+                >
+                  <div
+                    class="MuiBox-root css-0"
+                  >
+                    <p
+                      class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                      data-testid="track-view-title-track-0001"
+                    >
+                      So What
+                    </p>
+                  </div>
+                </td>
+                <td
+                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-n27wgn-MuiTableCell-root"
+                >
+                  <p
+                    class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  >
+                    9:25
+                  </p>
+                </td>
+              </tr>
+              <tr
+                class="MuiTableRow-root css-1xtozoh-MuiTableRow-root"
+                data-testid="track-view-row-track-0002"
+              >
+                <td
+                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-16u93bd-MuiTableCell-root"
+                >
+                  <p
+                    class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  >
+                    2
+                  </p>
+                </td>
+                <td
+                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-1cbhj8b-MuiTableCell-root"
+                >
+                  <div
+                    class="MuiBox-root css-0"
+                  >
+                    <p
+                      class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                      data-testid="track-view-title-track-0002"
+                    >
+                      Freddie Freeloader
+                    </p>
+                  </div>
+                </td>
+                <td
+                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-n27wgn-MuiTableCell-root"
+                >
+                  <p
+                    class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  >
+                    9:46
+                  </p>
+                </td>
+              </tr>
+              <tr
+                class="MuiTableRow-root css-1xtozoh-MuiTableRow-root"
+                data-testid="track-view-row-track-0003"
+              >
+                <td
+                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-16u93bd-MuiTableCell-root"
+                >
+                  <p
+                    class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  >
+                    3
+                  </p>
+                </td>
+                <td
+                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-1cbhj8b-MuiTableCell-root"
+                >
+                  <div
+                    class="MuiBox-root css-0"
+                  >
+                    <p
+                      class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                      data-testid="track-view-title-track-0003"
+                    >
+                      Blue in Green
+                    </p>
+                  </div>
+                </td>
+                <td
+                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-n27wgn-MuiTableCell-root"
+                >
+                  <p
+                    class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  >
+                    5:37
+                  </p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-      </div>
-    </section>
-    <section
-      aria-label="Discogs sync"
-      class="MuiBox-root css-0"
-    >
-      <div
-        data-testid="sync-panel"
-      />
-    </section>
-  </article>
+      </section>
+      <section
+        aria-label="Album credits"
+        aria-labelledby="album-credits-heading"
+        class="MuiBox-root css-0"
+        data-testid="album-credits-section"
+      >
+        <h2
+          class="MuiTypography-root MuiTypography-h6 css-18xxwmt-MuiTypography-root"
+          id="album-credits-heading"
+        >
+          Credits
+        </h2>
+        <div
+          class="MuiBox-root css-1kkt86i"
+        >
+          <div
+            class="MuiBox-root css-wwjdvd"
+            data-testid="credit-row-composer"
+          >
+            <p
+              class="MuiTypography-root MuiTypography-body2 css-1gi1fdj-MuiTypography-root"
+            >
+              Composer
+              :
+            </p>
+            <p
+              class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+            >
+              Miles Davis
+            </p>
+          </div>
+          <div
+            class="MuiBox-root css-wwjdvd"
+            data-testid="credit-row-ensemble"
+          >
+            <p
+              class="MuiTypography-root MuiTypography-body2 css-1gi1fdj-MuiTypography-root"
+            >
+              Ensemble
+              :
+            </p>
+            <p
+              class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+            >
+              Miles Davis Sextet
+            </p>
+          </div>
+        </div>
+      </section>
+      <section
+        aria-label="Discogs sync"
+        class="MuiBox-root css-0"
+      >
+        <div
+          data-testid="sync-panel"
+        />
+      </section>
+    </article>
+  </div>
 </div>
 `;

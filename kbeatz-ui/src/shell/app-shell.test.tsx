@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
@@ -69,30 +69,42 @@ describe('AppShell', () => {
     vi.unstubAllGlobals()
   })
 
-  it('renders the app bar with the brand link and global controls', () => {
+  it('renders the top navigation with the brand link and global controls', () => {
     renderShell()
-    expect(screen.getByRole('banner')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'kbeatz' })).toBeInTheDocument()
-    // Theme toggle and language control are discoverable in the app bar (AC4).
-    expect(screen.getByRole('button', { name: /switch to (light|dark) theme/i })).toBeInTheDocument()
+    // The primary navigation landmark carries the brand link plus the global
+    // theme and language controls (AC4).
+    expect(
+      screen.getAllByRole('navigation', { name: 'Primary navigation' }).length,
+    ).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByRole('link', { name: 'kbeatz' }).length).toBeGreaterThanOrEqual(1)
+    expect(
+      screen.getByRole('button', { name: /switch to (light|dark) theme/i }),
+    ).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'Select language' })).toBeInTheDocument()
   })
 
   it('renders the primary navigation with Albums, Library and Settings links', () => {
     renderShell()
-    // Two drawer variants (permanent + temporary) render in the DOM; query the
-    // permanent one which is always mounted.
-    const navs = screen.getAllByRole('navigation', { name: 'Primary navigation' })
-    expect(navs.length).toBeGreaterThanOrEqual(1)
-    const firstNav = navs[0]
-    expect(firstNav).toBeDefined()
-    const nav = within(firstNav as HTMLElement)
-    expect(nav.getAllByRole('link', { name: 'Albums' }).length).toBeGreaterThanOrEqual(1)
+    for (const label of ['Albums', 'Library', 'Settings']) {
+      expect(screen.getAllByRole('link', { name: label }).length).toBeGreaterThanOrEqual(1)
+    }
+  })
+
+  it('marks the active destination with aria-current=page', () => {
+    renderShell(['/library'])
+    const libraryLinks = screen.getAllByRole('link', { name: 'Library' })
+    expect(libraryLinks.some((l) => l.getAttribute('aria-current') === 'page')).toBe(true)
+  })
+
+  it('exposes a skip-to-content link', () => {
+    renderShell()
+    expect(screen.getByTestId('skip-to-content')).toBeInTheDocument()
   })
 
   it('mounts the global scan-progress banner in the content region', () => {
     renderShell()
-    expect(screen.getByTestId('scan-progress')).toBeInTheDocument()
+    const main = screen.getByRole('main')
+    expect(within(main).getByTestId('scan-progress')).toBeInTheDocument()
   })
 
   it('renders the albums route at the index path', () => {
@@ -105,7 +117,7 @@ describe('AppShell', () => {
     expect(screen.getByTestId('settings-route')).toBeInTheDocument()
   })
 
-  it('navigates between routes via the drawer links and updates the URL', async () => {
+  it('navigates between routes via the nav links and updates the URL', async () => {
     const user = userEvent.setup()
     const { router } = renderShell(['/'])
     const libraryLinks = screen.getAllByRole('link', { name: 'Library' })
@@ -117,7 +129,7 @@ describe('AppShell', () => {
   it('supports browser back/forward navigation', async () => {
     const user = userEvent.setup()
     const { router } = renderShell(['/'])
-    await user.click((screen.getAllByRole('link', { name: 'Settings' }))[0] as HTMLElement)
+    await user.click(screen.getAllByRole('link', { name: 'Settings' })[0] as HTMLElement)
     expect(router.state.location.pathname).toBe('/settings')
 
     await router.navigate(-1)
@@ -125,61 +137,5 @@ describe('AppShell', () => {
 
     await router.navigate(1)
     expect(router.state.location.pathname).toBe('/settings')
-  })
-
-  it('renders a hamburger menu button for the mobile temporary drawer', () => {
-    renderShell()
-    // The button exists (CSS hides it at md+); clicking opens the temporary drawer.
-    expect(screen.getByRole('button', { name: 'Open navigation menu' })).toBeInTheDocument()
-  })
-
-  it('opens the temporary (overlay) drawer when the menu button is clicked', async () => {
-    const user = userEvent.setup()
-    renderShell()
-    await user.click(screen.getByRole('button', { name: 'Open navigation menu' }))
-    // The temporary MUI Drawer renders a modal dialog (focus-trapped overlay).
-    expect(screen.getByRole('presentation')).toBeInTheDocument()
-  })
-
-  it('exposes aria-expanded and aria-controls on the menu button (a11y)', async () => {
-    const user = userEvent.setup()
-    renderShell()
-    const menuButton = screen.getByRole('button', { name: 'Open navigation menu' })
-    expect(menuButton).toHaveAttribute('aria-expanded', 'false')
-    expect(menuButton).toHaveAttribute('aria-controls', 'app-mobile-drawer')
-    await user.click(menuButton)
-    expect(menuButton).toHaveAttribute('aria-expanded', 'true')
-  })
-
-  it('full mobile nav flow: burger click opens drawer with Albums/Library/Settings, link tap navigates and closes drawer', async () => {
-    const user = userEvent.setup()
-    const { router } = renderShell(['/'])
-
-    // Step 1: hamburger is present (CSS hides it at md+ but it is in the DOM)
-    const menuButton = screen.getByRole('button', { name: 'Open navigation menu' })
-    expect(menuButton).toBeInTheDocument()
-
-    // Step 2: click burger - drawer opens
-    await user.click(menuButton)
-    const drawer = screen.getByRole('presentation')
-    expect(drawer).toBeInTheDocument()
-
-    // Step 3: Albums, Library, and Settings links are visible inside the drawer
-    const drawerNav = within(drawer)
-    expect(drawerNav.getByRole('link', { name: 'Albums' })).toBeInTheDocument()
-    expect(drawerNav.getByRole('link', { name: 'Library' })).toBeInTheDocument()
-    expect(drawerNav.getByRole('link', { name: 'Settings' })).toBeInTheDocument()
-
-    // Step 4: tap the Settings link inside the drawer - navigates correctly
-    await user.click(drawerNav.getByRole('link', { name: 'Settings' }))
-    expect(screen.getByTestId('settings-route')).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/settings')
-
-    // Step 5: drawer closes after navigation - aria-expanded on the burger
-    // button flips back to false when mobileOpen becomes false.
-    // (keepMounted keeps the drawer DOM node but the state is reflected on the button.)
-    await waitFor(() => {
-      expect(menuButton).toHaveAttribute('aria-expanded', 'false')
-    })
   })
 })

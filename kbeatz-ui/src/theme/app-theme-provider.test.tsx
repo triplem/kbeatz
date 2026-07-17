@@ -1,19 +1,29 @@
 import { cleanup, render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
+import { type ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { useColorScheme } from '@mui/material/styles'
-import { AppThemeProvider } from './app-theme-provider'
+import { AppThemeProvider, useColorScheme } from './app-theme-provider'
 import { sanitizePersistedColorScheme } from './theme-storage'
 import { COLOR_SCHEME_ATTR, THEME_STORAGE_KEY } from './theme'
 
-// Debug component to expose the MUI color scheme context value
+// Debug component exposing the resolved color scheme from our own context.
 function DebugColorScheme() {
-  const { colorScheme, mode } = useColorScheme()
-  return <div data-testid="debug" data-scheme={colorScheme} data-mode={mode} />
+  const { colorScheme } = useColorScheme()
+  return <div data-testid="debug" data-scheme={colorScheme} />
+}
+
+// AppThemeProvider mounts a LinkProvider whose adapter uses react-router's Link,
+// so the provider must render inside a router in tests.
+function renderInProvider(children: ReactNode) {
+  return render(
+    <MemoryRouter>
+      <AppThemeProvider>{children}</AppThemeProvider>
+    </MemoryRouter>,
+  )
 }
 
 /**
- * Stub window.matchMedia to report a given `prefers-color-scheme: dark` result.
- * Mirrors the helper already used in theme-toggle.test.tsx / theme-storage.test.ts
+ * Stub window.matchMedia to report a given `prefers-color-scheme: dark` result
  * so the OS preference can be simulated deterministically in jsdom (which never
  * fires real `change` events).
  */
@@ -37,52 +47,33 @@ describe('AppThemeProvider', () => {
   beforeEach(() => {
     window.localStorage.clear()
     document.documentElement.removeAttribute(COLOR_SCHEME_ATTR)
-    vi.stubGlobal(
-      'matchMedia',
-      vi.fn().mockReturnValue({
-        matches: false,
-        media: '',
-        onchange: null,
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-      }),
-    )
+    stubMatchMedia(false)
   })
   afterEach(() => {
     vi.unstubAllGlobals()
   })
 
-  it('should render children inside the theme + baseline + color-scheme context', () => {
-    render(
-      <AppThemeProvider>
-        <span>app body</span>
-      </AppThemeProvider>,
-    )
+  it('should render children inside the theme + color-scheme context', () => {
+    renderInProvider(<span>app body</span>)
     expect(screen.getByText('app body')).toBeInTheDocument()
   })
 
   it('should expose light color scheme when no preference is stored and OS is light', () => {
-    render(
-      <AppThemeProvider>
-        <DebugColorScheme />
-      </AppThemeProvider>,
-    )
+    renderInProvider(<DebugColorScheme />)
     const debug = screen.getByTestId('debug')
-    // MUI resolves to 'light' when mode='system' and OS is light (matchMedia.matches=false)
     expect(debug.getAttribute('data-scheme')).toBe('light')
-    expect(debug.getAttribute('data-mode')).toBe('system')
+    // The resolved scheme is mirrored to the root attribute.
+    expect(document.documentElement.getAttribute(COLOR_SCHEME_ATTR)).toBe('light')
   })
 })
 
 /**
- * Integration coverage for THIS project's specific MUI ThemeProvider colour-scheme
- * configuration (`modeStorageKey='kbeatz-theme'`, `noSsr`, no explicit `defaultMode`
- * so MUI's `'system'` default applies). MUI tests its own internals; these tests pin
- * the edge-case behaviour our config produces, asserting the resolved scheme through
- * the live `useColorScheme()` context rather than reading storage directly.
+ * Edge-case coverage for this project's color-scheme resolution. Unlike MUI's
+ * persistent 'system' mode, AppThemeProvider resolves the OS preference into an
+ * explicit 'light'/'dark' at load (resolveInitialColorScheme) and mirrors it to
+ * the root attribute. Corrupt persisted values are removed by
+ * sanitizePersistedColorScheme() before the provider mounts (mirrors main.tsx),
+ * so the corrupt path and the fresh path must agree.
  */
 describe('AppThemeProvider color-scheme edge cases', () => {
   beforeEach(() => {
@@ -93,63 +84,38 @@ describe('AppThemeProvider color-scheme edge cases', () => {
     vi.unstubAllGlobals()
   })
 
-  /**
-   * Mirror the app startup sequence in main.tsx: corrupt persisted values are
-   * removed by `sanitizePersistedColorScheme()` BEFORE the theme provider
-   * mounts. Rendering through this helper therefore exercises the real runtime
-   * path MUI sees after sanitisation.
-   */
   function renderDebug() {
     sanitizePersistedColorScheme()
-    render(
-      <AppThemeProvider>
-        <DebugColorScheme />
-      </AppThemeProvider>,
-    )
+    renderInProvider(<DebugColorScheme />)
     return screen.getByTestId('debug')
   }
 
-  it('should sanitise a corrupt stored value and fall back to the OS scheme (system mode)', () => {
-    // BEHAVIOUR CHANGE (issue #877): MUI's ThemeProvider does NOT sanitise an
-    // unknown persisted mode - left alone it would read 'corrupt' verbatim as
-    // `mode`, leave `colorScheme` undefined, and write no data-mui-color-scheme,
-    // diverging from the no-flash bootstrap. We now remove the invalid key at
-    // startup (sanitizePersistedColorScheme), so MUI falls back to its 'system'
-    // default and follows the OS preference - identical to the bootstrap.
+  it('should sanitise a corrupt stored value and fall back to the OS scheme (light)', () => {
     window.localStorage.setItem(THEME_STORAGE_KEY, 'corrupt')
     stubMatchMedia(false) // OS = light
 
     const debug = renderDebug()
 
-    // Invalid value removed: MUI sees no stored mode and uses 'system'.
     expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBeNull()
-    expect(debug.getAttribute('data-mode')).toBe('system')
     expect(debug.getAttribute('data-scheme')).toBe('light')
   })
 
   it('should resolve a corrupt value to the OS scheme regardless of OS preference (dark)', () => {
-    // After sanitisation the corrupt path follows 'system', so the OS preference
-    // now drives the outcome: OS dark resolves to 'dark' (not an unresolved
-    // scheme as in the pre-#877 behaviour).
     window.localStorage.setItem(THEME_STORAGE_KEY, 'corrupt')
     stubMatchMedia(true) // OS = dark
 
     const debug = renderDebug()
 
     expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBeNull()
-    expect(debug.getAttribute('data-mode')).toBe('system')
     expect(debug.getAttribute('data-scheme')).toBe('dark')
   })
 
-  it('should resolve a corrupt value the SAME way as a fresh load (bootstrap/MUI equivalence)', () => {
-    // AC#2: the corrupt path and the no-stored-value path must agree. Both
-    // resolve to 'system' mode following the OS preference. Here OS = dark.
+  it('should resolve a corrupt value the SAME way as a fresh load (bootstrap equivalence)', () => {
     stubMatchMedia(true) // OS = dark
 
     // Fresh load: nothing persisted.
     window.localStorage.clear()
     const fresh = renderDebug()
-    const freshMode = fresh.getAttribute('data-mode')
     const freshScheme = fresh.getAttribute('data-scheme')
     cleanup()
 
@@ -159,9 +125,7 @@ describe('AppThemeProvider color-scheme edge cases', () => {
     window.localStorage.setItem(THEME_STORAGE_KEY, 'corrupt')
     const corrupt = renderDebug()
 
-    expect(corrupt.getAttribute('data-mode')).toBe(freshMode)
     expect(corrupt.getAttribute('data-scheme')).toBe(freshScheme)
-    expect(corrupt.getAttribute('data-mode')).toBe('system')
     expect(corrupt.getAttribute('data-scheme')).toBe('dark')
   })
 
@@ -170,18 +134,15 @@ describe('AppThemeProvider color-scheme edge cases', () => {
 
     const debug = renderDebug()
 
-    expect(debug.getAttribute('data-mode')).toBe('system')
     expect(debug.getAttribute('data-scheme')).toBe('dark')
   })
 
   it('should honour an explicit stored light choice even when the OS prefers dark', () => {
-    // Explicit choice must win over the OS preference.
     window.localStorage.setItem(THEME_STORAGE_KEY, 'light')
     stubMatchMedia(true) // OS = dark
 
     const debug = renderDebug()
 
-    expect(debug.getAttribute('data-mode')).toBe('light')
     expect(debug.getAttribute('data-scheme')).toBe('light')
   })
 
@@ -191,7 +152,6 @@ describe('AppThemeProvider color-scheme edge cases', () => {
 
     const debug = renderDebug()
 
-    expect(debug.getAttribute('data-mode')).toBe('dark')
     expect(debug.getAttribute('data-scheme')).toBe('dark')
   })
 })

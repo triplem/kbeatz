@@ -2,8 +2,13 @@ import { StrictMode, lazy, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import CircularProgress from '@mui/material/CircularProgress'
-import Box from '@mui/material/Box'
+import { Spinner } from '@astryxdesign/core/Spinner'
+// Astryx global styles: reset -> component styles -> kbeatz brand tokens.
+// Order matters (reset < astryx-base < theme layers); the neutral theme tokens
+// themselves are injected at runtime by <Theme> in AppThemeProvider.
+import '@astryxdesign/core/reset.css'
+import '@astryxdesign/core/astryx.css'
+import './theme/kbeatz-tokens.css'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './lib/i18n'
 import { AlbumListPage } from './App'
@@ -34,9 +39,9 @@ const SettingsPage = lazy(() =>
 function RouteFallback() {
   const { t } = useTranslation()
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-      <CircularProgress aria-label={t('common.loading')} />
-    </Box>
+    <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
+      <Spinner aria-label={t('common.loading')} />
+    </div>
   )
 }
 

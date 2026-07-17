@@ -1,5 +1,4 @@
 import { afterEach } from 'vitest'
-import { theme } from '../theme/theme'
 
 /**
  * Responsive-matrix test helper.
@@ -38,11 +37,11 @@ export type Breakpoint = (typeof BREAKPOINTS)[number]
  * theme's own breakpoint values so it stays correct if the theme changes.
  */
 export const VIEWPORT_WIDTHS: Record<Breakpoint, number> = {
-  xs: theme.breakpoints.values.xs + 320, // 320 - phone portrait
-  sm: theme.breakpoints.values.sm + 168, // 768 - tablet portrait
-  md: theme.breakpoints.values.md + 124, // 1024 - small laptop
-  lg: theme.breakpoints.values.lg + 240, // 1440 - desktop
-  xl: theme.breakpoints.values.xl + 384, // 1920 - large desktop
+  xs: 320, // phone portrait
+  sm: 768, // tablet portrait (Astryx mobile-nav breakpoint boundary)
+  md: 1024, // small laptop
+  lg: 1440, // desktop
+  xl: 1920, // large desktop
 }
 
 const MIN_WIDTH_RE = /\(min-width:\s*([\d.]+)px\)/

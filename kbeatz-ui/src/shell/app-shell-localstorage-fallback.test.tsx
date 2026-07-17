@@ -88,7 +88,9 @@ describe('AppShell - localStorage unavailable (private mode)', () => {
     breakLocalStorage()
     stubMatchMedia(false)
     expect(() => renderApp()).not.toThrow()
-    expect(screen.getByRole('banner')).toBeInTheDocument()
+    expect(
+      screen.getAllByRole('navigation', { name: 'Primary navigation' }).length,
+    ).toBeGreaterThanOrEqual(1)
     expect(screen.getByTestId('albums-route')).toBeInTheDocument()
   })
 
