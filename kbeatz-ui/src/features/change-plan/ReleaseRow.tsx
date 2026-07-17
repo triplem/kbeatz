@@ -1,8 +1,7 @@
 import { useTranslation } from 'react-i18next'
-import Box from '@mui/material/Box'
-import Chip from '@mui/material/Chip'
-import Stack from '@mui/material/Stack'
-import Typography from '@mui/material/Typography'
+import { Heading } from '@astryxdesign/core/Heading'
+import { Text } from '@astryxdesign/core/Text'
+import { Token } from '@astryxdesign/core/Token'
 import type { ReleaseChangeSet } from '../../api/generated'
 import { ConflictBadge } from './ConflictBadge'
 import { MoveDiff } from './MoveDiff'
@@ -26,64 +25,52 @@ export function ReleaseRow({ release }: ReleaseRowProps) {
   const hasTagChanges = release.tagChanges.length > 0
 
   return (
-    <Box
-      component="li"
+    <li
       data-testid={`release-row-${release.albumId}`}
-      sx={{
+      style={{
         listStyle: 'none',
-        border: 1,
-        borderColor: willSkip ? 'error.main' : 'divider',
-        borderRadius: 1,
-        p: 2,
+        border: `1px solid ${willSkip ? 'var(--color-error, #d6336c)' : 'var(--color-border)'}`,
+        borderRadius: 'var(--radius-element, 8px)',
+        padding: 16,
         display: 'flex',
         flexDirection: 'column',
-        gap: 1,
+        gap: 8,
       }}
     >
-      <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-        <Typography variant="subtitle2" component="h4" sx={{ m: 0 }}>
-          {t('changePlan.releaseHeading', { albumId: release.albumId })}
-        </Typography>
+      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+        <Heading level={4}>{t('changePlan.releaseHeading', { albumId: release.albumId })}</Heading>
         {willSkip && (
-          <Chip
+          <Token
             label={t('changePlan.willBeSkipped')}
-            color="warning"
-            size="small"
+            color="orange"
+            size="sm"
             data-testid={`release-skip-${release.albumId}`}
           />
         )}
-      </Stack>
+      </div>
 
       <MoveDiff move={release.directoryMove} />
 
       {hasTagChanges ? (
         <TagDiff changes={release.tagChanges} />
       ) : (
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          component="p"
-          data-testid={`release-no-tag-changes-${release.albumId}`}
-          sx={{ m: 0 }}
-        >
-          {t('changePlan.noTagChanges')}
-        </Typography>
+        <p data-testid={`release-no-tag-changes-${release.albumId}`} style={{ margin: 0 }}>
+          <Text type="supporting">{t('changePlan.noTagChanges')}</Text>
+        </p>
       )}
 
       {release.conflicts.length > 0 && (
-        <Stack
-          component="ul"
-          spacing={0.5}
+        <ul
           data-testid={`release-conflicts-${release.albumId}`}
-          sx={{ m: 0, p: 0, listStyle: 'none' }}
+          style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}
         >
           {release.conflicts.map((conflict, index) => (
-            <Box component="li" key={`${conflict.type}:${index}`}>
+            <li key={`${conflict.type}:${index}`}>
               <ConflictBadge conflict={conflict} />
-            </Box>
+            </li>
           ))}
-        </Stack>
+        </ul>
       )}
-    </Box>
+    </li>
   )
 }

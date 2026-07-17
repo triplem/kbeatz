@@ -1,8 +1,6 @@
 import { useTranslation } from 'react-i18next'
-import Box from '@mui/material/Box'
-import Chip from '@mui/material/Chip'
-import Stack from '@mui/material/Stack'
-import Typography from '@mui/material/Typography'
+import { Text } from '@astryxdesign/core/Text'
+import { Token } from '@astryxdesign/core/Token'
 import type { ApplyChangePlanResult, ReleaseApplyOutcome } from '../../api/generated'
 
 interface ApplyResultListProps {
@@ -10,10 +8,12 @@ interface ApplyResultListProps {
   readonly result: ApplyChangePlanResult
 }
 
-const OUTCOME_COLOR: Record<ReleaseApplyOutcome, 'success' | 'warning' | 'error'> = {
-  APPLIED: 'success',
-  SKIPPED: 'warning',
-  FAILED: 'error',
+type TokenColor = 'green' | 'orange' | 'red'
+
+const OUTCOME_COLOR: Record<ReleaseApplyOutcome, TokenColor> = {
+  APPLIED: 'green',
+  SKIPPED: 'orange',
+  FAILED: 'red',
 }
 
 /**
@@ -26,53 +26,43 @@ export function ApplyResultList({ result }: ApplyResultListProps) {
   const { t } = useTranslation()
 
   return (
-    <Box data-testid="apply-result" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Typography
-        component="p"
-        role="status"
-        aria-live="polite"
-        data-testid="apply-result-summary"
-        sx={{ m: 0 }}
-      >
-        {t('changePlan.applySummary', {
-          applied: result.appliedCount,
-          skipped: result.skippedCount,
-          failed: result.failedCount,
-        })}
-      </Typography>
+    <div data-testid="apply-result" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <p role="status" aria-live="polite" data-testid="apply-result-summary" style={{ margin: 0 }}>
+        <Text>
+          {t('changePlan.applySummary', {
+            applied: result.appliedCount,
+            skipped: result.skippedCount,
+            failed: result.failedCount,
+          })}
+        </Text>
+      </p>
 
-      <Box
-        component="ul"
+      <ul
         aria-label={t('changePlan.applyResultsLabel')}
         data-testid="apply-result-releases"
-        sx={{ m: 0, p: 0, display: 'flex', flexDirection: 'column', gap: 1 }}
+        style={{ margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}
       >
         {result.releases.map((release) => (
-          <Stack
-            component="li"
+          <li
             key={release.albumId}
-            direction="row"
-            spacing={1}
             data-testid={`apply-result-row-${release.albumId}`}
-            sx={{ listStyle: 'none', alignItems: 'center', flexWrap: 'wrap' }}
+            style={{ listStyle: 'none', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}
           >
-            <Chip
+            <Token
               label={t(`changePlan.outcome.${release.outcome}`)}
               color={OUTCOME_COLOR[release.outcome]}
-              size="small"
+              size="sm"
               data-testid={`apply-outcome-${release.albumId}`}
             />
-            <Typography variant="body2" component="span" sx={{ wordBreak: 'break-all' }}>
+            <Text type="supporting" weight="semibold">
               {release.albumId}
-            </Typography>
+            </Text>
             {release.message !== null && release.message !== undefined && release.message !== '' && (
-              <Typography variant="body2" color="text.secondary" component="span">
-                {release.message}
-              </Typography>
+              <Text type="supporting">{release.message}</Text>
             )}
-          </Stack>
+          </li>
         ))}
-      </Box>
-    </Box>
+      </ul>
+    </div>
   )
 }

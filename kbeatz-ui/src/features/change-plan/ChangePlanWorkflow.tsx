@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
-import Stack from '@mui/material/Stack'
+import { Button } from '@astryxdesign/core/Button'
 import type { ChangePlanOperation } from '../../api/generated'
 import { LoadingState, ErrorState } from '../../components'
 import { useCreateChangePlan } from './useCreateChangePlan'
@@ -89,21 +87,19 @@ export function ChangePlanWorkflow({
   }, [onClose])
 
   return (
-    <Box data-testid="change-plan-workflow" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <div data-testid="change-plan-workflow" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {result !== undefined && (
         <>
           <ApplyResultList result={result} />
-          <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <Button
               type="button"
-              variant="contained"
+              variant="primary"
               onClick={() => { onClose(true) }}
               data-testid="change-plan-results-close"
-              sx={{ minHeight: 44 }}
-            >
-              {t('common.dismiss')}
-            </Button>
-          </Stack>
+              label={t('common.dismiss')}
+            />
+          </div>
         </>
       )}
 
@@ -137,34 +133,28 @@ export function ChangePlanWorkflow({
                 />
               )}
 
-              <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end' }}>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                 <Button
                   type="button"
-                  variant="outlined"
-                  color="inherit"
+                  variant="secondary"
                   onClick={handleCancel}
-                  disabled={isApplying}
+                  isDisabled={isApplying}
                   data-testid="change-plan-cancel"
-                  sx={{ minHeight: 44 }}
-                >
-                  {t('common.cancel')}
-                </Button>
+                  label={t('common.cancel')}
+                />
                 <Button
                   type="button"
-                  variant="contained"
+                  variant="primary"
                   onClick={handleConfirm}
-                  disabled={isApplying}
-                  aria-disabled={isApplying}
+                  isDisabled={isApplying}
                   data-testid="change-plan-confirm"
-                  sx={{ minHeight: 44 }}
-                >
-                  {confirmLabel ?? t('changePlan.confirmApply')}
-                </Button>
-              </Stack>
+                  label={confirmLabel ?? t('changePlan.confirmApply')}
+                />
+              </div>
             </>
           )}
         </>
       )}
-    </Box>
+    </div>
   )
 }

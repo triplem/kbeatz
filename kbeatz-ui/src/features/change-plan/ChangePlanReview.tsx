@@ -1,8 +1,6 @@
 import { useTranslation } from 'react-i18next'
-import Alert from '@mui/material/Alert'
-import Box from '@mui/material/Box'
-import Stack from '@mui/material/Stack'
-import Typography from '@mui/material/Typography'
+import { Banner } from '@astryxdesign/core/Banner'
+import { Text } from '@astryxdesign/core/Text'
 import type { ChangePlan } from '../../api/generated'
 import { ReleaseRow } from './ReleaseRow'
 
@@ -24,7 +22,7 @@ interface ChangePlanReviewProps {
  *
  * Accessibility:
  * - The release set is a semantic list (<ul> of <li>).
- * - Conflicts are surfaced as an assertive alert summary plus per-release badges.
+ * - Conflicts are surfaced as a warning banner summary plus per-release badges.
  */
 export function ChangePlanReview({ plan }: ChangePlanReviewProps) {
   const { t } = useTranslation()
@@ -34,70 +32,57 @@ export function ChangePlanReview({ plan }: ChangePlanReviewProps) {
 
   if (isEmpty) {
     return (
-      <Typography
-        component="p"
-        color="text.secondary"
-        data-testid="change-plan-empty"
-        sx={{ m: 0 }}
-      >
-        {t('changePlan.noChangesNeeded')}
-      </Typography>
+      <p data-testid="change-plan-empty" style={{ margin: 0 }}>
+        <Text type="supporting">{t('changePlan.noChangesNeeded')}</Text>
+      </p>
     )
   }
 
   const hasNoChanges = plan.totalMoves === 0 && plan.totalTagChanges === 0
 
   return (
-    <Box data-testid="change-plan-review" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Stack
-        direction="row"
-        spacing={2}
+    <div data-testid="change-plan-review" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div
         data-testid="change-plan-totals"
-        sx={{ flexWrap: 'wrap' }}
+        style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}
       >
-        <Typography variant="body2" component="p" sx={{ m: 0 }} data-testid="total-moves">
-          {t('changePlan.totalMoves', { count: plan.totalMoves })}
-        </Typography>
-        <Typography variant="body2" component="p" sx={{ m: 0 }} data-testid="total-tag-changes">
-          {t('changePlan.totalTagChanges', { count: plan.totalTagChanges })}
-        </Typography>
-        <Typography
-          variant="body2"
-          component="p"
-          sx={{ m: 0, color: plan.totalConflicts > 0 ? 'error.main' : 'text.primary' }}
+        <p style={{ margin: 0 }} data-testid="total-moves">
+          <Text type="supporting">{t('changePlan.totalMoves', { count: plan.totalMoves })}</Text>
+        </p>
+        <p style={{ margin: 0 }} data-testid="total-tag-changes">
+          <Text type="supporting">
+            {t('changePlan.totalTagChanges', { count: plan.totalTagChanges })}
+          </Text>
+        </p>
+        <p
+          style={{ margin: 0, color: plan.totalConflicts > 0 ? 'var(--color-error, #d6336c)' : undefined }}
           data-testid="total-conflicts"
         >
           {t('changePlan.totalConflicts', { count: plan.totalConflicts })}
-        </Typography>
-      </Stack>
+        </p>
+      </div>
 
       {plan.hasConflicts && (
-        <Alert severity="warning" role="alert" data-testid="change-plan-conflict-warning">
-          {t('changePlan.conflictWarning')}
-        </Alert>
+        <div data-testid="change-plan-conflict-warning">
+          <Banner status="warning" title={t('changePlan.conflictWarning')} />
+        </div>
       )}
 
       {hasNoChanges && (
-        <Typography
-          component="p"
-          color="text.secondary"
-          data-testid="change-plan-no-changes"
-          sx={{ m: 0 }}
-        >
-          {t('changePlan.noChangesNeeded')}
-        </Typography>
+        <p data-testid="change-plan-no-changes" style={{ margin: 0 }}>
+          <Text type="supporting">{t('changePlan.noChangesNeeded')}</Text>
+        </p>
       )}
 
-      <Box
-        component="ul"
+      <ul
         aria-label={t('changePlan.releasesLabel')}
         data-testid="change-plan-releases"
-        sx={{ m: 0, p: 0, display: 'flex', flexDirection: 'column', gap: 2 }}
+        style={{ margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 16 }}
       >
         {plan.releases.map((release) => (
           <ReleaseRow key={release.albumId} release={release} />
         ))}
-      </Box>
-    </Box>
+      </ul>
+    </div>
   )
 }
