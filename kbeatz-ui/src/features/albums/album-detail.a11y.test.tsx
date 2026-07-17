@@ -6,11 +6,11 @@ import { AppThemeProvider } from '../../theme'
 import { AlbumDetail } from './album-detail'
 import type { AlbumDetail as AlbumDetailModel, Track } from '../../api/generated'
 import { assertNoA11yViolations } from '../../test/a11y'
-import { THEME_STORAGE_KEY } from '../../theme/theme'
+import { COLOR_SCHEME_ATTR, THEME_STORAGE_KEY } from '../../theme/theme'
 
 function applyTheme(theme: 'light' | 'dark'): void {
   window.localStorage.setItem(THEME_STORAGE_KEY, theme)
-  document.documentElement.setAttribute('data-mui-color-scheme', theme)
+  document.documentElement.setAttribute(COLOR_SCHEME_ATTR, theme)
 }
 
 vi.mock('../../api/generated', () => ({
