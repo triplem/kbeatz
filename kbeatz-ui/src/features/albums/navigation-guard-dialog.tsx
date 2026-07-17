@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useId, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
-import Typography from '@mui/material/Typography'
+import { Button } from '@astryxdesign/core/Button'
+import { Heading } from '@astryxdesign/core/Heading'
+import { Text } from '@astryxdesign/core/Text'
+import { DIALOG_OVERLAY_STYLE, DIALOG_PANEL_STYLE } from './dialog-styles'
 
 interface NavigationGuardDialogProps {
   /** Whether the dialog is open */
@@ -103,22 +104,13 @@ export function NavigationGuardDialog({
   if (!open) return null
 
   return (
-    <Box
+    <div
       role="presentation"
       data-testid="nav-guard-overlay"
       onClick={onCancel}
-      sx={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 'modal',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        p: 2,
-        bgcolor: 'rgba(0, 0, 0, 0.5)',
-      }}
+      style={DIALOG_OVERLAY_STYLE}
     >
-      <Box
+      <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -126,50 +118,38 @@ export function NavigationGuardDialog({
         data-testid="nav-guard-dialog"
         onKeyDown={handleKeyDown}
         onClick={(e) => { e.stopPropagation() }}
-        sx={{
-          width: '100%',
-          maxWidth: 440,
-          bgcolor: 'background.paper',
-          color: 'text.primary',
-          borderRadius: 2,
-          boxShadow: 24,
-          p: 3,
-        }}
+        style={DIALOG_PANEL_STYLE}
       >
-        <Typography id={titleId} variant="h6" component="h2" sx={{ mb: 1 }}>
-          {t('navGuard.title')}
-        </Typography>
+        <div style={{ marginBottom: 8 }}>
+          <Heading level={2} id={titleId}>
+            {t('navGuard.title')}
+          </Heading>
+        </div>
 
-        <Typography id={bodyId} variant="body2" component="p" sx={{ mb: 3 }}>
-          {t('navGuard.body')}
-        </Typography>
+        <p id={bodyId} style={{ margin: '0 0 24px' }}>
+          <Text type="supporting">{t('navGuard.body')}</Text>
+        </p>
 
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           <Button
             ref={cancelButtonRef}
             type="button"
-            variant="outlined"
-            color="inherit"
+            variant="secondary"
             data-testid="nav-guard-cancel"
             onClick={onCancel}
-            sx={{ minHeight: 44 }}
-          >
-            {t('navGuard.cancelButton')}
-          </Button>
+            label={t('navGuard.cancelButton')}
+          />
 
           <Button
             ref={confirmButtonRef}
             type="button"
-            variant="contained"
-            color="error"
+            variant="destructive"
             data-testid="nav-guard-confirm"
             onClick={onConfirm}
-            sx={{ minHeight: 44 }}
-          >
-            {t('navGuard.confirmButton')}
-          </Button>
-        </Box>
-      </Box>
-    </Box>
+            label={t('navGuard.confirmButton')}
+          />
+        </div>
+      </div>
+    </div>
   )
 }

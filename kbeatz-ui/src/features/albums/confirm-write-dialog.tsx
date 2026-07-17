@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useId, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
-import Typography from '@mui/material/Typography'
+import { Button } from '@astryxdesign/core/Button'
+import { Heading } from '@astryxdesign/core/Heading'
+import { Text } from '@astryxdesign/core/Text'
+import { DIALOG_OVERLAY_STYLE, DIALOG_PANEL_STYLE } from './dialog-styles'
 
 interface ConfirmWriteDialogProps {
   /** Whether the dialog is open */
@@ -125,22 +126,13 @@ export function ConfirmWriteDialog({
     // so assistive tech does not expose it as an unlabelled interactive element.
     // The onClick remains a mouse convenience for sighted users; keyboard users
     // dismiss via the Escape handler on the dialog itself (WCAG 4.1.2).
-    <Box
+    <div
       role="presentation"
       data-testid="confirm-dialog-overlay"
       onClick={onCancel}
-      sx={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 'modal',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        p: 2,
-        bgcolor: 'rgba(0, 0, 0, 0.5)',
-      }}
+      style={DIALOG_OVERLAY_STYLE}
     >
-      <Box
+      <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -148,61 +140,46 @@ export function ConfirmWriteDialog({
         data-testid="confirm-dialog"
         onKeyDown={handleKeyDown}
         onClick={(e) => { e.stopPropagation() }}
-        sx={{
-          width: '100%',
-          maxWidth: 440,
-          bgcolor: 'background.paper',
-          color: 'text.primary',
-          borderRadius: 2,
-          boxShadow: 24,
-          p: 3,
-        }}
+        style={DIALOG_PANEL_STYLE}
       >
-        <Typography id={titleId} variant="h6" component="h2" sx={{ mb: 1 }}>
-          {t('confirmDialog.title')}
-        </Typography>
+        <div style={{ marginBottom: 8 }}>
+          <Heading level={2} id={titleId}>
+            {t('confirmDialog.title')}
+          </Heading>
+        </div>
 
-        <Typography id={bodyId} variant="body2" component="p" sx={{ mb: 1 }}>
-          {t('confirmDialog.body', { count: fileLabel, albumTitle })}
-        </Typography>
+        <p id={bodyId} style={{ margin: '0 0 8px' }}>
+          <Text type="supporting">{t('confirmDialog.body', { count: fileLabel, albumTitle })}</Text>
+        </p>
 
-        <Typography
+        <p
           id={warningId}
           data-testid="confirm-dialog-warning"
-          variant="body2"
-          component="p"
-          color="error"
-          sx={{ mb: 3, fontWeight: 600 }}
+          style={{ margin: '0 0 24px', color: 'var(--color-error, #d6336c)', fontWeight: 600 }}
         >
           {t('confirmDialog.warning')}
-        </Typography>
+        </p>
 
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           <Button
             ref={cancelButtonRef}
             type="button"
-            variant="outlined"
-            color="inherit"
+            variant="secondary"
             data-testid="confirm-dialog-cancel"
             onClick={onCancel}
-            sx={{ minHeight: 44 }}
-          >
-            {t('confirmDialog.cancelButton')}
-          </Button>
+            label={t('confirmDialog.cancelButton')}
+          />
 
           <Button
             ref={confirmButtonRef}
             type="button"
-            variant="contained"
-            color="error"
+            variant="destructive"
             data-testid="confirm-dialog-confirm"
             onClick={onConfirm}
-            sx={{ minHeight: 44 }}
-          >
-            {t('confirmDialog.confirmButton')}
-          </Button>
-        </Box>
-      </Box>
-    </Box>
+            label={t('confirmDialog.confirmButton')}
+          />
+        </div>
+      </div>
+    </div>
   )
 }
