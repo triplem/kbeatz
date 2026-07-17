@@ -9,97 +9,161 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in d
   >
     <article
       aria-label="Album tags"
-      class="MuiBox-root css-1m4zf5v"
+      style="max-width: 1200px; margin: 0px auto; padding: 24px; display: flex; flex-direction: column; gap: 24px;"
     >
-      <h1
-        class="MuiTypography-root MuiTypography-h1 css-ks4jfn-MuiTypography-root"
+      <span
+        class="x10l6tqk x1i1rx1s xjm9jq1 xkdpibf x1717udv xb3r6kr xzpqnlu xuxw1ft xng3xce x13vifvy x1o0tod x47corl x87ps6o"
       >
-        Kind of Blue
-      </h1>
+        <h1>
+          Kind of Blue
+        </h1>
+      </span>
       <div
-        class="MuiBox-root css-mjha5m"
+        style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;"
       >
         <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-sizeMedium MuiButton-colorPrimary css-1mq8whv-MuiButtonBase-root-MuiButton-root"
+          class="astryx-button secondary md x1n2onr6 x3nfvp2 x6s0dn4 xl56j7k x1txdalj xce4md1 xrrkdod xc342km xng3xce x1jxw6zd xjb2p0i xcr08ib x1kq96og x1e4wzip xuxw1ft x1ypdohk xrafxwg xuedmi6 x12w9bfk xlr8y92 x1ueg155 x17x4s8c x1tgivj0 x1ilzqfv xq8i9tn x17nn4n9 xkzo27j x1wfwxd8 x13aywxo x3oybdh xk4oym4"
+          data-size="md"
           data-testid="back-button"
-          tabindex="0"
+          data-variant="secondary"
           type="button"
         >
           <span
-            class="MuiButton-icon MuiButton-startIcon css-1lxyhll-MuiButton-startIcon"
+            class="xjp7ctv"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
-              data-testid="ArrowBackIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
+            <span
+              class="x3nfvp2 x6s0dn4 xl56j7k x2lah0s x1kky2od xlup9mm x1j61zf2"
             >
-              <path
-                d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"
-              />
-            </svg>
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-arrow-left astryx-icon md inherit x2lah0s x1heor9g xw4jnvo x1qx5ct2"
+                data-color="inherit"
+                data-size="md"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m12 19-7-7 7-7"
+                />
+                <path
+                  d="M19 12H5"
+                />
+              </svg>
+            </span>
+            <span
+              class="xb3r6kr xlyipyv xeuugli"
+            >
+              Back
+            </span>
           </span>
-          Back
+          <span
+            aria-live="polite"
+            class="x10l6tqk x1i1rx1s xjm9jq1 xkdpibf x1717udv xb3r6kr xzpqnlu xuxw1ft xng3xce x13vifvy x1o0tod x47corl x87ps6o"
+            role="status"
+          />
         </button>
         <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-sizeMedium MuiButton-colorPrimary css-1bmmi1a-MuiButtonBase-root-MuiButton-root"
+          class="astryx-button primary md x1n2onr6 x3nfvp2 x6s0dn4 xl56j7k x1txdalj xce4md1 xrrkdod xc342km xng3xce x1jxw6zd xjb2p0i xcr08ib x1kq96og x1e4wzip xuxw1ft x1ypdohk xrafxwg xuedmi6 x12w9bfk xlr8y92 x1ueg155 x1ewilqj x17wrial x1ilzqfv xq8i9tn x17nn4n9 xkzo27j x1wfwxd8 x13aywxo x3oybdh xk4oym4"
+          data-size="md"
           data-testid="edit-button"
-          tabindex="0"
+          data-variant="primary"
           type="button"
         >
           <span
-            class="MuiButton-icon MuiButton-startIcon css-1lxyhll-MuiButton-startIcon"
+            class="xjp7ctv"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
-              data-testid="EditIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
+            <span
+              class="x3nfvp2 x6s0dn4 xl56j7k x2lah0s x1kky2od xlup9mm x1j61zf2"
             >
-              <path
-                d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z"
-              />
-            </svg>
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-pencil astryx-icon md inherit x2lah0s x1heor9g xw4jnvo x1qx5ct2"
+                data-color="inherit"
+                data-size="md"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"
+                />
+                <path
+                  d="m15 5 4 4"
+                />
+              </svg>
+            </span>
+            <span
+              class="xb3r6kr xlyipyv xeuugli"
+            >
+              Edit
+            </span>
           </span>
-          Edit
+          <span
+            aria-live="polite"
+            class="x10l6tqk x1i1rx1s xjm9jq1 xkdpibf x1717udv xb3r6kr xzpqnlu xuxw1ft xng3xce x13vifvy x1o0tod x47corl x87ps6o"
+            role="status"
+          />
         </button>
       </div>
       <section
         aria-labelledby="hero-album-title"
-        class="MuiBox-root css-10fm5n1"
         data-testid="album-hero-header"
+        style="display: grid; grid-template-columns: 1fr; gap: 24px; align-items: start;"
       >
         <div
-          class="MuiBox-root css-1821gv5"
           data-testid="hero-metadata"
+          style="display: flex; flex-direction: column; gap: 8px;"
         >
           <p
-            class="MuiTypography-root MuiTypography-h5 css-nto7bj-MuiTypography-root"
             data-testid="hero-artist"
+            style="margin: 0px;"
           >
-            Miles Davis
+            <span
+              class="astryx-text large primary x1tgivj0 x18juvz8 xf74fhv x1lvx875 xt0psk2"
+              data-color="primary"
+              data-type="large"
+            >
+              Miles Davis
+            </span>
           </p>
           <h2
-            class="MuiTypography-root MuiTypography-h4 css-r2u5ou-MuiTypography-root"
+            class="astryx-heading level-2 primary x1tgivj0 x1xvnhcw x1cpk1wn x12yy4cs x1lliihq"
+            data-color="primary"
+            data-level="2"
             data-testid="hero-album-title"
             id="hero-album-title"
           >
             Kind of Blue
           </h2>
-          <p
-            class="MuiTypography-root MuiTypography-body1 css-rizt0-MuiTypography-root"
+          <span
+            class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+            data-color="secondary"
             data-testid="hero-label-catalog"
+            data-type="supporting"
           >
             Columbia - CL 1355
-          </p>
-          <p
-            class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+          </span>
+          <span
+            class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+            data-color="secondary"
             data-testid="hero-release-date"
+            data-type="supporting"
           >
             1959
-          </p>
+          </span>
           <ul
             aria-label="Genre tags"
             data-testid="hero-genre-chips"
@@ -126,165 +190,197 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in d
       </section>
       <section
         aria-label="Tracks"
-        class="MuiBox-root css-1sf3xto"
         data-testid="tracklist-section"
+        style="padding: 16px 0px;"
       >
         <div
-          class="MuiBox-root css-v78izt"
+          style="display: flex; align-items: center; margin-bottom: 8px; gap: 8px;"
         >
           <h2
-            class="MuiTypography-root MuiTypography-h6 css-1miy0lu-MuiTypography-root"
+            class="astryx-heading level-2 primary x1tgivj0 x1xvnhcw x1cpk1wn x12yy4cs x1lliihq"
+            data-color="primary"
+            data-level="2"
           >
             Tracks
           </h2>
         </div>
         <div
-          class="MuiTableContainer-root css-70zvr5-MuiTableContainer-root"
           data-testid="tracklist-view"
           id="composer-credits-region"
+          style="overflow-x: auto;"
         >
           <table
             aria-label="Tracks"
-            class="MuiTable-root css-1xwxv7r-MuiTable-root"
+            style="border-collapse: collapse; width: 100%;"
           >
-            <thead
-              class="MuiTableHead-root css-1a7iywq-MuiTableHead-root"
-            >
-              <tr
-                class="MuiTableRow-root MuiTableRow-head css-1xtozoh-MuiTableRow-root"
-              >
+            <thead>
+              <tr>
                 <th
-                  class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-19jtl2s-MuiTableCell-root"
                   scope="col"
+                  style="text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--color-border); vertical-align: top; width: 48px;"
                 >
-                  Position
+                  <span
+                    class="astryx-text label primary x1tgivj0 xcr08ib x1kq96og xmhvcl5 xt0psk2"
+                    data-color="primary"
+                    data-type="label"
+                  >
+                    Position
+                  </span>
                 </th>
                 <th
-                  class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-g6bqb5-MuiTableCell-root"
                   scope="col"
+                  style="text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--color-border); vertical-align: top;"
                 >
-                  Title
+                  <span
+                    class="astryx-text label primary x1tgivj0 xcr08ib x1kq96og xmhvcl5 xt0psk2"
+                    data-color="primary"
+                    data-type="label"
+                  >
+                    Title
+                  </span>
                 </th>
                 <th
-                  class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-foy9ar-MuiTableCell-root"
                   scope="col"
+                  style="text-align: right; padding: 4px 8px; border-bottom: 1px solid var(--color-border); vertical-align: top; width: 72px;"
                 >
-                  Duration
+                  <span
+                    class="astryx-text label primary x1tgivj0 xcr08ib x1kq96og xmhvcl5 xt0psk2"
+                    data-color="primary"
+                    data-type="label"
+                  >
+                    Duration
+                  </span>
                 </th>
               </tr>
             </thead>
-            <tbody
-              class="MuiTableBody-root css-gmh7jj-MuiTableBody-root"
-            >
+            <tbody>
               <tr
-                class="MuiTableRow-root css-1xtozoh-MuiTableRow-root"
                 data-testid="track-view-row-track-0001"
               >
                 <td
-                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-16u93bd-MuiTableCell-root"
+                  style="text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--color-border); vertical-align: top; width: 48px;"
                 >
-                  <p
-                    class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  <span
+                    class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+                    data-color="secondary"
+                    data-type="supporting"
                   >
                     1
-                  </p>
+                  </span>
                 </td>
                 <td
-                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-1cbhj8b-MuiTableCell-root"
+                  style="text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--color-border); vertical-align: top;"
                 >
-                  <div
-                    class="MuiBox-root css-0"
-                  >
-                    <p
-                      class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  <div>
+                    <div
                       data-testid="track-view-title-track-0001"
                     >
-                      So What
-                    </p>
+                      <span
+                        class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+                        data-color="secondary"
+                        data-type="supporting"
+                      >
+                        So What
+                      </span>
+                    </div>
                   </div>
                 </td>
                 <td
-                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-n27wgn-MuiTableCell-root"
+                  style="text-align: right; padding: 4px 8px; border-bottom: 1px solid var(--color-border); vertical-align: top; width: 72px;"
                 >
-                  <p
-                    class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  <span
+                    class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+                    data-color="secondary"
+                    data-type="supporting"
                   >
                     9:25
-                  </p>
+                  </span>
                 </td>
               </tr>
               <tr
-                class="MuiTableRow-root css-1xtozoh-MuiTableRow-root"
                 data-testid="track-view-row-track-0002"
               >
                 <td
-                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-16u93bd-MuiTableCell-root"
+                  style="text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--color-border); vertical-align: top; width: 48px;"
                 >
-                  <p
-                    class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  <span
+                    class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+                    data-color="secondary"
+                    data-type="supporting"
                   >
                     2
-                  </p>
+                  </span>
                 </td>
                 <td
-                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-1cbhj8b-MuiTableCell-root"
+                  style="text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--color-border); vertical-align: top;"
                 >
-                  <div
-                    class="MuiBox-root css-0"
-                  >
-                    <p
-                      class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  <div>
+                    <div
                       data-testid="track-view-title-track-0002"
                     >
-                      Freddie Freeloader
-                    </p>
+                      <span
+                        class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+                        data-color="secondary"
+                        data-type="supporting"
+                      >
+                        Freddie Freeloader
+                      </span>
+                    </div>
                   </div>
                 </td>
                 <td
-                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-n27wgn-MuiTableCell-root"
+                  style="text-align: right; padding: 4px 8px; border-bottom: 1px solid var(--color-border); vertical-align: top; width: 72px;"
                 >
-                  <p
-                    class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  <span
+                    class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+                    data-color="secondary"
+                    data-type="supporting"
                   >
                     9:46
-                  </p>
+                  </span>
                 </td>
               </tr>
               <tr
-                class="MuiTableRow-root css-1xtozoh-MuiTableRow-root"
                 data-testid="track-view-row-track-0003"
               >
                 <td
-                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-16u93bd-MuiTableCell-root"
+                  style="text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--color-border); vertical-align: top; width: 48px;"
                 >
-                  <p
-                    class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  <span
+                    class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+                    data-color="secondary"
+                    data-type="supporting"
                   >
                     3
-                  </p>
+                  </span>
                 </td>
                 <td
-                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-1cbhj8b-MuiTableCell-root"
+                  style="text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--color-border); vertical-align: top;"
                 >
-                  <div
-                    class="MuiBox-root css-0"
-                  >
-                    <p
-                      class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  <div>
+                    <div
                       data-testid="track-view-title-track-0003"
                     >
-                      Blue in Green
-                    </p>
+                      <span
+                        class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+                        data-color="secondary"
+                        data-type="supporting"
+                      >
+                        Blue in Green
+                      </span>
+                    </div>
                   </div>
                 </td>
                 <td
-                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-n27wgn-MuiTableCell-root"
+                  style="text-align: right; padding: 4px 8px; border-bottom: 1px solid var(--color-border); vertical-align: top; width: 72px;"
                 >
-                  <p
-                    class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  <span
+                    class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+                    data-color="secondary"
+                    data-type="supporting"
                   >
                     5:37
-                  </p>
+                  </span>
                 </td>
               </tr>
             </tbody>
@@ -294,55 +390,67 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in d
       <section
         aria-label="Album credits"
         aria-labelledby="album-credits-heading"
-        class="MuiBox-root css-0"
         data-testid="album-credits-section"
       >
-        <h2
-          class="MuiTypography-root MuiTypography-h6 css-18xxwmt-MuiTypography-root"
-          id="album-credits-heading"
-        >
-          Credits
-        </h2>
         <div
-          class="MuiBox-root css-1kkt86i"
+          style="margin-bottom: 8px;"
+        >
+          <h2
+            class="astryx-heading level-2 primary x1tgivj0 x1xvnhcw x1cpk1wn x12yy4cs x1lliihq"
+            data-color="primary"
+            data-level="2"
+            id="album-credits-heading"
+          >
+            Credits
+          </h2>
+        </div>
+        <div
+          style="display: flex; flex-direction: column; gap: 4px;"
         >
           <div
-            class="MuiBox-root css-wwjdvd"
             data-testid="credit-row-composer"
+            style="display: flex; gap: 8px; align-items: baseline;"
           >
-            <p
-              class="MuiTypography-root MuiTypography-body2 css-1gi1fdj-MuiTypography-root"
+            <span
+              class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j x1e4wzip xt0psk2"
+              data-color="secondary"
+              data-type="supporting"
             >
               Composer
               :
-            </p>
-            <p
-              class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+            </span>
+            <span
+              class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+              data-color="secondary"
+              data-type="supporting"
             >
               Miles Davis
-            </p>
+            </span>
           </div>
           <div
-            class="MuiBox-root css-wwjdvd"
             data-testid="credit-row-ensemble"
+            style="display: flex; gap: 8px; align-items: baseline;"
           >
-            <p
-              class="MuiTypography-root MuiTypography-body2 css-1gi1fdj-MuiTypography-root"
+            <span
+              class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j x1e4wzip xt0psk2"
+              data-color="secondary"
+              data-type="supporting"
             >
               Ensemble
               :
-            </p>
-            <p
-              class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+            </span>
+            <span
+              class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+              data-color="secondary"
+              data-type="supporting"
             >
               Miles Davis Sextet
-            </p>
+            </span>
           </div>
         </div>
       </section>
       <section
         aria-label="Discogs sync"
-        class="MuiBox-root css-0"
       >
         <div
           data-testid="sync-panel"
@@ -362,97 +470,161 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in l
   >
     <article
       aria-label="Album tags"
-      class="MuiBox-root css-1m4zf5v"
+      style="max-width: 1200px; margin: 0px auto; padding: 24px; display: flex; flex-direction: column; gap: 24px;"
     >
-      <h1
-        class="MuiTypography-root MuiTypography-h1 css-ks4jfn-MuiTypography-root"
+      <span
+        class="x10l6tqk x1i1rx1s xjm9jq1 xkdpibf x1717udv xb3r6kr xzpqnlu xuxw1ft xng3xce x13vifvy x1o0tod x47corl x87ps6o"
       >
-        Kind of Blue
-      </h1>
+        <h1>
+          Kind of Blue
+        </h1>
+      </span>
       <div
-        class="MuiBox-root css-mjha5m"
+        style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;"
       >
         <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-sizeMedium MuiButton-colorPrimary css-1mq8whv-MuiButtonBase-root-MuiButton-root"
+          class="astryx-button secondary md x1n2onr6 x3nfvp2 x6s0dn4 xl56j7k x1txdalj xce4md1 xrrkdod xc342km xng3xce x1jxw6zd xjb2p0i xcr08ib x1kq96og x1e4wzip xuxw1ft x1ypdohk xrafxwg xuedmi6 x12w9bfk xlr8y92 x1ueg155 x17x4s8c x1tgivj0 x1ilzqfv xq8i9tn x17nn4n9 xkzo27j x1wfwxd8 x13aywxo x3oybdh xk4oym4"
+          data-size="md"
           data-testid="back-button"
-          tabindex="0"
+          data-variant="secondary"
           type="button"
         >
           <span
-            class="MuiButton-icon MuiButton-startIcon css-1lxyhll-MuiButton-startIcon"
+            class="xjp7ctv"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
-              data-testid="ArrowBackIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
+            <span
+              class="x3nfvp2 x6s0dn4 xl56j7k x2lah0s x1kky2od xlup9mm x1j61zf2"
             >
-              <path
-                d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"
-              />
-            </svg>
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-arrow-left astryx-icon md inherit x2lah0s x1heor9g xw4jnvo x1qx5ct2"
+                data-color="inherit"
+                data-size="md"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m12 19-7-7 7-7"
+                />
+                <path
+                  d="M19 12H5"
+                />
+              </svg>
+            </span>
+            <span
+              class="xb3r6kr xlyipyv xeuugli"
+            >
+              Back
+            </span>
           </span>
-          Back
+          <span
+            aria-live="polite"
+            class="x10l6tqk x1i1rx1s xjm9jq1 xkdpibf x1717udv xb3r6kr xzpqnlu xuxw1ft xng3xce x13vifvy x1o0tod x47corl x87ps6o"
+            role="status"
+          />
         </button>
         <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-sizeMedium MuiButton-colorPrimary css-1bmmi1a-MuiButtonBase-root-MuiButton-root"
+          class="astryx-button primary md x1n2onr6 x3nfvp2 x6s0dn4 xl56j7k x1txdalj xce4md1 xrrkdod xc342km xng3xce x1jxw6zd xjb2p0i xcr08ib x1kq96og x1e4wzip xuxw1ft x1ypdohk xrafxwg xuedmi6 x12w9bfk xlr8y92 x1ueg155 x1ewilqj x17wrial x1ilzqfv xq8i9tn x17nn4n9 xkzo27j x1wfwxd8 x13aywxo x3oybdh xk4oym4"
+          data-size="md"
           data-testid="edit-button"
-          tabindex="0"
+          data-variant="primary"
           type="button"
         >
           <span
-            class="MuiButton-icon MuiButton-startIcon css-1lxyhll-MuiButton-startIcon"
+            class="xjp7ctv"
           >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
-              data-testid="EditIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
+            <span
+              class="x3nfvp2 x6s0dn4 xl56j7k x2lah0s x1kky2od xlup9mm x1j61zf2"
             >
-              <path
-                d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z"
-              />
-            </svg>
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-pencil astryx-icon md inherit x2lah0s x1heor9g xw4jnvo x1qx5ct2"
+                data-color="inherit"
+                data-size="md"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"
+                />
+                <path
+                  d="m15 5 4 4"
+                />
+              </svg>
+            </span>
+            <span
+              class="xb3r6kr xlyipyv xeuugli"
+            >
+              Edit
+            </span>
           </span>
-          Edit
+          <span
+            aria-live="polite"
+            class="x10l6tqk x1i1rx1s xjm9jq1 xkdpibf x1717udv xb3r6kr xzpqnlu xuxw1ft xng3xce x13vifvy x1o0tod x47corl x87ps6o"
+            role="status"
+          />
         </button>
       </div>
       <section
         aria-labelledby="hero-album-title"
-        class="MuiBox-root css-10fm5n1"
         data-testid="album-hero-header"
+        style="display: grid; grid-template-columns: 1fr; gap: 24px; align-items: start;"
       >
         <div
-          class="MuiBox-root css-1821gv5"
           data-testid="hero-metadata"
+          style="display: flex; flex-direction: column; gap: 8px;"
         >
           <p
-            class="MuiTypography-root MuiTypography-h5 css-nto7bj-MuiTypography-root"
             data-testid="hero-artist"
+            style="margin: 0px;"
           >
-            Miles Davis
+            <span
+              class="astryx-text large primary x1tgivj0 x18juvz8 xf74fhv x1lvx875 xt0psk2"
+              data-color="primary"
+              data-type="large"
+            >
+              Miles Davis
+            </span>
           </p>
           <h2
-            class="MuiTypography-root MuiTypography-h4 css-r2u5ou-MuiTypography-root"
+            class="astryx-heading level-2 primary x1tgivj0 x1xvnhcw x1cpk1wn x12yy4cs x1lliihq"
+            data-color="primary"
+            data-level="2"
             data-testid="hero-album-title"
             id="hero-album-title"
           >
             Kind of Blue
           </h2>
-          <p
-            class="MuiTypography-root MuiTypography-body1 css-rizt0-MuiTypography-root"
+          <span
+            class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+            data-color="secondary"
             data-testid="hero-label-catalog"
+            data-type="supporting"
           >
             Columbia - CL 1355
-          </p>
-          <p
-            class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+          </span>
+          <span
+            class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+            data-color="secondary"
             data-testid="hero-release-date"
+            data-type="supporting"
           >
             1959
-          </p>
+          </span>
           <ul
             aria-label="Genre tags"
             data-testid="hero-genre-chips"
@@ -479,165 +651,197 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in l
       </section>
       <section
         aria-label="Tracks"
-        class="MuiBox-root css-1sf3xto"
         data-testid="tracklist-section"
+        style="padding: 16px 0px;"
       >
         <div
-          class="MuiBox-root css-v78izt"
+          style="display: flex; align-items: center; margin-bottom: 8px; gap: 8px;"
         >
           <h2
-            class="MuiTypography-root MuiTypography-h6 css-1miy0lu-MuiTypography-root"
+            class="astryx-heading level-2 primary x1tgivj0 x1xvnhcw x1cpk1wn x12yy4cs x1lliihq"
+            data-color="primary"
+            data-level="2"
           >
             Tracks
           </h2>
         </div>
         <div
-          class="MuiTableContainer-root css-70zvr5-MuiTableContainer-root"
           data-testid="tracklist-view"
           id="composer-credits-region"
+          style="overflow-x: auto;"
         >
           <table
             aria-label="Tracks"
-            class="MuiTable-root css-1xwxv7r-MuiTable-root"
+            style="border-collapse: collapse; width: 100%;"
           >
-            <thead
-              class="MuiTableHead-root css-1a7iywq-MuiTableHead-root"
-            >
-              <tr
-                class="MuiTableRow-root MuiTableRow-head css-1xtozoh-MuiTableRow-root"
-              >
+            <thead>
+              <tr>
                 <th
-                  class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-19jtl2s-MuiTableCell-root"
                   scope="col"
+                  style="text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--color-border); vertical-align: top; width: 48px;"
                 >
-                  Position
+                  <span
+                    class="astryx-text label primary x1tgivj0 xcr08ib x1kq96og xmhvcl5 xt0psk2"
+                    data-color="primary"
+                    data-type="label"
+                  >
+                    Position
+                  </span>
                 </th>
                 <th
-                  class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-g6bqb5-MuiTableCell-root"
                   scope="col"
+                  style="text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--color-border); vertical-align: top;"
                 >
-                  Title
+                  <span
+                    class="astryx-text label primary x1tgivj0 xcr08ib x1kq96og xmhvcl5 xt0psk2"
+                    data-color="primary"
+                    data-type="label"
+                  >
+                    Title
+                  </span>
                 </th>
                 <th
-                  class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeSmall css-foy9ar-MuiTableCell-root"
                   scope="col"
+                  style="text-align: right; padding: 4px 8px; border-bottom: 1px solid var(--color-border); vertical-align: top; width: 72px;"
                 >
-                  Duration
+                  <span
+                    class="astryx-text label primary x1tgivj0 xcr08ib x1kq96og xmhvcl5 xt0psk2"
+                    data-color="primary"
+                    data-type="label"
+                  >
+                    Duration
+                  </span>
                 </th>
               </tr>
             </thead>
-            <tbody
-              class="MuiTableBody-root css-gmh7jj-MuiTableBody-root"
-            >
+            <tbody>
               <tr
-                class="MuiTableRow-root css-1xtozoh-MuiTableRow-root"
                 data-testid="track-view-row-track-0001"
               >
                 <td
-                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-16u93bd-MuiTableCell-root"
+                  style="text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--color-border); vertical-align: top; width: 48px;"
                 >
-                  <p
-                    class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  <span
+                    class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+                    data-color="secondary"
+                    data-type="supporting"
                   >
                     1
-                  </p>
+                  </span>
                 </td>
                 <td
-                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-1cbhj8b-MuiTableCell-root"
+                  style="text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--color-border); vertical-align: top;"
                 >
-                  <div
-                    class="MuiBox-root css-0"
-                  >
-                    <p
-                      class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  <div>
+                    <div
                       data-testid="track-view-title-track-0001"
                     >
-                      So What
-                    </p>
+                      <span
+                        class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+                        data-color="secondary"
+                        data-type="supporting"
+                      >
+                        So What
+                      </span>
+                    </div>
                   </div>
                 </td>
                 <td
-                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-n27wgn-MuiTableCell-root"
+                  style="text-align: right; padding: 4px 8px; border-bottom: 1px solid var(--color-border); vertical-align: top; width: 72px;"
                 >
-                  <p
-                    class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  <span
+                    class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+                    data-color="secondary"
+                    data-type="supporting"
                   >
                     9:25
-                  </p>
+                  </span>
                 </td>
               </tr>
               <tr
-                class="MuiTableRow-root css-1xtozoh-MuiTableRow-root"
                 data-testid="track-view-row-track-0002"
               >
                 <td
-                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-16u93bd-MuiTableCell-root"
+                  style="text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--color-border); vertical-align: top; width: 48px;"
                 >
-                  <p
-                    class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  <span
+                    class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+                    data-color="secondary"
+                    data-type="supporting"
                   >
                     2
-                  </p>
+                  </span>
                 </td>
                 <td
-                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-1cbhj8b-MuiTableCell-root"
+                  style="text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--color-border); vertical-align: top;"
                 >
-                  <div
-                    class="MuiBox-root css-0"
-                  >
-                    <p
-                      class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  <div>
+                    <div
                       data-testid="track-view-title-track-0002"
                     >
-                      Freddie Freeloader
-                    </p>
+                      <span
+                        class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+                        data-color="secondary"
+                        data-type="supporting"
+                      >
+                        Freddie Freeloader
+                      </span>
+                    </div>
                   </div>
                 </td>
                 <td
-                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-n27wgn-MuiTableCell-root"
+                  style="text-align: right; padding: 4px 8px; border-bottom: 1px solid var(--color-border); vertical-align: top; width: 72px;"
                 >
-                  <p
-                    class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  <span
+                    class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+                    data-color="secondary"
+                    data-type="supporting"
                   >
                     9:46
-                  </p>
+                  </span>
                 </td>
               </tr>
               <tr
-                class="MuiTableRow-root css-1xtozoh-MuiTableRow-root"
                 data-testid="track-view-row-track-0003"
               >
                 <td
-                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-16u93bd-MuiTableCell-root"
+                  style="text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--color-border); vertical-align: top; width: 48px;"
                 >
-                  <p
-                    class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  <span
+                    class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+                    data-color="secondary"
+                    data-type="supporting"
                   >
                     3
-                  </p>
+                  </span>
                 </td>
                 <td
-                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-1cbhj8b-MuiTableCell-root"
+                  style="text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--color-border); vertical-align: top;"
                 >
-                  <div
-                    class="MuiBox-root css-0"
-                  >
-                    <p
-                      class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  <div>
+                    <div
                       data-testid="track-view-title-track-0003"
                     >
-                      Blue in Green
-                    </p>
+                      <span
+                        class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+                        data-color="secondary"
+                        data-type="supporting"
+                      >
+                        Blue in Green
+                      </span>
+                    </div>
                   </div>
                 </td>
                 <td
-                  class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeSmall css-n27wgn-MuiTableCell-root"
+                  style="text-align: right; padding: 4px 8px; border-bottom: 1px solid var(--color-border); vertical-align: top; width: 72px;"
                 >
-                  <p
-                    class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+                  <span
+                    class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+                    data-color="secondary"
+                    data-type="supporting"
                   >
                     5:37
-                  </p>
+                  </span>
                 </td>
               </tr>
             </tbody>
@@ -647,55 +851,67 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in l
       <section
         aria-label="Album credits"
         aria-labelledby="album-credits-heading"
-        class="MuiBox-root css-0"
         data-testid="album-credits-section"
       >
-        <h2
-          class="MuiTypography-root MuiTypography-h6 css-18xxwmt-MuiTypography-root"
-          id="album-credits-heading"
-        >
-          Credits
-        </h2>
         <div
-          class="MuiBox-root css-1kkt86i"
+          style="margin-bottom: 8px;"
+        >
+          <h2
+            class="astryx-heading level-2 primary x1tgivj0 x1xvnhcw x1cpk1wn x12yy4cs x1lliihq"
+            data-color="primary"
+            data-level="2"
+            id="album-credits-heading"
+          >
+            Credits
+          </h2>
+        </div>
+        <div
+          style="display: flex; flex-direction: column; gap: 4px;"
         >
           <div
-            class="MuiBox-root css-wwjdvd"
             data-testid="credit-row-composer"
+            style="display: flex; gap: 8px; align-items: baseline;"
           >
-            <p
-              class="MuiTypography-root MuiTypography-body2 css-1gi1fdj-MuiTypography-root"
+            <span
+              class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j x1e4wzip xt0psk2"
+              data-color="secondary"
+              data-type="supporting"
             >
               Composer
               :
-            </p>
-            <p
-              class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+            </span>
+            <span
+              class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+              data-color="secondary"
+              data-type="supporting"
             >
               Miles Davis
-            </p>
+            </span>
           </div>
           <div
-            class="MuiBox-root css-wwjdvd"
             data-testid="credit-row-ensemble"
+            style="display: flex; gap: 8px; align-items: baseline;"
           >
-            <p
-              class="MuiTypography-root MuiTypography-body2 css-1gi1fdj-MuiTypography-root"
+            <span
+              class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j x1e4wzip xt0psk2"
+              data-color="secondary"
+              data-type="supporting"
             >
               Ensemble
               :
-            </p>
-            <p
-              class="MuiTypography-root MuiTypography-body2 css-7ctihp-MuiTypography-root"
+            </span>
+            <span
+              class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+              data-color="secondary"
+              data-type="supporting"
             >
               Miles Davis Sextet
-            </p>
+            </span>
           </div>
         </div>
       </section>
       <section
         aria-label="Discogs sync"
-        class="MuiBox-root css-0"
       >
         <div
           data-testid="sync-panel"

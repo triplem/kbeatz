@@ -6,6 +6,12 @@ import { HStack } from '@astryxdesign/core/HStack'
 import { ArrowUp, ArrowDown } from 'lucide-react'
 import type { SortDirection, SortField } from './album-filters'
 
+/** Sort field option values (domain constants) + their i18n label keys. */
+const SORT_OPTIONS: ReadonlyArray<{ value: SortField; labelKey: string }> = [
+  { value: 'albumArtist', labelKey: 'sortPreference.albumArtist' },
+  { value: 'composer', labelKey: 'sortPreference.composer' },
+]
+
 interface SortPreferenceProps {
   readonly value: SortField
   readonly onChange: (sort: SortField) => void
@@ -42,10 +48,7 @@ export function SortPreference({ value, onChange, direction, onDirectionChange }
         label={t('sortPreference.label')}
         value={value}
         onChange={handleChange}
-        options={[
-          { value: 'albumArtist', label: t('sortPreference.albumArtist') },
-          { value: 'composer', label: t('sortPreference.composer') },
-        ]}
+        options={SORT_OPTIONS.map((o) => ({ value: o.value, label: t(o.labelKey) }))}
       />
       <IconButton
         variant="secondary"
