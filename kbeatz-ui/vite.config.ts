@@ -109,14 +109,11 @@ export default defineConfig(({ command }) => ({
     testTimeout: 20000,
     hookTimeout: 20000,
     // Astryx ships ESM with deep subpath exports (e.g. @astryxdesign/core/Stack)
-    // and depends on @stylexjs/stylex. MUI (still used by not-yet-migrated
-    // features) re-exports from react-transition-group via directory imports the
-    // node resolver cannot handle when externalised. Inlining all of them forces
-    // Vite to transform their ESM so Vitest's resolver handles the imports.
-    // Drop the @mui/@emotion patterns once MUI is fully removed.
+    // and depends on @stylexjs/stylex. Inlining them forces Vite to transform
+    // their ESM so Vitest's resolver handles the subpath imports.
     server: {
       deps: {
-        inline: [/@astryxdesign\//, /@stylexjs\//, /@mui\//, /@emotion\//],
+        inline: [/@astryxdesign\//, /@stylexjs\//],
       },
     },
     coverage: {

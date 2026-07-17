@@ -1,12 +1,12 @@
 [
   {
-    "name": "first-load critical path (JS, gzipped) - 280 kB: #856 splits MUI/emotion + React-runtime vendor code out of the entry into long-cached chunks. The entry HTML modulepreloads all three (index + mui + react-vendor), so the budget measures their combined gzip. ~263 kB today; 280 kB gives headroom for the chunk-boundary overhead the split adds while staying close to the original <=260 kB single-chunk intent (UI-NFR-01). Acceptable for a LAN app.",
+    "name": "first-load critical path (JS, gzipped) - 240 kB: #856 splits the design-system (Astryx + StyleX) and React-runtime vendor code out of the entry into long-cached chunks. The entry HTML modulepreloads all three (index + astryx + react-vendor), so the budget measures their combined gzip. ~222 kB today after the MUI->Astryx migration (#1011) dropped MUI/emotion from the bundle; 240 kB gives headroom for chunk-boundary overhead while staying well under the original <=260 kB intent (UI-NFR-01).",
     "path": [
       "dist/assets/index-*.js",
-      "dist/assets/mui-*.js",
+      "dist/assets/astryx-*.js",
       "dist/assets/react-vendor-*.js"
     ],
-    "limit": "280 kB",
+    "limit": "240 kB",
     "gzip": true
   }
 ]
