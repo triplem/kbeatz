@@ -102,22 +102,24 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in d
           </p>
           <ul
             aria-label="Genre tags"
-            class="MuiBox-root css-1bkyin3"
             data-testid="hero-genre-chips"
             role="list"
+            style="display: flex; flex-wrap: wrap; gap: 6px; padding: 0px; margin: 0px; list-style: none;"
           >
             <li
               role="listitem"
             >
-              <div
-                class="MuiChip-root MuiChip-outlined MuiChip-sizeSmall MuiChip-colorDefault css-9bqyez-MuiChip-root"
+              <span
+                class="astryx-token gray sm x3nfvp2 x6s0dn4 xzye2dw xt970qd xc342km xng3xce xx3sua9 xjb2p0i x1ltkj2j x1e4wzip xuxw1ft x1hl2dhg x193iq5w xb3r6kr xzydfjl x141an7d xf314gf xspzpui xru1t7f"
+                data-color="gray"
+                data-size="sm"
               >
                 <span
-                  class="MuiChip-label css-19m61dl-MuiChip-label"
+                  class="xb3r6kr xlyipyv xuxw1ft xeuugli"
                 >
                   Jazz
                 </span>
-              </div>
+              </span>
             </li>
           </ul>
         </div>
@@ -453,22 +455,24 @@ exports[`AlbumDetail visual regression > matches the loaded-detail snapshot in l
           </p>
           <ul
             aria-label="Genre tags"
-            class="MuiBox-root css-1bkyin3"
             data-testid="hero-genre-chips"
             role="list"
+            style="display: flex; flex-wrap: wrap; gap: 6px; padding: 0px; margin: 0px; list-style: none;"
           >
             <li
               role="listitem"
             >
-              <div
-                class="MuiChip-root MuiChip-outlined MuiChip-sizeSmall MuiChip-colorDefault css-9bqyez-MuiChip-root"
+              <span
+                class="astryx-token gray sm x3nfvp2 x6s0dn4 xzye2dw xt970qd xc342km xng3xce xx3sua9 xjb2p0i x1ltkj2j x1e4wzip xuxw1ft x1hl2dhg x193iq5w xb3r6kr xzydfjl x141an7d xf314gf xspzpui xru1t7f"
+                data-color="gray"
+                data-size="sm"
               >
                 <span
-                  class="MuiChip-label css-19m61dl-MuiChip-label"
+                  class="xb3r6kr xlyipyv xuxw1ft xeuugli"
                 >
                   Jazz
                 </span>
-              </div>
+              </span>
             </li>
           </ul>
         </div>
