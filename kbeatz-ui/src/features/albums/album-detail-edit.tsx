@@ -2,21 +2,13 @@ import { Fragment, useCallback, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
-import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
-import IconButton from '@mui/material/IconButton'
-import Popover, { type PopoverOrigin } from '@mui/material/Popover'
-import Typography from '@mui/material/Typography'
-import Table from '@mui/material/Table'
-import TableBody from '@mui/material/TableBody'
-import TableCell from '@mui/material/TableCell'
-import TableContainer from '@mui/material/TableContainer'
-import TableHead from '@mui/material/TableHead'
-import TableRow from '@mui/material/TableRow'
-import ArrowBackIcon from '@mui/icons-material/ArrowBack'
-import CancelIcon from '@mui/icons-material/Cancel'
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
-import { visuallyHidden } from '@mui/utils'
+import { Button } from '@astryxdesign/core/Button'
+import { IconButton } from '@astryxdesign/core/IconButton'
+import { Popover } from '@astryxdesign/core/Popover'
+import { Heading } from '@astryxdesign/core/Heading'
+import { Text } from '@astryxdesign/core/Text'
+import { Icon } from '@astryxdesign/core/Icon'
+import { ArrowLeft, X, Info } from 'lucide-react'
 import { type Album, type AlbumDetail as AlbumDetailModel, AlbumsService, type Track } from '../../api/generated'
 import { ApiError } from '../../api/generated/core/ApiError'
 import { logger } from '../../lib/logger'
@@ -42,6 +34,13 @@ const ALBUM_FIELDS: ReadonlyArray<{ key: keyof AlbumDetailModel; labelKey: strin
   { key: 'conductor', labelKey: 'conductor', fieldName: 'CONDUCTOR' },
   { key: 'ensemble', labelKey: 'ensemble', fieldName: 'ENSEMBLE' },
 ]
+
+const cellStyle: React.CSSProperties = {
+  textAlign: 'left',
+  padding: '4px 8px',
+  borderBottom: '1px solid var(--color-border)',
+  verticalAlign: 'middle',
+}
 
 interface PathDisplayProps {
   readonly path: string
@@ -75,18 +74,16 @@ function PathDisplay({ path, label, testId }: PathDisplayProps) {
   }, [path])
 
   return (
-    <Box
-      component="span"
+    <span
       data-testid={testId}
-      sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, minWidth: 0, maxWidth: '100%' }}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0, maxWidth: '100%' }}
     >
-      <Box
-        component="span"
+      <span
         title={path}
-        sx={{
+        style={{
           fontFamily: 'monospace',
           fontSize: '0.8125rem',
-          color: 'text.primary',
+          color: 'var(--color-text-primary)',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -94,19 +91,17 @@ function PathDisplay({ path, label, testId }: PathDisplayProps) {
         }}
       >
         {path}
-      </Box>
+      </span>
       <Button
         type="button"
-        size="small"
-        variant="outlined"
+        size="sm"
+        variant="secondary"
         onClick={handleCopy}
         aria-label={t('albumDetail.copyPath', { label })}
         data-testid={testId !== undefined ? `${testId}-copy` : undefined}
-        sx={{ flexShrink: 0, minHeight: 44, minWidth: 44, px: 1, fontSize: '0.75rem' }}
-      >
-        {copied ? t('albumDetail.copied') : t('albumDetail.copy')}
-      </Button>
-    </Box>
+        label={copied ? t('albumDetail.copied') : t('albumDetail.copy')}
+      />
+    </span>
   )
 }
 
@@ -131,14 +126,9 @@ export interface AlbumDetailEditProps {
 /**
  * AlbumDetailEdit - full edit layout with all Vorbis Comment tag fields.
  *
- * Extracted from the original AlbumDetail monolith. Owns:
- * - dirtyFields, dirtyTrackFields: pending unsaved changes
- * - isSaving: PATCH in flight
- * - confirmOpen: ConfirmWriteDialog state
- * - batchSaveError: last failed save message
- * - cancelGuardOpen: in-component guard for Cancel-with-dirty
- *
- * Does NOT own: isEditMode, syncedAlbum (those belong to AlbumDetail wrapper).
+ * Owns dirtyFields/dirtyTrackFields (pending unsaved changes), isSaving,
+ * confirmOpen (ConfirmWriteDialog), batchSaveError, and cancelGuardOpen.
+ * Does NOT own isEditMode / syncedAlbum (those belong to the AlbumDetail wrapper).
  */
 export function AlbumDetailEdit({
   album,
@@ -153,41 +143,15 @@ export function AlbumDetailEdit({
   const { t } = useTranslation()
   const queryClient = useQueryClient()
 
-  /** True while the bulk PATCH request is in flight; disables all edit fields during save. */
   const [isSaving, setIsSaving] = useState(false)
-
-  // Local UI state for the confirmation dialog flow
   const [confirmOpen, setConfirmOpen] = useState(false)
-
-  /**
-   * Accumulated dirty (pending) album-level tag changes not yet saved to the backend.
-   * Keys are Vorbis Comment field names (e.g. "ALBUM", "ALBUMARTIST").
-   * Values are the edited strings. Later commits for the same field overwrite earlier ones.
-   * Cleared after a successful batch Save or after a Discogs sync.
-   */
   const [dirtyFields, setDirtyFields] = useState<Record<string, string>>({})
-
-  /**
-   * Accumulated dirty (pending) track-level tag changes not yet saved to the backend.
-   * Outer key is the track id; inner key is the Vorbis Comment field name (e.g. "TITLE").
-   * Later commits for the same track+field overwrite earlier ones.
-   * Cleared after a successful batch Save or after a Discogs sync.
-   */
   const [dirtyTrackFields, setDirtyTrackFields] = useState<Record<string, Record<string, string>>>({})
-
-  /** Error message from the most recent failed batch save, cleared on next Save attempt. */
   const [batchSaveError, setBatchSaveError] = useState<string | null>(null)
-
-  /** True when the user clicked Cancel with dirty fields - shows the in-component guard. */
   const [cancelGuardOpen, setCancelGuardOpen] = useState(false)
 
   const hasAnyDirty = Object.keys(dirtyFields).length > 0 || Object.keys(dirtyTrackFields).length > 0
 
-  /**
-   * Navigation blocker: intercepts all React Router navigations (back button,
-   * in-app links, browser history) when there are uncommitted dirty fields.
-   * When blocked, the NavigationGuardDialog (router variant) is shown.
-   */
   const blocker = useUnsavedChangesBlocker(hasAnyDirty)
 
   const handleNavGuardConfirm = useCallback(() => {
@@ -202,23 +166,11 @@ export function AlbumDetailEdit({
     }
   }, [blocker])
 
-  /**
-   * Called by EditableField when the user presses Tab or Enter on an album-level field
-   * (dirty-commit mode). Accumulates the change into dirtyFields without firing a network
-   * request. The Save button becomes enabled when at least one dirty field exists.
-   */
   const handleAlbumTagCommit = useCallback((field: string, value: string) => {
     setDirtyFields((prev) => ({ ...prev, [field]: value }))
   }, [])
 
-  /**
-   * Sentinel onSave passed to album-level EditableField instances.
-   * Album fields use onCommit + batch Save; onSave is never called in normal usage
-   * because EditableField only calls onSave when onCommit is absent.
-   * Rejects immediately if somehow invoked so the bug is visible in tests and logs.
-   */
   const handleAlbumTagSave = useCallback(
-    // Parameters are intentionally unused: album fields commit via onCommit, not onSave.
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     (_field: string, _value: string): Promise<void> => {
       const err = new Error('Album field onSave called unexpectedly - use onCommit')
@@ -228,27 +180,17 @@ export function AlbumDetailEdit({
     [],
   )
 
-  /**
-   * Opens the confirmation dialog for the batch save triggered by the Save button.
-   * Clears any previous batch-save error so the user gets a clean retry attempt.
-   */
   const handleSaveButtonClick = useCallback(() => {
     if (!hasAnyDirty) return
     setBatchSaveError(null)
     setConfirmOpen(true)
   }, [hasAnyDirty])
 
-  /**
-   * User clicked "Write tags" in the confirmation dialog.
-   * Sends all dirty album-level and track-level fields in a single bulk PATCH request.
-   * Clears both dirty states on success.
-   */
   const handleConfirm = useCallback(async () => {
     setConfirmOpen(false)
 
     if (!albumId) return
 
-    // Build the bulk request: album fields first, then track fields
     const albumFields = Object.entries(dirtyFields).map(([field, value]) => ({ field, value }))
     const trackFields = Object.entries(dirtyTrackFields).flatMap(([trackId, fields]) =>
       Object.entries(fields).map(([field, value]) => ({ trackId, field, value }))
@@ -262,12 +204,9 @@ export function AlbumDetailEdit({
       })
       setDirtyFields({})
       setDirtyTrackFields({})
-      // Notify parent that local edits now exist (for SyncPanel overwrite-warning dialog)
       onSaveComplete?.()
-      // Invalidate so grid reflects updated metadata
       void queryClient.invalidateQueries({ queryKey: ['albums'] })
     } catch (err) {
-      // On failure, keep dirty fields so the user can retry.
       const apiErr = err instanceof ApiError ? err : null
       const serverCode = typeof apiErr?.body === 'object' && apiErr.body !== null
         ? (apiErr.body as Record<string, unknown>)['code']
@@ -294,19 +233,10 @@ export function AlbumDetailEdit({
     }
   }, [albumId, dirtyFields, dirtyTrackFields, onSaveComplete, queryClient, t])
 
-  /**
-   * User clicked "Cancel" or pressed Escape on the ConfirmWriteDialog.
-   * Closes the dialog without applying any changes; dirty fields remain intact.
-   */
   const handleConfirmDialogCancel = useCallback(() => {
     setConfirmOpen(false)
   }, [])
 
-  /**
-   * User clicked the Cancel button (top of edit form).
-   * - If no dirty fields: exit edit mode immediately.
-   * - If dirty fields: show the in-component NavigationGuardDialog.
-   */
   const handleCancelClick = useCallback(() => {
     if (!hasAnyDirty) {
       onExitEditMode()
@@ -315,7 +245,6 @@ export function AlbumDetailEdit({
     setCancelGuardOpen(true)
   }, [hasAnyDirty, onExitEditMode])
 
-  /** User confirmed the cancel guard - discard dirty state and exit edit mode. */
   const handleCancelGuardConfirm = useCallback(() => {
     setCancelGuardOpen(false)
     setDirtyFields({})
@@ -324,15 +253,10 @@ export function AlbumDetailEdit({
     onExitEditMode()
   }, [onExitEditMode])
 
-  /** User cancelled the cancel guard - stay in edit mode with dirty fields intact. */
   const handleCancelGuardCancel = useCallback(() => {
     setCancelGuardOpen(false)
   }, [])
 
-  /**
-   * Called by track-level EditableField instances when the user presses Tab or Enter.
-   * Accumulates the change into dirtyTrackFields without firing a network request.
-   */
   const handleTrackFieldCommit = useCallback(
     (trackId: string) =>
       (field: string, value: string) => {
@@ -344,13 +268,7 @@ export function AlbumDetailEdit({
     [],
   )
 
-  /**
-   * Sentinel onSave passed to track-level EditableField instances.
-   * Track fields use onCommit + batch Save; onSave is never called in normal usage.
-   * Rejects immediately if somehow invoked so the bug is visible in tests and logs.
-   */
   const handleTrackTagSaveSentinel = useCallback(
-    // Parameters are intentionally unused: track fields commit via onCommit, not onSave.
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     (_trackId: string) =>
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -363,21 +281,22 @@ export function AlbumDetailEdit({
   )
 
   const handleSyncCompleteInternal = useCallback((updated: Album) => {
-    // Sync completed - Discogs data overwrites any local edits; clear dirty state so
-    // the Save button does not re-apply stale values on top of the fresh sync result.
     setDirtyFields({})
     setDirtyTrackFields({})
     setBatchSaveError(null)
     onSyncComplete(updated)
   }, [onSyncComplete])
 
-  // Total dirty count = album fields + unique track fields across all tracks
   const albumDirtyCount = Object.keys(dirtyFields).length
   const trackDirtyCount = Object.values(dirtyTrackFields).reduce(
     (sum, fields) => sum + Object.keys(fields).length,
     0,
   )
   const dirtyCount = albumDirtyCount + trackDirtyCount
+
+  const saveAriaLabel = dirtyCount > 0
+    ? t('albumDetail.saveButtonLabel', { count: dirtyCount })
+    : t('albumDetail.saveButtonLabelClean')
 
   return (
     <>
@@ -400,150 +319,102 @@ export function AlbumDetailEdit({
         onConfirm={handleCancelGuardConfirm}
         onCancel={handleCancelGuardCancel}
       />
-      <Box
-        component="article"
+      <article
         aria-label={t('albumDetail.albumTagsSection')}
-        sx={{
+        style={{
           maxWidth: 1200,
-          mx: 'auto',
-          p: { xs: 2, md: 3 },
+          margin: '0 auto',
+          padding: 24,
           display: 'flex',
           flexDirection: 'column',
-          gap: 3,
+          gap: 24,
         }}
       >
-        {/*
-          Visually-hidden page heading: the album is the subject of this route,
-          so it is exposed as the single <h1> to anchor the heading outline
-          (WCAG 1.3.1 / 2.4.6). Section titles below render as <h2>/<h3>.
-        */}
-        <Typography variant="h1" component="h1" sx={visuallyHidden}>
-          {album.album}
-        </Typography>
+        {/* Visually-hidden page heading anchoring the outline (WCAG 1.3.1 / 2.4.6). */}
+        <div style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}>
+          <h1>{album.album}</h1>
+        </div>
 
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
           <Button
             type="button"
-            variant="outlined"
-            startIcon={<ArrowBackIcon />}
+            variant="secondary"
+            icon={<Icon icon={ArrowLeft} />}
             onClick={() => { navigate(-1) }}
             data-testid="back-button"
-            sx={{ alignSelf: 'flex-start', minHeight: 44 }}
-          >
-            {t('common.back')}
-          </Button>
+            label={t('common.back')}
+          />
 
           <Button
             ref={cancelButtonRef}
             type="button"
-            variant="outlined"
-            color="secondary"
-            startIcon={<CancelIcon />}
+            variant="secondary"
+            icon={<Icon icon={X} />}
             onClick={handleCancelClick}
             data-testid="cancel-edit-button"
-            sx={{ alignSelf: 'flex-start', minHeight: 44 }}
-          >
-            {t('albumDetail.cancelButton')}
-          </Button>
+            label={t('albumDetail.cancelButton')}
+          />
 
           <Button
             type="button"
-            variant="contained"
+            variant="primary"
             onClick={handleSaveButtonClick}
-            disabled={!hasAnyDirty || isSaving}
+            isDisabled={!hasAnyDirty || isSaving}
             data-testid="save-button-top"
-            aria-label={
-              dirtyCount > 0
-                ? t('albumDetail.saveButtonLabel', { count: dirtyCount })
-                : t('albumDetail.saveButtonLabelClean')
-            }
-            sx={{ alignSelf: 'flex-start', minHeight: 44 }}
-          >
-            {isSaving ? t('albumDetail.saving') : t('albumDetail.saveButton')}
-          </Button>
-        </Box>
+            aria-label={saveAriaLabel}
+            label={isSaving ? t('albumDetail.saving') : t('albumDetail.saveButton')}
+          />
+        </div>
 
         <AlbumHeroHeader album={album} />
 
-        <Box
-          data-testid="edit-layout"
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: '1fr',
-            gap: 3,
-          }}
-        >
-          <Box
-            data-testid="metadata-column"
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 2,
-            }}
-          >
+        <div data-testid="edit-layout" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 24 }}>
+          <div data-testid="metadata-column" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {album.hasCoverArt && (
-              <Box
-                component="img"
+              <img
                 src={`/api/v1/albums/${album.id}/cover`}
                 alt={t('albumDetail.coverAlt', { album: album.album })}
                 loading="lazy"
                 data-testid="album-cover"
-                sx={{
+                style={{
                   width: '100%',
                   maxWidth: 320,
                   aspectRatio: '1 / 1',
                   objectFit: 'cover',
-                  borderRadius: 2,
-                  boxShadow: 3,
+                  borderRadius: 'var(--radius-container, 12px)',
+                  boxShadow: 'var(--shadow-3, 0 4px 12px rgba(0,0,0,0.15))',
                 }}
               />
             )}
 
-            <Box component="section" aria-labelledby="album-tags-heading">
-              <Typography id="album-tags-heading" variant="h6" component="h2" sx={{ mb: 2 }}>
-                {t('albumDetail.sectionTitle')}
-              </Typography>
+            <section aria-labelledby="album-tags-heading">
+              <div style={{ marginBottom: 16 }}>
+                <Heading level={2} id="album-tags-heading">
+                  {t('albumDetail.sectionTitle')}
+                </Heading>
+              </div>
               {isSaving && (
-                <Typography
-                  role="status"
-                  aria-live="polite"
-                  component="p"
-                  variant="body2"
-                  color="text.secondary"
-                  data-testid="album-saving-indicator"
-                  sx={{ mb: 1 }}
-                >
-                  {t('albumDetail.saving')}
-                </Typography>
+                <p role="status" aria-live="polite" data-testid="album-saving-indicator" style={{ margin: '0 0 8px' }}>
+                  <Text type="supporting">{t('albumDetail.saving')}</Text>
+                </p>
               )}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, minWidth: 0 }}>
-                <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500, flexShrink: 0 }}>
-                  {t('albumDetail.fields.albumPath')}
-                </Typography>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, minWidth: 0 }}>
+                <Text type="supporting" weight="medium">{t('albumDetail.fields.albumPath')}</Text>
                 <PathDisplay
                   path={album.albumPath}
                   label={t('albumDetail.fields.albumPath')}
                   testId="album-path"
                 />
-              </Box>
-              <Typography
-                id="edit-scope-notice"
-                data-testid="edit-scope-notice"
-                component="p"
-                variant="body2"
-                color="text.secondary"
-                sx={{ mb: 1 }}
-              >
-                {t('albumDetail.editScopeNotice', { count: album.tracks.length })}
-              </Typography>
-              <Box
-                component="dl"
+              </div>
+              <p id="edit-scope-notice" data-testid="edit-scope-notice" style={{ margin: '0 0 8px' }}>
+                <Text type="supporting">{t('albumDetail.editScopeNotice', { count: album.tracks.length })}</Text>
+              </p>
+              <dl
                 id="album-tags"
-                sx={{
-                  m: 0,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 2,
+                style={{
+                  margin: 0,
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius-container, 12px)',
                   overflow: 'hidden',
                 }}
               >
@@ -566,67 +437,53 @@ export function AlbumDetailEdit({
                     />
                   )
                 })}
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1.5, mt: 2 }}>
+              </dl>
+              <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginTop: 16 }}>
                 <Button
                   type="button"
-                  variant="contained"
+                  variant="primary"
                   onClick={handleSaveButtonClick}
-                  disabled={!hasAnyDirty || isSaving}
+                  isDisabled={!hasAnyDirty || isSaving}
                   data-testid="save-button"
-                  aria-label={
-                    dirtyCount > 0
-                      ? t('albumDetail.saveButtonLabel', { count: dirtyCount })
-                      : t('albumDetail.saveButtonLabelClean')
-                  }
-                  sx={{ minHeight: 44 }}
-                >
-                  {isSaving ? t('albumDetail.saving') : t('albumDetail.saveButton')}
-                </Button>
+                  aria-label={saveAriaLabel}
+                  label={isSaving ? t('albumDetail.saving') : t('albumDetail.saveButton')}
+                />
                 {dirtyCount > 0 && (
-                  <Typography
-                    component="span"
-                    variant="body2"
-                    color="text.secondary"
-                    data-testid="dirty-count"
-                  >
-                    {t('albumDetail.dirtyCount', { count: dirtyCount })}
-                  </Typography>
+                  <span data-testid="dirty-count">
+                    <Text type="supporting">{t('albumDetail.dirtyCount', { count: dirtyCount })}</Text>
+                  </span>
                 )}
                 {batchSaveError !== null && (
-                  <Typography
+                  <p
                     role="alert"
-                    component="p"
-                    variant="body2"
-                    color="error"
                     data-testid="batch-save-error"
-                    sx={{ m: 0, width: '100%' }}
+                    style={{ margin: 0, width: '100%', color: 'var(--color-error, #d6336c)' }}
                   >
                     {t('editableField.saveFailed')}: {batchSaveError}
-                  </Typography>
+                  </p>
                 )}
-              </Box>
-            </Box>
+              </div>
+            </section>
 
             <OtherTagsSection />
 
             {album.discogsId !== undefined && (
-              <Box component="section" aria-label={t('albumDetail.discogsSection')}>
+              <section aria-label={t('albumDetail.discogsSection')}>
                 <SyncPanel album={album} onSyncComplete={handleSyncCompleteInternal} hasLocalEdits={hasLocalEdits} />
-              </Box>
+              </section>
             )}
-          </Box>
+          </div>
 
-          <Box data-testid="tracklist-column" sx={{ minWidth: 0 }}>
-            <Box component="section" aria-label={t('albumDetail.tracksSection')}>
-              <Typography variant="h6" component="h2" sx={{ mb: 2 }}>
-                {t('albumDetail.tracksSectionTitle')}
-              </Typography>
+          <div data-testid="tracklist-column" style={{ minWidth: 0 }}>
+            <section aria-label={t('albumDetail.tracksSection')}>
+              <div style={{ marginBottom: 16 }}>
+                <Heading level={2}>{t('albumDetail.tracksSectionTitle')}</Heading>
+              </div>
               {album.tracks.length === 0
                 ? (
-                  <Typography component="p" variant="body2" color="text.secondary" sx={{ py: 2 }}>
-                    {t('albumDetail.noTracks')}
-                  </Typography>
+                  <p style={{ padding: '16px 0' }}>
+                    <Text type="supporting">{t('albumDetail.noTracks')}</Text>
+                  </p>
                 )
                 : (
                   <TrackList
@@ -637,10 +494,10 @@ export function AlbumDetailEdit({
                     disabled={isSaving}
                   />
                 )}
-            </Box>
-          </Box>
-        </Box>
-      </Box>
+            </section>
+          </div>
+        </div>
+      </article>
     </>
   )
 }
@@ -655,17 +512,17 @@ export function AlbumDetailEdit({
 function OtherTagsSection() {
   const { t } = useTranslation()
   return (
-    <Box component="section" aria-label={t('albumDetail.otherTagsSection')} data-testid="other-tags-section">
-      <Typography variant="subtitle1" component="h2" sx={{ mb: 0.5 }}>
-        {t('albumDetail.otherTagsTitle')}
-      </Typography>
-      <Typography component="p" variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-        {t('albumDetail.otherTagsDescription')}
-      </Typography>
-      <Typography component="p" variant="body2" color="text.secondary" data-testid="other-tags-empty">
-        {t('albumDetail.otherTagsEmpty')}
-      </Typography>
-    </Box>
+    <section aria-label={t('albumDetail.otherTagsSection')} data-testid="other-tags-section">
+      <div style={{ marginBottom: 4 }}>
+        <Heading level={2}>{t('albumDetail.otherTagsTitle')}</Heading>
+      </div>
+      <p style={{ margin: '0 0 8px' }}>
+        <Text type="supporting">{t('albumDetail.otherTagsDescription')}</Text>
+      </p>
+      <p data-testid="other-tags-empty" style={{ margin: 0 }}>
+        <Text type="supporting">{t('albumDetail.otherTagsEmpty')}</Text>
+      </p>
+    </section>
   )
 }
 
@@ -688,29 +545,31 @@ function TrackList({ tracks, albumArtist, onSave, onCommit, disabled = false }: 
   const { groups, isMultiDisc } = groupByDisc(tracks)
 
   return (
-    <TableContainer>
-      <Table size="small" aria-label={t('albumDetail.tracksSectionTitle')}>
-        <TableHead>
-          <TableRow>
-            <TableCell scope="col">{t('albumDetail.trackColumns.position')}</TableCell>
-            <TableCell scope="col">{t('albumDetail.trackColumns.title')}</TableCell>
-            <TableCell scope="col">{t('albumDetail.trackColumns.artist')}</TableCell>
-            <TableCell scope="col">{t('albumDetail.trackColumns.duration')}</TableCell>
-            <TableCell scope="col" aria-label={t('albumDetail.trackColumns.actions')} />
-          </TableRow>
-        </TableHead>
-        <TableBody>
+    <div style={{ overflowX: 'auto' }}>
+      <table aria-label={t('albumDetail.tracksSectionTitle')} style={{ borderCollapse: 'collapse', width: '100%' }}>
+        <thead>
+          <tr>
+            <th scope="col" style={cellStyle}><Text type="label">{t('albumDetail.trackColumns.position')}</Text></th>
+            <th scope="col" style={cellStyle}><Text type="label">{t('albumDetail.trackColumns.title')}</Text></th>
+            <th scope="col" style={cellStyle}><Text type="label">{t('albumDetail.trackColumns.artist')}</Text></th>
+            <th scope="col" style={cellStyle}><Text type="label">{t('albumDetail.trackColumns.duration')}</Text></th>
+            <th scope="col" style={cellStyle} aria-label={t('albumDetail.trackColumns.actions')} />
+          </tr>
+        </thead>
+        <tbody>
           {groups.map((group, groupIndex) => (
             <Fragment key={`${group.discLabel ?? 'no-disc'}-${groupIndex}`}>
               {isMultiDisc && group.discLabel !== null && (
-                <TableRow>
-                  <TableCell
+                <tr>
+                  <td
                     colSpan={5}
-                    sx={{ fontWeight: 600, color: 'text.secondary', bgcolor: 'action.hover' }}
+                    style={{ ...cellStyle, fontWeight: 600, background: 'var(--color-muted, rgba(128,128,128,0.1))' }}
                   >
-                    {t('albumDetail.discHeader', { number: group.discLabel })}
-                  </TableCell>
-                </TableRow>
+                    <Text type="supporting" weight="semibold">
+                      {t('albumDetail.discHeader', { number: group.discLabel })}
+                    </Text>
+                  </td>
+                </tr>
               )}
               {group.tracks.map((track, trackIndex) => (
                 <TrackRow
@@ -724,15 +583,11 @@ function TrackList({ tracks, albumArtist, onSave, onCommit, disabled = false }: 
               ))}
             </Fragment>
           ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
+        </tbody>
+      </table>
+    </div>
   )
 }
-
-/** Popover anchor/transform origin for the file path popover. */
-const FILE_POPOVER_ANCHOR_ORIGIN: PopoverOrigin = { vertical: 'bottom', horizontal: 'right' }
-const FILE_POPOVER_TRANSFORM_ORIGIN: PopoverOrigin = { vertical: 'top', horizontal: 'right' }
 
 interface TrackRowProps {
   readonly track: Track
@@ -759,21 +614,14 @@ function TrackRow({ track, albumArtist, onSave, onCommit, disabled = false }: Tr
       ? `${track.artist} - ${track.title}`
       : undefined
 
-  const [popoverAnchor, setPopoverAnchor] = useState<HTMLButtonElement | null>(null)
-  const popoverOpen = Boolean(popoverAnchor)
-  const popoverId = popoverOpen ? `track-${track.id}-file-popover` : undefined
-
-  const handleInfoClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    setPopoverAnchor(event.currentTarget)
-  }, [])
-
-  const handlePopoverClose = useCallback(() => {
-    setPopoverAnchor(null)
-  }, [])
+  // Astryx Popover keeps its content mounted, so drive it in controlled mode and
+  // only render the file-path content when open. This keeps the path out of the
+  // DOM until the info button is activated.
+  const [pathOpen, setPathOpen] = useState(false)
 
   return (
-    <TableRow data-testid={`track-row-${track.id}`} hover>
-      <TableCell sx={{ verticalAlign: 'middle' }}>
+    <tr data-testid={`track-row-${track.id}`}>
+      <td style={cellStyle}>
         <EditableField
           label={t('albumDetail.fields.trackNumber')}
           value={track.trackNumber}
@@ -784,8 +632,8 @@ function TrackRow({ track, albumArtist, onSave, onCommit, disabled = false }: Tr
           testIdPrefix={`track-${track.id}`}
           variant="cell"
         />
-      </TableCell>
-      <TableCell sx={{ verticalAlign: 'middle' }}>
+      </td>
+      <td style={cellStyle}>
         <EditableField
           label={t('albumDetail.fields.title')}
           value={track.title}
@@ -797,8 +645,8 @@ function TrackRow({ track, albumArtist, onSave, onCommit, disabled = false }: Tr
           testIdPrefix={`track-${track.id}`}
           variant="cell"
         />
-      </TableCell>
-      <TableCell sx={{ verticalAlign: 'middle' }}>
+      </td>
+      <td style={cellStyle}>
         <EditableField
           label={t('albumDetail.fields.artist')}
           value={track.artist}
@@ -809,41 +657,39 @@ function TrackRow({ track, albumArtist, onSave, onCommit, disabled = false }: Tr
           testIdPrefix={`track-${track.id}`}
           variant="cell"
         />
-      </TableCell>
-      <TableCell sx={{ verticalAlign: 'middle' }}>{durationDisplay}</TableCell>
-      <TableCell sx={{ verticalAlign: 'middle', width: 40, px: 0.5 }}>
-        <IconButton
-          size="small"
-          aria-label={t('albumDetail.showFilePath', { title: track.title ?? track.filePath })}
-          aria-describedby={popoverId}
-          onClick={handleInfoClick}
-          data-testid={`track-${track.id}-file-path-btn`}
-          sx={{ minHeight: 36, minWidth: 36 }}
-        >
-          <InfoOutlinedIcon fontSize="small" />
-        </IconButton>
+      </td>
+      <td style={cellStyle}>
+        <Text type="supporting">{durationDisplay}</Text>
+      </td>
+      <td style={{ ...cellStyle, width: 40, padding: '4px 4px' }}>
         <Popover
-          id={popoverId}
-          open={popoverOpen}
-          anchorEl={popoverAnchor}
-          onClose={handlePopoverClose}
-          anchorOrigin={FILE_POPOVER_ANCHOR_ORIGIN}
-          transformOrigin={FILE_POPOVER_TRANSFORM_ORIGIN}
-          data-testid={`track-${track.id}-file-popover`}
+          placement="end"
+          isOpen={pathOpen}
+          onOpenChange={setPathOpen}
+          content={
+            pathOpen ? (
+              <div data-testid={`track-${track.id}-file-popover`} style={{ padding: 12, maxWidth: 480 }}>
+                <div style={{ marginBottom: 4 }}>
+                  <Text type="supporting">{t('albumDetail.trackColumns.file')}</Text>
+                </div>
+                <PathDisplay
+                  path={track.filePath}
+                  label={t('albumDetail.trackColumns.file')}
+                  testId={`track-${track.id}-file-path`}
+                />
+              </div>
+            ) : null
+          }
         >
-          <Box sx={{ p: 1.5, maxWidth: 480 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-              {t('albumDetail.trackColumns.file')}
-            </Typography>
-            <PathDisplay
-              path={track.filePath}
-              label={t('albumDetail.trackColumns.file')}
-              testId={`track-${track.id}-file-path`}
-            />
-          </Box>
+          <IconButton
+            variant="ghost"
+            size="sm"
+            label={t('albumDetail.showFilePath', { title: track.title ?? track.filePath })}
+            data-testid={`track-${track.id}-file-path-btn`}
+            icon={<Icon icon={Info} />}
+          />
         </Popover>
-      </TableCell>
-    </TableRow>
+      </td>
+    </tr>
   )
 }
-
