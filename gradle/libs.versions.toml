@@ -21,7 +21,7 @@ kotlinx-coroutines = "1.11.0"
 cyclonedx = "3.2.2"
 clikt = "5.1.0"
 kaml = "0.104.0"
-kotlinx-io = "0.9.0"
+kotlinx-io = "0.9.1"
 # Pinned via a dependency constraint in kbeatz.kotlin-base to patch
 # CVE-2026-54512 / CVE-2026-54513 in jackson-databind (pulled transitively by
 # logstash/liquibase).
