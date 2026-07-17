@@ -1,15 +1,13 @@
-import { useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import Card from '@mui/material/Card'
-import CardActionArea from '@mui/material/CardActionArea'
-import CardContent from '@mui/material/CardContent'
-import Box from '@mui/material/Box'
-import Typography from '@mui/material/Typography'
-import Chip from '@mui/material/Chip'
-import Stack from '@mui/material/Stack'
-import Checkbox from '@mui/material/Checkbox'
-import MusicNoteIcon from '@mui/icons-material/MusicNote'
+import { ClickableCard } from '@astryxdesign/core/ClickableCard'
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput'
+import { Token } from '@astryxdesign/core/Token'
+import { Text } from '@astryxdesign/core/Text'
+import { Heading } from '@astryxdesign/core/Heading'
+import { Icon } from '@astryxdesign/core/Icon'
+import { Music } from 'lucide-react'
 import { Album } from '../../api/generated'
 import { formatDate } from '../../lib/i18n'
 import { formatAlbumDuration } from '../../lib/format-duration'
@@ -29,7 +27,7 @@ interface AlbumCardProps {
 }
 
 /**
- * MUI album card.
+ * Album card.
  *
  * Shows cover art (from `/api/v1/albums/{id}/cover`), title, primary
  * attribution (composer if set, else albumArtist), date, genre, and a track
@@ -37,9 +35,11 @@ interface AlbumCardProps {
  * fails to load.
  *
  * Accessibility (WCAG 2.1 AA):
- * - The whole card is a single MUI CardActionArea (a button) so it is one Tab
- *   stop, keyboard activatable (Enter/Space), and shows a visible focus ring.
- * - The action area is labelled with title + artist.
+ * - The whole card is a single Astryx ClickableCard (a button) so it is one Tab
+ *   stop, keyboard activatable, and shows a visible focus ring. The optional
+ *   selection checkbox sits outside the clickable surface to avoid nesting
+ *   interactive controls.
+ * - The card is labelled with title + artist.
  * - The cover image has descriptive alt text; the placeholder is decorative
  *   and hidden from assistive tech (the card label already conveys the album).
  */
@@ -69,133 +69,112 @@ export function AlbumCard({
   const durationSeconds = album.totalDurationSeconds ?? 0
   const hasTrackSummary = trackCount > 0 || durationSeconds > 0
 
+  const wrapperStyle: CSSProperties = {
+    position: 'relative',
+    height: '100%',
+    ...(selectable && selected
+      ? {
+          outline: '2px solid var(--color-accent, #6a4de8)',
+          outlineOffset: -2,
+          borderRadius: 'var(--radius-container, 12px)',
+        }
+      : {}),
+  }
+
   return (
-    <Card
-      variant="outlined"
-      data-testid="album-card"
-      sx={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        ...(selectable ? { position: 'relative' } : {}),
-        ...(selectable && selected
-          ? { outline: 2, outlineColor: 'primary.main', outlineOffset: -2 }
-          : {}),
-      }}
-    >
+    <div data-testid="album-card" style={wrapperStyle}>
       {selectable && (
-        <Box
-          sx={{
+        <div
+          data-testid={`album-select-${album.id}`}
+          style={{
             position: 'absolute',
             top: 4,
             left: 4,
             zIndex: 1,
-            bgcolor: 'background.paper',
-            borderRadius: 1,
+            background: 'var(--color-background-primary, #fff)',
+            borderRadius: 'var(--radius-element, 8px)',
+            padding: 2,
           }}
         >
-          <Checkbox
-            checked={selected}
+          <CheckboxInput
+            label={t('albumSelection.selectAlbum', { album: albumTitle })}
+            isLabelHidden
+            value={selected}
             onChange={handleToggleSelect}
-            data-testid={`album-select-${album.id}`}
-            slotProps={{
-              input: {
-                'aria-label': t('albumSelection.selectAlbum', { album: albumTitle }),
-                'data-testid': `album-select-checkbox-${album.id}`,
-              } as React.InputHTMLAttributes<HTMLInputElement>,
-            }}
+            data-testid={`album-select-checkbox-${album.id}`}
           />
-        </Box>
+        </div>
       )}
-      <CardActionArea
+      <ClickableCard
+        label={t('albumCard.viewDetails', { album: albumTitle, artist: primaryAttribution })}
         onClick={handleNavigate}
-        aria-label={t('albumCard.viewDetails', { album: albumTitle, artist: primaryAttribution })}
-        sx={{
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'stretch',
-        }}
+        padding={0}
+        height="100%"
       >
-        <Box
-          sx={{
-            position: 'relative',
-            width: '100%',
-            aspectRatio: '1 / 1',
-            bgcolor: 'action.hover',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            overflow: 'hidden',
-          }}
-        >
-          {showCover ? (
-            <Box
-              component="img"
-              src={`/api/v1/albums/${album.id}/cover`}
-              alt={t('albumCard.coverAlt', { album: albumTitle })}
-              loading="lazy"
-              onError={() => setCoverError(true)}
-              sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
-          ) : (
-            <MusicNoteIcon
-              aria-hidden="true"
-              data-testid="album-card-placeholder"
-              sx={{ fontSize: 64, color: 'text.disabled' }}
-            />
-          )}
-        </Box>
-        <CardContent sx={{ flexGrow: 1, width: '100%', textAlign: 'left' }}>
-          <Typography
-            variant="subtitle1"
-            component="h2"
-            title={albumTitle}
-            sx={{
-              fontWeight: 600,
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', textAlign: 'left' }}>
+          <div
+            style={{
+              position: 'relative',
+              width: '100%',
+              aspectRatio: '1 / 1',
+              background: 'var(--color-muted, rgba(128, 128, 128, 0.1))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
             }}
           >
-            {albumTitle}
-          </Typography>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            title={primaryAttribution}
-            sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-          >
-            {primaryAttribution}
-          </Typography>
-          <Stack
-            direction="row"
-            spacing={1}
-            sx={{ alignItems: 'center', flexWrap: 'wrap', mt: 1 }}
-          >
-            {album.date && (
-              <Typography variant="caption" color="text.secondary">
-                {formatDate(album.date)}
-              </Typography>
+            {showCover ? (
+              <img
+                src={`/api/v1/albums/${album.id}/cover`}
+                alt={t('albumCard.coverAlt', { album: albumTitle })}
+                loading="lazy"
+                onError={() => setCoverError(true)}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              <span
+                aria-hidden="true"
+                data-testid="album-card-placeholder"
+                style={{ color: 'var(--color-text-disabled)' }}
+              >
+                <Icon icon={Music} size="lg" color="disabled" />
+              </span>
             )}
-            {album.genre && <Chip label={album.genre} size="small" variant="outlined" />}
-          </Stack>
-          {hasTrackSummary && (
-            <Stack direction="row" spacing={1} sx={{ mt: 0.5 }}>
-              {trackCount > 0 && (
-                <Typography variant="caption" color="text.secondary">
-                  {t('albumCard.trackCount', { count: trackCount })}
-                </Typography>
-              )}
-              {durationSeconds > 0 && (
-                <Typography variant="caption" color="text.secondary">
-                  {formatAlbumDuration(durationSeconds)}
-                </Typography>
-              )}
-            </Stack>
-          )}
-        </CardContent>
-      </CardActionArea>
-    </Card>
+          </div>
+          <div
+            style={{
+              flexGrow: 1,
+              width: '100%',
+              padding: 16,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 4,
+            }}
+          >
+            <Heading level={2} maxLines={1}>
+              {albumTitle}
+            </Heading>
+            <Text type="supporting" maxLines={1}>
+              {primaryAttribution}
+            </Text>
+            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+              {album.date && <Text type="supporting">{formatDate(album.date)}</Text>}
+              {album.genre && <Token label={album.genre} size="sm" color="gray" />}
+            </div>
+            {hasTrackSummary && (
+              <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
+                {trackCount > 0 && (
+                  <Text type="supporting">{t('albumCard.trackCount', { count: trackCount })}</Text>
+                )}
+                {durationSeconds > 0 && (
+                  <Text type="supporting">{formatAlbumDuration(durationSeconds)}</Text>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </ClickableCard>
+    </div>
   )
 }

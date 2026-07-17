@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
-import Typography from '@mui/material/Typography'
+import { Text } from '@astryxdesign/core/Text'
 import { type Album } from '../../api/generated'
 import { useAlbum } from './useAlbum'
 import { AlbumDetailView } from './album-detail-view'
@@ -106,23 +106,23 @@ export function AlbumDetail() {
 
   if (loading) {
     return (
-      <Typography component="p" role="status" aria-live="polite">
-        {t('albumDetail.loading')}
-      </Typography>
+      <p role="status" aria-live="polite">
+        <Text>{t('albumDetail.loading')}</Text>
+      </p>
     )
   }
   if (fetchError) {
     return (
-      <Typography component="p" role="alert" color="error">
-        {t('albumDetail.errorPrefix')}{fetchError.message}
-      </Typography>
+      <p role="alert" style={{ color: 'var(--color-error, #d6336c)' }}>
+        <Text>{t('albumDetail.errorPrefix')}{fetchError.message}</Text>
+      </p>
     )
   }
   if (!displayAlbum) {
     return (
-      <Typography component="p" role="alert">
-        {t('albumDetail.notFound')}
-      </Typography>
+      <p role="alert">
+        <Text>{t('albumDetail.notFound')}</Text>
+      </p>
     )
   }
 

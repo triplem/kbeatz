@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import Chip from '@mui/material/Chip'
+import { Token } from '@astryxdesign/core/Token'
 import type { PlanConflict } from '../../api/generated'
 
 interface ConflictBadgeProps {
@@ -8,11 +8,11 @@ interface ConflictBadgeProps {
 }
 
 /**
- * ConflictBadge - a single conflict rendered as a small error chip with its
+ * ConflictBadge - a single conflict rendered as a small error token with its
  * human-readable message. Conflicts cause a release to be skipped on apply.
  *
  * The conflict type is surfaced via a localized label; the message text comes
- * from the server and is shown as the chip's accessible title.
+ * from the server and is applied as the token's accessible description.
  */
 export function ConflictBadge({ conflict }: ConflictBadgeProps) {
   const { t } = useTranslation()
@@ -21,14 +21,12 @@ export function ConflictBadge({ conflict }: ConflictBadgeProps) {
   })
 
   return (
-    <Chip
+    <Token
       label={`${typeLabel}: ${conflict.message}`}
-      color="error"
-      size="small"
-      variant="outlined"
+      color="red"
+      size="sm"
       data-testid={`conflict-badge-${conflict.type}`}
-      title={conflict.message}
-      sx={{ maxWidth: '100%', height: 'auto', '& .MuiChip-label': { whiteSpace: 'normal', py: 0.5 } }}
+      description={conflict.message}
     />
   )
 }

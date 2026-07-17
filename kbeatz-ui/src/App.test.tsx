@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
@@ -103,7 +103,7 @@ describe('AlbumListPage - loading and error', () => {
   it('shows a spinner while albums are pending', () => {
     mockUseAllAlbums.mockReturnValue(asMock(makeResult({ isPending: true, data: undefined })))
     renderApp()
-    expect(screen.getByRole('progressbar')).toBeInTheDocument()
+    expect(screen.getByRole('status', { name: /loading albums/i })).toBeInTheDocument()
     expect(screen.queryByTestId('album-grid-section')).not.toBeInTheDocument()
   })
 
@@ -161,14 +161,15 @@ describe('AlbumListPage - page navigation', () => {
     const { router } = renderApp()
 
     // First page: cards 0..49, so "Album 0000" present, "Album 0050" absent.
-    expect(screen.getByTitle('Album 0000')).toBeInTheDocument()
-    expect(screen.queryByTitle('Album 0050')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Album 0000' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Album 0050' })).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Go to page 2' }))
 
-    // Second page: cards 50..99
-    expect(screen.getByTitle('Album 0050')).toBeInTheDocument()
-    expect(screen.queryByTitle('Album 0000')).not.toBeInTheDocument()
+    // Second page: cards 50..99 (Astryx Pagination applies the change via a
+    // transition, so await the re-render).
+    expect(await screen.findByRole('heading', { name: 'Album 0050' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Album 0000' })).not.toBeInTheDocument()
     // URL reflects the page (AC5)
     expect(router.state.location.search).toContain('page=2')
     expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 2 of 2')
@@ -177,7 +178,7 @@ describe('AlbumListPage - page navigation', () => {
   it('deep-links to a page via the URL query param (AC5)', () => {
     mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(100)) })))
     renderApp({ initialEntries: ['/?page=2'] })
-    expect(screen.getByTitle('Album 0050')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Album 0050' })).toBeInTheDocument()
     expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 2 of 2')
   })
 
@@ -210,10 +211,10 @@ describe('AlbumListPage - filter resets pagination', () => {
     expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 2 of 2')
 
     // Search for a single album. "Album 0042" matches exactly one record.
-    await user.type(screen.getByRole('searchbox'), 'Album 0042')
+    await user.type(screen.getByRole('textbox'), 'Album 0042')
 
     // Filtered set has 1 result -> no pagination, page reset to 1
-    expect(await screen.findByTitle('Album 0042')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Album 0042' })).toBeInTheDocument()
     expect(screen.getAllByTestId('album-card')).toHaveLength(1)
     expect(screen.queryByTestId('album-pagination')).not.toBeInTheDocument()
     // page param dropped on reset
@@ -228,9 +229,9 @@ describe('AlbumListPage - filter resets pagination', () => {
     // "Artist 000" matches Artist 0000..0009 (10 albums) - one page, no pager.
     // "Album 00" matches Album 0000..0099 i.e. all - use a sharper query.
     // Search "Album 005" matches Album 0050..0059 = 10 results.
-    await user.type(screen.getByRole('searchbox'), 'Album 005')
+    await user.type(screen.getByRole('textbox'), 'Album 005')
 
-    expect(await screen.findByTitle('Album 0050')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Album 0050' })).toBeInTheDocument()
     expect(screen.getAllByTestId('album-card')).toHaveLength(10)
   })
 })
@@ -298,13 +299,15 @@ describe('AlbumListPage - accessibility', () => {
     goToPage2.focus()
     expect(goToPage2).toHaveFocus()
     await user.keyboard('{Enter}')
-    expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 2 of 2')
+    await waitFor(() =>
+      expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 2 of 2'),
+    )
   })
 
   it('search box and sort have visible labels (no placeholder-only labelling)', () => {
     mockUseAllAlbums.mockReturnValue(asMock(makeResult({ data: clientData(makeAlbums(10)) })))
     renderApp()
-    expect(screen.getByRole('searchbox', { name: 'Search' })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Search' })).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: 'Sort by' })).toBeInTheDocument()
   })
 })

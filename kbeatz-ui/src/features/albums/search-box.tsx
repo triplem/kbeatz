@@ -1,10 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import TextField from '@mui/material/TextField'
-import InputAdornment from '@mui/material/InputAdornment'
-import IconButton from '@mui/material/IconButton'
-import SearchIcon from '@mui/icons-material/Search'
-import ClearIcon from '@mui/icons-material/Clear'
+import { TextInput } from '@astryxdesign/core/TextInput'
 import type { AlbumFilters } from './album-filters'
 
 const DEBOUNCE_MS = 150
@@ -15,15 +11,16 @@ interface SearchBoxProps {
 }
 
 /**
- * MUI free-text search box.
+ * Free-text search box.
  *
  * Controlled: the visible value follows `filters.query` so an external reset
  * (e.g. "Clear all filters") immediately clears the field. The committed filter
  * update is debounced 150ms to avoid re-running the client-side filter on every
- * keystroke. A clear (x) button appears when non-empty.
+ * keystroke; clearing to empty commits immediately. A clear (x) button appears
+ * when non-empty (Astryx `hasClear`).
  *
  * Accessibility: a real visible label (no placeholder-only labelling), a
- * search-role container, and a >=44px labelled clear button.
+ * search-role container, and a leading search icon.
  */
 export function SearchBox({ filters, onFiltersChange }: SearchBoxProps) {
   const { t } = useTranslation()
@@ -39,10 +36,15 @@ export function SearchBox({ filters, onFiltersChange }: SearchBoxProps) {
   }
 
   const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value
+    (value: string) => {
       setDisplayValue(value)
       if (debounceRef.current !== null) clearTimeout(debounceRef.current)
+      if (value === '') {
+        // Clearing commits immediately so an emptied field resets the filter now.
+        debounceRef.current = null
+        onFiltersChange({ ...filters, query: '' })
+        return
+      }
       debounceRef.current = setTimeout(() => {
         onFiltersChange({ ...filters, query: value })
       }, DEBOUNCE_MS)
@@ -50,49 +52,17 @@ export function SearchBox({ filters, onFiltersChange }: SearchBoxProps) {
     [filters, onFiltersChange],
   )
 
-  const handleClear = useCallback(() => {
-    if (debounceRef.current !== null) {
-      clearTimeout(debounceRef.current)
-      debounceRef.current = null
-    }
-    setDisplayValue('')
-    onFiltersChange({ ...filters, query: '' })
-  }, [filters, onFiltersChange])
-
   return (
-    <TextField
-      id="album-search"
-      type="search"
-      role="search"
-      label={t('searchBox.label')}
-      placeholder={t('searchBox.placeholder')}
-      value={displayValue}
-      onChange={handleChange}
-      size="small"
-      fullWidth
-      sx={{ maxWidth: { sm: 420 } }}
-      slotProps={{
-        input: {
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchIcon fontSize="small" aria-hidden="true" />
-            </InputAdornment>
-          ),
-          endAdornment:
-            displayValue !== '' ? (
-              <InputAdornment position="end">
-                <IconButton
-                  aria-label={t('searchBox.clearAriaLabel')}
-                  onClick={handleClear}
-                  edge="end"
-                  size="small"
-                >
-                  <ClearIcon fontSize="small" aria-hidden="true" />
-                </IconButton>
-              </InputAdornment>
-            ) : null,
-        },
-      }}
-    />
+    <div role="search" style={{ width: '100%', maxWidth: 420 }}>
+      <TextInput
+        label={t('searchBox.label')}
+        placeholder={t('searchBox.placeholder')}
+        value={displayValue}
+        onChange={handleChange}
+        startIcon="search"
+        hasClear
+        size="sm"
+      />
+    </div>
   )
 }

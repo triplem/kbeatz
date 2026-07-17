@@ -37,9 +37,12 @@ describe('AlbumPagination', () => {
     expect(onPageChange).toHaveBeenCalledWith(3)
   })
 
-  it('labels the current page distinctly from other pages', () => {
+  it('marks the current page distinctly from other pages', () => {
     renderPagination({ page: 3, totalPages: 5 })
-    expect(screen.getByRole('button', { name: 'Page 3, current page' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Go to page 4' })).toBeInTheDocument()
+    // Astryx marks the active page with aria-current="page".
+    const current = screen.getByRole('button', { name: 'Go to page 3' })
+    expect(current).toHaveAttribute('aria-current', 'page')
+    const other = screen.getByRole('button', { name: 'Go to page 4' })
+    expect(other).not.toHaveAttribute('aria-current', 'page')
   })
 })

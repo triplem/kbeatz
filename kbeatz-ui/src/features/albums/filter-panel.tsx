@@ -1,10 +1,6 @@
 import { useTranslation } from 'react-i18next'
-import Box from '@mui/material/Box'
-import FormGroup from '@mui/material/FormGroup'
-import FormControlLabel from '@mui/material/FormControlLabel'
-import FormLabel from '@mui/material/FormLabel'
-import Checkbox from '@mui/material/Checkbox'
-import Alert from '@mui/material/Alert'
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput'
+import { Text } from '@astryxdesign/core/Text'
 import type { AlbumFilters, FilterOptions } from './album-filters'
 
 interface FilterPanelProps {
@@ -26,34 +22,34 @@ interface FilterSectionProps {
 function FilterSection({ headingId, heading, values, selected, onToggle }: FilterSectionProps) {
   if (values.length === 0) return null
   return (
-    <Box component="section" sx={{ mb: 2 }}>
-      <FormLabel id={headingId} component="legend" sx={{ fontWeight: 600 }}>
-        {heading}
-      </FormLabel>
-      <FormGroup aria-labelledby={headingId}>
+    <section style={{ marginBottom: 16 }}>
+      <div id={headingId} style={{ marginBottom: 4 }}>
+        <Text weight="semibold">{heading}</Text>
+      </div>
+      <div role="group" aria-labelledby={headingId} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         {values.map((value) => (
-          <FormControlLabel
+          <CheckboxInput
             key={value}
-            control={
-              <Checkbox checked={selected.includes(value)} onChange={() => onToggle(value)} size="small" />
-            }
             label={value}
+            value={selected.includes(value)}
+            onChange={() => onToggle(value)}
+            size="sm"
           />
         ))}
-      </FormGroup>
-    </Box>
+      </div>
+    </section>
   )
 }
 
 /**
- * MUI filter panel for the album grid.
+ * Filter panel for the album grid.
  *
  * Multi-select checkboxes for genre, artist, and composer. Operates on the
  * in-memory album set - no API calls. Renders nothing when there are no
  * options, so no empty container appears.
  *
- * Accessibility: each group is a FormGroup labelled by its heading via
- * aria-labelledby; checkboxes carry visible text labels.
+ * Accessibility: each group is labelled by its heading via aria-labelledby;
+ * checkboxes carry visible text labels.
  */
 export function FilterPanel({ options, filters, onFiltersChange }: FilterPanelProps) {
   const { t } = useTranslation()
@@ -100,15 +96,23 @@ export function FilterPanel({ options, filters, onFiltersChange }: FilterPanelPr
     filters.genres.length >= 2 || filters.artists.length >= 2 || filters.composers.length >= 2
 
   return (
-    <Box component="aside" aria-label={t('filterPanel.ariaLabel')} sx={{ minWidth: 200 }}>
+    <aside aria-label={t('filterPanel.ariaLabel')} style={{ minWidth: 200 }}>
       {hasMultiValueSelection && (
-        <Alert severity="info" role="status" sx={{ mb: 2 }}>
-          {t('filterPanel.multiValueWarning')}
-        </Alert>
+        <div
+          role="status"
+          style={{
+            marginBottom: 16,
+            padding: 12,
+            borderRadius: 'var(--radius-element, 8px)',
+            background: 'var(--color-muted, rgba(128, 128, 128, 0.12))',
+          }}
+        >
+          <Text type="supporting">{t('filterPanel.multiValueWarning')}</Text>
+        </div>
       )}
       {sections.map(({ field, ...section }) => (
         <FilterSection key={field} {...section} onToggle={(value) => toggle(field, value)} />
       ))}
-    </Box>
+    </aside>
   )
 }

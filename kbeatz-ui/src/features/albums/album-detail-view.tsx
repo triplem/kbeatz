@@ -1,13 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
-import IconButton from '@mui/material/IconButton'
-import Typography from '@mui/material/Typography'
-import ArrowBackIcon from '@mui/icons-material/ArrowBack'
-import EditIcon from '@mui/icons-material/Edit'
-import { visuallyHidden } from '@mui/utils'
+import { Button } from '@astryxdesign/core/Button'
+import { Heading } from '@astryxdesign/core/Heading'
+import { Icon } from '@astryxdesign/core/Icon'
+import { VisuallyHidden } from '@astryxdesign/core/VisuallyHidden'
+import { ArrowLeft, Pencil } from 'lucide-react'
 import { type Album, type AlbumDetail as AlbumDetailModel } from '../../api/generated'
 import { AlbumHeroHeader } from './album-hero-header'
 import { AlbumTrackListView } from './album-tracklist-view'
@@ -28,115 +26,81 @@ export interface AlbumDetailViewProps {
 /**
  * AlbumDetailView - read-only presentation of album metadata.
  *
- * Renders:
- * - Back button
- * - Visually-hidden h1 (album title)
- * - AlbumHeroHeader (cover art + metadata summary)
- * - Edit button (near hero header, per AD-FR-06)
- * - AlbumTrackListView (read-only tracklist with optional "Composed By" sub-lines)
- * - AlbumCreditsSection (album-level composer/conductor/ensemble; hidden when all absent)
+ * Renders a Back button, a visually-hidden h1 (album title), the hero header
+ * (cover art + metadata summary), an Edit button, the read-only tracklist, and
+ * the album-level credits section (hidden when all absent). No input fields.
  *
- * This component contains no input fields, no edit icons, and no hover affordances.
- *
- * A "Hide/Show credits" toggle is rendered in the tracklist section heading when at
- * least one track has a composer tag. The toggle collapses or restores the "Composed By"
- * sub-lines without leaving the view mode. Default state: credits visible.
+ * A "Hide/Show credits" toggle is rendered in the tracklist section heading when
+ * at least one track has a composer tag. Default state: credits visible.
  */
 export function AlbumDetailView({ album, onEnterEditMode, editButtonRef, onSyncComplete }: AlbumDetailViewProps) {
   const navigate = useNavigate()
   const { t } = useTranslation()
 
-  /**
-   * Whether "Composed By" sub-lines are currently visible.
-   * Default: true (credits shown on first render).
-   */
   const [showCredits, setShowCredits] = useState(true)
 
-  /**
-   * The toggle is only rendered when at least one track has a non-empty composer.
-   * When no composer exists there is nothing to hide so the button is omitted entirely.
-   */
   const hasAnyComposer = album.tracks.some(
     (track) => track.composer !== undefined && track.composer !== null && track.composer !== '',
   )
 
   return (
-    <Box
-      component="article"
+    <article
       aria-label={t('albumDetail.albumTagsSection')}
-      sx={{
+      style={{
         maxWidth: 1200,
-        mx: 'auto',
-        p: { xs: 2, md: 3 },
+        margin: '0 auto',
+        padding: 24,
         display: 'flex',
         flexDirection: 'column',
-        gap: 3,
+        gap: 24,
       }}
     >
-      {/*
-        Visually-hidden page heading: the album is the subject of this route,
-        so it is exposed as the single <h1> to anchor the heading outline
-        (WCAG 1.3.1 / 2.4.6). Section titles below render as <h2>/<h3>.
-      */}
-      <Typography variant="h1" component="h1" sx={visuallyHidden}>
-        {album.album}
-      </Typography>
+      {/* Visually-hidden page heading anchoring the outline (WCAG 1.3.1 / 2.4.6). */}
+      <VisuallyHidden>
+        <h1>{album.album}</h1>
+      </VisuallyHidden>
 
-      <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
         <Button
           type="button"
-          variant="outlined"
-          startIcon={<ArrowBackIcon />}
+          variant="secondary"
+          icon={<Icon icon={ArrowLeft} />}
           onClick={() => { navigate(-1) }}
           data-testid="back-button"
-          sx={{ minHeight: 44 }}
-        >
-          {t('common.back')}
-        </Button>
+          label={t('common.back')}
+        />
 
         <Button
           ref={editButtonRef}
           type="button"
-          variant="contained"
-          startIcon={<EditIcon />}
+          variant="primary"
+          icon={<Icon icon={Pencil} />}
           onClick={onEnterEditMode}
           data-testid="edit-button"
-          sx={{ minHeight: 44 }}
-        >
-          {t('albumDetail.editButton')}
-        </Button>
-      </Box>
+          label={t('albumDetail.editButton')}
+        />
+      </div>
 
       <AlbumHeroHeader album={album} />
 
-      <Box
-        component="section"
-        aria-label={t('albumDetail.tracksSection')}
-        data-testid="tracklist-section"
-        sx={{ py: 2 }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
-          <Typography variant="h6" component="h2">
-            {t('albumDetail.tracksSectionTitle')}
-          </Typography>
+      <section aria-label={t('albumDetail.tracksSection')} data-testid="tracklist-section" style={{ padding: '16px 0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8, gap: 8 }}>
+          <Heading level={2}>{t('albumDetail.tracksSectionTitle')}</Heading>
           {hasAnyComposer && (
-            <IconButton
-              size="small"
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => { setShowCredits((prev) => !prev) }}
               aria-expanded={showCredits}
               aria-controls="composer-credits-region"
               aria-label={showCredits ? t('albumDetail.hideCredits') : t('albumDetail.showCredits')}
               data-testid="credits-toggle"
-            >
-              {/* Visual label inside the button for sighted users */}
-              <Typography variant="caption" component="span">
-                {showCredits ? t('albumDetail.hideCredits') : t('albumDetail.showCredits')}
-              </Typography>
-            </IconButton>
+              label={showCredits ? t('albumDetail.hideCredits') : t('albumDetail.showCredits')}
+            />
           )}
-        </Box>
+        </div>
         <AlbumTrackListView tracks={album.tracks} showCredits={showCredits} />
-      </Box>
+      </section>
 
       <AlbumCreditsSection
         composer={album.composer}
@@ -145,11 +109,10 @@ export function AlbumDetailView({ album, onEnterEditMode, editButtonRef, onSyncC
       />
 
       {album.discogsId !== undefined && (
-        <Box component="section" aria-label={t('albumDetail.discogsSection')}>
+        <section aria-label={t('albumDetail.discogsSection')}>
           <SyncPanel album={album} onSyncComplete={onSyncComplete} hasLocalEdits={false} />
-        </Box>
+        </section>
       )}
-
-    </Box>
+    </article>
   )
 }

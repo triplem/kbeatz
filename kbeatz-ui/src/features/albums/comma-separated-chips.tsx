@@ -1,5 +1,4 @@
-import Box from '@mui/material/Box'
-import Chip from '@mui/material/Chip'
+import { Token } from '@astryxdesign/core/Token'
 
 interface CommaSeparatedChipsProps {
   /**
@@ -14,7 +13,7 @@ interface CommaSeparatedChipsProps {
 }
 
 /**
- * Renders a comma-separated string as individual MUI Chips.
+ * Renders a comma-separated string as individual Astryx Tokens.
  *
  * - Returns null when `value` is absent, empty, or produces only
  *   empty segments after splitting on commas.
@@ -30,18 +29,24 @@ export function CommaSeparatedChips({ value, ariaLabel, testId }: CommaSeparated
     .filter((v) => v.length > 0)
   if (items.length === 0) return null
   return (
-    <Box
-      component="ul"
+    <ul
       role="list"
-      sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, p: 0, m: 0, listStyle: 'none' }}
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 6,
+        padding: 0,
+        margin: 0,
+        listStyle: 'none',
+      }}
       data-testid={testId}
       aria-label={ariaLabel}
     >
       {items.map((item, index) => (
         <li key={`${index}-${item}`} role="listitem">
-          <Chip label={item} size="small" variant="outlined" />
+          <Token label={item} size="sm" color="gray" />
         </li>
       ))}
-    </Box>
+    </ul>
   )
 }
