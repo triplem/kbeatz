@@ -1,14 +1,13 @@
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
-import Alert from '@mui/material/Alert'
-import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
-import Checkbox from '@mui/material/Checkbox'
-import FormControlLabel from '@mui/material/FormControlLabel'
-import Snackbar from '@mui/material/Snackbar'
-import Stack from '@mui/material/Stack'
-import Typography from '@mui/material/Typography'
+import { Banner } from '@astryxdesign/core/Banner'
+import { Button } from '@astryxdesign/core/Button'
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput'
+import { IconButton } from '@astryxdesign/core/IconButton'
+import { Icon } from '@astryxdesign/core/Icon'
+import { Text } from '@astryxdesign/core/Text'
+import { X } from 'lucide-react'
 import { Album, AlbumDetail, AlbumsService } from '../../api/generated'
 import { PageSection, ConfirmDialog, LoadingState, ErrorState } from '../../components'
 import { ChangePlanReview } from '../change-plan/ChangePlanReview'
@@ -18,9 +17,6 @@ import { useApplyChangePlan } from '../change-plan/useApplyChangePlan'
 /**
  * The sync panel runs a single-album DISCOGS_SYNC change plan. The flow is:
  *  idle -> (optional overwrite confirm) -> review (dry run) -> applying -> success.
- *
- * `review` holds whether the dry-run plan request is still in flight so the
- * dialog can show a loading state, and any plan-fetch error message.
  */
 type SyncState =
   | { status: 'idle' }
@@ -48,11 +44,10 @@ interface ApiErrorBody {
  * SyncPanel - renders the "Sync from Discogs" control block for an album detail view.
  *
  * Only rendered when the album has a `discogsId`. Clicking "Sync from Discogs"
- * runs a DISCOGS_SYNC dry-run change plan (POST /change-plans) and shows the
- * consolidated ChangePlanReview for the single release. Confirming applies the
- * plan (POST /change-plans/{id}/apply); nothing is written until then. After a
- * successful apply the refreshed album is fetched and passed to onSyncComplete,
- * and the number of tag fields written is announced.
+ * runs a DISCOGS_SYNC dry-run change plan and shows the consolidated
+ * ChangePlanReview for the single release. Confirming applies the plan; nothing
+ * is written until then. After a successful apply the refreshed album is fetched
+ * and passed to onSyncComplete, and the number of tag fields written is announced.
  *
  * When `hasLocalEdits` is true, clicking "Sync from Discogs" first shows a
  * confirmation dialog warning that local tag edits will be overwritten.
@@ -113,7 +108,6 @@ export function SyncPanel({ album, onSyncComplete, hasLocalEdits = false }: Sync
   }
 
   const handleReviewCancel = () => {
-    // Cancel at review writes nothing.
     resetPlan()
     resetApply()
     setSyncState({ status: 'idle' })
@@ -155,48 +149,33 @@ export function SyncPanel({ album, onSyncComplete, hasLocalEdits = false }: Sync
       headingLevel="h3"
       testId="sync-panel"
     >
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        component="p"
-        data-testid="discogs-id"
-        sx={{ m: 0 }}
-      >
-        {t('syncPanel.discogsId', { id: album.discogsId })}
-      </Typography>
+      <p data-testid="discogs-id" style={{ margin: 0 }}>
+        <Text type="supporting">{t('syncPanel.discogsId', { id: album.discogsId })}</Text>
+      </p>
 
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={downloadImages}
-            onChange={(e) => { setDownloadImages(e.target.checked) }}
-            disabled={isBusy}
-            slotProps={{
-              input: {
-                'aria-label': t('syncPanel.downloadImagesAriaLabel'),
-                'data-testid': 'download-images-checkbox',
-              } as React.InputHTMLAttributes<HTMLInputElement>,
-            }}
-          />
-        }
-        label={t('syncPanel.downloadImages')}
-        sx={{ alignSelf: 'flex-start', m: 0 }}
-      />
+      <div style={{ alignSelf: 'flex-start' }}>
+        <CheckboxInput
+          label={t('syncPanel.downloadImages')}
+          aria-label={t('syncPanel.downloadImagesAriaLabel')}
+          value={downloadImages}
+          onChange={(checked) => { setDownloadImages(checked) }}
+          isDisabled={isBusy}
+          data-testid="download-images-checkbox"
+        />
+      </div>
 
-      <Button
-        type="button"
-        variant="contained"
-        onClick={handleSyncClick}
-        disabled={isBusy}
-        aria-disabled={isBusy}
-        aria-label={isApplying
-          ? t('syncPanel.syncButtonLoading')
-          : t('syncPanel.syncButton')}
-        data-testid="sync-button"
-        sx={{ alignSelf: 'flex-start', minHeight: 44 }}
-      >
-        {isApplying ? t('syncPanel.syncButtonLoading') : t('syncPanel.syncButton')}
-      </Button>
+      <div style={{ alignSelf: 'flex-start' }}>
+        <Button
+          type="button"
+          variant="primary"
+          onClick={handleSyncClick}
+          isDisabled={isBusy}
+          isLoading={isApplying}
+          aria-label={isApplying ? t('syncPanel.syncButtonLoading') : t('syncPanel.syncButton')}
+          data-testid="sync-button"
+          label={isApplying ? t('syncPanel.syncButtonLoading') : t('syncPanel.syncButton')}
+        />
+      </div>
 
       <ConfirmDialog
         open={syncState.status === 'confirmOverwrite'}
@@ -210,19 +189,18 @@ export function SyncPanel({ album, onSyncComplete, hasLocalEdits = false }: Sync
       />
 
       {isReview && (
-        <Box
+        <div
           role="region"
           aria-label={t('syncPanel.reviewLabel')}
           data-testid="sync-review"
-          sx={{
-            mt: 1,
-            p: 2,
-            border: 1,
-            borderColor: 'divider',
-            borderRadius: 1,
+          style={{
+            marginTop: 8,
+            padding: 16,
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-element, 8px)',
             display: 'flex',
             flexDirection: 'column',
-            gap: 2,
+            gap: 16,
           }}
         >
           {isPlanning && (
@@ -246,61 +224,70 @@ export function SyncPanel({ album, onSyncComplete, hasLocalEdits = false }: Sync
             <LoadingState message={t('syncPanel.loadingMessage')} testId="sync-loading" />
           )}
 
-          <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <Button
               type="button"
-              variant="outlined"
-              color="inherit"
+              variant="secondary"
               onClick={handleReviewCancel}
-              disabled={isApplying}
+              isDisabled={isApplying}
               data-testid="sync-review-cancel"
-              sx={{ minHeight: 44 }}
-            >
-              {t('common.cancel')}
-            </Button>
+              label={t('common.cancel')}
+            />
             <Button
               type="button"
-              variant="contained"
+              variant="primary"
               onClick={handleReviewConfirm}
-              disabled={isPlanning || isApplying || planError !== null || plan === undefined}
+              isDisabled={isPlanning || isApplying || planError !== null || plan === undefined}
               data-testid="sync-review-confirm"
-              sx={{ minHeight: 44 }}
-            >
-              {t('syncPanel.confirmSync')}
-            </Button>
-          </Stack>
-        </Box>
+              label={t('syncPanel.confirmSync')}
+            />
+          </div>
+        </div>
       )}
 
-      <Snackbar
-        open={syncState.status === 'success'}
-        onClose={handleDismissSuccess}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
-          onClose={handleDismissSuccess}
-          severity="success"
+      {syncState.status === 'success' && (
+        <div
           role="status"
           aria-live="polite"
           data-testid="sync-success"
-          sx={{ width: '100%' }}
+          style={{
+            marginTop: 8,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: 12,
+            borderRadius: 'var(--radius-element, 8px)',
+            background: 'var(--color-success-muted, rgba(46, 196, 182, 0.12))',
+          }}
         >
-          {syncState.status === 'success'
-            ? t('syncPanel.successMessage', { count: syncState.fieldsWritten })
-            : ''}
-        </Alert>
-      </Snackbar>
+          <Text type="supporting">
+            {t('syncPanel.successMessage', { count: syncState.fieldsWritten })}
+          </Text>
+          <div style={{ marginInlineStart: 'auto' }}>
+            <IconButton
+              variant="ghost"
+              size="sm"
+              label={t('common.dismiss')}
+              onClick={handleDismissSuccess}
+              icon={<Icon icon={X} />}
+            />
+          </div>
+        </div>
+      )}
 
       {syncState.status === 'error' && (
-        <Alert severity="error" role="alert" data-testid="sync-error" sx={{ mt: 1 }}>
-          {syncState.message}
-        </Alert>
+        <div role="alert" data-testid="sync-error" style={{ marginTop: 8 }}>
+          <Banner status="error" title={syncState.message} />
+        </div>
       )}
 
       {syncState.status === 'quotaExhausted' && (
-        <Alert severity="warning" role="alert" data-testid="sync-quota-exhausted" sx={{ mt: 1 }}>
-          {t('syncPanel.quotaExhausted', { resetAt: syncState.resetAt })}
-        </Alert>
+        <div role="alert" data-testid="sync-quota-exhausted" style={{ marginTop: 8 }}>
+          <Banner
+            status="warning"
+            title={t('syncPanel.quotaExhausted', { resetAt: syncState.resetAt })}
+          />
+        </div>
       )}
     </PageSection>
   )

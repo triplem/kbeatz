@@ -285,7 +285,7 @@ describe('SyncPanel', () => {
     await user.click(screen.getByTestId('sync-review-confirm'))
 
     await waitFor(() => expect(screen.getByTestId('sync-success')).toBeInTheDocument())
-    await user.click(screen.getByRole('button', { name: 'Close' }))
+    await user.click(screen.getByRole('button', { name: 'Dismiss' }))
     await waitFor(() => expect(screen.queryByTestId('sync-success')).not.toBeInTheDocument())
   })
 

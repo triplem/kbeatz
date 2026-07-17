@@ -152,17 +152,20 @@ describe('ScanProgress - render states', () => {
     )
     renderWithQuery(<ScanProgress />)
     await screen.findByRole('status')
-    const bar = document.querySelector('.MuiLinearProgress-root')
+    // Determinate: the progressbar exposes the current value (aria-valuenow).
+    const bar = document.querySelector('[role="progressbar"]')
     expect(bar).not.toBeNull()
-    expect(bar).toHaveClass('MuiLinearProgress-determinate')
+    expect(bar).toHaveAttribute('aria-valuenow', '25')
   })
 
   it('renders an indeterminate progress bar when total is unknown', async () => {
     mockGetStatus.mockResolvedValue(makeStatus('RUNNING', { scannedAlbums: 7 }))
     renderWithQuery(<ScanProgress />)
     await screen.findByRole('status')
-    const bar = document.querySelector('.MuiLinearProgress-root')
-    expect(bar).toHaveClass('MuiLinearProgress-indeterminate')
+    // Indeterminate: a progressbar with no known value (no aria-valuenow).
+    const bar = document.querySelector('[role="progressbar"]')
+    expect(bar).not.toBeNull()
+    expect(bar).not.toHaveAttribute('aria-valuenow')
   })
 
   it('running banner has aria-live="polite" and aria-atomic="true"', async () => {
