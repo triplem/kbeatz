@@ -1,8 +1,6 @@
 import { useTranslation } from 'react-i18next'
-import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
-import Stack from '@mui/material/Stack'
-import Typography from '@mui/material/Typography'
+import { Button } from '@astryxdesign/core/Button'
+import { Text } from '@astryxdesign/core/Text'
 
 interface BulkActionToolbarProps {
   /** Number of currently selected albums. */
@@ -28,52 +26,46 @@ export function BulkActionToolbar({
   const { t } = useTranslation()
 
   return (
-    <Box
+    <div
       role="toolbar"
       aria-label={t('albumSelection.toolbarLabel')}
       data-testid="bulk-action-toolbar"
-      sx={{
+      style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 2,
+        gap: 16,
         flexWrap: 'wrap',
-        p: 1.5,
-        mb: 1,
-        borderRadius: 1,
-        bgcolor: 'action.selected',
+        padding: 12,
+        marginBottom: 8,
+        borderRadius: 'var(--radius-element, 8px)',
+        background: 'var(--color-muted, rgba(128, 128, 128, 0.12))',
       }}
     >
-      <Typography
-        component="p"
+      <p
         role="status"
         aria-live="polite"
         data-testid="bulk-selected-count"
-        sx={{ m: 0, fontWeight: 600 }}
+        style={{ margin: 0 }}
       >
-        {t('albumSelection.selectedCount', { count: selectedCount })}
-      </Typography>
-      <Box sx={{ flexGrow: 1 }} />
-      <Stack direction="row" spacing={1}>
-        <Button
-          type="button"
-          variant="contained"
-          onClick={onReorganize}
-          data-testid="bulk-reorganize-button"
-          sx={{ minHeight: 44 }}
-        >
-          {t('albumSelection.reorganize')}
-        </Button>
-        <Button
-          type="button"
-          variant="outlined"
-          color="inherit"
-          onClick={onClear}
-          data-testid="bulk-clear-button"
-          sx={{ minHeight: 44 }}
-        >
-          {t('albumSelection.clear')}
-        </Button>
-      </Stack>
-    </Box>
+        <Text weight="semibold">
+          {t('albumSelection.selectedCount', { count: selectedCount })}
+        </Text>
+      </p>
+      <div style={{ flexGrow: 1 }} />
+      <Button
+        type="button"
+        variant="primary"
+        onClick={onReorganize}
+        data-testid="bulk-reorganize-button"
+        label={t('albumSelection.reorganize')}
+      />
+      <Button
+        type="button"
+        variant="secondary"
+        onClick={onClear}
+        data-testid="bulk-clear-button"
+        label={t('albumSelection.clear')}
+      />
+    </div>
   )
 }

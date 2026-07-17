@@ -8,35 +8,33 @@ import type { AlbumFilters } from './album-filters'
 describe('SearchBox', () => {
   it('renders the search input', () => {
     render(<SearchBox filters={EMPTY_FILTERS} onFiltersChange={vi.fn()} />)
-    expect(screen.getByRole('searchbox', { name: 'Search' })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Search' })).toBeInTheDocument()
   })
 
-  it('renders a visible label element linked to the search input', () => {
+  it('renders a visible label linked to the search input', () => {
     render(<SearchBox filters={EMPTY_FILTERS} onFiltersChange={vi.fn()} />)
-    // The accessible name comes from the linked <label>; the search input
-    // carries the id the label points at (no placeholder-only labelling).
-    const input = screen.getByRole('searchbox', { name: 'Search' })
-    expect(input).toHaveAttribute('id', 'album-search')
-    const label = document.querySelector('label[for="album-search"]')
-    expect(label).not.toBeNull()
-    expect(label).toHaveTextContent('Search')
+    // The accessible name comes from the linked <label> (no placeholder-only
+    // labelling); resolving the input by that name proves the association.
+    expect(screen.getByRole('textbox', { name: 'Search' })).toBeInTheDocument()
+    const label = screen.getByText('Search')
+    expect(label.tagName.toLowerCase()).toBe('label')
   })
 
   it('has descriptive placeholder text', () => {
     render(<SearchBox filters={EMPTY_FILTERS} onFiltersChange={vi.fn()} />)
-    const input = screen.getByRole('searchbox', { name: 'Search' })
+    const input = screen.getByRole('textbox', { name: 'Search' })
     expect(input).toHaveAttribute('placeholder', 'Search by title, artist or composer')
   })
 
   it('shows clear button when query is non-empty', () => {
     const filtersWithQuery: AlbumFilters = { ...EMPTY_FILTERS, query: 'miles' }
     render(<SearchBox filters={filtersWithQuery} onFiltersChange={vi.fn()} />)
-    expect(screen.getByRole('button', { name: 'Clear search' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Clear Search' })).toBeInTheDocument()
   })
 
   it('does not show clear button when query is empty', () => {
     render(<SearchBox filters={EMPTY_FILTERS} onFiltersChange={vi.fn()} />)
-    expect(screen.queryByRole('button', { name: 'Clear search' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Clear Search' })).not.toBeInTheDocument()
   })
 
   it('clears query and calls onFiltersChange when clear button is clicked', async () => {
@@ -45,7 +43,7 @@ describe('SearchBox', () => {
     const filtersWithQuery: AlbumFilters = { ...EMPTY_FILTERS, query: 'miles' }
     render(<SearchBox filters={filtersWithQuery} onFiltersChange={onChange} />)
 
-    await user.click(screen.getByRole('button', { name: 'Clear search' }))
+    await user.click(screen.getByRole('button', { name: 'Clear Search' }))
 
     expect(onChange).toHaveBeenCalledWith({ ...EMPTY_FILTERS, query: '' })
   })
@@ -53,7 +51,7 @@ describe('SearchBox', () => {
   it('input reflects the current filters.query value (controlled)', () => {
     const filtersWithQuery: AlbumFilters = { ...EMPTY_FILTERS, query: 'beethoven' }
     render(<SearchBox filters={filtersWithQuery} onFiltersChange={vi.fn()} />)
-    const input = screen.getByRole('searchbox', { name: 'Search' })
+    const input = screen.getByRole('textbox', { name: 'Search' })
     expect(input).toHaveValue('beethoven')
   })
 
@@ -63,7 +61,7 @@ describe('SearchBox', () => {
     const { rerender } = render(
       <SearchBox filters={filtersWithQuery} onFiltersChange={onChange} />,
     )
-    const input = screen.getByRole('searchbox', { name: 'Search' })
+    const input = screen.getByRole('textbox', { name: 'Search' })
     expect(input).toHaveValue('miles')
 
     // Simulate parent resetting filters to empty
@@ -84,7 +82,7 @@ describe('SearchBox debounce', () => {
   it('calls onFiltersChange after 150ms debounce on input', async () => {
     const onChange = vi.fn()
     render(<SearchBox filters={EMPTY_FILTERS} onFiltersChange={onChange} />)
-    const input = screen.getByRole('searchbox', { name: 'Search' })
+    const input = screen.getByRole('textbox', { name: 'Search' })
 
     // Fire change event directly (bypasses userEvent timing issues with fake timers)
     fireEvent.change(input, { target: { value: 'beethoven' } })
@@ -103,7 +101,7 @@ describe('SearchBox debounce', () => {
   it('debounces rapid changes to a single call', async () => {
     const onChange = vi.fn()
     render(<SearchBox filters={EMPTY_FILTERS} onFiltersChange={onChange} />)
-    const input = screen.getByRole('searchbox', { name: 'Search' })
+    const input = screen.getByRole('textbox', { name: 'Search' })
 
     // Fire multiple rapid changes
     fireEvent.change(input, { target: { value: 'b' } })

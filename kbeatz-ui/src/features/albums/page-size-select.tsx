@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import TextField from '@mui/material/TextField'
-import MenuItem from '@mui/material/MenuItem'
+import { Selector } from '@astryxdesign/core/Selector'
 import { PAGE_SIZE_OPTIONS, isPageSize, type PageSize } from './pagination'
 
 interface PageSizeSelectProps {
@@ -9,7 +8,7 @@ interface PageSizeSelectProps {
 }
 
 /**
- * Labelled MUI select for the user-selectable page size (AC3).
+ * Labelled select for the user-selectable page size (AC3).
  *
  * Offers the fixed set of {@link PAGE_SIZE_OPTIONS}. The chosen value is
  * persisted to localStorage by the parent via the pagination hook.
@@ -17,26 +16,20 @@ interface PageSizeSelectProps {
 export function PageSizeSelect({ value, onChange }: PageSizeSelectProps) {
   const { t } = useTranslation()
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    const next = Number.parseInt(e.target.value, 10)
-    if (isPageSize(next)) onChange(next)
+  const handleChange = (next: string): void => {
+    const parsed = Number.parseInt(next, 10)
+    if (isPageSize(parsed)) onChange(parsed)
   }
 
   return (
-    <TextField
-      id="page-size"
-      select
+    <Selector
       label={t('pagination.pageSizeLabel')}
       value={String(value)}
       onChange={handleChange}
-      size="small"
-      sx={{ minWidth: 130 }}
-    >
-      {PAGE_SIZE_OPTIONS.map((size) => (
-        <MenuItem key={size} value={String(size)}>
-          {t('pagination.pageSizeOption', { count: size })}
-        </MenuItem>
-      ))}
-    </TextField>
+      options={PAGE_SIZE_OPTIONS.map((size) => ({
+        value: String(size),
+        label: t('pagination.pageSizeOption', { count: size }),
+      }))}
+    />
   )
 }
