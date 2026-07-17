@@ -15,8 +15,27 @@ repositories {
 
 private fun catalog(): VersionCatalog = project.extensions.getByType<VersionCatalogsExtension>().named("libs")
 private fun lib(alias: String) = catalog().findLibrary(alias).get()
+private fun version(alias: String) = catalog().findVersion(alias).get().requiredVersion
 
 dependencies {
+    // Force the patched jackson artifacts wherever jackson is resolved. It is
+    // pulled transitively (logstash-logback-encoder, liquibase) at 2.17.2, which
+    // Trivy fails on for CVE-2026-54512 / CVE-2026-54513. A constraint (not a
+    // platform) bumps only modules that already depend on jackson, leaving
+    // jackson-free modules untouched. Remove once the transitive versions ship
+    // the fix on their own.
+    val jacksonVersion = version("jackson")
+    constraints {
+        listOf(
+            "com.fasterxml.jackson.core:jackson-databind",
+            "com.fasterxml.jackson.core:jackson-core",
+            "com.fasterxml.jackson.core:jackson-annotations",
+        ).forEach { coord ->
+            "implementation"("$coord:$jacksonVersion") {
+                because("CVE-2026-54512 / CVE-2026-54513 in jackson-databind < 2.18.8")
+            }
+        }
+    }
     "testImplementation"(lib("kotlin-test-junit5"))
 }
 
