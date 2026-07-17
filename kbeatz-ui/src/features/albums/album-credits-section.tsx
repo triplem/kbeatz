@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
-import Box from '@mui/material/Box'
-import Typography from '@mui/material/Typography'
+import { Heading } from '@astryxdesign/core/Heading'
+import { Text } from '@astryxdesign/core/Text'
 
 interface AlbumCreditsSectionProps {
   readonly composer?: string | null
@@ -22,15 +22,15 @@ interface CreditRowProps {
 function CreditRow({ fieldKey, label, value }: CreditRowProps) {
   if (value === undefined || value === null || value === '') return null
   return (
-    <Box
-      sx={{ display: 'flex', gap: 1, alignItems: 'baseline' }}
+    <div
+      style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}
       data-testid={`credit-row-${fieldKey}`}
     >
-      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, flexShrink: 0 }}>
+      <Text type="supporting" weight="medium">
         {label}:
-      </Typography>
-      <Typography variant="body2">{value}</Typography>
-    </Box>
+      </Text>
+      <Text type="supporting">{value}</Text>
+    </div>
   )
 }
 
@@ -53,20 +53,21 @@ export function AlbumCreditsSection({ composer, conductor, ensemble }: AlbumCred
   if (!hasCredits) return null
 
   return (
-    <Box
-      component="section"
+    <section
       aria-labelledby="album-credits-heading"
       aria-label={t('albumDetail.creditsSection')}
       data-testid="album-credits-section"
     >
-      <Typography id="album-credits-heading" variant="h6" component="h2" sx={{ mb: 1 }}>
-        {t('albumDetail.creditsTitle')}
-      </Typography>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+      <div style={{ marginBottom: 8 }}>
+        <Heading level={2} id="album-credits-heading">
+          {t('albumDetail.creditsTitle')}
+        </Heading>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <CreditRow fieldKey="composer" label={t('albumDetail.fields.composer')} value={composer} />
         <CreditRow fieldKey="conductor" label={t('albumDetail.fields.conductor')} value={conductor} />
         <CreditRow fieldKey="ensemble" label={t('albumDetail.fields.ensemble')} value={ensemble} />
-      </Box>
-    </Box>
+      </div>
+    </section>
   )
 }
