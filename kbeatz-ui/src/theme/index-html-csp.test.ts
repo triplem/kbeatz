@@ -25,7 +25,7 @@ describe('index.html no-flash bootstrap + CSP', () => {
     expect(body).toContain("=== 'light'")
     expect(body).toContain("=== 'dark'")
     expect(body).toContain('prefers-color-scheme: dark')
-    expect(body).toContain("setAttribute('data-mui-color-scheme'")
+    expect(body).toContain("setAttribute('data-kbeatz-color-scheme'")
   })
 
   it('should declare a hash-based script-src CSP without unsafe-inline for scripts', () => {

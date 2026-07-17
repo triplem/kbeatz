@@ -93,6 +93,21 @@ export default tseslint.config(
               'slotProps',
               // Stable domain-field key used for data-testid derivation; not user-facing text.
               'fieldKey',
+              // Astryx layout/structural props carry layout values, not
+              // user-facing copy, so they are exempt from i18n extraction.
+              'align',
+              'justify',
+              'hAlign',
+              'vAlign',
+              'height',
+              'width',
+              'wrap',
+              'placement',
+              'alignment',
+              'shade',
+              'container',
+              'status',
+              'contentPadding',
             ],
           },
         },

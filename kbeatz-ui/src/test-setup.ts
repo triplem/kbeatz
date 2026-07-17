@@ -23,6 +23,19 @@ if (typeof window !== 'undefined' && window.localStorage === undefined) {
   })
 }
 
+// Astryx layout components (AppShell, TopNav, ...) observe element size with
+// ResizeObserver, which jsdom does not implement. Provide an inert stub so the
+// components mount in the test environment; jsdom performs no layout, so the
+// observer never needs to fire.
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  class ResizeObserverStub {
+    observe(): void {}
+    unobserve(): void {}
+    disconnect(): void {}
+  }
+  globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver
+}
+
 // Normalise React useId() values in every DOM snapshot so the visual-regression
 // suites stay byte-stable across runs and worker assignment (#833).
 installStableIdSerializer()

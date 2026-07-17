@@ -46,17 +46,17 @@ export default defineConfig(({ command }) => ({
     rollupOptions: {
       output: {
         // Split the framework/vendor code out of the app entry chunk so the
-        // large, rarely-changing dependency set (MUI + emotion + React +
+        // large, rarely-changing dependency set (Astryx + StyleX + React +
         // router + query) caches independently of frequently-changing app
-        // code (#856). Kept deliberately coarse - one MUI/emotion chunk and
+        // code (#856). Kept deliberately coarse - one Astryx/StyleX chunk and
         // one React-runtime chunk - to avoid over-splitting into many tiny
         // request-amplifying chunks.
         manualChunks(id) {
           if (!id.includes('node_modules')) {
             return undefined
           }
-          if (id.includes('@mui') || id.includes('@emotion')) {
-            return 'mui'
+          if (id.includes('@astryxdesign') || id.includes('@stylexjs')) {
+            return 'astryx'
           }
           if (
             id.includes('react') ||
@@ -108,12 +108,15 @@ export default defineConfig(({ command }) => ({
     minWorkers: 1,
     testTimeout: 20000,
     hookTimeout: 20000,
-    // MUI ships ESM that re-exports from react-transition-group via directory
-    // imports which Vite's node resolver does not handle when externalised.
-    // Inlining MUI + emotion during tests forces Vite to transform them.
+    // Astryx ships ESM with deep subpath exports (e.g. @astryxdesign/core/Stack)
+    // and depends on @stylexjs/stylex. MUI (still used by not-yet-migrated
+    // features) re-exports from react-transition-group via directory imports the
+    // node resolver cannot handle when externalised. Inlining all of them forces
+    // Vite to transform their ESM so Vitest's resolver handles the imports.
+    // Drop the @mui/@emotion patterns once MUI is fully removed.
     server: {
       deps: {
-        inline: [/@mui\//, /@emotion\//],
+        inline: [/@astryxdesign\//, /@stylexjs\//, /@mui\//, /@emotion\//],
       },
     },
     coverage: {

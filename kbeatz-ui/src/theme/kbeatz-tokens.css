@@ -1,0 +1,75 @@
+/*
+ * kbeatz brand tokens layered on top of the Astryx neutral theme.
+ *
+ * These mirror src/theme/palette.ts (the WCAG-verified source of truth for the
+ * brand palette, ADR-013) as CSS custom properties so feature code can read the
+ * accessible "on-color" foreground values via var(--kbeatz-on-*) instead of
+ * hard-coding hex literals. Keep the hex values in sync with palette.ts; the
+ * contrast ratios are asserted by src/theme/contrast.test.ts.
+ *
+ * The active scheme is selected by the data-kbeatz-color-scheme attribute on
+ * <html>, set pre-paint by the no-flash bootstrap in index.html and kept in
+ * sync at runtime by AppThemeProvider. This attribute also drives the CSS
+ * color-scheme property so native form controls and Astryx components resolve
+ * light/dark consistently with the toggle (not just the OS preference).
+ */
+
+:root,
+html[data-kbeatz-color-scheme='light'] {
+  color-scheme: light;
+
+  /* Raw brand colours - fills and accents only, never small text. */
+  --kbeatz-brand-violet: #7c5cff;
+  --kbeatz-brand-pink: #ff5a8f;
+  --kbeatz-brand-teal: #2ec4b6;
+  --kbeatz-brand-amber: #ffb627;
+
+  /* Accessible on-colours (>= 4.5:1 on light surfaces). */
+  --kbeatz-on-violet: #5b3fe0;
+  --kbeatz-on-pink: #c2185b;
+  --kbeatz-on-teal: #10705f;
+  --kbeatz-on-amber: #7a5200;
+}
+
+html[data-kbeatz-color-scheme='dark'] {
+  color-scheme: dark;
+
+  /* Accessible on-colours (>= 4.5:1 on the dark paper surface). */
+  --kbeatz-on-violet: #9d84ff;
+  --kbeatz-on-pink: #ff5a8f;
+  --kbeatz-on-teal: #2ec4b6;
+  --kbeatz-on-amber: #ffb627;
+}
+
+/*
+ * Visible keyboard-focus ring for any focusable element that does not ship its
+ * own Astryx focus indicator (WCAG 2.4.7). Reads the active theme accent, with
+ * the brand violet as a fallback for elements outside the theme subtree.
+ */
+:focus-visible {
+  outline: 2px solid var(--color-accent, #6a4de8);
+  outline-offset: 2px;
+}
+
+/*
+ * Show an element only on desktop widths. Aligns with the Astryx mobile
+ * breakpoint (768px) so the inline TopNav links and the auto-hiding
+ * MobileNavToggle never both show or both hide in a gap band.
+ */
+@media (max-width: 768px) {
+  .kbeatz-desktop-only {
+    display: none !important;
+  }
+}
+
+/* Respect the user's reduced-motion preference (WCAG 2.3.3). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

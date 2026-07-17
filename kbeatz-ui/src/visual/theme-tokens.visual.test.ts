@@ -1,36 +1,33 @@
 import { describe, it, expect } from 'vitest'
-import { theme } from '../theme/theme'
+import { ON_COLOR, ROLE, SURFACE } from '../theme/palette'
 
 /**
- * Visual-regression snapshot of the resolved theme palette tokens for each
- * colour scheme.
+ * Visual-regression snapshot of the kbeatz brand palette tokens for each colour
+ * scheme.
  *
- * Because the app themes via MUI CSS variables selected by a root attribute,
- * the rendered DOM markup is identical in light and dark mode (the per-screen
- * DOM snapshots therefore prove a screen renders cleanly in each theme, but the
- * COLOUR difference lives only in the stylesheet). This snapshot pins the actual
- * palette values both schemes resolve to, so an accidental colour-token change
- * in either theme is caught - the missing half of "both themes" coverage.
+ * The app themes via the Astryx neutral theme plus the kbeatz brand tokens in
+ * kbeatz-tokens.css, which are selected by a root attribute, so the rendered
+ * DOM markup is identical in light and dark mode (the per-screen DOM snapshots
+ * therefore prove a screen renders cleanly in each theme, but the COLOUR
+ * difference lives only in the stylesheet). This snapshot pins the palette.ts
+ * source-of-truth values both schemes resolve to, so an accidental colour-token
+ * change in either scheme is caught - the missing half of "both themes"
+ * coverage. Keep palette.ts and kbeatz-tokens.css in sync.
  */
 function paletteTokens(scheme: 'light' | 'dark') {
-  const colorScheme = theme.colorSchemes[scheme]
-  if (!colorScheme) {
-    throw new Error(`Theme is missing the ${scheme} colour scheme`)
-  }
-  const p = colorScheme.palette
   return {
-    mode: p.mode,
-    primaryMain: p.primary.main,
-    secondaryMain: p.secondary.main,
-    errorMain: p.error.main,
-    successMain: p.success.main,
-    warningMain: p.warning.main,
-    backgroundDefault: p.background.default,
-    backgroundPaper: p.background.paper,
-    textPrimary: p.text.primary,
-    textSecondary: p.text.secondary,
-    divider: p.divider,
-    brandOn: p.brandOn,
+    scheme,
+    primaryMain: ROLE[scheme].primary.main,
+    secondaryMain: ROLE[scheme].secondary.main,
+    errorMain: ROLE[scheme].error.main,
+    successMain: ROLE[scheme].success.main,
+    warningMain: ROLE[scheme].warning.main,
+    backgroundDefault: SURFACE[scheme].background,
+    backgroundPaper: SURFACE[scheme].paper,
+    textPrimary: SURFACE[scheme].textPrimary,
+    textSecondary: SURFACE[scheme].textSecondary,
+    divider: SURFACE[scheme].divider,
+    brandOn: ON_COLOR[scheme],
   }
 }
 
