@@ -1,11 +1,9 @@
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import Box from '@mui/material/Box'
-import Stack from '@mui/material/Stack'
-import Typography from '@mui/material/Typography'
-import Button from '@mui/material/Button'
-import CircularProgress from '@mui/material/CircularProgress'
-import { visuallyHidden } from '@mui/utils'
+import { Button } from '@astryxdesign/core/Button'
+import { Spinner } from '@astryxdesign/core/Spinner'
+import { Text } from '@astryxdesign/core/Text'
+import { VisuallyHidden } from '@astryxdesign/core/VisuallyHidden'
 import { AlbumGrid } from './features/albums/album-grid'
 import { AlbumPagination } from './features/albums/album-pagination'
 import { BulkActionToolbar } from './features/albums/bulk-action-toolbar'
@@ -119,27 +117,27 @@ export function AlbumListPage() {
   const showSort = mode === 'client'
 
   return (
-    <Box>
+    <div>
       {/*
         Visually-hidden page heading anchors the document outline (WCAG 1.3.1 /
         2.4.6). The album cards render as <h2>, so the page needs a single <h1>
         ancestor; the toolbar above is not a heading.
       */}
-      <Typography variant="h1" sx={visuallyHidden}>
-        {t('albumList.pageHeading')}
-      </Typography>
-      <Stack
-        direction={{ xs: 'column', md: 'row' }}
-        spacing={2}
-        sx={{
-          alignItems: { xs: 'stretch', md: 'center' },
-          p: 2,
-          borderBottom: 1,
-          borderColor: 'divider',
+      <VisuallyHidden>
+        <h1>{t('albumList.pageHeading')}</h1>
+      </VisuallyHidden>
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: 16,
+          padding: 16,
+          borderBottom: '1px solid var(--color-border)',
         }}
       >
         <SearchBox filters={filters} onFiltersChange={setFilters} />
-        <Box sx={{ flexGrow: 1 }} />
+        <div style={{ flexGrow: 1 }} />
         {showSort && (
           <SortPreference
             value={sortBy}
@@ -149,61 +147,59 @@ export function AlbumListPage() {
           />
         )}
         <PageSizeSelect value={pageSize} onChange={setPageSize} />
-      </Stack>
+      </div>
 
-      <Box
-        sx={{
-          p: 2,
-          maxWidth: 1600,
-          mx: 'auto',
-          width: '100%',
-        }}
-      >
-        <Box sx={{ minWidth: 0, width: '100%' }}>
+      <div style={{ padding: 16, maxWidth: 1600, margin: '0 auto', width: '100%' }}>
+        <div style={{ minWidth: 0, width: '100%' }}>
           {isPending && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-              <CircularProgress aria-label={t('albumGrid.loading')} />
-            </Box>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
+              <Spinner aria-label={t('albumGrid.loading')} />
+            </div>
           )}
 
           {isError && (
-            <Box
+            <div
               role="alert"
               data-testid="albums-error"
-              sx={{
+              style={{
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'flex-start',
-                gap: 1,
-                p: 2,
+                gap: 8,
+                padding: 16,
               }}
             >
-              <Typography color="error">{t('albumGrid.fetchError')}</Typography>
+              <span style={{ color: 'var(--color-text-error, #d6336c)' }}>
+                <Text>{t('albumGrid.fetchError')}</Text>
+              </span>
               <Button
-                variant="contained"
+                variant="primary"
                 onClick={handleRetry}
                 data-testid="albums-retry-button"
-              >
-                {t('albumGrid.retryButton')}
-              </Button>
-            </Box>
+                label={t('albumGrid.retryButton')}
+              />
+            </div>
           )}
 
           {!isPending && !isError && (
             <>
               {workflowAlbumIds !== null && workflowAlbumIds.length > 0 && (
-                <Box
-                  component="section"
+                <section
                   aria-label={t('albumSelection.workflowLabel')}
                   data-testid="bulk-relayout-workflow"
-                  sx={{ mb: 2, p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}
+                  style={{
+                    marginBottom: 16,
+                    padding: 16,
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 'var(--radius-element, 8px)',
+                  }}
                 >
                   <ChangePlanWorkflow
                     operation="RELAYOUT"
                     albumIds={workflowAlbumIds}
                     onClose={handleWorkflowClose}
                   />
-                </Box>
+                </section>
               )}
               {selection.hasSelection && workflowAlbumIds === null && (
                 <BulkActionToolbar
@@ -220,8 +216,8 @@ export function AlbumListPage() {
               <AlbumPagination page={displayPage} totalPages={totalPages} onPageChange={setPage} />
             </>
           )}
-        </Box>
-      </Box>
-    </Box>
+        </div>
+      </div>
+    </div>
   )
 }

@@ -94,7 +94,7 @@ describe('AlbumListPage - server-side mode (NFR-11 / NFR-12)', () => {
     renderApp()
 
     // The first page of 50 cards from the server is rendered.
-    expect(await screen.findByTitle('Album 00000')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Album 00000' })).toBeInTheDocument()
     expect(screen.getAllByTestId('album-card')).toHaveLength(50)
     // Total reflects the FULL 10 000-album library - it is NOT truncated to
     // 5 000 (the old MAX_PAGES cap). This is the core NFR-11 assertion.
@@ -110,7 +110,7 @@ describe('AlbumListPage - server-side mode (NFR-11 / NFR-12)', () => {
 
   it('hides the full-set sort + filter panel in server mode (documented limitation)', async () => {
     renderApp()
-    await screen.findByTitle('Album 00000')
+    await screen.findByRole('heading', { name: 'Album 00000' })
     expect(screen.queryByRole('combobox', { name: 'Sort by' })).not.toBeInTheDocument()
     expect(screen.queryByRole('complementary', { name: 'Filter albums' })).not.toBeInTheDocument()
   })
@@ -118,13 +118,13 @@ describe('AlbumListPage - server-side mode (NFR-11 / NFR-12)', () => {
   it('navigating to page 2 fetches and renders ONLY that server page', async () => {
     const user = userEvent.setup()
     const { router } = renderApp()
-    await screen.findByTitle('Album 00000')
+    await screen.findByRole('heading', { name: 'Album 00000' })
 
     await user.click(screen.getByRole('button', { name: 'Go to page 2' }))
 
     // Page 2 = server page index 1 = albums 50..99.
-    expect(await screen.findByTitle('Album 00050')).toBeInTheDocument()
-    expect(screen.queryByTitle('Album 00000')).not.toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Album 00050' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Album 00000' })).not.toBeInTheDocument()
     expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 2 of 200')
     expect(router.state.location.search).toContain('page=2')
     // The server was asked for page index 1 with size 50.
@@ -136,7 +136,7 @@ describe('AlbumListPage - server-side mode (NFR-11 / NFR-12)', () => {
   it('deep-links to a server page via the URL and renders that page only', async () => {
     renderApp(['/?page=3'])
     // Page 3 = server index 2 = albums 100..149.
-    expect(await screen.findByTitle('Album 00100')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Album 00100' })).toBeInTheDocument()
     expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 3 of 200')
     expect(mockListAlbums).toHaveBeenCalledWith(expect.objectContaining({ page: 2, size: 50 }))
   })
@@ -144,17 +144,17 @@ describe('AlbumListPage - server-side mode (NFR-11 / NFR-12)', () => {
   it('typing a search maps to the server q param and resets to page 1', async () => {
     const user = userEvent.setup({ delay: null })
     const { router } = renderApp(['/?page=5'])
-    await screen.findByTitle('Album 00200')
+    await screen.findByRole('heading', { name: 'Album 00200' })
     expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 5 of 200')
 
     // "Album 01234" matches exactly one record in the fake library.
-    await user.type(screen.getByRole('searchbox'), 'Album 01234')
+    await user.type(screen.getByRole('textbox'), 'Album 01234')
 
     await act(async () => {
       await Promise.resolve()
     })
 
-    expect(await screen.findByTitle('Album 01234')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Album 01234' })).toBeInTheDocument()
     expect(screen.getAllByTestId('album-card')).toHaveLength(1)
     // q sent to the server; page reset to 1 (page param dropped).
     expect(mockListAlbums).toHaveBeenCalledWith(expect.objectContaining({ q: 'Album 01234', page: 0 }))
@@ -167,7 +167,7 @@ describe('AlbumListPage - server-side mode (NFR-11 / NFR-12)', () => {
     // Page 120 (size 50) starts at index 120*50=6000-50=5950 (0-indexed: page 119 * 50 = 5950),
     // well beyond the old 5 000-album silent ceiling. This is the regression guard for NFR-11.
     renderApp(['/?page=120'])
-    expect(await screen.findByTitle('Album 05950')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Album 05950' })).toBeInTheDocument()
     expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 120 of 200')
   })
 
@@ -176,14 +176,14 @@ describe('AlbumListPage - server-side mode (NFR-11 / NFR-12)', () => {
     // the clamped last page (199 zero-based), not an empty over-range page.
     renderApp(['/?page=9999'])
     // Last page (200) starts at index 199*50 = 9950.
-    expect(await screen.findByTitle('Album 09950')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Album 09950' })).toBeInTheDocument()
     expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 200 of 200')
     expect(mockListAlbums).toHaveBeenCalledWith(expect.objectContaining({ page: 199, size: 50 }))
   })
 
   it('pagination nav is keyboard reachable and labelled in server mode (a11y)', async () => {
     renderApp()
-    await screen.findByTitle('Album 00000')
+    await screen.findByRole('heading', { name: 'Album 00000' })
     const nav = screen.getByRole('navigation', { name: 'Album page navigation' })
     expect(within(nav).getByRole('button', { name: 'Go to page 2' })).toBeInTheDocument()
   })

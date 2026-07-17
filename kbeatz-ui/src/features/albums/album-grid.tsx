@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import Box from '@mui/material/Box'
-import Typography from '@mui/material/Typography'
+import { Text } from '@astryxdesign/core/Text'
 import { Album } from '../../api/generated'
 import { AlbumCard } from './album-card'
 
@@ -33,13 +32,13 @@ interface AlbumGridProps {
 }
 
 /**
- * Responsive MUI album grid.
+ * Responsive album grid.
  *
  * Columns reflow with the viewport via a CSS Grid `repeat(auto-fill, minmax())`
  * template, so no JavaScript column maths or ResizeObserver is needed and the
- * grid stays fluid across xs/sm/md/lg/xl with no horizontal scroll (AC8).
- * Only one page of cards is mounted at a time (the parent slices the list), so
- * the DOM stays small regardless of collection size (Performance AC).
+ * grid stays fluid across breakpoints with no horizontal scroll (AC8). Only one
+ * page of cards is mounted at a time (the parent slices the list), so the DOM
+ * stays small regardless of collection size (Performance AC).
  *
  * Accessibility (WCAG 2.1 AA):
  * - A polite live region announces the visible/total count when it changes.
@@ -55,32 +54,29 @@ export function AlbumGrid({ albums, totalCount, selection }: AlbumGridProps) {
 
   if (albums.length === 0) {
     return (
-      <Typography color="text.secondary" sx={{ p: 2 }} data-testid="album-grid-empty">
-        {t('albumGrid.noResults')}
-      </Typography>
+      <div style={{ padding: 16 }} data-testid="album-grid-empty">
+        <Text type="supporting">{t('albumGrid.noResults')}</Text>
+      </div>
     )
   }
 
   return (
-    <Box>
-      <Typography
+    <div>
+      <p
         role="status"
         aria-live="polite"
         aria-atomic="true"
-        variant="body2"
-        color="text.secondary"
-        sx={{ mb: 1 }}
+        style={{ margin: '0 0 8px' }}
         data-testid="album-grid-result-count"
       >
-        {resultCountText}
-      </Typography>
-      <Box
-        component="section"
+        <Text type="supporting">{resultCountText}</Text>
+      </p>
+      <section
         aria-label={t('albumGrid.collectionLabel', { count: albums.length })}
         data-testid="album-grid-section"
-        sx={{
+        style={{
           display: 'grid',
-          gap: 2,
+          gap: 16,
           gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
         }}
       >
@@ -97,7 +93,7 @@ export function AlbumGrid({ albums, totalCount, selection }: AlbumGridProps) {
             <AlbumCard key={album.id} album={album} />
           ),
         )}
-      </Box>
-    </Box>
+      </section>
+    </div>
   )
 }
