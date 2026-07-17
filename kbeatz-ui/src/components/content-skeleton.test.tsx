@@ -11,13 +11,13 @@ describe('ContentSkeleton', () => {
 
   it('renders the requested number of placeholder lines', () => {
     render(<ContentSkeleton ariaLabel="Loading" lines={5} testId="skel" />)
-    const skeletons = screen.getByTestId('skel').querySelectorAll('.MuiSkeleton-root')
+    const skeletons = screen.getByTestId('skel').querySelectorAll('.astryx-skeleton')
     expect(skeletons).toHaveLength(5)
   })
 
   it('renders at least one line when given a non-positive count', () => {
     render(<ContentSkeleton ariaLabel="Loading" lines={0} testId="skel" />)
-    const skeletons = screen.getByTestId('skel').querySelectorAll('.MuiSkeleton-root')
+    const skeletons = screen.getByTestId('skel').querySelectorAll('.astryx-skeleton')
     expect(skeletons).toHaveLength(1)
   })
 })
