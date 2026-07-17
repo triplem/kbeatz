@@ -1,17 +1,17 @@
-import { type ReactElement, useId, useState } from 'react'
+import { type ReactElement, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import Alert from '@mui/material/Alert'
-import Box from '@mui/material/Box'
-import Chip from '@mui/material/Chip'
-import MenuItem from '@mui/material/MenuItem'
-import Skeleton from '@mui/material/Skeleton'
-import Stack from '@mui/material/Stack'
-import TextField from '@mui/material/TextField'
-import Typography from '@mui/material/Typography'
+import { Banner } from '@astryxdesign/core/Banner'
+import { Selector } from '@astryxdesign/core/Selector'
+import { Skeleton } from '@astryxdesign/core/Skeleton'
+import { Text } from '@astryxdesign/core/Text'
+import { Heading } from '@astryxdesign/core/Heading'
+import { Token } from '@astryxdesign/core/Token'
 import type { Album, LayoutPreview } from '../../api/generated'
 import { useLayoutSettings } from './useLayoutSettings'
 import { useLayoutPreview } from './useLayoutPreview'
 import { useAlbumOptions } from './useAlbumOptions'
+
+const monoStyle: React.CSSProperties = { fontFamily: 'monospace', wordBreak: 'break-all', margin: 0 }
 
 /** Build a human-readable label for an album option in the selector. */
 function albumOptionLabel(album: Album): string {
@@ -32,38 +32,30 @@ function PreviewResult({ preview }: PreviewResultProps): ReactElement {
 
   if (!preview.withinLibraryRoot) {
     return (
-      <Alert severity="warning" data-testid="layout-preview-conflict">
-        {preview.message ?? t('directoryLayout.conflict')}
-      </Alert>
+      <div data-testid="layout-preview-conflict">
+        <Banner status="warning" title={preview.message ?? t('directoryLayout.conflict')} />
+      </div>
     )
   }
 
   const alreadyInPlace = preview.plannedDirectory === preview.currentDirectory
 
   return (
-    <Stack spacing={1} data-testid="layout-preview-result">
-      <Box>
-        <Typography variant="caption" color="text.secondary">
-          {t('directoryLayout.currentDirectory')}
-        </Typography>
-        <Typography variant="body2" component="p" sx={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>
-          {preview.currentDirectory}
-        </Typography>
-      </Box>
-      <Box>
-        <Typography variant="caption" color="text.secondary">
-          {t('directoryLayout.plannedDirectory')}
-        </Typography>
-        <Typography variant="body2" component="p" sx={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>
-          {preview.plannedDirectory}
-        </Typography>
-      </Box>
+    <div data-testid="layout-preview-result" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div>
+        <Text type="supporting">{t('directoryLayout.currentDirectory')}</Text>
+        <p style={monoStyle}>{preview.currentDirectory}</p>
+      </div>
+      <div>
+        <Text type="supporting">{t('directoryLayout.plannedDirectory')}</Text>
+        <p style={monoStyle}>{preview.plannedDirectory}</p>
+      </div>
       {alreadyInPlace && (
-        <Alert severity="success" data-testid="layout-preview-in-place">
-          {t('directoryLayout.alreadyInPlace')}
-        </Alert>
+        <div data-testid="layout-preview-in-place">
+          <Banner status="success" title={t('directoryLayout.alreadyInPlace')} />
+        </div>
       )}
-    </Stack>
+    </div>
   )
 }
 
@@ -78,19 +70,19 @@ function AlbumPreview({ albumId }: AlbumPreviewProps): ReactElement | null {
 
   if (albumId === null) {
     return (
-      <Typography variant="body2" color="text.secondary" data-testid="layout-preview-empty">
-        {t('directoryLayout.selectPrompt')}
-      </Typography>
+      <div data-testid="layout-preview-empty">
+        <Text type="supporting">{t('directoryLayout.selectPrompt')}</Text>
+      </div>
     )
   }
   if (isPending) {
-    return <Skeleton variant="rounded" height={64} data-testid="layout-preview-loading" />
+    return <Skeleton height={64} data-testid="layout-preview-loading" />
   }
   if (isError || !preview) {
     return (
-      <Alert severity="error" data-testid="layout-preview-error">
-        {t('directoryLayout.previewError')}
-      </Alert>
+      <div data-testid="layout-preview-error">
+        <Banner status="error" title={t('directoryLayout.previewError')} />
+      </div>
     )
   }
   return <PreviewResult preview={preview} />
@@ -111,79 +103,62 @@ export function DirectoryLayoutSettings(): ReactElement {
   const { albums, isPending: albumsPending, isError: albumsError } = useAlbumOptions()
   const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null)
 
-  const selectId = useId()
+  const albumOptions = [
+    { value: '', label: t('directoryLayout.noAlbumSelected') },
+    ...albums.map((album) => ({ value: album.id, label: albumOptionLabel(album) })),
+  ]
+
+  // Validation status for the album selector; hoisted out of JSX so the literal
+  // 'error' status type is not flagged as user-facing copy.
+  const selectorStatus = albumsError
+    ? ({ type: 'error', message: t('directoryLayout.albumsError') } as const)
+    : undefined
 
   return (
-    <Stack spacing={2} sx={{ py: 1 }} data-testid="directory-layout-settings">
+    <div data-testid="directory-layout-settings" style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '8px 0' }}>
       <div>
-        <Typography component="h2" variant="subtitle1" sx={{ fontWeight: 600 }}>
-          {t('directoryLayout.heading')}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {t('directoryLayout.description')}
-        </Typography>
+        <Heading level={2}>{t('directoryLayout.heading')}</Heading>
+        <Text type="supporting">{t('directoryLayout.description')}</Text>
       </div>
 
-      {settingsError && <Alert severity="error">{t('directoryLayout.settingsError')}</Alert>}
+      {settingsError && <Banner status="error" title={t('directoryLayout.settingsError')} />}
       {settingsPending && !settingsError && (
-        <Skeleton variant="rounded" height={48} data-testid="layout-settings-loading" />
+        <Skeleton height={48} data-testid="layout-settings-loading" />
       )}
       {settings && (
-        <Stack spacing={1.5}>
-          <Box>
-            <Typography variant="caption" color="text.secondary">
-              {t('directoryLayout.templateLabel')}
-            </Typography>
-            <Typography
-              variant="body2"
-              component="p"
-              data-testid="layout-template"
-              sx={{ fontFamily: 'monospace', wordBreak: 'break-all' }}
-            >
-              {settings.directoryTemplate}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {t('directoryLayout.readOnlyNote')}
-            </Typography>
-          </Box>
-          <Box>
-            <Typography variant="caption" color="text.secondary" component="p" sx={{ mb: 0.5 }}>
-              {t('directoryLayout.tokensLabel')}
-            </Typography>
-            <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <Text type="supporting">{t('directoryLayout.templateLabel')}</Text>
+            <p data-testid="layout-template" style={monoStyle}>{settings.directoryTemplate}</p>
+            <Text type="supporting">{t('directoryLayout.readOnlyNote')}</Text>
+          </div>
+          <div>
+            <p style={{ margin: '0 0 4px' }}>
+              <Text type="supporting">{t('directoryLayout.tokensLabel')}</Text>
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {settings.supportedTokens.map((token) => (
-                <Chip key={token} label={token} size="small" data-testid="layout-token" />
+                <span key={token} data-testid="layout-token">
+                  <Token label={token} size="sm" color="gray" />
+                </span>
               ))}
-            </Stack>
-          </Box>
-        </Stack>
+            </div>
+          </div>
+        </div>
       )}
 
-      <Box>
-        <TextField
-          id={selectId}
-          select
-          fullWidth
-          size="small"
+      <div>
+        <Selector
           label={t('directoryLayout.albumSelectLabel')}
           value={selectedAlbumId ?? ''}
-          onChange={(e) => setSelectedAlbumId(e.target.value === '' ? null : e.target.value)}
-          disabled={albumsPending || albumsError || albums.length === 0}
-          helperText={albumsError ? t('directoryLayout.albumsError') : undefined}
-          error={albumsError}
-        >
-          <MenuItem value="">
-            <em>{t('directoryLayout.noAlbumSelected')}</em>
-          </MenuItem>
-          {albums.map((album) => (
-            <MenuItem key={album.id} value={album.id}>
-              {albumOptionLabel(album)}
-            </MenuItem>
-          ))}
-        </TextField>
-      </Box>
+          onChange={(v) => setSelectedAlbumId(v === '' ? null : v)}
+          options={albumOptions}
+          isDisabled={albumsPending || albumsError || albums.length === 0}
+          {...(selectorStatus ? { status: selectorStatus } : {})}
+        />
+      </div>
 
       <AlbumPreview albumId={selectedAlbumId} />
-    </Stack>
+    </div>
   )
 }

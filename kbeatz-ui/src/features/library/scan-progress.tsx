@@ -1,9 +1,10 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import Alert from '@mui/material/Alert'
-import Box from '@mui/material/Box'
-import LinearProgress from '@mui/material/LinearProgress'
-import Typography from '@mui/material/Typography'
+import { Banner } from '@astryxdesign/core/Banner'
+import { ProgressBar } from '@astryxdesign/core/ProgressBar'
+import { Icon } from '@astryxdesign/core/Icon'
+import { Text } from '@astryxdesign/core/Text'
+import { X } from 'lucide-react'
 import { ScanErrors } from './scan-errors'
 import { formatDateTime } from '../../lib/i18n'
 import { useScanStatus } from './useScanStatus'
@@ -16,11 +17,8 @@ const AUTO_DISMISS_DELAY_MS = 5000
  * Dismissible completion banner for a single scan epoch.
  *
  * Keyed on `completedAt` so React automatically resets dismissed state when a
- * new scan completes (a new key means a fresh component instance).
- *
- * Dismissal is persisted to localStorage so the banner does not reappear after
- * a page reload. A different `completedAt` value (new scan) always shows the
- * banner once regardless of prior dismissals.
+ * new scan completes. Dismissal is persisted to localStorage so the banner does
+ * not reappear after a page reload.
  */
 export interface CompletedBannerProps {
   readonly completedAt: string
@@ -30,13 +28,6 @@ export function CompletedBanner({ completedAt }: CompletedBannerProps) {
   const { t } = useTranslation()
   const { isDismissed, dismiss } = useScanBannerDismissal(completedAt)
 
-  /*
-   * Auto-dismiss: start a 5-second timer when the banner first appears.
-   * The timer is cancelled (cleanup) if the user dismisses manually first,
-   * or if the component unmounts for any other reason.
-   * `dismiss` is stable (useCallback in useScanBannerDismissal) so this
-   * effect only re-runs when completedAt changes (i.e. a new scan).
-   */
   useEffect(() => {
     const timer = setTimeout(dismiss, AUTO_DISMISS_DELAY_MS)
     return () => { clearTimeout(timer) }
@@ -45,30 +36,54 @@ export function CompletedBanner({ completedAt }: CompletedBannerProps) {
   if (isDismissed) return null
 
   return (
-    <Alert
-      severity="success"
+    <div
       role="status"
-      onClose={dismiss}
-      slotProps={{ closeButton: { 'aria-label': t('common.dismiss') } }}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: 12,
+        borderRadius: 'var(--radius-element, 8px)',
+        background: 'var(--color-success-muted, rgba(46, 196, 182, 0.12))',
+      }}
     >
-      {t('scanProgress.completedAt', { time: formatDateTime(completedAt) })}
-    </Alert>
+      <Text type="supporting">
+        {t('scanProgress.completedAt', { time: formatDateTime(completedAt) })}
+      </Text>
+      {/* Plain button (not Astryx IconButton) so this status region contains a
+          single live-region role, keeping findByRole('status') unambiguous. */}
+      <button
+        type="button"
+        aria-label={t('common.dismiss')}
+        onClick={dismiss}
+        style={{
+          marginInlineStart: 'auto',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minWidth: 28,
+          minHeight: 28,
+          border: 'none',
+          background: 'transparent',
+          color: 'var(--color-text-primary)',
+          cursor: 'pointer',
+          borderRadius: 'var(--radius-element, 8px)',
+        }}
+      >
+        <Icon icon={X} size="sm" />
+      </button>
+    </div>
   )
 }
 
 /**
  * Scan progress banner.
  *
- * Rebuilt on MUI feedback components (LinearProgress, Alert). Polls
- * `GET /api/v1/library/scan/status` every 2 seconds while state is RUNNING.
+ * Polls `GET /api/v1/library/scan/status` every 2 seconds while state is RUNNING.
  * Displays a determinate/indeterminate progress bar with the current count and
- * started-at timestamp. When COMPLETED shows a dismissible success Alert. When
+ * started-at timestamp. When COMPLETED shows a dismissible success Banner. When
  * COMPLETED with per-album errors, shows the ScanErrors banner below. When IDLE,
- * renders nothing. Shows an error Alert when state is FAILED.
- *
- * Dismissal is persisted via useScanBannerDismissal (localStorage). Each new scan
- * completion produces a new `completedAt` value which resets the dismissed state
- * automatically via the React key on `CompletedBanner`.
+ * renders nothing. Shows an error Banner when state is FAILED.
  */
 export function ScanProgress() {
   const { t } = useTranslation()
@@ -81,26 +96,21 @@ export function ScanProgress() {
   if (status.state === 'COMPLETED') {
     const hasErrors = (status.totalErrors ?? 0) > 0
     const hasCompletedAt = Boolean(status.completedAt)
-    // Nothing to surface (no completion timestamp and no errors): render nothing
-    // so the global banner area stays empty.
     if (!hasCompletedAt && !hasErrors) {
       return null
     }
-    // A Fragment (not a Box wrapper) is used so the rendered output collapses to
-    // nothing once the completion banner is dismissed and there are no errors -
-    // the global banner area must not leave an empty container behind.
     return (
       <>
         {status.completedAt && (
           <CompletedBanner key={status.completedAt} completedAt={status.completedAt} />
         )}
         {hasErrors && (
-          <Box sx={{ mt: status.completedAt ? 1 : 0 }}>
+          <div style={{ marginTop: status.completedAt ? 8 : 0 }}>
             <ScanErrors
               errors={status.errors ?? []}
               totalErrors={status.totalErrors ?? 0}
             />
-          </Box>
+          </div>
         )}
       </>
     )
@@ -108,9 +118,10 @@ export function ScanProgress() {
 
   if (status.state === 'FAILED') {
     return (
-      <Alert severity="error" role="alert">
-        {t('scanProgress.failed', { message: status.errorMessage ?? t('scanProgress.unknownError') })}
-      </Alert>
+      <Banner
+        status="error"
+        title={t('scanProgress.failed', { message: status.errorMessage ?? t('scanProgress.unknownError') })}
+      />
     )
   }
 
@@ -118,37 +129,31 @@ export function ScanProgress() {
   const scanned = status.scannedAlbums ?? 0
   const total = status.totalAlbums
   const progressText = total !== undefined ? `${scanned} / ${total}` : `${scanned}`
-  // Determinate bar when total is known; otherwise an indeterminate bar.
   const hasTotal = total !== undefined && total > 0
-  const progressValue = hasTotal ? Math.min(100, Math.round((scanned / total) * 100)) : undefined
+  const progressValue = hasTotal ? Math.min(100, Math.round((scanned / total) * 100)) : 0
+  const runningLabel = t('scanProgress.running', { progress: progressText })
 
   return (
-    <Box
-      role="status"
-      aria-live="polite"
-      aria-atomic="true"
-      sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}
-    >
-      <Typography variant="body2" component="p" sx={{ m: 0 }}>
-        {t('scanProgress.running', { progress: progressText })}
-        {status.startedAt && (
-          <Box component="span">
-            {' '}{t('scanProgress.startedAt', { time: formatDateTime(status.startedAt) })}
-          </Box>
-        )}
-      </Typography>
+    <div role="status" aria-live="polite" aria-atomic="true" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <p style={{ margin: 0 }}>
+        <Text type="supporting">
+          {runningLabel}
+          {status.startedAt && <> {t('scanProgress.startedAt', { time: formatDateTime(status.startedAt) })}</>}
+        </Text>
+      </p>
       {/*
         Determinate bar is exposed as a real progressbar so assistive tech can
         read the current percentage on demand (WCAG 1.3.1 / 4.1.2). The
         indeterminate bar carries no value, so it stays aria-hidden (it would
         otherwise announce a meaningless progressbar with no value).
       */}
-      <LinearProgress
-        variant={hasTotal ? 'determinate' : 'indeterminate'}
-        value={progressValue}
-        aria-hidden={hasTotal ? undefined : 'true'}
-        aria-label={hasTotal ? t('scanProgress.running', { progress: progressText }) : undefined}
-      />
-    </Box>
+      {hasTotal ? (
+        <ProgressBar label={runningLabel} value={progressValue} isLabelHidden />
+      ) : (
+        <span aria-hidden="true" style={{ display: 'block' }}>
+          <ProgressBar label={runningLabel} isIndeterminate isLabelHidden />
+        </span>
+      )}
+    </div>
   )
 }

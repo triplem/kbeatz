@@ -1,8 +1,7 @@
 import { type ReactNode } from 'react'
-import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
-import CircularProgress from '@mui/material/CircularProgress'
-import Typography from '@mui/material/Typography'
+import { Button } from '@astryxdesign/core/Button'
+import { Spinner } from '@astryxdesign/core/Spinner'
+import { Text } from '@astryxdesign/core/Text'
 
 interface LoadingStateProps {
   /** Visible and announced loading message. */
@@ -15,22 +14,23 @@ interface LoadingStateProps {
  * LoadingState - centred spinner with an accessible status message.
  *
  * Uses role="status" + aria-live="polite" so screen readers announce loading
- * without interrupting. The MUI CircularProgress honours reduced-motion via the
- * global CssBaseline override.
+ * without interrupting. Reduced-motion is honoured via the global stylesheet.
  */
 export function LoadingState({ message, testId }: LoadingStateProps) {
   return (
-    <Box
+    <div
       role="status"
       aria-live="polite"
       data-testid={testId}
-      sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 2 }}
+      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 0' }}
     >
-      <CircularProgress size={20} aria-hidden="true" />
-      <Typography component="p" variant="body2" color="text.secondary" sx={{ m: 0 }}>
-        {message}
-      </Typography>
-    </Box>
+      {/* The outer region is the live status; hide the spinner's own role=status
+          so there is a single announcement carrying the message text. */}
+      <span aria-hidden="true" style={{ display: 'inline-flex' }}>
+        <Spinner size="sm" />
+      </span>
+      <Text type="supporting">{message}</Text>
+    </div>
   )
 }
 
@@ -50,28 +50,25 @@ interface EmptyStateProps {
  */
 export function EmptyState({ message, hint, action, testId }: EmptyStateProps) {
   return (
-    <Box
+    <div
       data-testid={testId}
-      sx={{
+      style={{
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         textAlign: 'center',
-        gap: 1,
-        py: 4,
-        px: 2,
+        gap: 8,
+        padding: '32px 16px',
       }}
     >
-      <Typography component="p" variant="body1" color="text.secondary" sx={{ m: 0 }}>
-        {message}
-      </Typography>
+      <Text color="secondary">{message}</Text>
       {hint !== undefined && (
-        <Typography component="p" variant="body2" color="text.disabled" sx={{ m: 0 }}>
+        <Text type="supporting" color="disabled">
           {hint}
-        </Typography>
+        </Text>
       )}
       {action}
-    </Box>
+    </div>
   )
 }
 
@@ -89,31 +86,27 @@ interface ErrorStateProps {
 /**
  * ErrorState - assertive error message with an optional retry action.
  *
- * Uses role="alert" so the message is announced immediately. The retry button,
- * when shown, meets the 44px minimum target size.
+ * Uses role="alert" so the message is announced immediately.
  */
 export function ErrorState({ message, onRetry, retryLabel, testId }: ErrorStateProps) {
   return (
-    <Box
+    <div
       role="alert"
       data-testid={testId}
-      sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1, py: 2 }}
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, padding: '16px 0' }}
     >
-      <Typography component="p" variant="body2" color="error" sx={{ m: 0 }}>
-        {message}
-      </Typography>
+      <span style={{ color: 'var(--color-error, #d6336c)' }}>
+        <Text type="supporting">{message}</Text>
+      </span>
       {onRetry !== undefined && retryLabel !== undefined && (
         <Button
           type="button"
-          variant="outlined"
-          color="inherit"
+          variant="secondary"
           onClick={onRetry}
           data-testid={testId !== undefined ? `${testId}-retry` : undefined}
-          sx={{ minHeight: 44 }}
-        >
-          {retryLabel}
-        </Button>
+          label={retryLabel}
+        />
       )}
-    </Box>
+    </div>
   )
 }

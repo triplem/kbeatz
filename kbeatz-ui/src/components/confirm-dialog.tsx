@@ -1,7 +1,29 @@
-import { useCallback, useEffect, useId, useRef } from 'react'
-import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
-import Typography from '@mui/material/Typography'
+import { useCallback, useEffect, useId, useRef, type CSSProperties } from 'react'
+import { Button } from '@astryxdesign/core/Button'
+import { Heading } from '@astryxdesign/core/Heading'
+import { Text } from '@astryxdesign/core/Text'
+
+/** Theme-aware overlay + panel styles for this inline (non-portalled) dialog. */
+const OVERLAY_STYLE: CSSProperties = {
+  position: 'fixed',
+  inset: 0,
+  zIndex: 1300,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: 16,
+  background: 'rgba(0, 0, 0, 0.5)',
+}
+
+const PANEL_STYLE: CSSProperties = {
+  width: '100%',
+  maxWidth: 440,
+  background: 'var(--color-background-primary, #fff)',
+  color: 'var(--color-text-primary)',
+  borderRadius: 'var(--radius-container, 12px)',
+  boxShadow: 'var(--shadow-4, 0 12px 32px rgba(0, 0, 0, 0.25))',
+  padding: 24,
+}
 
 interface ConfirmDialogProps {
   /** Whether the dialog is open. */
@@ -121,22 +143,13 @@ export function ConfirmDialog({
   const describedBy = warning !== undefined ? `${bodyId} ${warningId}` : bodyId
 
   return (
-    <Box
+    <div
       role="presentation"
       data-testid={testId !== undefined ? `${testId}-overlay` : undefined}
       onClick={onCancel}
-      sx={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 'modal',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        p: 2,
-        bgcolor: 'rgba(0, 0, 0, 0.5)',
-      }}
+      style={OVERLAY_STYLE}
     >
-      <Box
+      <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -144,61 +157,46 @@ export function ConfirmDialog({
         data-testid={testId}
         onKeyDown={handleKeyDown}
         onClick={(e) => { e.stopPropagation() }}
-        sx={{
-          width: '100%',
-          maxWidth: 440,
-          bgcolor: 'background.paper',
-          color: 'text.primary',
-          borderRadius: 2,
-          boxShadow: 24,
-          p: 3,
-        }}
+        style={PANEL_STYLE}
       >
-        <Typography id={titleId} variant="h6" component="h2" sx={{ mb: 1 }}>
-          {title}
-        </Typography>
+        <div style={{ marginBottom: 8 }}>
+          <Heading level={2} id={titleId}>
+            {title}
+          </Heading>
+        </div>
 
-        <Typography id={bodyId} variant="body2" component="p" sx={{ mb: warning !== undefined ? 1 : 3 }}>
-          {body}
-        </Typography>
+        <p id={bodyId} style={{ margin: warning !== undefined ? '0 0 8px' : '0 0 24px' }}>
+          <Text type="supporting">{body}</Text>
+        </p>
 
         {warning !== undefined && (
-          <Typography
+          <p
             id={warningId}
-            variant="body2"
-            component="p"
-            color="error"
-            sx={{ mb: 3, fontWeight: 600 }}
+            style={{ margin: '0 0 24px', color: 'var(--color-error, #d6336c)', fontWeight: 600 }}
           >
             {warning}
-          </Typography>
+          </p>
         )}
 
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           <Button
             ref={cancelButtonRef}
             type="button"
-            variant="outlined"
-            color="inherit"
+            variant="secondary"
             data-testid={testId !== undefined ? `${testId}-cancel` : undefined}
             onClick={onCancel}
-            sx={{ minHeight: 44 }}
-          >
-            {cancelLabel}
-          </Button>
+            label={cancelLabel}
+          />
           <Button
             ref={confirmButtonRef}
             type="button"
-            variant="contained"
-            color={confirmColor}
+            variant={confirmColor === 'error' ? 'destructive' : 'primary'}
             data-testid={testId !== undefined ? `${testId}-confirm` : undefined}
             onClick={onConfirm}
-            sx={{ minHeight: 44 }}
-          >
-            {confirmLabel}
-          </Button>
-        </Box>
-      </Box>
-    </Box>
+            label={confirmLabel}
+          />
+        </div>
+      </div>
+    </div>
   )
 }

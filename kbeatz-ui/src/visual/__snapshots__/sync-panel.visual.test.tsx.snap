@@ -9,61 +9,112 @@ exports[`SyncPanel visual regression > matches the idle sync-panel snapshot in d
   >
     <section
       aria-label="Sync from Discogs"
-      class="MuiBox-root css-1821gv5"
       data-testid="sync-panel"
+      style="display: flex; flex-direction: column; gap: 8px;"
     >
       <h3
-        class="MuiTypography-root MuiTypography-h6 css-15n7uon-MuiTypography-root"
+        class="astryx-heading level-3 primary x1tgivj0 xii13ha xwjzt0u x1jcxfy8 x1lliihq"
+        data-color="primary"
+        data-level="3"
       >
         Sync from Discogs
       </h3>
       <p
-        class="MuiTypography-root MuiTypography-body2 css-1qcw4ol-MuiTypography-root"
         data-testid="discogs-id"
+        style="margin: 0px;"
       >
-        Discogs ID: 1372704
+        <span
+          class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+          data-color="secondary"
+          data-type="supporting"
+        >
+          Discogs ID: 1372704
+        </span>
       </p>
-      <label
-        class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-vmew5-MuiFormControlLabel-root"
+      <div
+        style="align-self: flex-start;"
       >
-        <span
-          class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-vuhw6e-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+        <div
+          class="astryx-checkbox-input md"
+          data-size="md"
         >
-          <input
-            aria-label="Download cover art"
-            class="PrivateSwitchBase-input css-12xagqm-MuiSwitchBase-root"
-            data-indeterminate="false"
-            data-testid="download-images-checkbox"
-            type="checkbox"
-          />
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
-            data-testid="CheckBoxOutlineBlankIcon"
-            focusable="false"
-            viewBox="0 0 24 24"
+          <div
+            class="x78zum5 x6s0dn4 x1txdalj x1tspnpo"
           >
-            <path
-              d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-            />
-          </svg>
-        </span>
-        <span
-          class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-rizt0-MuiTypography-root"
-        >
-          Also update cover art
-        </span>
-      </label>
-      <button
-        aria-disabled="false"
-        aria-label="Sync from Discogs"
-        class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-sizeMedium MuiButton-colorPrimary css-ix3d6e-MuiButtonBase-root-MuiButton-root"
-        data-testid="sync-button"
-        tabindex="0"
-        type="button"
+            <div
+              class="x1n2onr6 x78zum5 x6s0dn4 xl56j7k x2lah0s xc8icb0 xvy4d1p xxk0z11"
+            >
+              <input
+                aria-label="Download cover art"
+                class="x10l6tqk x1ghz6dp x1717udv xg01cxk x1ypdohk x1vjfegm xvy4d1p xxk0z11"
+                data-testid="download-images-checkbox"
+                id="<reactid>"
+                style="anchor-name: --astryx-layer-<reactid>;"
+                type="checkbox"
+              />
+              <div
+                aria-hidden="true"
+                class="astryx-checkbox md x78zum5 x6s0dn4 xl56j7k x1litavf x1y0btm7 xx3sua9 xts7igz xuedmi6 x12w9bfk xlr8y92 x17z2i9w x17rw0jw x1a2a7pz xkri23q x81n7kt xqwr325 xvy26l8 x1jtjlen x10xzikg xrsv7h"
+                data-size="md"
+              >
+                <svg
+                  class="x1s85apg x17wrial x6jxa94 x1v9usgg"
+                  viewBox="0 0 10 10"
+                >
+                  <path
+                    d="M8.5 2.5L4 7.5L1.5 5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                  />
+                </svg>
+                <div
+                  class="x1s85apg x1azo05 x1nj7uno xsmyaan x36qwtl"
+                />
+              </div>
+            </div>
+            <div
+              class="x78zum5 xdt5ytf x1lsbc85"
+            >
+              <label
+                class="astryx-field-label x78zum5 x6s0dn4 xzye2dw x9ynric xcr08ib x1kq96og x1e4wzip xv1l7n4 x1ypdohk"
+                for="<reactid>"
+              >
+                Also update cover art
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        style="align-self: flex-start;"
       >
-        Sync from Discogs
-      </button>
+        <button
+          aria-label="Sync from Discogs"
+          class="astryx-button primary md x1n2onr6 x3nfvp2 x6s0dn4 xl56j7k x1txdalj xce4md1 xrrkdod xc342km xng3xce x1jxw6zd xjb2p0i xcr08ib x1kq96og x1e4wzip xuxw1ft x1ypdohk xrafxwg xuedmi6 x12w9bfk xlr8y92 x1ueg155 x1ewilqj x17wrial x1ilzqfv xq8i9tn x17nn4n9 xkzo27j x1wfwxd8 x13aywxo x3oybdh xk4oym4"
+          data-size="md"
+          data-testid="sync-button"
+          data-variant="primary"
+          type="button"
+        >
+          <span
+            class="xjp7ctv"
+          >
+            <span
+              class="xb3r6kr xlyipyv xeuugli"
+            >
+              Sync from Discogs
+            </span>
+          </span>
+          <span
+            aria-live="polite"
+            class="x10l6tqk x1i1rx1s xjm9jq1 xkdpibf x1717udv xb3r6kr xzpqnlu xuxw1ft xng3xce x13vifvy x1o0tod x47corl x87ps6o"
+            role="status"
+          />
+        </button>
+      </div>
     </section>
   </div>
 </div>
@@ -78,61 +129,112 @@ exports[`SyncPanel visual regression > matches the idle sync-panel snapshot in l
   >
     <section
       aria-label="Sync from Discogs"
-      class="MuiBox-root css-1821gv5"
       data-testid="sync-panel"
+      style="display: flex; flex-direction: column; gap: 8px;"
     >
       <h3
-        class="MuiTypography-root MuiTypography-h6 css-15n7uon-MuiTypography-root"
+        class="astryx-heading level-3 primary x1tgivj0 xii13ha xwjzt0u x1jcxfy8 x1lliihq"
+        data-color="primary"
+        data-level="3"
       >
         Sync from Discogs
       </h3>
       <p
-        class="MuiTypography-root MuiTypography-body2 css-1qcw4ol-MuiTypography-root"
         data-testid="discogs-id"
+        style="margin: 0px;"
       >
-        Discogs ID: 1372704
+        <span
+          class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+          data-color="secondary"
+          data-type="supporting"
+        >
+          Discogs ID: 1372704
+        </span>
       </p>
-      <label
-        class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-vmew5-MuiFormControlLabel-root"
+      <div
+        style="align-self: flex-start;"
       >
-        <span
-          class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-vuhw6e-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+        <div
+          class="astryx-checkbox-input md"
+          data-size="md"
         >
-          <input
-            aria-label="Download cover art"
-            class="PrivateSwitchBase-input css-12xagqm-MuiSwitchBase-root"
-            data-indeterminate="false"
-            data-testid="download-images-checkbox"
-            type="checkbox"
-          />
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
-            data-testid="CheckBoxOutlineBlankIcon"
-            focusable="false"
-            viewBox="0 0 24 24"
+          <div
+            class="x78zum5 x6s0dn4 x1txdalj x1tspnpo"
           >
-            <path
-              d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-            />
-          </svg>
-        </span>
-        <span
-          class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-rizt0-MuiTypography-root"
-        >
-          Also update cover art
-        </span>
-      </label>
-      <button
-        aria-disabled="false"
-        aria-label="Sync from Discogs"
-        class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-sizeMedium MuiButton-colorPrimary css-ix3d6e-MuiButtonBase-root-MuiButton-root"
-        data-testid="sync-button"
-        tabindex="0"
-        type="button"
+            <div
+              class="x1n2onr6 x78zum5 x6s0dn4 xl56j7k x2lah0s xc8icb0 xvy4d1p xxk0z11"
+            >
+              <input
+                aria-label="Download cover art"
+                class="x10l6tqk x1ghz6dp x1717udv xg01cxk x1ypdohk x1vjfegm xvy4d1p xxk0z11"
+                data-testid="download-images-checkbox"
+                id="<reactid>"
+                style="anchor-name: --astryx-layer-<reactid>;"
+                type="checkbox"
+              />
+              <div
+                aria-hidden="true"
+                class="astryx-checkbox md x78zum5 x6s0dn4 xl56j7k x1litavf x1y0btm7 xx3sua9 xts7igz xuedmi6 x12w9bfk xlr8y92 x17z2i9w x17rw0jw x1a2a7pz xkri23q x81n7kt xqwr325 xvy26l8 x1jtjlen x10xzikg xrsv7h"
+                data-size="md"
+              >
+                <svg
+                  class="x1s85apg x17wrial x6jxa94 x1v9usgg"
+                  viewBox="0 0 10 10"
+                >
+                  <path
+                    d="M8.5 2.5L4 7.5L1.5 5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                  />
+                </svg>
+                <div
+                  class="x1s85apg x1azo05 x1nj7uno xsmyaan x36qwtl"
+                />
+              </div>
+            </div>
+            <div
+              class="x78zum5 xdt5ytf x1lsbc85"
+            >
+              <label
+                class="astryx-field-label x78zum5 x6s0dn4 xzye2dw x9ynric xcr08ib x1kq96og x1e4wzip xv1l7n4 x1ypdohk"
+                for="<reactid>"
+              >
+                Also update cover art
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        style="align-self: flex-start;"
       >
-        Sync from Discogs
-      </button>
+        <button
+          aria-label="Sync from Discogs"
+          class="astryx-button primary md x1n2onr6 x3nfvp2 x6s0dn4 xl56j7k x1txdalj xce4md1 xrrkdod xc342km xng3xce x1jxw6zd xjb2p0i xcr08ib x1kq96og x1e4wzip xuxw1ft x1ypdohk xrafxwg xuedmi6 x12w9bfk xlr8y92 x1ueg155 x1ewilqj x17wrial x1ilzqfv xq8i9tn x17nn4n9 xkzo27j x1wfwxd8 x13aywxo x3oybdh xk4oym4"
+          data-size="md"
+          data-testid="sync-button"
+          data-variant="primary"
+          type="button"
+        >
+          <span
+            class="xjp7ctv"
+          >
+            <span
+              class="xb3r6kr xlyipyv xeuugli"
+            >
+              Sync from Discogs
+            </span>
+          </span>
+          <span
+            aria-live="polite"
+            class="x10l6tqk x1i1rx1s xjm9jq1 xkdpibf x1717udv xb3r6kr xzpqnlu xuxw1ft xng3xce x13vifvy x1o0tod x47corl x87ps6o"
+            role="status"
+          />
+        </button>
+      </div>
     </section>
   </div>
 </div>

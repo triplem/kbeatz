@@ -1,13 +1,10 @@
 import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import Alert from '@mui/material/Alert'
-import AlertTitle from '@mui/material/AlertTitle'
-import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
-import List from '@mui/material/List'
-import ListItem from '@mui/material/ListItem'
-import ListItemText from '@mui/material/ListItemText'
-import Typography from '@mui/material/Typography'
+import { Button } from '@astryxdesign/core/Button'
+import { IconButton } from '@astryxdesign/core/IconButton'
+import { Icon } from '@astryxdesign/core/Icon'
+import { Text } from '@astryxdesign/core/Text'
+import { X } from 'lucide-react'
 import type { ScanErrorEntry } from '../../api/generated'
 
 interface ScanErrorsProps {
@@ -23,13 +20,13 @@ interface ScanErrorsProps {
 /**
  * ScanErrors - banner shown after a scan completes with per-album errors.
  *
- * Rebuilt on MUI feedback components: an error-severity Alert carrying the
- * summary, an expand/collapse toggle that reveals a List of individual error
- * entries, and a dismiss action. Each entry surfaces the album directory, the
- * failure reason and a remediation suggestion so operators get actionable
- * context (graceful degradation: a per-album failure does not fail the scan).
+ * An error-toned `role="alert"` panel carrying the summary, an expand/collapse
+ * toggle that reveals the individual error entries, and a dismiss action. Each
+ * entry surfaces the album directory, the failure reason and a remediation
+ * suggestion so operators get actionable context (graceful degradation: a
+ * per-album failure does not fail the scan).
  *
- * Accessibility: the Alert carries role="alert"; the toggle exposes
+ * Accessibility: the panel carries role="alert"; the toggle exposes
  * aria-expanded/aria-controls; the dismiss button is labelled.
  */
 export function ScanErrors({ errors, totalErrors, onDismiss }: ScanErrorsProps) {
@@ -50,61 +47,64 @@ export function ScanErrors({ errors, totalErrors, onDismiss }: ScanErrorsProps) 
   }
 
   return (
-    <Alert
-      severity="error"
-      onClose={handleDismiss}
-      slotProps={{ closeButton: { 'aria-label': t('scanErrors.dismiss') } }}
-      sx={{ alignItems: 'flex-start' }}
+    <div
+      role="alert"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: 8,
+        padding: 16,
+        borderRadius: 'var(--radius-element, 8px)',
+        border: '1px solid var(--color-error, #d6336c)',
+        background: 'var(--color-error-muted, rgba(214, 51, 108, 0.08))',
+        position: 'relative',
+      }}
     >
-      <AlertTitle sx={{ mb: 0.5 }}>{t('scanErrors.summary', { count: totalErrors })}</AlertTitle>
+      <div style={{ position: 'absolute', top: 4, insetInlineEnd: 4 }}>
+        <IconButton
+          variant="ghost"
+          size="sm"
+          label={t('scanErrors.dismiss')}
+          onClick={handleDismiss}
+          icon={<Icon icon={X} />}
+        />
+      </div>
+      <Text weight="semibold">{t('scanErrors.summary', { count: totalErrors })}</Text>
       <Button
         type="button"
-        size="small"
-        color="inherit"
-        variant="text"
+        size="sm"
+        variant="ghost"
         onClick={() => { setExpanded((prev) => !prev) }}
         aria-expanded={expanded}
         aria-controls={listId}
-        sx={{ minHeight: 44, px: 1 }}
-      >
-        {expanded ? t('scanErrors.hideDetails') : t('scanErrors.showDetails')}
-      </Button>
+        label={expanded ? t('scanErrors.hideDetails') : t('scanErrors.showDetails')}
+      />
 
       {expanded && (
-        <List
+        <ul
           id={listId}
-          dense
           aria-label={t('scanErrors.errorListLabel')}
-          sx={{ pt: 0 }}
+          style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}
         >
           {errors.map((entry) => (
-            <ListItem key={entry.albumDir} disableGutters sx={{ display: 'block' }}>
-              <ListItemText
-                primary={entry.albumDir}
-                secondary={
-                  <Box component="span" sx={{ display: 'block' }}>
-                    <Typography component="span" variant="body2" sx={{ display: 'block' }}>
-                      {entry.reason}
-                    </Typography>
-                    <Typography component="span" variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                      {t('scanErrors.entrySuggestion', { suggestion: entry.suggestion })}
-                    </Typography>
-                  </Box>
-                }
-                slotProps={{ secondary: { component: 'span' } }}
-              />
-            </ListItem>
+            <li key={entry.albumDir} style={{ display: 'block' }}>
+              <Text as="span" display="block">{entry.albumDir}</Text>
+              <span style={{ display: 'block' }}>
+                <Text type="supporting">{entry.reason}</Text>
+              </span>
+              <span style={{ display: 'block' }}>
+                <Text type="supporting">{t('scanErrors.entrySuggestion', { suggestion: entry.suggestion })}</Text>
+              </span>
+            </li>
           ))}
           {overflowCount > 0 && (
-            <ListItem disableGutters>
-              <ListItemText
-                primary={t('scanErrors.andMore', { count: overflowCount })}
-                slotProps={{ primary: { variant: 'body2', color: 'text.secondary' } }}
-              />
-            </ListItem>
+            <li>
+              <Text type="supporting">{t('scanErrors.andMore', { count: overflowCount })}</Text>
+            </li>
           )}
-        </List>
+        </ul>
       )}
-    </Alert>
+    </div>
   )
 }

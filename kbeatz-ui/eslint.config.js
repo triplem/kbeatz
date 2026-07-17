@@ -113,6 +113,8 @@ export default tseslint.config(
               'endContent',
               'gap',
               'padding',
+              'as',
+              'display',
             ],
           },
         },

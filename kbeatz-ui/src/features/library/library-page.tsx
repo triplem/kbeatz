@@ -1,6 +1,5 @@
 import { type ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
-import Container from '@mui/material/Container'
 import { PageSection } from '../../components'
 import { ScanButton } from './scan-button'
 
@@ -19,16 +18,15 @@ export function LibraryPage(): ReactElement {
   const { t } = useTranslation()
 
   return (
-    <Container maxWidth="md" sx={{ py: 3 }}>
+    <div style={{ maxWidth: 900, margin: '0 auto', padding: 24 }}>
       <PageSection
         title={t('library.heading')}
         description={t('library.description')}
         headingLevel="h1"
-        titleVariant="h5"
         testId="library-page"
       >
         <ScanButton />
       </PageSection>
-    </Container>
+    </div>
   )
 }
