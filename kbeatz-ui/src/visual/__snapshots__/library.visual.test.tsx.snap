@@ -8,23 +8,27 @@ exports[`LibraryPage visual regression > matches the library snapshot in dark th
     data-theme="dark"
   >
     <div
-      class="MuiContainer-root MuiContainer-maxWidthMd css-1o116p1-MuiContainer-root"
+      style="max-width: 900px; margin: 0px auto; padding: 24px;"
     >
       <section
         aria-label="Library"
-        class="MuiBox-root css-1821gv5"
         data-testid="library-page"
+        style="display: flex; flex-direction: column; gap: 8px;"
       >
         <h1
-          class="MuiTypography-root MuiTypography-h5 css-1bazrdc-MuiTypography-root"
+          class="astryx-heading level-1 primary x1tgivj0 xcg7oai xfmsba7 x1v68xuy x1lliihq"
+          data-color="primary"
+          data-level="1"
         >
           Library
         </h1>
-        <p
-          class="MuiTypography-root MuiTypography-body2 css-1qcw4ol-MuiTypography-root"
+        <span
+          class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+          data-color="secondary"
+          data-type="supporting"
         >
           Scan your music library to index albums and refresh metadata.
-        </p>
+        </span>
         <button
           data-testid="scan-button-stub"
           type="button"
@@ -45,23 +49,27 @@ exports[`LibraryPage visual regression > matches the library snapshot in light t
     data-theme="light"
   >
     <div
-      class="MuiContainer-root MuiContainer-maxWidthMd css-1o116p1-MuiContainer-root"
+      style="max-width: 900px; margin: 0px auto; padding: 24px;"
     >
       <section
         aria-label="Library"
-        class="MuiBox-root css-1821gv5"
         data-testid="library-page"
+        style="display: flex; flex-direction: column; gap: 8px;"
       >
         <h1
-          class="MuiTypography-root MuiTypography-h5 css-1bazrdc-MuiTypography-root"
+          class="astryx-heading level-1 primary x1tgivj0 xcg7oai xfmsba7 x1v68xuy x1lliihq"
+          data-color="primary"
+          data-level="1"
         >
           Library
         </h1>
-        <p
-          class="MuiTypography-root MuiTypography-body2 css-1qcw4ol-MuiTypography-root"
+        <span
+          class="astryx-text supporting secondary xv1l7n4 x141an7d x1ltkj2j xv8on6e xt0psk2"
+          data-color="secondary"
+          data-type="supporting"
         >
           Scan your music library to index albums and refresh metadata.
-        </p>
+        </span>
         <button
           data-testid="scan-button-stub"
           type="button"

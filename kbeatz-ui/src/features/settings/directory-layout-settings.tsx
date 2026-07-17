@@ -108,6 +108,12 @@ export function DirectoryLayoutSettings(): ReactElement {
     ...albums.map((album) => ({ value: album.id, label: albumOptionLabel(album) })),
   ]
 
+  // Validation status for the album selector; hoisted out of JSX so the literal
+  // 'error' status type is not flagged as user-facing copy.
+  const selectorStatus = albumsError
+    ? ({ type: 'error', message: t('directoryLayout.albumsError') } as const)
+    : undefined
+
   return (
     <div data-testid="directory-layout-settings" style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '8px 0' }}>
       <div>
@@ -148,9 +154,7 @@ export function DirectoryLayoutSettings(): ReactElement {
           onChange={(v) => setSelectedAlbumId(v === '' ? null : v)}
           options={albumOptions}
           isDisabled={albumsPending || albumsError || albums.length === 0}
-          {...(albumsError
-            ? { status: { type: 'error' as const, message: t('directoryLayout.albumsError') } }
-            : {})}
+          {...(selectorStatus ? { status: selectorStatus } : {})}
         />
       </div>
 
