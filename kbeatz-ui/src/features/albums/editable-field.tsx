@@ -324,7 +324,7 @@ export function EditableField({
                 padding: '4px 8px',
                 border: '1px solid var(--color-accent, #6a4de8)',
                 borderRadius: 'var(--radius-element, 8px)',
-                background: 'var(--color-background-primary, #fff)',
+                background: 'var(--color-background-surface, #fff)',
                 color: 'var(--color-text-primary)',
                 fontSize: '1rem',
                 fontFamily: 'inherit',

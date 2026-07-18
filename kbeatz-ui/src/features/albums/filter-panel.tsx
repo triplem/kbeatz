@@ -104,7 +104,7 @@ export function FilterPanel({ options, filters, onFiltersChange }: FilterPanelPr
             marginBottom: 16,
             padding: 12,
             borderRadius: 'var(--radius-element, 8px)',
-            background: 'var(--color-muted, rgba(128, 128, 128, 0.12))',
+            background: 'var(--color-background-muted, rgba(128, 128, 128, 0.12))',
           }}
         >
           <Text type="supporting">{t('filterPanel.multiValueWarning')}</Text>

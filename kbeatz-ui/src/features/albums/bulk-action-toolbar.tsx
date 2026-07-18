@@ -38,7 +38,7 @@ export function BulkActionToolbar({
         padding: 12,
         marginBottom: 8,
         borderRadius: 'var(--radius-element, 8px)',
-        background: 'var(--color-muted, rgba(128, 128, 128, 0.12))',
+        background: 'var(--color-background-muted, rgba(128, 128, 128, 0.12))',
       }}
     >
       <p

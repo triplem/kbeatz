@@ -91,7 +91,7 @@ export function AlbumCard({
             top: 4,
             left: 4,
             zIndex: 1,
-            background: 'var(--color-background-primary, #fff)',
+            background: 'var(--color-background-surface, #fff)',
             borderRadius: 'var(--radius-element, 8px)',
             padding: 2,
           }}
@@ -117,7 +117,7 @@ export function AlbumCard({
               position: 'relative',
               width: '100%',
               aspectRatio: '1 / 1',
-              background: 'var(--color-muted, rgba(128, 128, 128, 0.1))',
+              background: 'var(--color-background-muted, rgba(128, 128, 128, 0.1))',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

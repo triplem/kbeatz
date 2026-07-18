@@ -18,10 +18,10 @@ const OVERLAY_STYLE: CSSProperties = {
 const PANEL_STYLE: CSSProperties = {
   width: '100%',
   maxWidth: 440,
-  background: 'var(--color-background-primary, #fff)',
+  background: 'var(--color-background-surface, #fff)',
   color: 'var(--color-text-primary)',
   borderRadius: 'var(--radius-container, 12px)',
-  boxShadow: 'var(--shadow-4, 0 12px 32px rgba(0, 0, 0, 0.25))',
+  boxShadow: 'var(--shadow-high, 0 12px 32px rgba(0, 0, 0, 0.25))',
   padding: 24,
 }
 
