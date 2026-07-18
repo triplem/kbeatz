@@ -169,7 +169,7 @@ export function AlbumListPage() {
                 padding: 16,
               }}
             >
-              <span style={{ color: 'var(--color-text-error, #d6336c)' }}>
+              <span style={{ color: 'var(--color-text-red, #d6336c)' }}>
                 <Text>{t('albumGrid.fetchError')}</Text>
               </span>
               <Button

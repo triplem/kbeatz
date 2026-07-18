@@ -73,7 +73,7 @@ export function AlbumTrackListView({ tracks, showCredits = true }: AlbumTrackLis
                     style={{
                       ...cellStyle,
                       fontWeight: 600,
-                      background: 'var(--color-muted, rgba(128,128,128,0.1))',
+                      background: 'var(--color-background-muted, rgba(128,128,128,0.1))',
                     }}
                   >
                     <Text type="supporting" weight="semibold">

@@ -382,7 +382,7 @@ export function AlbumDetailEdit({
                   aspectRatio: '1 / 1',
                   objectFit: 'cover',
                   borderRadius: 'var(--radius-container, 12px)',
-                  boxShadow: 'var(--shadow-3, 0 4px 12px rgba(0,0,0,0.15))',
+                  boxShadow: 'var(--shadow-med, 0 4px 12px rgba(0,0,0,0.15))',
                 }}
               />
             )}
@@ -563,7 +563,7 @@ function TrackList({ tracks, albumArtist, onSave, onCommit, disabled = false }: 
                 <tr>
                   <td
                     colSpan={5}
-                    style={{ ...cellStyle, fontWeight: 600, background: 'var(--color-muted, rgba(128,128,128,0.1))' }}
+                    style={{ ...cellStyle, fontWeight: 600, background: 'var(--color-background-muted, rgba(128,128,128,0.1))' }}
                   >
                     <Text type="supporting" weight="semibold">
                       {t('albumDetail.discHeader', { number: group.discLabel })}

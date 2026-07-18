@@ -70,7 +70,7 @@ export function AlbumHeroHeader({ album }: AlbumHeroHeaderProps) {
             aspectRatio: '1 / 1',
             objectFit: 'cover',
             borderRadius: 'var(--radius-container, 12px)',
-            boxShadow: 'var(--shadow-3, 0 4px 12px rgba(0,0,0,0.15))',
+            boxShadow: 'var(--shadow-med, 0 4px 12px rgba(0,0,0,0.15))',
           }}
         />
       )}

@@ -1610,7 +1610,7 @@ exports[`AlbumListPage visual regression > matches the error snapshot in dark th
             style="display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 16px;"
           >
             <span
-              style="color: var(--color-text-error, #d6336c);"
+              style="color: var(--color-text-red, #d6336c);"
             >
               <span
                 class="astryx-text body primary x1tgivj0 xjm74w1 xw6l6zx xxovm9e xt0psk2"
@@ -2178,7 +2178,7 @@ exports[`AlbumListPage visual regression > matches the error snapshot in light t
             style="display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 16px;"
           >
             <span
-              style="color: var(--color-text-error, #d6336c);"
+              style="color: var(--color-text-red, #d6336c);"
             >
               <span
                 class="astryx-text body primary x1tgivj0 xjm74w1 xw6l6zx xxovm9e xt0psk2"
@@ -3857,7 +3857,7 @@ exports[`AlbumListPage visual regression > matches the populated-list snapshot i
               >
                 <div
                   data-testid="album-select-album-0003"
-                  style="position: absolute; top: 4px; left: 4px; z-index: 1; background: var(--color-background-primary, #fff); border-radius: var(--radius-element, 8px); padding: 2px;"
+                  style="position: absolute; top: 4px; left: 4px; z-index: 1; background: var(--color-background-surface, #fff); border-radius: var(--radius-element, 8px); padding: 2px;"
                 >
                   <div
                     class="astryx-checkbox-input md"
@@ -3927,7 +3927,7 @@ exports[`AlbumListPage visual regression > matches the populated-list snapshot i
                     style="display: flex; flex-direction: column; height: 100%; text-align: left;"
                   >
                     <div
-                      style="position: relative; width: 100%; aspect-ratio: 1 / 1; background: var(--color-muted, rgba(128, 128, 128, 0.1)); display: flex; align-items: center; justify-content: center; overflow: hidden;"
+                      style="position: relative; width: 100%; aspect-ratio: 1 / 1; background: var(--color-background-muted, rgba(128, 128, 128, 0.1)); display: flex; align-items: center; justify-content: center; overflow: hidden;"
                     >
                       <span
                         aria-hidden="true"
@@ -4014,7 +4014,7 @@ exports[`AlbumListPage visual regression > matches the populated-list snapshot i
               >
                 <div
                   data-testid="album-select-album-0002"
-                  style="position: absolute; top: 4px; left: 4px; z-index: 1; background: var(--color-background-primary, #fff); border-radius: var(--radius-element, 8px); padding: 2px;"
+                  style="position: absolute; top: 4px; left: 4px; z-index: 1; background: var(--color-background-surface, #fff); border-radius: var(--radius-element, 8px); padding: 2px;"
                 >
                   <div
                     class="astryx-checkbox-input md"
@@ -4084,7 +4084,7 @@ exports[`AlbumListPage visual regression > matches the populated-list snapshot i
                     style="display: flex; flex-direction: column; height: 100%; text-align: left;"
                   >
                     <div
-                      style="position: relative; width: 100%; aspect-ratio: 1 / 1; background: var(--color-muted, rgba(128, 128, 128, 0.1)); display: flex; align-items: center; justify-content: center; overflow: hidden;"
+                      style="position: relative; width: 100%; aspect-ratio: 1 / 1; background: var(--color-background-muted, rgba(128, 128, 128, 0.1)); display: flex; align-items: center; justify-content: center; overflow: hidden;"
                     >
                       <span
                         aria-hidden="true"
@@ -4171,7 +4171,7 @@ exports[`AlbumListPage visual regression > matches the populated-list snapshot i
               >
                 <div
                   data-testid="album-select-album-0001"
-                  style="position: absolute; top: 4px; left: 4px; z-index: 1; background: var(--color-background-primary, #fff); border-radius: var(--radius-element, 8px); padding: 2px;"
+                  style="position: absolute; top: 4px; left: 4px; z-index: 1; background: var(--color-background-surface, #fff); border-radius: var(--radius-element, 8px); padding: 2px;"
                 >
                   <div
                     class="astryx-checkbox-input md"
@@ -4241,7 +4241,7 @@ exports[`AlbumListPage visual regression > matches the populated-list snapshot i
                     style="display: flex; flex-direction: column; height: 100%; text-align: left;"
                   >
                     <div
-                      style="position: relative; width: 100%; aspect-ratio: 1 / 1; background: var(--color-muted, rgba(128, 128, 128, 0.1)); display: flex; align-items: center; justify-content: center; overflow: hidden;"
+                      style="position: relative; width: 100%; aspect-ratio: 1 / 1; background: var(--color-background-muted, rgba(128, 128, 128, 0.1)); display: flex; align-items: center; justify-content: center; overflow: hidden;"
                     >
                       <span
                         aria-hidden="true"
@@ -4880,7 +4880,7 @@ exports[`AlbumListPage visual regression > matches the populated-list snapshot i
               >
                 <div
                   data-testid="album-select-album-0003"
-                  style="position: absolute; top: 4px; left: 4px; z-index: 1; background: var(--color-background-primary, #fff); border-radius: var(--radius-element, 8px); padding: 2px;"
+                  style="position: absolute; top: 4px; left: 4px; z-index: 1; background: var(--color-background-surface, #fff); border-radius: var(--radius-element, 8px); padding: 2px;"
                 >
                   <div
                     class="astryx-checkbox-input md"
@@ -4950,7 +4950,7 @@ exports[`AlbumListPage visual regression > matches the populated-list snapshot i
                     style="display: flex; flex-direction: column; height: 100%; text-align: left;"
                   >
                     <div
-                      style="position: relative; width: 100%; aspect-ratio: 1 / 1; background: var(--color-muted, rgba(128, 128, 128, 0.1)); display: flex; align-items: center; justify-content: center; overflow: hidden;"
+                      style="position: relative; width: 100%; aspect-ratio: 1 / 1; background: var(--color-background-muted, rgba(128, 128, 128, 0.1)); display: flex; align-items: center; justify-content: center; overflow: hidden;"
                     >
                       <span
                         aria-hidden="true"
@@ -5037,7 +5037,7 @@ exports[`AlbumListPage visual regression > matches the populated-list snapshot i
               >
                 <div
                   data-testid="album-select-album-0002"
-                  style="position: absolute; top: 4px; left: 4px; z-index: 1; background: var(--color-background-primary, #fff); border-radius: var(--radius-element, 8px); padding: 2px;"
+                  style="position: absolute; top: 4px; left: 4px; z-index: 1; background: var(--color-background-surface, #fff); border-radius: var(--radius-element, 8px); padding: 2px;"
                 >
                   <div
                     class="astryx-checkbox-input md"
@@ -5107,7 +5107,7 @@ exports[`AlbumListPage visual regression > matches the populated-list snapshot i
                     style="display: flex; flex-direction: column; height: 100%; text-align: left;"
                   >
                     <div
-                      style="position: relative; width: 100%; aspect-ratio: 1 / 1; background: var(--color-muted, rgba(128, 128, 128, 0.1)); display: flex; align-items: center; justify-content: center; overflow: hidden;"
+                      style="position: relative; width: 100%; aspect-ratio: 1 / 1; background: var(--color-background-muted, rgba(128, 128, 128, 0.1)); display: flex; align-items: center; justify-content: center; overflow: hidden;"
                     >
                       <span
                         aria-hidden="true"
@@ -5194,7 +5194,7 @@ exports[`AlbumListPage visual regression > matches the populated-list snapshot i
               >
                 <div
                   data-testid="album-select-album-0001"
-                  style="position: absolute; top: 4px; left: 4px; z-index: 1; background: var(--color-background-primary, #fff); border-radius: var(--radius-element, 8px); padding: 2px;"
+                  style="position: absolute; top: 4px; left: 4px; z-index: 1; background: var(--color-background-surface, #fff); border-radius: var(--radius-element, 8px); padding: 2px;"
                 >
                   <div
                     class="astryx-checkbox-input md"
@@ -5264,7 +5264,7 @@ exports[`AlbumListPage visual regression > matches the populated-list snapshot i
                     style="display: flex; flex-direction: column; height: 100%; text-align: left;"
                   >
                     <div
-                      style="position: relative; width: 100%; aspect-ratio: 1 / 1; background: var(--color-muted, rgba(128, 128, 128, 0.1)); display: flex; align-items: center; justify-content: center; overflow: hidden;"
+                      style="position: relative; width: 100%; aspect-ratio: 1 / 1; background: var(--color-background-muted, rgba(128, 128, 128, 0.1)); display: flex; align-items: center; justify-content: center; overflow: hidden;"
                     >
                       <span
                         aria-hidden="true"
